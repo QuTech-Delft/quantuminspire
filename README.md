@@ -14,17 +14,15 @@ from getpass import getpass
 from requests.auth import HTTPBasicAuth
 from quantuminspire import QuantumInspireAPI
 
-try:
-    passwd
-except:
+if 'password' not in vars().keys():
     print('Enter username')
-    username = input();
+    username = input()
     print('Enter password')
-    passwd = getpass();
+    password = getpass()
 
-auth = HTTPBasicAuth(username, passwd)
+auth = HTTPBasicAuth(username, password)
 qi = QuantumInspireAPI(server=r'https://api.quantum-inspire.com/', auth=auth)  
-_=qi.list_backends()
+backend_types=qi.list_backend_types()
 
 qasm='''version 1.0
 
@@ -36,6 +34,6 @@ display
 measure q[0]
 '''
 
-r=qi.execute_qasm(qasm, nshots=128)
+r=qi.execute_qasm(qasm, backend_types[0], nshots=128)
 ```
 

@@ -79,7 +79,7 @@ display
 measure q[0]
 '''
 
-r=qi.execute_qasm(qasm, nshots=128)
+r=qi.execute_qasm(qasm, number_of_shots=128)
 
 
 #%%
