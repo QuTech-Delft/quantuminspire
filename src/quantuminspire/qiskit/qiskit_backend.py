@@ -24,15 +24,12 @@ logger = logging.getLogger(__name__)
 
 
 class QiSimulatorPy(BaseBackend):
-    """ Python implementation of a quantum simulator using Quantum Inspire
-    
-    Code adapted from https://github.com/Qiskit/qiskit-terra
+    """ Python implementation of a quantum simulator using Quantum Inspire. Code adapted
+        from https://github.com/Qiskit/qiskit-terra. For definition of the u1, u2, u3 basis gates see:
+            https://quantumexperience.ng.bluemix.net/proxy/tutorial/full-user-guide/002-The_Weird_and_Wonderful_World_of_the_Qubit/004-advanced_qubit_gates.html
+            http://www.vcpc.univie.ac.at/~ian/hotlist/qc/talks/bloch-sphere-rotations.pdf
 
-# for definition of the u1, u2, u3 basis gates see   
-# https://quantumexperience.ng.bluemix.net/proxy/tutorial/full-user-guide/002-The_Weird_and_Wonderful_World_of_the_Qubit/004-advanced_qubit_gates.html    
-# also see: http://www.vcpc.univie.ac.at/~ian/hotlist/qc/talks/bloch-sphere-rotations.pdf
-# note: Rz(theta)=\exp(-i theta/2 Z)
-
+        Note: Rz(theta)=\exp(-i theta/2 Z)
     """
 
     DEFAULT_CONFIGURATION = {
@@ -57,7 +54,7 @@ class QiSimulatorPy(BaseBackend):
 
         backend_types = list(filter(
             lambda backend: backend['name'] == self._configuration['qi_backend_name'],
-            self.qi_api.list_backend_types()
+            self.qi_api.get_backend_types()
         ))
 
         if len(backend_types) != 1:
@@ -223,8 +220,6 @@ class QiSimulatorPy(BaseBackend):
 
         # execute cqasm
         results = self.qi_api.execute_qasm(self._cqasm, self._backend, number_of_shots=number_of_shots)
-        self._qi_results = results
-
         counts = copy.copy(results['histogram'])
         for k in counts:
             counts[k] = counts[k] * number_of_shots

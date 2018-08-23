@@ -12,15 +12,12 @@ instance, which is used to instantiate a QiSimulatorPy backend later
 on that is used to execute the circuit.
 
 """
+import qiskit
 
 from getpass import getpass
-from requests.auth import HTTPBasicAuth
-from quantuminspire import QuantumInspireAPI
-import qiskit
-from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, QISKitError, QuantumProgram
+from coreapi.auth import BasicAuthentication
+from quantuminspire.api import QuantumInspireAPI
 from quantuminspire.qiskit.qiskit_backend import QiSimulatorPy
-from qiskit import available_backends, execute, register, get_backend, compile
-
 
 if 'password' not in vars().keys():
     print('Enter username')
@@ -28,21 +25,19 @@ if 'password' not in vars().keys():
     print('Enter password')
     password = getpass()
 
-auth = HTTPBasicAuth(username, password)
-qi = QuantumInspireAPI(server=r'https://api.quantum-inspire.com/', auth=auth)
+server_url = r'https://dev.quantum-inspire.com/api/'
+authentication = BasicAuthentication(username, password)
+qi = QuantumInspireAPI(server_url, authentication)
 
 QPS_SPECS = {
     'circuits': [{
         'name': 'entangle',
-        'quantum_registers': [
-            {'name': 'q', 'size': 2},
-        ],
-        'classical_registers': [
-            {'name': 'b', 'size': 2},
-        ]}]
+        'quantum_registers': [{'name': 'q', 'size': 2}],
+        'classical_registers': [{'name': 'b', 'size': 2}]
+    }]
 }
 
-program = QuantumProgram(specs=QPS_SPECS)
+program = qiskit.QuantumProgram(specs=QPS_SPECS)
 q = program.get_quantum_register('q')
 b = program.get_classical_register('b')
 circuit = program.get_circuit('entangle')
@@ -53,6 +48,6 @@ circuit.measure(q[0], b[0])
 circuit.measure(q[1], b[1])
 
 backend = QiSimulatorPy(qi_api=qi)
-result = execute(circuit, backend)
+result = qiskit.execute(circuit, backend)
 
 print(result.get_counts())

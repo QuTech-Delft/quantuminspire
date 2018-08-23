@@ -7,12 +7,38 @@ The software development kit for the Quantum Inspire platform. The SDK consists 
 
 For more information see https://www.quantum-inspire.com/
 
+### Authors
+
+* Pieter Eendebak
+
+
+## Installation
+
+For the default installation:
+
+```
+pip install .
+```
+
+If you want to use another backend, install with (e.g. for the qiskit backend):
+```
+pip install .[qiskit]
+```
+
+Also multiple backends can be installed using one command:
+```
+pip install .[qiskit,projectq]
+```
+
+## Running
+
 For example usage see the Jupyter notebooks in the [docs](docs/) directory.
 
 ``` python
+
 from getpass import getpass
-from requests.auth import HTTPBasicAuth
-from quantuminspire import QuantumInspireAPI
+from coreapi.auth import BasicAuthentication
+from quantuminspire.api import QuantumInspireAPI
 
 if 'password' not in vars().keys():
     print('Enter username')
@@ -20,20 +46,24 @@ if 'password' not in vars().keys():
     print('Enter password')
     password = getpass()
 
-auth = HTTPBasicAuth(username, password)
-qi = QuantumInspireAPI(server=r'https://api.quantum-inspire.com/', auth=auth)  
-backend_types=qi.list_backend_types()
+server_url = r'https://api.quantum-inspire.com'
+authentication = BasicAuthentication(username, password)
+qi = QuantumInspireAPI(server_url, authentication)
 
-qasm='''version 1.0
+
+qasm = '''version 1.0
 
 qubits 2
 
-H q[0] 
-CNOT q[0], q[1] 
-display 
+H q[0]
+CNOT q[0], q[1]
+display
+
 measure q[0]
 '''
 
-r=qi.execute_qasm(qasm, backend_types[0], nshots=128)
-```
+backend = qi.get_backend_type(backend_id=1)
+result = qi.execute_qasm(qasm, backend, number_of_shots=128)
 
+print(result['histogram'])
+```
