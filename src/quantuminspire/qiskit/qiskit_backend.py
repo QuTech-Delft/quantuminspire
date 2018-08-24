@@ -182,8 +182,6 @@ class QiSimulatorPy(BaseBackend):
         pad = '   '
         ss += '.measurement\n'
 
-        # bug in qi
-        # ss+=pad+'measure q[%s]\n' % ( ','.join([str(i) for i in range(number_of_qubits)]))
         for i in range(number_of_qubits):
             ss += pad + 'measure q[%d]\n' % i
         return ss
@@ -219,8 +217,11 @@ class QiSimulatorPy(BaseBackend):
         self._cqasm = self.generate_cqasm(compiled_circuit)
 
         # execute cqasm
-        results = self.qi_api.execute_qasm(self._cqasm, self._backend, number_of_shots=number_of_shots)
-        counts = copy.copy(results['histogram'])
+        self._qi_results = self.qi_api.execute_qasm(self._cqasm, self._backend, number_of_shots=number_of_shots)
+        if len(self._qi_results['histogram']) == 0:
+            raise Exception('result from backend contains no histogram data')
+
+        counts = copy.copy(self._qi_results['histogram'])
         for k in counts:
             counts[k] = counts[k] * number_of_shots
         data = {'counts': counts, 'snapshots': {}}

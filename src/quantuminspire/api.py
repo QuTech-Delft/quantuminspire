@@ -8,7 +8,8 @@ import coreapi
 
 class QuantumInspireAPI:
 
-    def __init__(self, base_uri, authentication, coreapi_client_class=coreapi.Client, logger=logging):
+    def __init__(self, base_uri, authentication, project_name=None,
+                 logger=logging, coreapi_client_class=coreapi.Client):
         """ Python interface to the Quantum Inspire API For documentation see:
                 https://dev.quantum-inspire.com/api
                 https://dev.quantum-inspire.com/api/docs/#jobs-create
@@ -16,8 +17,12 @@ class QuantumInspireAPI:
         Args:
             base_uri (str): The url of the Quantum Inspire api.
             authentication (BasicAuthentication): The basic HTTP authentication.
+            project_name (str or None): The used project for execution jobs.
+                                        Project will not deleted when a name is given.
+            logger (Logger): The logging module instance.
         """
         self.__client = coreapi_client_class(auth=authentication)
+        self.project_name = project_name
         self.base_uri = base_uri
         self.__logger = logger
         try:
@@ -279,7 +284,7 @@ class QuantumInspireAPI:
         return False
 
     def execute_qasm(self, qasm, backend, number_of_shots=256, collect_tries=300,
-                     default_number_of_shots=256, identifier=str(uuid.uuid1())):
+                     default_number_of_shots=256, identifier=None):
         """ Creates the project, asset and job with the given qasm code and returns
             the execution result.
 
@@ -289,14 +294,25 @@ class QuantumInspireAPI:
             number_of_shots (int): Execution times of the algorithm before collecting the results.
             collect_tries (int): The number of times the results should be collected before returning.
             default_number_of_shots (int): The default used number of shots for the project.
-            identifier (str): The identifier of the project, asset and job.
+            identifier (str or None): The identifier of the project, asset and job.
 
         Returns:
             OrderedDict: The results of the executed qasm if succesfull else an empty dictionary if
                          the results could not be collected.
         """
-        project_name = 'qi-sdk-project-{}'.format(identifier)
-        project = self._create_project(project_name, default_number_of_shots, backend)
+        project = None
+        delete_project_afterwards = True
+        if identifier is None:
+            identifier = uuid.uuid1()
+
+        if self.project_name is not None:
+            delete_project_afterwards = False
+            project = next((project for project in self.get_projects()
+                           if project['name'] == self.project_name), None)
+
+        if project is None:
+            project_name = self.project_name if self.project_name else'qi-sdk-project-{}'.format(identifier)
+            project = self._create_project(project_name, default_number_of_shots, backend)
 
         try:
             asset_name = 'qi-sdk-asset-{}'.format(identifier)
@@ -312,7 +328,8 @@ class QuantumInspireAPI:
             result = self._get(result_uri) if has_results else {}
 
         finally:
-            project_identifier = project['id']
-            self._delete_project(project_identifier)
+            if delete_project_afterwards:
+                project_identifier = project['id']
+                self._delete_project(project_identifier)
 
         return result
