@@ -40,7 +40,7 @@ class QiSimulatorPy(BaseBackend):
         'local': True,
         'description': 'A qi simulator for qasm files',
         'coupling_map': 'all-to-all',
-        'basis_gates': 'x,y,z,h,s,cx,u1,u2,u3,id,snapshot'
+        'basis_gates': 'x,y,z,h,s,cx,ccx,u1,u2,u3,id,snapshot'
     }
 
     def __init__(self, configuration=None, qi_api=None):
@@ -123,6 +123,8 @@ class QiSimulatorPy(BaseBackend):
                 print('%s: parsing %s' % (self.__class__, c,))
             if c['name'] == 'cx' or c['name'] == 'CX':
                 ss += 'CNOT q[%d], q[%d]\n' % tuple(c['qubits'])
+            elif c['name'] == 'ccx':
+                ss += 'Toffoli q[%d], q[%d], q[%d]\n' % tuple(c['qubits'])
             elif c['name'] == 'measure':
                 pass
             elif c['name'] == 'h':
