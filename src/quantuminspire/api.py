@@ -83,6 +83,24 @@ class QuantumInspireAPI:
         """
         return self._action(['backendtypes', 'read'], params={'id': backend_id})
 
+    def get_backend_type_by_name(self, backend_name):
+        """ Gets the properties of the first backend type, given the backend name.
+
+        Args:
+            backend_name (str): The backend name.
+
+        Raises:
+            ValueError: if the backend name does not exists.
+
+        Returns:
+            OrderedDict: The properties of the backend type.
+        """
+        backend = next((backend for backend in self.get_backend_types()
+                        if backend['name'] == backend_name), None)
+        if backend is None:
+            raise ValueError('Backend with name {} does not exist!'.format(backend_name))
+        return backend
+
     #  projects  #
 
     def list_projects(self):
@@ -143,7 +161,7 @@ class QuantumInspireAPI:
     def list_jobs(self):
         """ Prints the jobs with the name, identification number and status."""
         jobs = self.get_jobs()
-        [print('Result: name {name}, id {id}, status {status}'.format(**job)) for job in jobs]
+        [print('Job: name {name}, id {id}, status {status}'.format(**job)) for job in jobs]
 
     def get_jobs(self):
         """ Gets the jobs with its properties; name, status, backend, results, etc.
@@ -215,10 +233,10 @@ class QuantumInspireAPI:
 
     def list_assets(self):
         """ Prints the assets of the users with the name, identification number and project identification number."""
-        assets = self.get_asserts()
+        assets = self.get_assets()
         [print('Asset: name {name}, id {id}, (project_id {project_id})'.format(**asset)) for asset in assets]
 
-    def get_asserts(self):
+    def get_assets(self):
         """ Gets the assets with its properties; qasm content, name, etc.
 
         Returns:

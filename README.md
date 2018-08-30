@@ -40,16 +40,15 @@ from getpass import getpass
 from coreapi.auth import BasicAuthentication
 from quantuminspire.api import QuantumInspireAPI
 
-if 'password' not in vars().keys():
-    print('Enter username')
-    username = input()
-    print('Enter password')
-    password = getpass()
+print('Enter mail address')
+email = input()
+
+print('Enter password')
+password = getpass()
 
 server_url = r'https://api.quantum-inspire.com'
-authentication = BasicAuthentication(username, password)
+authentication = BasicAuthentication(email, password)
 qi = QuantumInspireAPI(server_url, authentication)
-
 
 qasm = '''version 1.0
 
@@ -66,4 +65,12 @@ backend = qi.get_backend_type(backend_id=1)
 result = qi.execute_qasm(qasm, backend, number_of_shots=128)
 
 print(result['histogram'])
+```
+
+## Testing
+
+Run all unittests and collect the code coverage using:
+```
+coverage run --source="./src/quantuminspire" -m unittest discover -s src/tests -t src -v
+coverage report -m
 ```

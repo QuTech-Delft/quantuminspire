@@ -1,0 +1,33 @@
+pipeline {
+    agent {
+        dockerfile {
+              filename 'src/tests/Dockerfile.build'
+              args '-v pip_cache:/var/pip_cache'
+        }
+    }
+    stages {
+        stage('Build') {
+            steps {
+                sh 'virtualenv venv'
+                sh '. ./venv/bin/activate && pip install . --cache-dir /var/pip_cache'
+                sh 'pwd'
+                sh 'ls -lah'
+            }
+        }
+        stage('Tests') {
+            steps {
+                sh '''
+                       . ./venv/bin/activate &&
+                       coverage run --source="./src/quantuminspire" -m unittest discover -s src/tests -t src -v &&
+                       coverage report -m &&
+                       coverage xml
+                   '''
+            }
+        }
+        stage('Coverage') {
+            steps {
+                step([$class: 'CoberturaPublisher', coberturaReportFile: 'coverage.xml'])
+            }
+        }
+    }
+}

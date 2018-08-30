@@ -7,7 +7,7 @@ def get_version_number(module):
         Returns:
             Str: the version number.
     """
-    with open('src/{}/__init__.py'.format(module), 'r') as file_stream:
+    with open('src/{}/version.py'.format(module), 'r') as file_stream:
         line = file_stream.readline().split()
         version_number = line[2].replace('\'', '')
     return version_number
@@ -22,10 +22,11 @@ setup(name='quantuminspire',
       classifiers=[
           'Development Status :: 3 - Alpha',
           'Programming Language :: Python :: 3',
+          'Programming Language :: Python :: 3.5',
           'Programming Language :: Python :: 3.6',
           'Programming Language :: Python :: 3.7'],
       license='Other/Proprietary License',
-      packages=['quantuminspire', 'quantuminspire.utils', 'quantuminspire.qiskit'],
+      packages=['quantuminspire', 'quantuminspire.utils', 'quantuminspire.backends'],
       install_requires=['pytest>=3.3.1', 'coverage>=4.5.1',
                         'coreapi>=2.3.3', 'numpy', 'jupyter'],
       extras_require={'qiskit': ["qiskit>=0.5.7"], 'projectq': ["projectq>=0.4"]})
