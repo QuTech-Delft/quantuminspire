@@ -9,7 +9,7 @@ pipeline {
         stage('Build') {
             steps {
                 sh 'virtualenv venv'
-                sh '. ./venv/bin/activate && pip install . --cache-dir /var/pip_cache'
+                sh '. ./venv/bin/activate && pip install .[qiskit,projectq] --cache-dir /var/pip_cache'
                 sh 'pwd'
                 sh 'ls -lah'
             }

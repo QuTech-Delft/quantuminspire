@@ -226,7 +226,4 @@ with open(tfile, 'wt') as fid:
     
 import webbrowser
 webbrowser.open_new(tfile)
-
-#%%
-
 """

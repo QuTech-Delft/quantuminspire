@@ -57,8 +57,6 @@ class QuantumInspireAPI:
         """ Loads the schema with metadata that explains how the api-data is structured."""
         self.document = self._get(urljoin(self.base_uri, 'schema/'))
 
-    #  backend_types  #
-
     def list_backend_types(self):
         """ Prints the backend types with the name and number of qubits."""
         backends = self.get_backend_types()
@@ -71,6 +69,14 @@ class QuantumInspireAPI:
             OrderedDict: The type of backends with the properties.
         """
         return self._action(['backendtypes', 'list'])
+
+    def get_default_backend_type(self):
+        """ Gets the default backend type.
+
+        Returns:
+            OrderedDict: The default backend type.
+        """
+        return self._action(['backendtypes', 'default', 'list'])
 
     def get_backend_type(self, backend_id):
         """ Gets the properties of a backend type.
@@ -140,7 +146,7 @@ class QuantumInspireAPI:
         """
         payload = {
             'name': name,
-            'number_of_shots': default_number_of_shots,
+            'default_number_of_shots': default_number_of_shots,
             'backend_type': backend['url'],
         }
         return self._action(['projects', 'create'], params=payload)
@@ -301,14 +307,14 @@ class QuantumInspireAPI:
         self.__logger.error('Failed getting result: %s', status_message)
         return False
 
-    def execute_qasm(self, qasm, backend, number_of_shots=256, collect_tries=300,
+    def execute_qasm(self, qasm, backend_type=None, number_of_shots=256, collect_tries=300,
                      default_number_of_shots=256, identifier=None):
         """ Creates the project, asset and job with the given qasm code and returns
             the execution result.
 
         Args:
             qasm (str): The qasm code as string object.
-            backend (OrderedDict): The backend on which the algorithm should be executed.
+            backend_type (None or str or OrderedDict): The backend_type on which the algorithm should be executed. If None then use the default backend.
             number_of_shots (int): Execution times of the algorithm before collecting the results.
             collect_tries (int): The number of times the results should be collected before returning.
             default_number_of_shots (int): The default used number of shots for the project.
@@ -318,6 +324,11 @@ class QuantumInspireAPI:
             OrderedDict: The results of the executed qasm if succesfull else an empty dictionary if
                          the results could not be collected.
         """
+        if backend_type is None:
+            backend_type = self.get_default_backend_type()
+        if isinstance(backend_type, str):
+            backend_type = self.get_backend_type_by_name(backend_type)
+
         project = None
         delete_project_afterwards = True
         if identifier is None:
@@ -326,11 +337,11 @@ class QuantumInspireAPI:
         if self.project_name is not None:
             delete_project_afterwards = False
             project = next((project for project in self.get_projects()
-                           if project['name'] == self.project_name), None)
+                            if project['name'] == self.project_name), None)
 
         if project is None:
-            project_name = self.project_name if self.project_name else'qi-sdk-project-{}'.format(identifier)
-            project = self._create_project(project_name, default_number_of_shots, backend)
+            project_name = self.project_name if self.project_name else 'qi-sdk-project-{}'.format(identifier)
+            project = self._create_project(project_name, default_number_of_shots, backend_type)
 
         try:
             asset_name = 'qi-sdk-asset-{}'.format(identifier)

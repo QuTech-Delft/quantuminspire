@@ -74,17 +74,30 @@ class TestQuantumInspireAPI(unittest.TestCase):
         self.assertRaises(Exception, QuantumInspireAPI, 'FakeURL',
                           self.authentication, coreapi_client_class=coreapi_client)
 
-    def __mock_backendtypes_handler(self, mock_api, document, keys, params=None, validate=None,
-                                    overrides=None, action=None, encoding=None, transform=None):
-        self.assertEqual(keys[1], 'list')
-        return [OrderedDict([('url', 'https://api.quantum-inspire.com/backendtypes/1/'),
+    def __mock_default_backendtype_handler(self, mock_api, document, keys, params=None, validate=None,
+                                           overrides=None, action=None, encoding=None, transform=None):
+        self.assertEqual(keys[1], 'default')
+        self.assertEqual(keys[2], 'list')
+        return OrderedDict([('url', 'https://api.quantum-inspire.com/backendtypes/1/'),
                             ('name', 'QX Single-node Simulator'),
                             ('is_hardware_backend', False),
                             ('required_permission', 'can_simulate_single_node_qutech'),
                             ('number_of_qubits', 26),
-                            ('description', 'Single-node running on a 4GB Hetzner VPS.'),
+                            ('description', 'Dummy'),
                             ('topology', '{"edges": []}'),
-                            ('is_allowed', True)]),
+                            ('is_allowed', True)])
+
+    def __mock_backendtypes_handler(self, mock_api, document, keys, params=None, validate=None,
+                                    overrides=None, action=None, encoding=None, transform=None):
+        self.assertEqual(keys[1], 'list')
+        return [OrderedDict([('url', 'https://api.quantum-inspire.com/backendtypes/1/'),
+                             ('name', 'QX Single-node Simulator'),
+                             ('is_hardware_backend', False),
+                             ('required_permission', 'can_simulate_single_node_qutech'),
+                             ('number_of_qubits', 26),
+                             ('description', 'Single-node running on a 4GB Hetzner VPS.'),
+                             ('topology', '{"edges": []}'),
+                             ('is_allowed', True)]),
                 OrderedDict([('url', 'https://api.quantum-inspire.com/backendtypes/2/'),
                              ('name', 'QX Single-node Simulator SurfSara'),
                              ('is_hardware_backend', False),
@@ -143,23 +156,31 @@ class TestQuantumInspireAPI(unittest.TestCase):
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
         self.assertRaises(ValueError, api.get_backend_type_by_name, backend_name)
 
+    def test_get_default_backend_type(self):
+        self.coreapi_client.handlers['backendtypes'] = self.__mock_default_backendtype_handler
+        expected = self.__mock_default_backendtype_handler(None, None, ['backendtypes', 'default', 'list'])
+        api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
+        actual = api.get_default_backend_type()
+        self.assertIsInstance(actual, OrderedDict)
+        self.assertDictEqual(actual, expected)
+
     def __mock_list_projects_handler(self, mock_api, document, keys, params=None, validate=None,
                                      overrides=None, action=None, encoding=None, transform=None):
         self.assertEqual(keys[1], 'list')
         return [OrderedDict([('url', 'https://api.quantum-inspire.com/projects/1/'),
-                            ('id', 11),
-                            ('name', 'Grover algorithm - 1900-01-01 10:00'),
-                            ('owner', 'https://api.quantum-inspire.com/users/1/'),
-                            ('assets', 'https://api.quantum-inspire.com/projects/1/assets/'),
-                            ('backend_type', 'https://api.quantum-inspire.com/backendtypes/1/'),
-                            ('number_of_shots', 1)]),
+                             ('id', 11),
+                             ('name', 'Grover algorithm - 1900-01-01 10:00'),
+                             ('owner', 'https://api.quantum-inspire.com/users/1/'),
+                             ('assets', 'https://api.quantum-inspire.com/projects/1/assets/'),
+                             ('backend_type', 'https://api.quantum-inspire.com/backendtypes/1/'),
+                             ('default_number_of_shots', 1)]),
                 OrderedDict([('url', 'https://api.quantum-inspire.com/projects/2/'),
-                            ('id', 12),
-                            ('name', 'Grover algorithm - 1900-01-01 11:00'),
-                            ('owner', 'https://api.quantum-inspire.com/users/2/'),
-                            ('assets', 'https://api.quantum-inspire.com/projects/2/assets/'),
-                            ('backend_type', 'https://api.quantum-inspire.com/backendtypes/2/'),
-                            ('number_of_shots', 2)])]
+                             ('id', 12),
+                             ('name', 'Grover algorithm - 1900-01-01 11:00'),
+                             ('owner', 'https://api.quantum-inspire.com/users/2/'),
+                             ('assets', 'https://api.quantum-inspire.com/projects/2/assets/'),
+                             ('backend_type', 'https://api.quantum-inspire.com/backendtypes/2/'),
+                             ('default_number_of_shots', 2)])]
 
     def __mock_project_handler(self, input_params, input_key, mock_api, document, keys, params=None,
                                validate=None, overrides=None, action=None, encoding=None, transform=None):
@@ -171,7 +192,7 @@ class TestQuantumInspireAPI(unittest.TestCase):
                             ('owner', 'https://api.quantum-inspire.com/users/1/'),
                             ('assets', 'https://api.quantum-inspire.com/projects/1/assets/'),
                             ('backend_type', 'https://api.quantum-inspire.com/backendtypes/1/'),
-                            ('number_of_shots', 1)])
+                            ('default_number_of_shots', 1)])
 
     def test_list_projects_HasCorrectInputAndOutput(self):
         self.coreapi_client.handlers['projects'] = self.__mock_list_projects_handler
@@ -196,7 +217,7 @@ class TestQuantumInspireAPI(unittest.TestCase):
         backend = {'url': 'https://api.quantum-inspire.com/backendtypes/1/'}
         expected_payload = {
             'name': name,
-            'number_of_shots': default_number_of_shots,
+            'default_number_of_shots': default_number_of_shots,
             'backend_type': backend['url'],
         }
         expected = self.__mock_project_handler({}, 'create', None, None, ['test', 'create'], {})
@@ -454,19 +475,55 @@ class TestQuantumInspireAPI(unittest.TestCase):
                                    overrides=None, action=None, encoding=None, transform=None, call_mock=None):
         if call_mock:
             call_mock(keys[1])
-        return OrderedDict([('url', 'https://api.quantum-inspire.com/backendtypes/1/'),
-                            ('name', 'QX Single-node Simulator'),
-                            ('is_hardware_backend', False),
-                            ('required_permission', 'can_simulate_single_node_qutech'),
-                            ('number_of_qubits', 26),
-                            ('description', 'Single-node running on a 4GB Hetzner VPS.'),
-                            ('topology', '{"edges": []}'),
-                            ('is_allowed', True)])
+        if params is None:
+            backend_type_id = 1
+        else:
+            backend_type_id = params.get('id', 1)
+        if keys[1] == 'list':
+            return [OrderedDict([('url', 'https://api.quantum-inspire.com/backendtypes/1/'),
+                                 ('name', 'QX Single-node Simulator'),
+                                 ('is_hardware_backend', False),
+                                 ('required_permission', 'can_simulate_single_node_qutech'),
+                                 ('number_of_qubits', 26),
+                                 ('description', 'Single-node running on a 4GB Hetzner VPS.'),
+                                 ('topology', '{"edges": []}'),
+                                 ('is_allowed', True)]), OrderedDict([('url', 'https://api.quantum-inspire.com/backendtypes/2/'),
+                                                                      ('name', 'QX Single-node Simulator'),
+                                                                      ('is_hardware_backend', False),
+                                                                      ('required_permission',
+                                                                       'can_simulate_single_node_qutech'),
+                                                                      ('number_of_qubits', 26),
+                                                                      ('description',
+                                                                       'Single-node running on a 4GB Hetzner VPS.'),
+                                                                      ('topology', '{"edges": []}'),
+                                                                      ('is_allowed', True)])]
+        else:
+            # return specified id
+            return OrderedDict([('url', 'https://api.quantum-inspire.com/backendtypes/%d/' % backend_type_id),
+                                ('name', 'QX Single-node Simulator'),
+                                ('is_hardware_backend', False),
+                                ('required_permission', 'can_simulate_single_node_qutech'),
+                                ('number_of_qubits', 26),
+                                ('description', 'Single-node running on a 4GB Hetzner VPS.'),
+                                ('topology', '{"edges": []}'),
+                                ('is_allowed', True)])
 
     def __fake_project_handler(self, mock_api, document, keys, params=None, validate=None,
                                overrides=None, action=None, encoding=None, transform=None, call_mock=None):
         if call_mock:
             call_mock(keys[1])
+        return OrderedDict([('url', 'https://api.quantum-inspire.com/projects/1/'),
+                            ('id', 11),
+                            ('name', 'Grover algorithm - 1900-01-01 10:00'),
+                            ('owner', 'https://api.quantum-inspire.com/users/1/'),
+                            ('assets', 'https://api.quantum-inspire.com/projects/1/assets/'),
+                            ('backend_type', 'https://api.quantum-inspire.com/backendtypes/1/'),
+                            ('number_of_shots', 1)])
+
+    def __fake_project_handler_params(self, mock_api, document, keys, params=None, validate=None,
+                                      overrides=None, action=None, encoding=None, transform=None, call_mock=None):
+        if call_mock:
+            call_mock(keys[1], params=params)
         return OrderedDict([('url', 'https://api.quantum-inspire.com/projects/1/'),
                             ('id', 11),
                             ('name', 'Grover algorithm - 1900-01-01 10:00'),
@@ -501,6 +558,51 @@ class TestQuantumInspireAPI(unittest.TestCase):
                             ('results', 'https://api.quantum-inspire.com/jobs/1/result/mocked'),
                             ('queued_at', '2018-08-24T07,01,21.257557Z'),
                             ('number_of_shots', 1)])
+
+    def __fake_results_handler(self, mock_api, document, keys, params=None, validate=None,
+                               overrides=None, action=None, encoding=None, transform=None, call_mock=None):
+        if call_mock:
+            call_mock(keys[1])
+        return OrderedDict([('url', 'https,//api.quantum-inspire.com/jobs/509/'),
+                            ('name', 'qi-sdk-job-7e37c8fa-a76b-11e8-b5a0-a44cc848f1f2'),
+                            ('id', 509),
+                            ('status', 'COMPLETE'),
+                            ('input', 'https,//api.quantum-inspire.com/assets/607/'),
+                            ('backend', 'https,//api.quantum-inspire.com/backends/1/'),
+                            ('backend_type', 'https,//api.quantum-inspire.com/backendtypes/1/'),
+                            ('results', 'https://api.quantum-inspire.com/jobs/1/result/mocked'),
+                            ('queued_at', '2018-08-24T07,01,21.257557Z'),
+                            ('number_of_shots', 1)])
+
+    def test_execute_qasm_DefaultBackend(self):
+        job_mock = Mock()
+        self.coreapi_client.handlers['jobs'] = partial(self.__fake_job_handler, call_mock=job_mock)
+        asset_mock = Mock()
+        self.coreapi_client.handlers['assets'] = partial(self.__fake_asset_handler, call_mock=asset_mock)
+        project_mock = Mock()
+        self.coreapi_client.handlers['projects'] = partial(self.__fake_project_handler_params, call_mock=project_mock)
+        backend_mock = Mock()
+        self.coreapi_client.handlers['backendtypes'] = partial(self.__fake_backendtype_handler, call_mock=backend_mock)
+
+        qasm = 'version 1.0\n'
+        api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
+        backend_type = api.get_backend_type(backend_id=2)
+        _ = api.execute_qasm(qasm, backend_type, collect_tries=1)
+        project_call = tuple(project_mock.call_args_list[0])
+        self.assertEqual(project_call[0][0], 'create')
+        self.assertEqual(project_call[1]['params']['backend_type'], r'https://api.quantum-inspire.com/backendtypes/2/')
+
+        project_mock = Mock()
+        self.coreapi_client.handlers['projects'] = partial(self.__fake_project_handler_params, call_mock=project_mock)
+        _ = api.execute_qasm(qasm, backend_type=None, collect_tries=1)
+        project_call = tuple(project_mock.call_args_list[0])
+        self.assertEqual(project_call[1]['params']['backend_type'], r'https://api.quantum-inspire.com/backendtypes/1/')
+
+        project_mock = Mock()
+        self.coreapi_client.handlers['projects'] = partial(self.__fake_project_handler_params, call_mock=project_mock)
+        _ = api.execute_qasm(qasm, backend_type='QX Single-node Simulator', collect_tries=1)
+        project_call = tuple(project_mock.call_args_list[0])
+        self.assertEqual(project_call[1]['params']['backend_type'], r'https://api.quantum-inspire.com/backendtypes/1/')
 
     def test_execute_qasm_CreatesNewProject(self):
         job_mock = Mock()
