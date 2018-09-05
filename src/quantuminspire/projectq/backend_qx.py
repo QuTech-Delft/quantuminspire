@@ -30,6 +30,17 @@ from projectq.ops import (NOT, X, Y, Z, T, Tdag, S, Sdag,
                           Allocate, Deallocate, Barrier, FlushGate)
 
 
+def _get_backend_type(backend_type, quantum_inspire_api):
+    if backend_type is None:
+        return quantum_inspire_api.get_default_backend_type()
+    elif isinstance(backend_type, str):
+        return quantum_inspire_api.get_backend_type_by_name(backend_type)
+    elif isinstance(backend_type, dict):
+        return backend_type
+    else:
+        raise ValueError('backend_type should be of type None or str or dict')
+
+
 class InvalidResultException(Exception):
     pass
 
@@ -57,7 +68,7 @@ class QIBackend(BasicEngine):
     """
 
     def __init__(self, num_runs=1024, verbose=0,
-                 quantum_inspire_api=None, backend=None, nqubits=8,
+                 quantum_inspire_api=None, backend_type=None, nqubits=8,
                  perform_execution=True):
         """
         Initialize the Backend object.
@@ -67,7 +78,7 @@ class QIBackend(BasicEngine):
                 (default is 1024)
             verbose (int): Verbosity level 
             quantum_inspire_api (QuantumInspireAPI or None): connection to QI platform
-            backend (dict or None): backend to use for execution
+            backend_type (dict or str or None): backend to use for execution. If None then use the default backend type
             nqubits (int): number of qubits to request to the backend
             perform_execution (bool): If True perform execution, otherwise generate cQASM
         """
@@ -75,7 +86,8 @@ class QIBackend(BasicEngine):
         self._reset()
 
         self.quantum_inspire_api = quantum_inspire_api
-        self.backend = backend
+
+        self.backend_type = backend_type
 
         self.nqubits = nqubits
 
@@ -338,7 +350,9 @@ class QIBackend(BasicEngine):
             self._cqasm = qasm
 
             if self._perform_execution:
-                self._quantum_inspire_result = self.quantum_inspire_api.execute_qasm(self._cqasm, backend_type=self.backend)
+                backend_type = _get_backend_type(self.backend_type, self.quantum_inspire_api)
+                self._quantum_inspire_result = self.quantum_inspire_api.execute_qasm(
+                    self._cqasm, backend_type=backend_type)
                 if len(self._quantum_inspire_result.get('histogram', {})) == 0:
                     raw_text = self._quantum_inspire_result.get('raw_text', 'no raw_text in result structure')
                     raise InvalidResultException(

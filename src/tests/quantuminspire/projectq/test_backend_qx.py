@@ -11,6 +11,7 @@ import unittest
 from unittest import mock
 from unittest.mock import MagicMock
 import io
+from collections import OrderedDict
 
 import quantuminspire.projectq
 import quantuminspire.projectq.backend_qx
@@ -53,6 +54,23 @@ measure q[2]
 display
 '''
 
+_default_backend_type = OrderedDict([('url', 'https://api.quantum-inspire.com/backendtypes/1/'),
+                                     ('name', 'QX Single-node Simulator'),
+                                     ('is_hardware_backend', False),
+                                     ('required_permission', 'can_simulate_single_node_qutech'),
+                                     ('number_of_qubits', 26),
+                                     ('description', 'Dummy'),
+                                     ('topology', '{"edges": []}'),
+                                     ('is_allowed', True)])
+_other_backend_type = OrderedDict([('url', 'https://api.quantum-inspire.com/backendtypes/3/'),
+                                   ('name', 'QX Single-node Simulator other'),
+                                   ('is_hardware_backend', False),
+                                   ('required_permission', 'can_simulate_single_node_qutech'),
+                                   ('number_of_qubits', 26),
+                                   ('description', 'Dummy'),
+                                   ('topology', '{"edges": []}'),
+                                   ('is_allowed', True)])
+
 
 class MockApiClient:
     handlers = dict()
@@ -66,6 +84,8 @@ class MockApiClient:
         # for for 2-qubit result
         self.execute_qasm = MagicMock(return_value={'histogram': {'00': 0.49, '11': 0.51}, 'results': 'dummy'})
         self.cqasm = MagicMock(return_value=_cqasm)
+        self.get_default_backend_type = MagicMock(return_value=_default_backend_type)
+        self.get_backend_type_by_name = MagicMock(return_value=_default_backend_type)
 
     def get(self, url):
         return ' '.join([self.__class__.mock_document, url])
@@ -86,9 +106,9 @@ class TestProjectQBackend(unittest.TestCase):
     def test_invalid_histogram(self):
         coreapi_client = self.coreapi_client
         coreapi_client.execute_qasm = MagicMock(return_value={'histogram': {}, 'results': 'dummy'})
-        engine_list = [projectq.cengines.ManualMapper(lambda ii: ii)]  # , AutoReplacer(rule_set)]
+        engine_list = [projectq.cengines.ManualMapper(lambda ii: ii)]
         qi_backend = quantuminspire.projectq.backend_qx.QIBackend(
-            quantum_inspire_api=coreapi_client, backend=None, perform_execution=True)
+            quantum_inspire_api=coreapi_client, backend_type=None, perform_execution=True)
 
         eng = MainEngine(backend=qi_backend, engine_list=engine_list)
 
@@ -98,11 +118,47 @@ class TestProjectQBackend(unittest.TestCase):
             All(Measure) | qubits
             eng.flush()
 
+    def test_backend_selection(self):
+        coreapi_client = self.coreapi_client
+        engine_list = [projectq.cengines.ManualMapper(lambda ii: ii)]
+        qi_backend = quantuminspire.projectq.backend_qx.QIBackend(
+            quantum_inspire_api=coreapi_client, backend_type='QX Single-node Simulator', perform_execution=True)
+        eng = MainEngine(backend=qi_backend, engine_list=engine_list)
+        qubits = eng.allocate_qureg(1)
+        H | qubits[0]
+        All(Measure) | qubits
+        eng.flush()
+
+        coreapi_client = MockApiClient()
+        qi_backend = quantuminspire.projectq.backend_qx.QIBackend(
+            quantum_inspire_api=coreapi_client, backend_type=_other_backend_type, perform_execution=True)
+        eng = MainEngine(backend=qi_backend, engine_list=engine_list)
+        qubits = eng.allocate_qureg(1)
+        H | qubits[0]
+        All(Measure) | qubits
+        eng.flush()
+
+        apicall = coreapi_client.execute_qasm.mock_calls[0]
+        cqasm_data = tuple(apicall)[1][0]
+        execute_qasm_parameters = tuple(apicall)[2]
+        self.assertTrue(_valid_cqasm(cqasm_data))
+        self.assertDictEqual(execute_qasm_parameters['backend_type'], _other_backend_type)
+
+        coreapi_client = MockApiClient()
+        qi_backend = quantuminspire.projectq.backend_qx.QIBackend(
+            quantum_inspire_api=coreapi_client, backend_type=10, perform_execution=True)
+        eng = MainEngine(backend=qi_backend, engine_list=engine_list)
+        with self.assertRaises(Exception):
+            qubits = eng.allocate_qureg(1)
+            H | qubits[0]
+            All(Measure) | qubits
+            eng.flush()
+
     def test_cqasm_submission(self):
         coreapi_client = self.coreapi_client
-        engine_list = [TagRemover(), projectq.cengines.ManualMapper(lambda ii: ii)]  # , AutoReplacer(rule_set)]
+        engine_list = [TagRemover(), projectq.cengines.ManualMapper(lambda ii: ii)]
         qi_backend = quantuminspire.projectq.backend_qx.QIBackend(
-            quantum_inspire_api=coreapi_client, backend=None, perform_execution=True)
+            quantum_inspire_api=coreapi_client, backend_type=None, perform_execution=True)
 
         # create a default compiler (the back-end is a simulator)
         eng = MainEngine(backend=qi_backend, engine_list=engine_list)
@@ -113,7 +169,7 @@ class TestProjectQBackend(unittest.TestCase):
         All(Measure) | qubits
         eng.flush()
 
-        print("Measured {}".format(','.join([str(int(q)) for q in qubits])))  # co
+        print("Measured {}".format(','.join([str(int(q)) for q in qubits])))
 
         p = qi_backend.get_probabilities(qubits)
 
@@ -131,12 +187,13 @@ class TestProjectQBackend(unittest.TestCase):
 
         cqasm = qi_backend.cqasm()
         self.assertTrue(_valid_cqasm(cqasm))
+#
 
     def test_elementary_gates(self, verbose=0, perform_execution=False, quantum_inspire_api=None):
         """ Test the backend generates cqasm for all elementary gates """
-        engine_list = [TagRemover(), projectq.cengines.ManualMapper(lambda ii: ii)]  # , AutoReplacer(rule_set)]
+        engine_list = [TagRemover(), projectq.cengines.ManualMapper(lambda ii: ii)]
         qi_backend = quantuminspire.projectq.backend_qx.QIBackend(
-            quantum_inspire_api=quantum_inspire_api, backend=None, perform_execution=perform_execution)
+            quantum_inspire_api=quantum_inspire_api, backend_type=None, perform_execution=perform_execution)
         for gate in [H, Ry(0.5), Rx(np.pi / 2), Rz(.1), X, Y, Z, S, Sdag, T, Tdag,
                      CNOT, Swap, CX, CZ, Barrier]:
 
@@ -203,7 +260,7 @@ class TestProjectQBackend(unittest.TestCase):
     def test_is_available(self, perform_execution=False, quantum_inspire_api=None):
         engine_list = [projectq.cengines.ManualMapper(lambda ii: ii)]
         qi_backend = quantuminspire.projectq.backend_qx.QIBackend(
-            quantum_inspire_api=quantum_inspire_api, backend=None, perform_execution=perform_execution)
+            quantum_inspire_api=quantum_inspire_api, perform_execution=perform_execution)
         eng = MainEngine(backend=qi_backend, engine_list=engine_list)
         qubits = eng.allocate_qureg(1)
         for gate in [H, Ry(0.5), Rx(np.pi / 2), Rz(.1), X, Y, Z, S, Sdag, T, Tdag]:

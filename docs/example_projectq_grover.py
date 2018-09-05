@@ -115,14 +115,14 @@ if __name__ == "__main__":
     authentication = BasicAuthentication(email, password)
     qi = QuantumInspireAPI(r'https://api.quantum-inspire.com/', authentication)
 
-    backend_types = qi.get_backend_types()
+    backend_type = qi.get_default_backend_type()
 
     compiler_engines = restrictedgateset.get_engine_list(one_qubit_gates="any", two_qubit_gates=(CNOT, CZ, Toffoli))
     compiler_engines = [ManualMapper(lambda ii: ii)] + compiler_engines
     resource_counter = ResourceCounter()
     compiler_engines += [resource_counter]
 
-    qi_backend = QIBackend(quantum_inspire_api=qi, backend=backend_types[0], perform_execution=True)
+    qi_backend = QIBackend(quantum_inspire_api=qi, backend_type=backend_type, perform_execution=True)
     # create a default compiler (the back-end is a simulator)
     eng = MainEngine(backend=qi_backend, engine_list=compiler_engines)
     print(run_grover(eng, 3, alternating_bits_oracle))
