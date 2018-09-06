@@ -1,41 +1,65 @@
 # Quantum Inspire SDK
 
-The software development kit for the Quantum Inspire platform. The SDK consists of
+The Quantum Inspire platform allows to execute quantum algorithms using the cQASM language. 
 
-* An API for the Quantum Inspire online platform `QuantumInspireAPI`
-* Backends for various other SDKs. These are the IMB Q backend, ...
+The software development kit (SDK) for the Quantum Inspire platform consists of:
 
-For more information see https://www.quantum-inspire.com/
+* An API for the [Quantum Inspire](https://www.quantum-inspire.com/) platform (the QuantumInspireAPI class);
+* Backends for:
+  * the [ProjectQ SDK](https://github.com/ProjectQ-Framework/ProjectQ);
+  * the [QisKit SDK](https://qiskit.org/).
 
-### Authors
-
-* Pieter Eendebak
+For more information on Quantum Inspire see
+[https://www.quantum-inspire.com/](https://www.quantum-inspire.com/). Detailed information
+on cQASM can be found in the Quantum Inspire
+[knowledge base](https://www.quantum-inspire.com/kbase/advanced-guide/).
 
 
 ## Installation
 
-For the default installation:
+The source for the SDK can be found at Github. For the default installation execute:
 
 ```
-pip install .
+$ pip install .
 ```
 
-If you want to use another backend, install with (e.g. for the qiskit backend):
+This does not install ProjectQ or QisKit, but will install the Quantum Inspire backends for
+those projects.
+
+If you want to include a specific SDK as a dependency, install with
+(e.g. for the ProjectQ backend):
+
 ```
-pip install .[qiskit]
+$ pip install .[projectq]
 ```
 
-Also multiple backends can be installed using one command:
+To install both ProjectQ as well as QisKit as a dependency:
+
 ```
-pip install .[qiskit,projectq]
+$ pip install .[qiskit,projectq]
 ```
 
 ## Running
 
-For example usage see the Jupyter notebooks in the [docs](docs/) directory.
+For example usage see the python scripts and Jupyter notebooks in the [docs/](docs/) directory.
+
+For example, to run the ProjectQ example notebook:
+
+```
+cd docs
+jupyter notebook example_projectq.ipynb
+```
+
+Or to perform Grover's with the ProjectQ backend from a Python script:
+
+```
+cd docs
+python example_projectq_grover.py
+```
+
+A simple example to perform entanglement between two qubits by using the API wrapper directly:
 
 ``` python
-
 from getpass import getpass
 from coreapi.auth import BasicAuthentication
 from quantuminspire.api import QuantumInspireAPI
@@ -67,9 +91,21 @@ result = qi.execute_qasm(qasm, backend, number_of_shots=128)
 print(result['histogram'])
 ```
 
+## Known issues
+
+* Authentication for the Quantum Inspire platform is currently password only; this will change
+to API-token based authentication in the near future;
+* There is no method to submit an algorithm and retrieve the results at a later moment. 
+* Known issues and common questions regarding the Quantum Inspire platform can be found in the [FAQ](https://www.quantum-inspire.com/faq/).
+ 
+## Bug reports
+
+Please submit bug-reports [on the github issue tracker](https://github.com/qutech-sd/SDK/issues).
+
 ## Testing
 
 Run all unittests and collect the code coverage using:
+
 ```
 coverage run --source="./src/quantuminspire" -m unittest discover -s src/tests -t src -v
 coverage report -m
