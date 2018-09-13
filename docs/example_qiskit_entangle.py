@@ -11,6 +11,8 @@ Specific to Quantum Inspire is the creation of the QuantumInspireAPI
 instance, which is used to instantiate a QiSimulatorPy backend later
 on that is used to execute the circuit.
 
+
+Copyright 2018 QuTech Delft. Licensed under the Apache License, Version 2.0.
 """
 import qiskit
 
