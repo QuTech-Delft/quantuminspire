@@ -18,9 +18,12 @@ limitations under the License.
 import logging
 import time
 import uuid
+from collections import OrderedDict
 from urllib.parse import urljoin
 
 import coreapi
+
+from quantuminspire.exceptions import ApiError
 
 
 class QuantumInspireAPI:
@@ -45,7 +48,7 @@ class QuantumInspireAPI:
         try:
             self._load_schema()
         except Exception as ex:
-            raise Exception('Could not connect to {}'.format(base_uri)) from ex
+            raise ApiError('Could not connect to {}'.format(base_uri)) from ex
 
     def _get(self, uri_path):
         """ Makes a request to get request with a client instance.
@@ -95,7 +98,7 @@ class QuantumInspireAPI:
         """
         return self._action(['backendtypes', 'default', 'list'])
 
-    def get_backend_type(self, backend_id):
+    def get_backend_type_by_id(self, backend_id):
         """ Gets the properties of a backend type.
 
         Args:
@@ -113,7 +116,7 @@ class QuantumInspireAPI:
             backend_name (str): The backend name.
 
         Raises:
-            ValueError: if the backend name does not exists.
+            ApiError: if the backend name does not exists.
 
         Returns:
             OrderedDict: The properties of the backend type.
@@ -121,8 +124,32 @@ class QuantumInspireAPI:
         backend = next((backend for backend in self.get_backend_types()
                         if backend['name'] == backend_name), None)
         if backend is None:
-            raise ValueError('Backend with name {} does not exist!'.format(backend_name))
+            raise ApiError('Backend with name {} does not exist!'.format(backend_name))
         return backend
+
+    def get_backend_type(self, identifier=None):
+        """ Gets the properties of the backend type, given the identifier. If no identifier is given,
+            the default backend type will be returned. With an identifier of type string or int,
+            the backend type will be searched by name or number respectively.
+
+        Args:
+            identifier (None, int or str): The backend type identifier.
+
+        Raises:
+            ApiError: if the backend name does not exists.
+            ValueError: if the identifier is not of the correct type.
+
+        Returns:
+            OrderedDict: The properties of the backend type.
+        """
+        if identifier is None:
+            return self.get_default_backend_type()
+        elif isinstance(identifier, int):
+            return self.get_backend_type_by_id(identifier)
+        elif isinstance(identifier, str):
+            return self.get_backend_type_by_name(identifier)
+        else:
+            raise ValueError('Identifier should be of type int, str or None!')
 
     #  projects  #
 
@@ -331,7 +358,7 @@ class QuantumInspireAPI:
 
         Args:
             qasm (str): The qasm code as string object.
-            backend_type (None or str or OrderedDict): The backend_type on which the algorithm should be executed. If None then use the default backend.
+            backend_type (OrderedDict, int, str or None): The backend_type on to execute the algorithm.
             number_of_shots (int): Execution times of the algorithm before collecting the results.
             collect_tries (int): The number of times the results should be collected before returning.
             default_number_of_shots (int): The default used number of shots for the project.
@@ -341,10 +368,8 @@ class QuantumInspireAPI:
             OrderedDict: The results of the executed qasm if succesfull else an empty dictionary if
                          the results could not be collected.
         """
-        if backend_type is None:
-            backend_type = self.get_default_backend_type()
-        if isinstance(backend_type, str):
-            backend_type = self.get_backend_type_by_name(backend_type)
+        if not isinstance(backend_type, OrderedDict):
+            backend_type = self.get_backend_type(backend_type)
 
         project = None
         delete_project_afterwards = True

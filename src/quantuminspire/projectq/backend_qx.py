@@ -19,50 +19,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-""" Back-end to run quantum program on Quantum Inspire platform."""
-
 import random
 
 from projectq.cengines import BasicEngine
-from projectq.meta import get_control_count, LogicalQubitIDTag
-from projectq.ops import (NOT, X, Y, Z, T, Tdag, S, Sdag,
-                          H, Ph,
-                          Rx, Ry, Rz,
-                          Swap,
-                          Measure,
-                          Allocate, Deallocate, Barrier, FlushGate)
+from projectq.meta import LogicalQubitIDTag, get_control_count
+from projectq.ops import (NOT, Allocate, Barrier, Deallocate, FlushGate, H,
+                          Measure, Ph, Rx, Ry, Rz, S, Sdag, Swap, T, Tdag, X,
+                          Y, Z)
 
-
-def _get_backend_type(backend_type, quantum_inspire_api):
-    if backend_type is None:
-        return quantum_inspire_api.get_default_backend_type()
-    elif isinstance(backend_type, str):
-        return quantum_inspire_api.get_backend_type_by_name(backend_type)
-    elif isinstance(backend_type, dict):
-        return backend_type
-    else:
-        raise ValueError('backend_type should be of type None or str or dict')
-
-
-class InvalidResultException(Exception):
-    pass
-
-#%%
-
-
-def _format_histogram(histogram_input, nqubits, number_of_runs=None):
-    histogram = {}
-
-    def int2bit(value, number_padding):
-        return ("{:0%db}" % number_padding).format(int(value))
-
-    for register, value in histogram_input.items():
-        # convert to bit representation
-        b = int2bit(register, nqubits)
-        if number_of_runs is not None:
-            value = int(number_of_runs * value)
-        histogram[b] = value
-    return histogram
+from quantuminspire.exceptions import ProjectQBackendError
 
 
 class QIBackend(BasicEngine):
@@ -79,26 +44,22 @@ class QIBackend(BasicEngine):
         Args:
             num_runs (int): Number of runs to collect statistics.
                 (default is 1024)
-            verbose (int): Verbosity level 
+            verbose (int): Verbosity level
             quantum_inspire_api (QuantumInspireAPI or None): connection to QI platform
-            backend_type (dict or str or None): backend to use for execution. If None then use the default backend type
+            backend_type (dict or str or None): Backend to use for execution.
             nqubits (int): number of qubits to request to the backend
             perform_execution (bool): If True perform execution, otherwise generate cQASM
         """
         BasicEngine.__init__(self)
         self._reset()
-
-        self.quantum_inspire_api = quantum_inspire_api
-
-        self.backend_type = backend_type
-
-        self.nqubits = nqubits
-
-        self._num_runs = num_runs
-        self._verbose = verbose
-        self._cqasm = ''
         self._perform_execution = perform_execution
         self._probabilities = dict()
+        self._num_runs = num_runs
+        self._verbose = verbose
+        self._cqasm = str()
+        self.quantum_inspire_api = quantum_inspire_api
+        self.backend_type = backend_type
+        self.nqubits = nqubits
 
     def cqasm(self):
         """ Return cqasm code that as generated last """
@@ -111,34 +72,34 @@ class QIBackend(BasicEngine):
         Args:
             cmd (Command): Command for which to check availability
         """
+        count = get_control_count(cmd)
         g = cmd.gate
         if self._verbose:
             print('call to is_available with cmd %s (gate %s)' % (cmd, g))
-        if g == NOT and get_control_count(cmd) <= 2:
+        if g == NOT and count <= 2:
             return True
-        if g == Z and get_control_count(cmd) <= 1:
+        if g == Z and count <= 1:
             return True
         if g in (Measure, Allocate, Deallocate, Barrier):
             return True
-        if get_control_count(cmd) == 0:
-            if g in (T, Tdag, S, Sdag, H, X, Y, Z):
-                return True
-            elif isinstance(g, (Rx, Ry, Rz)):
-                return True
-            elif isinstance(g, Ph):
-                # global phase gate is irrelevant for physics, but not available in cqasm
-                return False
-            else:
-                return False
-        return False
+        if count != 0:
+            return False
+        if g in (T, Tdag, S, Sdag, H, X, Y, Z):
+            return True
+        elif isinstance(g, (Rx, Ry, Rz)):
+            return True
+        elif isinstance(g, Ph):
+            return False
+        else:
+            return False
 
     def _reset(self):
         """ Reset all temporary variables (after flush gate). """
-        self._clear = True
+        self._allocated_qubits = set()
         self._measured_ids = []
         self._max_qubit_id = -1
+        self._clear = True
         self.qasm = ""
-        self._allocated_qubits = set()
 
     def _store(self, cmd):
         """
@@ -150,8 +111,8 @@ class QIBackend(BasicEngine):
             cmd: Command to store
         """
         if self._verbose >= 2:
-            print('_store %s: cmd %s' % (id(self), cmd, ))
-            print('   _allocated_qubits %s' % (self._allocated_qubits))
+            print('_store {0}: cmd {1}'.format(id(self), cmd))
+            print('   _allocated_qubits {0}'.format(self._allocated_qubits))
 
         if self._clear:
             self._probabilities = dict()
@@ -165,19 +126,17 @@ class QIBackend(BasicEngine):
         if gate == Allocate:
             self._allocated_qubits.add(cmd.qubits[0][0].id)
             self._max_qubit_id = max(self._max_qubit_id, cmd.qubits[0][0].id)
-
             if self._verbose >= 2:
-                print('_store: Allocate gate %s' % (cmd.qubits[0][0].id,))
-
+                print('_store: Allocate gate {0}'.format((cmd.qubits[0][0].id,)))
             return
 
         if gate == Deallocate:
             if self._verbose >= 2:
-                print('_store: Deallocate gate %s' % (gate,))
-
+                print('_store: Deallocate gate {0}'.format((gate,)))
             index_to_remove = cmd.qubits[0][0].id
             self._allocated_qubits.discard(index_to_remove)
             return
+
         if gate == Measure:
             assert len(cmd.qubits) == 1 and len(cmd.qubits[0]) == 1
             logical_id = None
@@ -207,7 +166,7 @@ class QIBackend(BasicEngine):
             self.qasm += "\nCZ q[{}], q[{}]".format(ctrl_pos, qb_pos)
         elif gate == Barrier:
             qb_pos = [qb.id for qr in cmd.qubits for qb in qr]
-            self.qasm += "\n# barrier gate"
+            self.qasm += "\n# barrier gate "
             qb_str = ""
             for pos in qb_pos:
                 qb_str += "q[{}], ".format(pos)
@@ -215,7 +174,6 @@ class QIBackend(BasicEngine):
         elif isinstance(gate, Rz) and get_control_count(cmd) == 1:
             ctrl_pos = cmd.control_qubits[0].id
             qb_pos = cmd.qubits[0][0].id
-
             gatename = 'CR'
             self.qasm += "\n{} q[{}],q[{}],{:.12f}".format(gatename, ctrl_pos, qb_pos, gate.angle)
         elif isinstance(gate, (Rx, Ry)) and get_control_count(cmd) == 1:
@@ -223,13 +181,12 @@ class QIBackend(BasicEngine):
         elif isinstance(gate, (Rx, Ry, Rz)):
             assert get_control_count(cmd) == 0
             qb_pos = cmd.qubits[0][0].id
-
             gatename = str(gate)[0:2]
             self.qasm += "\n{} q[{}],{:.12g}".format(gatename, qb_pos, gate.angle)
         elif gate == Tdag and get_control_count(cmd) == 0:
             qb_pos = cmd.qubits[0][0].id
             self.qasm += "\nTdag q[{}]".format(qb_pos)
-        elif gate == X or gate == Y or gate == Z or gate == H or gate == S or gate == Sdag or gate == T or gate == Tdag:
+        elif isinstance(gate, tuple(type(gate) for gate in (X, Y, Z, H, S, Sdag, T, Tdag))):
             assert get_control_count(cmd) == 0
             if str(gate) in self._gate_names:
                 gate_str = self._gate_names[str(gate)]
@@ -239,7 +196,7 @@ class QIBackend(BasicEngine):
             qb_pos = cmd.qubits[0][0].id
             self.qasm += "\n{} q[{}]".format(gate_str, qb_pos)
         else:
-            raise NotImplementedError('cmd %s not implemented' % (cmd,))
+            raise NotImplementedError('cmd {0} not implemented'.format((cmd,)))
 
     def _logical_to_physical(self, qb_id):
         """
@@ -257,6 +214,26 @@ class QIBackend(BasicEngine):
                                "was eliminated during optimization."
                                .format(qb_id))
         return mapping[qb_id]
+
+    @staticmethod
+    def format_histogram(histogram_input, number_of_qubits, number_of_runs=None):
+        """ Converts the histogram into the correct format with binary value state items.
+
+        Args:
+            histogram_input (dict): The histogram result output of the executed cqasm.
+            number_of_qubits (int): The number of qubits.
+            number_of_runs (int): The number of runs
+
+        Returns:
+            dict: The converted histogram.
+        """
+        histogram = {}
+        for register, value in histogram_input.items():
+            byte_value = ("{:0%db}" % number_of_qubits).format(int(register))
+            if number_of_runs is not None:
+                value = int(number_of_runs * value)
+            histogram[byte_value] = value
+        return histogram
 
     def get_probabilities(self, qureg):
         """
@@ -313,8 +290,7 @@ class QIBackend(BasicEngine):
                 star = "*"
             self._probabilities[state] = probability
             if self._verbose and probability > 0:
-                print(str(state) + " with p = " + str(probability) +
-                      star)
+                print("{0} with p = {1}{2}".format(state, probability, star))
         return measured
 
     def _run(self):
@@ -327,7 +303,7 @@ class QIBackend(BasicEngine):
             return
 
         if self._verbose:
-            print('_run (id %s)' % (id(self), ))
+            print('_run (id {0})'.format((id(self), )))
         # finally: add measurement commands for all measured qubits
         # only measurements after all gate operations will perform properly
         for measured_id in self._measured_ids:
@@ -335,13 +311,11 @@ class QIBackend(BasicEngine):
             self.qasm += "\nmeasure q[{}] ".format(qb_loc,)
 
         if self._verbose >= 2:
-            print('_run: self._allocated_qubits %s' % (self._allocated_qubits, ))
+            print('_run: self._allocated_qubits {0}'.format((self._allocated_qubits, )))
         max_qubit_id = self._max_qubit_id
 
-        qasm = 'version 1.0\n' + \
-            '# generated by Quantum Inspire {} class\n'.format(
-                self.__class__,) + 'qubits {nq}\n\n'.format(nq=max_qubit_id + 1)
-
+        qasm = 'version 1.0\n# generated by Quantum Inspire {0} class\nqubits {1}\n\n'.format(
+            self.__class__, max_qubit_id+1)
         qasm += self.qasm
 
         try:
@@ -353,19 +327,18 @@ class QIBackend(BasicEngine):
             self._cqasm = qasm
 
             if self._perform_execution:
-                backend_type = _get_backend_type(self.backend_type, self.quantum_inspire_api)
                 self._quantum_inspire_result = self.quantum_inspire_api.execute_qasm(
-                    self._cqasm, backend_type=backend_type)
+                    self._cqasm, backend_type=self.backend_type)
                 if len(self._quantum_inspire_result.get('histogram', {})) == 0:
                     raw_text = self._quantum_inspire_result.get('raw_text', 'no raw_text in result structure')
-                    raise InvalidResultException(
-                        'result structure does not contain proper histogram. raw_text field: %s' % raw_text)
+                    raise ProjectQBackendError(
+                        'Result structure does not contain proper histogram. raw_text field: %s' % raw_text)
             else:
                 self._quantum_inspire_result = None
                 return
 
-            counts = _format_histogram(
-                self._quantum_inspire_result['histogram'], nqubits=self.nqubits, number_of_runs=self._num_runs)
+            counts = QIBackend.format_histogram(self._quantum_inspire_result['histogram'],
+                                                number_of_qubits=self.nqubits, number_of_runs=self._num_runs)
             measured = self._calculate_probabilities(counts)
 
             class QB():
@@ -374,8 +347,8 @@ class QIBackend(BasicEngine):
 
             # register measurement result
             if self._verbose:
-                print('QIBackend: counts %s' % (counts,))
-                print('QIBackend: measured %s' % (measured,))
+                print('QIBackend: counts {0}'.format(counts))
+                print('QIBackend: measured {0}'.format(measured))
             for ID in self._measured_ids:
                 location = self._logical_to_physical(ID)
 
@@ -383,7 +356,7 @@ class QIBackend(BasicEngine):
                 self.main_engine.set_measurement_result(QB(ID), result)
             self._reset()
         except TypeError as ex:
-            raise Exception("Failed to run the circuit. Aborting.") from ex
+            raise ProjectQBackendError("Failed to run the circuit. Aborting.")
 
     def receive(self, command_list):
         """
@@ -400,8 +373,5 @@ class QIBackend(BasicEngine):
                 self._run()
                 self._reset()
 
-    """
-    Mapping of gate names from our gate objects to the cQASM representation.
-    """
-    _gate_names = {str(Tdag): "Tdag",
-                   str(Sdag): "Sdag"}
+    """ Mapping of gate names from our gate objects to the cQASM representation."""
+    _gate_names = {str(Tdag): "Tdag", str(Sdag): "Sdag"}

@@ -23,6 +23,7 @@ import io
 
 import quantuminspire
 from quantuminspire.api import QuantumInspireAPI
+from quantuminspire.exceptions import ApiError
 
 
 class MockApiBasicAuth:
@@ -157,7 +158,7 @@ class TestQuantumInspireAPI(unittest.TestCase):
         expected = self.__mock_backendtype_handler(None, None, ['test', 'read'], params={'id': identity})
         self.coreapi_client.handlers['backendtypes'] = self.__mock_backendtype_handler
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
-        actual = api.get_backend_type(backend_id=identity)
+        actual = api.get_backend_type(identity)
         self.assertDictEqual(actual, expected)
 
     def test_get_backend_type_by_name_CorrectsCorrectBackend(self):
@@ -171,7 +172,7 @@ class TestQuantumInspireAPI(unittest.TestCase):
         backend_name = 'Invalid Simulator'
         self.coreapi_client.handlers['backendtypes'] = self.__mock_backendtypes_handler
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
-        self.assertRaises(ValueError, api.get_backend_type_by_name, backend_name)
+        self.assertRaises(ApiError, api.get_backend_type_by_name, backend_name)
 
     def test_get_default_backend_type(self):
         self.coreapi_client.handlers['backendtypes'] = self.__mock_default_backendtype_handler
@@ -180,6 +181,12 @@ class TestQuantumInspireAPI(unittest.TestCase):
         actual = api.get_default_backend_type()
         self.assertIsInstance(actual, OrderedDict)
         self.assertDictEqual(actual, expected)
+
+    def test_get_backend_type_RaisesValueError(self):
+        identifier = float(0.0)
+        self.coreapi_client.handlers['backendtypes'] = self.__mock_backendtypes_handler
+        api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
+        self.assertRaises(ValueError, api.get_backend_type, identifier)
 
     def __mock_list_projects_handler(self, mock_api, document, keys, params=None, validate=None,
                                      overrides=None, action=None, encoding=None, transform=None):
@@ -484,7 +491,8 @@ class TestQuantumInspireAPI(unittest.TestCase):
         expected_payload = {'id': job_id}
         self.coreapi_client.handlers['jobs'] = partial(self.__mock_job_handler, expected_payload, 'read',
                                                        status='RUNNING')
-        api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
+        api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client,
+                                logger=Mock())
         is_completed = api._wait_for_completed_job(job_id, collect_max_tries, sec_retry_delay=0.0)
         self.assertFalse(is_completed)
 
@@ -504,16 +512,16 @@ class TestQuantumInspireAPI(unittest.TestCase):
                                  ('number_of_qubits', 26),
                                  ('description', 'Single-node running on a 4GB Hetzner VPS.'),
                                  ('topology', '{"edges": []}'),
-                                 ('is_allowed', True)]), OrderedDict([('url', 'https://api.quantum-inspire.com/backendtypes/2/'),
-                                                                      ('name', 'QX Single-node Simulator'),
-                                                                      ('is_hardware_backend', False),
-                                                                      ('required_permission',
-                                                                       'can_simulate_single_node_qutech'),
-                                                                      ('number_of_qubits', 26),
-                                                                      ('description',
-                                                                       'Single-node running on a 4GB Hetzner VPS.'),
-                                                                      ('topology', '{"edges": []}'),
-                                                                      ('is_allowed', True)])]
+                                 ('is_allowed', True)]),
+                    OrderedDict([('url', 'https://api.quantum-inspire.com/backendtypes/2/'),
+                                 ('name', 'QX Single-node Simulator'),
+                                 ('is_hardware_backend', False),
+                                 ('required_permission', 'can_simulate_single_node_qutech'),
+                                 ('number_of_qubits', 26),
+                                 ('description',
+                                  'Single-node running on a 4GB Hetzner VPS.'),
+                                 ('topology', '{"edges": []}'),
+                                 ('is_allowed', True)])]
         else:
             # return specified id
             return OrderedDict([('url', 'https://api.quantum-inspire.com/backendtypes/%d/' % backend_type_id),
@@ -603,7 +611,7 @@ class TestQuantumInspireAPI(unittest.TestCase):
 
         qasm = 'version 1.0\n'
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
-        backend_type = api.get_backend_type(backend_id=2)
+        backend_type = api.get_backend_type(identifier=2)
         _ = api.execute_qasm(qasm, backend_type, collect_tries=1)
         project_call = tuple(project_mock.call_args_list[0])
         self.assertEqual(project_call[0][0], 'create')
@@ -632,10 +640,9 @@ class TestQuantumInspireAPI(unittest.TestCase):
         self.coreapi_client.handlers['backendtypes'] = partial(self.__fake_backendtype_handler, call_mock=backend_mock)
         qasm = 'version 1.0...'
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
-        backend = api.get_backend_type(backend_id=1)
+        backend = api.get_backend_type(identifier=1)
         expected = 'https://api.quantum-inspire.com/jobs/1/result/mocked'
         actual = api.execute_qasm(qasm, backend, collect_tries=1)
-
         self.assertIsNone(api.project_name)
         job_mock.assert_has_calls([call('create'), call('read')], any_order=True)
         asset_mock.assert_called_once_with('create')
@@ -658,7 +665,7 @@ class TestQuantumInspireAPI(unittest.TestCase):
         project_name = 'Grover algorithm - 1900-01-01 10:00'
         api = QuantumInspireAPI('FakeURL', self.authentication, project_name,
                                 coreapi_client_class=self.coreapi_client)
-        backend = api.get_backend_type(backend_id=1)
+        backend = api.get_backend_type(identifier=1)
         expected = 'https://api.quantum-inspire.com/jobs/1/result/mocked'
         actual = api.execute_qasm(qasm, backend, collect_tries=1)
 
