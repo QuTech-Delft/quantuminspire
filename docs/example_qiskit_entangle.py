@@ -14,10 +14,11 @@ on that is used to execute the circuit.
 
 Copyright 2018 QuTech Delft. Licensed under the Apache License, Version 2.0.
 """
-import qiskit
-
 from getpass import getpass
+
 from coreapi.auth import BasicAuthentication
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, execute
+
 from quantuminspire.api import QuantumInspireAPI
 from quantuminspire.qiskit.backend_qx import QiSimulatorPy
 
@@ -35,26 +36,20 @@ def get_authentication():
 if __name__ == '__main__':
 
     authentication = get_authentication()
-    quantum_inspire_api = QuantumInspireAPI(r'https://api.quantum-inspire.com', authentication)
+    uri = "https://api.quantum-inspire.com"
+    qi_api = QuantumInspireAPI(uri, authentication)
+    qi_backend = QiSimulatorPy(qi_api)
 
-    QPS_SPECS = {
-        'circuits': [{
-            'name': 'entangle',
-            'quantum_registers': [{'name': 'q', 'size': 2}],
-            'classical_registers': [{'name': 'b', 'size': 2}]
-        }]
-    }
-
-    program = qiskit.QuantumProgram(specs=QPS_SPECS)
-    q = program.get_quantum_register('q')
-    b = program.get_classical_register('b')
-    circuit = program.get_circuit('entangle')
+    q = QuantumRegister(2)
+    b = ClassicalRegister(2)
+    circuit = QuantumCircuit(q, b)
 
     circuit.h(q[0])
     circuit.cx(q[0], q[1])
-    circuit.measure(q[0], b[0])
-    circuit.measure(q[1], b[1])
+    circuit.measure(q, b)
 
-    qi_backend = QiSimulatorPy(quantum_inspire_api)
-    result = qiskit.execute(circuit, qi_backend)
-    print(result.get_counts())
+    result = execute(circuit, backend=qi_backend, shots=256)
+
+    histogram = result.get_counts(circuit)
+    print('\nState\tCounts')
+    [print('{0}\t{1}'.format(state, counts)) for state, counts in histogram.items()]

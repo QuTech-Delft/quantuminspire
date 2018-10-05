@@ -22,7 +22,6 @@ from collections import OrderedDict
 from urllib.parse import urljoin
 
 import coreapi
-
 from quantuminspire.exceptions import ApiError
 
 
@@ -232,7 +231,7 @@ class QuantumInspireAPI:
         """
         return self._action(['jobs', 'read'], params={'id': job_id})
 
-    def _create_job(self, name, asset, project, number_of_shots):
+    def _create_job(self, name, asset, project, number_of_shots, full_state_projection=True):
         """ Creates a new job for executing QASM code.
 
         Args:
@@ -240,16 +239,19 @@ class QuantumInspireAPI:
             asset (OrderedDict):  The asset with the QASM code.
             project (OrderedDict): The project with backend.
             number_of_shots (int): The number of executions before returning the result.
+            full_state_projection (bool): Used for optimizing simulations. For more information see:
+                                          https://www.quantum-inspire.com/kbase/optimization-of-simulations/
 
         Returns:
             OrderedDict: The properties of the new project.
         """
         payload = {
+            'status': 'NEW',
             'name': name,
             'input': asset['url'],
             'backend_type': project['backend_type'],
             'number_of_shots': number_of_shots,
-            'status': 'NEW',
+            'full_state_projection': full_state_projection,
         }
         return self._action(['jobs', 'create'], params=payload)
 
@@ -351,8 +353,8 @@ class QuantumInspireAPI:
         self.__logger.error('Failed getting result: %s', status_message)
         return False
 
-    def execute_qasm(self, qasm, backend_type=None, number_of_shots=256, collect_tries=300,
-                     default_number_of_shots=256, identifier=None):
+    def execute_qasm(self, qasm, number_of_shots=256, backend_type=None,
+                     collect_tries=300, default_number_of_shots=256, identifier=None):
         """ Creates the project, asset and job with the given qasm code and returns
             the execution result.
 
@@ -396,11 +398,9 @@ class QuantumInspireAPI:
             result_uri = initial_job['results']
             self.__logger.info('submitting qasm code to quantum inspire %s', job_name)
             has_results = self._wait_for_completed_job(job_identifier, collect_tries)
-            result = self._get(result_uri) if has_results else {}
+            return self._get(result_uri) if has_results else {}
 
         finally:
             if delete_project_afterwards:
                 project_identifier = project['id']
                 self._delete_project(project_identifier)
-
-        return result

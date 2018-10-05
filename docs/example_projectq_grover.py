@@ -103,7 +103,7 @@ if __name__ == '__main__':
     qi = QuantumInspireAPI(r'https://api.quantum-inspire.com/', authentication)
 
     compiler_engines = restrictedgateset.get_engine_list(one_qubit_gates="any", two_qubit_gates=(CNOT, CZ, Toffoli))
-    compiler_engines.extend([ResourceCounter(), ManualMapper(lambda ii: ii)])
+    compiler_engines.extend([ResourceCounter(), ManualMapper(lambda x: x)])
     qi_backend = QIBackend(quantum_inspire_api=qi)
     qi_engine = MainEngine(backend=qi_backend, engine_list=compiler_engines)
 

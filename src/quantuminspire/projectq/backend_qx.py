@@ -20,6 +20,7 @@ limitations under the License.
 """
 
 import random
+from collections import defaultdict
 
 from projectq.cengines import BasicEngine
 from projectq.meta import LogicalQubitIDTag, get_control_count
@@ -35,9 +36,8 @@ class QIBackend(BasicEngine):
 
     """
 
-    def __init__(self, num_runs=1024, verbose=0,
-                 quantum_inspire_api=None, backend_type=None, nqubits=8,
-                 perform_execution=True):
+    def __init__(self, num_runs=1024, verbose=0, quantum_inspire_api=None,
+                 backend_type=None, perform_execution=True):
         """
         Initialize the Backend object.
 
@@ -47,7 +47,6 @@ class QIBackend(BasicEngine):
             verbose (int): Verbosity level
             quantum_inspire_api (QuantumInspireAPI or None): connection to QI platform
             backend_type (dict or str or None): Backend to use for execution.
-            nqubits (int): number of qubits to request to the backend
             perform_execution (bool): If True perform execution, otherwise generate cQASM
         """
         BasicEngine.__init__(self)
@@ -59,7 +58,6 @@ class QIBackend(BasicEngine):
         self._cqasm = str()
         self.quantum_inspire_api = quantum_inspire_api
         self.backend_type = backend_type
-        self.nqubits = nqubits
 
     def cqasm(self):
         """ Return cqasm code that as generated last """
@@ -96,7 +94,6 @@ class QIBackend(BasicEngine):
     def _reset(self):
         """ Reset all temporary variables (after flush gate). """
         self._allocated_qubits = set()
-        self._measured_ids = []
         self._max_qubit_id = -1
         self._clear = True
         self.qasm = ""
@@ -118,6 +115,7 @@ class QIBackend(BasicEngine):
             self._probabilities = dict()
             self._clear = False
             self.qasm = ""
+            self._measured_ids = []
             self._allocated_qubits = set()
 
         gate = cmd.gate
@@ -262,16 +260,19 @@ class QIBackend(BasicEngine):
         if len(self._probabilities) == 0:
             raise RuntimeError("Please, run the circuit first!")
 
-        probability_dict = dict()
+        probability_dict = defaultdict(lambda: 0)
 
         for state in self._probabilities:
-            mapped_state = ['0'] * len(qureg)
+            mapped_state = ['0'] * len(self._measured_ids)
             for i in range(len(qureg)):
-                mapped_state[i] = state[self._logical_to_physical(qureg[i].id)]
+                logical_id = qureg[i].id
+                if logical_id in self._measured_ids:
+                    index = self._measured_ids.index(i)
+                    mapped_state[index] = state[self._logical_to_physical(logical_id)]
             probability = self._probabilities[state]
-            probability_dict["".join(mapped_state)] = probability
+            probability_dict["".join(mapped_state)] += probability
 
-        return probability_dict
+        return dict(probability_dict)
 
     def _calculate_probabilities(self, counts):
         """ Determine probabilities and set single measurement to register """
@@ -304,11 +305,11 @@ class QIBackend(BasicEngine):
 
         if self._verbose:
             print('_run (id {0})'.format((id(self), )))
-        # finally: add measurement commands for all measured qubits
+
+        # finally: add measurement commands for all measured qubits if no measurements are given.
         # only measurements after all gate operations will perform properly
-        for measured_id in self._measured_ids:
-            qb_loc = self.main_engine.mapper.current_mapping[measured_id]
-            self.qasm += "\nmeasure q[{}] ".format(qb_loc,)
+        if not self._measured_ids:
+            self.__add_measure_all_qubits()
 
         if self._verbose >= 2:
             print('_run: self._allocated_qubits {0}'.format((self._allocated_qubits, )))
@@ -324,11 +325,12 @@ class QIBackend(BasicEngine):
                 print('------')
                 print(qasm)
                 print('------')
+
             self._cqasm = qasm
 
             if self._perform_execution:
                 self._quantum_inspire_result = self.quantum_inspire_api.execute_qasm(
-                    self._cqasm, backend_type=self.backend_type)
+                    self._cqasm, number_of_shots=self._num_runs, backend_type=self.backend_type)
                 if len(self._quantum_inspire_result.get('histogram', {})) == 0:
                     raw_text = self._quantum_inspire_result.get('raw_text', 'no raw_text in result structure')
                     raise ProjectQBackendError(
@@ -337,8 +339,10 @@ class QIBackend(BasicEngine):
                 self._quantum_inspire_result = None
                 return
 
+            number_of_qubits = len(self.main_engine.active_qubits)
             counts = QIBackend.format_histogram(self._quantum_inspire_result['histogram'],
-                                                number_of_qubits=self.nqubits, number_of_runs=self._num_runs)
+                                                number_of_qubits=number_of_qubits,
+                                                number_of_runs=self._num_runs)
             measured = self._calculate_probabilities(counts)
 
             class QB():
@@ -372,6 +376,14 @@ class QIBackend(BasicEngine):
             else:
                 self._run()
                 self._reset()
+
+    def __add_measure_all_qubits(self):
+        """ Adds measurements at the end of the quantum algorithm for all allocated qubits."""
+        qubits_reference = self.main_engine.active_qubits.copy()
+        qubits_counts = len(qubits_reference)
+        for _ in range(qubits_counts):
+            q = qubits_reference.pop()
+            Measure | q
 
     """ Mapping of gate names from our gate objects to the cQASM representation."""
     _gate_names = {str(Tdag): "Tdag", str(Sdag): "Sdag"}
