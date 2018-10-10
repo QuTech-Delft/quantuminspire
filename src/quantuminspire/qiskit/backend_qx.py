@@ -45,8 +45,23 @@ class QiSimulatorPy(BaseBackend):
 
         Args:
             api (QuantumInspireApi): The interface instance to the Quantum Inspire API.
-            configuration (dict, optional): The configuration of the quantum inspire backend.
-                                            A default configuration is used when no value is given.
+            configuration (dict, optional): The configuration of the quantum inspire backend. The configuration must
+                implement the fields given by the QiSimulatorPy.DEFAULT_CONFIGURATION. All configuration fields are
+                listed in the table below. The table rows with an asterisk specify fields which can have a custom
+                value and are allowed to be changed according to the description column.
+
+                | key                    | description
+                |------------------------|----------------------------------------------------------------------------
+                | name (str)*            | The name of the simulator or quantum system.
+                | url (str)              | The URL of the server for connecting to the backend system. Not used.
+                | description (str)*     | A short description of the configuration and system.
+                | qi_backend_name (str)* | The name of the quantum inspire backend. The API can list the name of each
+                                           available backend using the function api.list_backend_types(). One of the
+                                           listed names must be used.
+                | basis_gates (str)      | A comma-separated set of basis gates to compile to.
+                | coupling_map (dict)    | A map to target the connectivity for specific device. Currently not used.
+                | simulator (bool)       | Specifies whether the backend is a simulator or a quantum system. Not used.
+                | local (bool)           | Indicates whether the system is running locally or remotely. Not used.
         """
         super().__init__(configuration or QiSimulatorPy.DEFAULT_CONFIGURATION)
         self.__backend_name = self.configuration['qi_backend_name']
