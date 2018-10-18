@@ -1,9 +1,11 @@
 language: python
 python:
   - "3.6"
-  - "3.7"
-    sudo: true
-    dist: xenial
+matrix:
+  include:
+    - python: 3.7
+      sudo: true
+      dist: xenial
 install:
   - pip install .[qiskit,projectq]
 script:
