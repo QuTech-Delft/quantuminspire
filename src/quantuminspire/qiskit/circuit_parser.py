@@ -23,14 +23,14 @@ class CircuitToString:
     """ Contains the translational elements to convert the qiskit circuits to CQASM code."""
 
     _u1_operator_switch = {
-        np.pi/2: 'S',
-        np.pi/4: 'T',
-        -np.pi/4: 'Tdag'
+        np.pi / 2: 'S',
+        np.pi / 4: 'T',
+        -np.pi / 4: 'Tdag'
     }
 
     _u_operator_switch = {
-        np.pi/2: 'S',
-        -np.pi/2: 'Sdag',
+        np.pi / 2: 'S',
+        -np.pi / 2: 'Sdag',
     }
 
     def _cx(self, circuit):
@@ -199,5 +199,5 @@ class CircuitToString:
         """
         gates = ['Rz', 'Ry', 'Rz']
         angles = circuit['params'][:3]
-        index_q0 = [circuit['qubits'][0]]*3
+        index_q0 = [circuit['qubits'][0]] * 3
         return ''.join('%s q[%d], %f\n' % pair for pair in zip(gates, index_q0, angles))

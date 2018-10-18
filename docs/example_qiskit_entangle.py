@@ -25,17 +25,17 @@ from quantuminspire.qiskit.backend_qx import QiSimulatorPy
 
 def get_authentication():
     """ Gets the authentication for connecting to the Quantum Inspire API."""
-    if 'password' not in vars().keys():
-        print('Enter email:')
-        email = input()
-        print('Enter password')
-        password = getpass()
+    print('Enter email:')
+    email = input()
+    print('Enter password')
+    password = getpass()
     return BasicAuthentication(email, password)
 
 
 if __name__ == '__main__':
 
-    authentication = get_authentication()
+    if 'authentication' not in vars().keys():
+        authentication = get_authentication()
     uri = "https://api.quantum-inspire.com"
     qi_api = QuantumInspireAPI(uri, authentication)
     qi_backend = QiSimulatorPy(qi_api)

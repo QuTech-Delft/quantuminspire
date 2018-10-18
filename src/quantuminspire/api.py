@@ -386,7 +386,6 @@ class QuantumInspireAPI:
         if project is None:
             project_name = self.project_name if self.project_name else 'qi-sdk-project-{}'.format(identifier)
             project = self._create_project(project_name, default_number_of_shots, backend_type)
-
         try:
             asset_name = 'qi-sdk-asset-{}'.format(identifier)
             asset = self._create_asset(asset_name, project, qasm)
