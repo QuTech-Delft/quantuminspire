@@ -1,0 +1,13 @@
+language: python
+python:
+  - "3.5"
+  - "3.6"
+  - "3.7"
+    sudo: true
+    dist: xenial
+install:
+  - pip install .[qiskit,projectq]
+script:
+  - coverage run --source="./src/quantuminspire" -m unittest discover -s src/tests -t src -v
+after_success:
+  - coverage report -m
