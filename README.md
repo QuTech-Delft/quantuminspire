@@ -1,5 +1,8 @@
 # Quantum Inspire SDK
 
+*Note: this is an initial alpha release of the SDK, it is still under
+heavy development.*
+
 The Quantum Inspire platform allows to execute quantum algorithms using the cQASM language. 
 
 The software development kit (SDK) for the Quantum Inspire platform consists of:
@@ -57,7 +60,8 @@ cd docs
 python example_projectq_grover.py
 ```
 
-A simple example to perform entanglement between two qubits by using the API wrapper directly:
+A simple example to perform entanglement between two qubits by using the
+API wrapper directly instead of the more convenient ProjectQ or Qiskit:
 
 ``` python
 from getpass import getpass
