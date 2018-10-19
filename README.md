@@ -92,12 +92,10 @@ qubits 2
 H q[0]
 CNOT q[0], q[1]
 display
-
-measure q[0]
 '''
 
-backend = qi.get_backend_type(backend_id=1)
-result = qi.execute_qasm(qasm, backend, number_of_shots=128)
+backend_type = qi.get_backend_type_by_name('QX single-node simulator')
+result = qi.execute_qasm(qasm, backend_type=backend_type, number_of_shots=1024)
 
 print(result['histogram'])
 ```
