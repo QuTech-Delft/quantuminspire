@@ -353,8 +353,8 @@ class QuantumInspireAPI:
         self.__logger.error('Failed getting result: %s', status_message)
         return False
 
-    def execute_qasm(self, qasm, number_of_shots=256, backend_type=None,
-                     collect_tries=300, default_number_of_shots=256, identifier=None):
+    def execute_qasm(self, qasm, backend_type=None, number_of_shots=256, collect_tries=300,
+                     default_number_of_shots=256, identifier=None, full_state_projection=True):
         """ Creates the project, asset and job with the given qasm code and returns
             the execution result.
 
@@ -365,6 +365,7 @@ class QuantumInspireAPI:
             collect_tries (int): The number of times the results should be collected before returning.
             default_number_of_shots (int): The default used number of shots for the project.
             identifier (str or None): The identifier of the project, asset and job.
+            full_state_projection (bool): Do not use full state projection when set to False (default is True).
 
         Returns:
             OrderedDict: The results of the executed qasm if succesfull else an empty dictionary if
@@ -391,7 +392,8 @@ class QuantumInspireAPI:
             asset = self._create_asset(asset_name, project, qasm)
 
             job_name = 'qi-sdk-job-{}'.format(identifier)
-            initial_job = self._create_job(job_name, asset, project, number_of_shots)
+            initial_job = self._create_job(job_name, asset, project, number_of_shots,
+                                           full_state_projection=full_state_projection)
 
             job_identifier = initial_job['id']
             result_uri = initial_job['results']
