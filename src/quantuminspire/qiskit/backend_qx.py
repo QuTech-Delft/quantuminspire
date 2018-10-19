@@ -209,14 +209,13 @@ class QiSimulatorPy(BaseBackend):
         Raises:
             QisKitBackendError: When the value is not correct.
         """
-        operations = experiment.instructions
-        operation_names = [operation.name for operation in operations]
-        has_measure_operation = False
-        for name in operation_names:
-            if name == 'measure':
-                has_measure_operation = True
-            elif has_measure_operation:
-                raise QisKitBackendError('Operation after measurement!')
+        measured_qubits = []
+        for instruction in experiment.instructions:
+            for qubit in instruction.qubits:
+                if instruction.name == 'measure':
+                    measured_qubits.append(qubit)
+                elif qubit in measured_qubits:
+                    raise QisKitBackendError('Operation after measurement!')
 
     @staticmethod
     def __collect_measurements(experiment):

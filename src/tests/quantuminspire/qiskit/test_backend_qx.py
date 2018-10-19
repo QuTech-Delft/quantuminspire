@@ -86,7 +86,8 @@ class TestQiSimulatorPy(unittest.TestCase):
                                                               'time_taken': 8.021350860595703})
         with patch.object(QiSimulatorPy, "_run_experiment", return_value=result_mock):
             simulator = QiSimulatorPy(api)
-            instructions = [{'name': 'cx', 'params': [], 'texparams': [], 'qubits': [0, 1]}, {'name': 'measure'}]
+            instructions = [{'name': 'cx', 'params': [], 'texparams': [], 'qubits': [0, 1]},
+                            {'name': 'measure', 'qubits': [0]}]
             job_dict = self._basic_job_dictionary
             job_dict['experiments'][0]['instructions'] = instructions
             job = qiskit.qobj.Qobj.from_dict(job_dict)
@@ -150,11 +151,23 @@ class TestQiSimulatorPy(unittest.TestCase):
     def test_validate_OperationAfterMeasure(self):
         with patch.object(QiSimulatorPy, "_run_experiment", return_value=Mock()):
             simulator = QiSimulatorPy(Mock(), logger=Mock())
-            instructions = [{'name': 'CX'}, {'name': 'measure'}, {'name': 'X'}]
+            instructions = [{'name': 'CX', 'qubits': [0]}, {'name': 'measure', 'qubits': [0]},
+                            {'name': 'X', 'qubits': [0]}]
             job_dict = self._basic_job_dictionary
             job_dict['experiments'][0]['instructions'] = instructions
             job = qiskit.qobj.Qobj.from_dict(job_dict)
             self.assertRaises(QisKitBackendError, simulator.run, job)
+
+    def test_no_operation_after_measure_cx_gate(self):
+        with patch.object(QiSimulatorPy, "_run_experiment", return_value=Mock()):
+            simulator = QiSimulatorPy(Mock(), logger=Mock())
+            instructions = [{'name': 'X', 'qubits': [1]}, {'name': 'measure', 'qubits': [0]},
+                            {'name': 'CX', 'qubits': [0, 1]}]
+            job_dict = self._basic_job_dictionary
+            job_dict['experiments'][0]['instructions'] = instructions
+            job = qiskit.qobj.Qobj.from_dict(job_dict)
+            self.assertRaises(QisKitBackendError, simulator.run, job)
+
 
 class TestQiSimulatorPyHistogram(unittest.TestCase):
     def setUp(self):
