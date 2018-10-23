@@ -142,7 +142,8 @@ class QiSimulatorPy(BaseBackend):
         number_of_qubits = experiment.header.number_of_qubits
         compiled_qasm = self._generate_cqasm(experiment)
 
-        execution_results = self.__api.execute_qasm(compiled_qasm, number_of_shots, self.__backend)
+        execution_results = self.__api.execute_qasm(compiled_qasm, number_of_shots=number_of_shots,
+                                                    backend_type=self.__backend)
 
         if len(execution_results['histogram']) == 0:
             raise QisKitBackendError('Result from backend contains no histogram data!')
