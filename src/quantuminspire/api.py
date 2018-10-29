@@ -18,10 +18,12 @@ limitations under the License.
 import logging
 import time
 import uuid
+import itertools
 from collections import OrderedDict
 from urllib.parse import urljoin
 
 import coreapi
+
 from quantuminspire.exceptions import ApiError
 
 
@@ -340,12 +342,11 @@ class QuantumInspireAPI:
         Returns:
             Boolean: True if the job result could be collected else false.
         """
-        tries = 0
-        while tries < collect_max_tries:
-            tries += 1
+        shots = itertools.count() if collect_max_tries is None else range(collect_max_tries)
+        for shot in shots:
             time.sleep(sec_retry_delay)
             job = self.get_job(job_id)
-            status_message = '(id {}, iteration {})'.format(job['id'], tries)
+            status_message = '(id {}, iteration {})'.format(job['id'], shot)
             if job['status'] == 'COMPLETE':
                 self.__logger.info('Got result: %s', status_message)
                 return True
@@ -353,7 +354,7 @@ class QuantumInspireAPI:
         self.__logger.error('Failed getting result: %s', status_message)
         return False
 
-    def execute_qasm(self, qasm, backend_type=None, number_of_shots=256, collect_tries=300,
+    def execute_qasm(self, qasm, backend_type=None, number_of_shots=256, collect_tries=None,
                      default_number_of_shots=256, identifier=None, full_state_projection=True):
         """ Creates the project, asset and job with the given qasm code and returns
             the execution result.
