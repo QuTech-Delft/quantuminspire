@@ -24,6 +24,7 @@ from urllib.parse import urljoin
 
 import coreapi
 
+from quantuminspire.job import QuantumInspireJob
 from quantuminspire.exceptions import ApiError
 
 
@@ -51,7 +52,7 @@ class QuantumInspireAPI:
         except Exception as ex:
             raise ApiError('Could not connect to {}'.format(base_uri)) from ex
 
-    def _get(self, uri_path):
+    def get(self, uri_path):
         """ Makes a request to get request with a client instance.
 
         Args:
@@ -76,7 +77,7 @@ class QuantumInspireAPI:
 
     def _load_schema(self):
         """ Loads the schema with metadata that explains how the api-data is structured."""
-        self.document = self._get(urljoin(self.base_uri, 'schema/'))
+        self.document = self.get(urljoin(self.base_uri, 'schema/'))
 
     def list_backend_types(self):
         """ Prints the backend types with the name and number of qubits."""
@@ -330,12 +331,12 @@ class QuantumInspireAPI:
 
     #  other  #
 
-    def _wait_for_completed_job(self, job_id, collect_max_tries, sec_retry_delay=0.5):
+    def _wait_for_completed_job(self, quantum_inspire_job, collect_max_tries, sec_retry_delay=0.5):
         """ Holds the process and requests the job status untill completed or when
             the maximum number of tries has been reached.
 
         Args:
-            job_id (int): The job identification number.
+            quantum_inspire_job (int): The created job.
             collect_max_tries (int): The maximum number of request tries.
             sec_retry_delay (float): The time delay in between requests in seconds.
 
@@ -345,9 +346,8 @@ class QuantumInspireAPI:
         shots = itertools.count() if collect_max_tries is None else range(collect_max_tries)
         for shot in shots:
             time.sleep(sec_retry_delay)
-            job = self.get_job(job_id)
-            status_message = '(id {}, iteration {})'.format(job['id'], shot)
-            if job['status'] == 'COMPLETE':
+            status_message = '(id {}, iteration {})'.format(quantum_inspire_job.get_job_identifier(), shot)
+            if quantum_inspire_job.check_status() == 'COMPLETE':
                 self.__logger.info('Got result: %s', status_message)
                 return True
             self.__logger.info('Waiting for result: %s', status_message)
@@ -372,37 +372,45 @@ class QuantumInspireAPI:
             OrderedDict: The results of the executed qasm if succesfull else an empty dictionary if
                          the results could not be collected.
         """
+        try:
+            delete_project_afterwards = self.project_name is not None
+            quantum_inspire_job = self.execute_qasm_async(qasm, backend_type=backend_type,
+                                                          number_of_shots=number_of_shots,
+                                                          default_number_of_shots=default_number_of_shots,
+                                                          identifier=identifier,
+                                                          full_state_projection=full_state_projection)
+
+            has_results = self._wait_for_completed_job(quantum_inspire_job, collect_tries)
+            return quantum_inspire_job.retrieve_results() if has_results else None
+
+        finally:
+            if delete_project_afterwards:
+                project_identifier = quantum_inspire_job.get_project_identifier()
+                self._delete_project(project_identifier)
+
+    def execute_qasm_async(self, qasm, backend_type=None, number_of_shots=256, default_number_of_shots=256,
+                           identifier=None, full_state_projection=True):
         if not isinstance(backend_type, OrderedDict):
             backend_type = self.get_backend_type(backend_type)
 
         project = None
-        delete_project_afterwards = True
         if identifier is None:
             identifier = uuid.uuid1()
 
         if self.project_name is not None:
-            delete_project_afterwards = False
             project = next((project for project in self.get_projects()
                             if project['name'] == self.project_name), None)
 
         if project is None:
             project_name = self.project_name if self.project_name else 'qi-sdk-project-{}'.format(identifier)
             project = self._create_project(project_name, default_number_of_shots, backend_type)
-        try:
-            asset_name = 'qi-sdk-asset-{}'.format(identifier)
-            asset = self._create_asset(asset_name, project, qasm)
 
-            job_name = 'qi-sdk-job-{}'.format(identifier)
-            initial_job = self._create_job(job_name, asset, project, number_of_shots,
-                                           full_state_projection=full_state_projection)
+        asset_name = 'qi-sdk-asset-{}'.format(identifier)
+        asset = self._create_asset(asset_name, project, qasm)
 
-            job_identifier = initial_job['id']
-            result_uri = initial_job['results']
-            self.__logger.info('submitting qasm code to quantum inspire %s', job_name)
-            has_results = self._wait_for_completed_job(job_identifier, collect_tries)
-            return self._get(result_uri) if has_results else {}
+        job_name = 'qi-sdk-job-{}'.format(identifier)
+        job = self._create_job(job_name, asset, project, number_of_shots,
+                               full_state_projection=full_state_projection)
 
-        finally:
-            if delete_project_afterwards:
-                project_identifier = project['id']
-                self._delete_project(project_identifier)
+        self.__logger.info('Submitted qasm code to quantum inspire %s', job_name)
+        return QuantumInspireJob(self, job['id'])

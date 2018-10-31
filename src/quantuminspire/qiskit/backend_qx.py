@@ -139,23 +139,24 @@ class QiSimulatorPy(BaseBackend):
         start_time = time.time()
         self.__logger.info('\nRunning circuit... ({00} shots)'.format(number_of_shots))
 
-        number_of_qubits = experiment.header.number_of_qubits
         compiled_qasm = self._generate_cqasm(experiment)
-
+        number_of_qubits = experiment.header.number_of_qubits
         execution_results = self.__api.execute_qasm(compiled_qasm, number_of_shots=number_of_shots,
                                                     backend_type=self.__backend)
 
-        if len(execution_results['histogram']) == 0:
+        if not execution_results or not execution_results.get('histogram', {}):
             raise QisKitBackendError('Result from backend contains no histogram data!')
+
         measurements = QiSimulatorPy.__collect_measurements(experiment)
-        histogram = QiSimulatorPy.__convert_histogram(
-            execution_results, measurements, number_of_qubits, number_of_shots)
+        histogram = QiSimulatorPy.__convert_histogram(execution_results, measurements, number_of_qubits,
+                                                      number_of_shots)
         experiment_result_data = {'counts': histogram, 'snapshots': {}}
 
         execution_time = time.time() - start_time
         self.__logger.info('Execution done in {0:.2g} seconds.\n'.format(execution_time))
         experiment_result_dictionary = {'name': experiment.header.name, 'seed': None, 'shots': number_of_shots,
-                                        'data': experiment_result_data, 'status': 'DONE', 'success': True, 'time_taken': execution_time}
+                                        'data': experiment_result_data, 'status': 'DONE', 'success': True,
+                                        'time_taken': execution_time}
         experiment_result = ExperimentResult(**experiment_result_dictionary)
         return experiment_result
 

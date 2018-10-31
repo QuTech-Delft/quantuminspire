@@ -23,8 +23,8 @@ import io
 
 import quantuminspire
 from quantuminspire.api import QuantumInspireAPI
+from quantuminspire.job import QuantumInspireJob
 from quantuminspire.exceptions import ApiError
-
 
 class MockApiBasicAuth:
 
@@ -39,13 +39,17 @@ class MockApiBasicAuth:
 class MockApiClient:
 
     handlers = dict()
+    getters = dict()
 
     def __init__(self, auth=None):
         """ Basic mock for coreapi.Client."""
         self.authentication = auth
+        self.getters['schema/'] = ''
 
     def get(self, url):
-        return url
+        if url not in self.__class__.getters:
+            raise Exception("get %s not mocked" % url)
+        return self.__class__.getters[url]
 
     def action(self, document, keys, params=None, validate=True, overrides=None,
                action=None, encoding=None, transform=None):
@@ -62,9 +66,10 @@ class TestQuantumInspireAPI(unittest.TestCase):
         self.coreapi_client = MockApiClient
 
     def test_get_HasCorrectOutput(self, mock_key='MockKey'):
+        expected = 'Test'
+        self.coreapi_client.getters[mock_key] = expected
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
-        expected = mock_key
-        actual = api._get(mock_key)
+        actual = api.get(mock_key)
         self.assertEqual(expected, actual)
 
     def test_action_HasCorrectOutput(self, mock_key='MockKey', mock_result=1234):
@@ -78,8 +83,10 @@ class TestQuantumInspireAPI(unittest.TestCase):
         self.assertEqual(mock_result, actual)
 
     def test_load_schema_CollectsCorrectSchema(self):
+        expected = 'schema/'
         base_url = 'https://api.mock.test.com/'
-        expected = base_url + 'schema/'
+        url = ''.join([base_url, expected])
+        self.coreapi_client.getters[url] = expected
         api = QuantumInspireAPI(base_url, self.authentication, coreapi_client_class=self.coreapi_client)
         api._load_schema()
         self.assertEqual(expected, api.document)
@@ -488,8 +495,10 @@ class TestQuantumInspireAPI(unittest.TestCase):
         expected_payload = {'id': job_id}
         self.coreapi_client.handlers['jobs'] = partial(self.__mock_job_handler, expected_payload, 'read',
                                                        status='COMPLETE')
+
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
-        is_completed = api._wait_for_completed_job(job_id, collect_max_tries, sec_retry_delay=0.0)
+        quantum_inspire_job = QuantumInspireJob(api, job_id)
+        is_completed = api._wait_for_completed_job(quantum_inspire_job, collect_max_tries, sec_retry_delay=0.0)
         self.assertTrue(is_completed)
 
     def test_wait_for_completed_job_ReturnsFalse(self):
@@ -500,7 +509,8 @@ class TestQuantumInspireAPI(unittest.TestCase):
                                                        status='RUNNING')
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client,
                                 logger=Mock())
-        is_completed = api._wait_for_completed_job(job_id, collect_max_tries, sec_retry_delay=0.0)
+        quantum_inspire_job = QuantumInspireJob(api, job_id)
+        is_completed = api._wait_for_completed_job(quantum_inspire_job, collect_max_tries, sec_retry_delay=0.0)
         self.assertFalse(is_completed)
 
     def __fake_backendtype_handler(self, mock_api, document, keys, params=None, validate=None,
@@ -574,7 +584,8 @@ class TestQuantumInspireAPI(unittest.TestCase):
                             ('contentType', 'text/plain'),
                             ('content', 'version 1.0\n\nqubits 9\n\n\n# Grover search algorithm\n  display'),
                             ('project', 'https,//api.quantum-inspire.com/projects/1/'),
-                            ('project_id', 1)])
+                            ('project_id', 1),
+                            ('input', {'project_id': 1})])
 
     def __fake_job_handler(self, mock_api, document, keys, params=None, validate=None,
                            overrides=None, action=None, encoding=None, transform=None, call_mock=None):
@@ -585,10 +596,10 @@ class TestQuantumInspireAPI(unittest.TestCase):
                             ('id', 509),
                             ('status', 'COMPLETE'),
                             ('full_state_projection', True),
-                            ('input', 'https,//api.quantum-inspire.com/assets/607/'),
+                            ('input', 'mocked_asset'),
                             ('backend', 'https,//api.quantum-inspire.com/backends/1/'),
                             ('backend_type', 'https,//api.quantum-inspire.com/backendtypes/1/'),
-                            ('results', 'https://api.quantum-inspire.com/jobs/1/result/mocked'),
+                            ('results', 'mocked_job'),
                             ('queued_at', '2018-08-24T07,01,21.257557Z'),
                             ('number_of_shots', 1)])
 
@@ -608,6 +619,7 @@ class TestQuantumInspireAPI(unittest.TestCase):
                             ('number_of_shots', 1)])
 
     def test_execute_qasm_DifferentBackend(self):
+        self.coreapi_client.getters['mocked_job'] = self.__fake_job_handler({}, 'read', None, None, ['test', 'read'], {})
         job_mock = Mock()
         self.coreapi_client.handlers['jobs'] = partial(self.__fake_job_handler, call_mock=job_mock)
         asset_mock = Mock()
@@ -640,6 +652,7 @@ class TestQuantumInspireAPI(unittest.TestCase):
         self.assertEqual(project_call[1]['params']['backend_type'], r'https://api.quantum-inspire.com/backendtypes/1/')
 
     def __test_execute_qasm_fsp_propagates_correctly_to_job(self, full_state_projection):
+        self.coreapi_client.getters['mocked_job'] = self.__fake_job_handler({}, 'read', None, None, ['test', 'read'], {})
         job_mock = Mock()
         self.coreapi_client.handlers['jobs'] = partial(self.__fake_job_handler, call_mock=job_mock)
         asset_mock = Mock()
@@ -654,7 +667,7 @@ class TestQuantumInspireAPI(unittest.TestCase):
         backend = api.get_backend_type(identifier=1)
         _ = api.execute_qasm(qasm, backend, collect_tries=1, full_state_projection=full_state_projection)
 
-        self.assertEqual(2, job_mock.call_count)
+        self.assertEqual(4, job_mock.call_count)
         first_call = job_mock.call_args_list[0]
         first_call_arguments = first_call[0]
         self.assertEqual(first_call_arguments[0], 'create')
@@ -671,6 +684,8 @@ class TestQuantumInspireAPI(unittest.TestCase):
         self.assertFalse(self.__test_execute_qasm_fsp_propagates_correctly_to_job(False))
 
     def test_execute_qasm_CreatesNewProject(self):
+        expected = self.__fake_job_handler({}, 'read', None, None, ['test', 'read'], {})
+        self.coreapi_client.getters['mocked_job'] = expected
         job_mock = Mock()
         self.coreapi_client.handlers['jobs'] = partial(self.__fake_job_handler, call_mock=job_mock)
         asset_mock = Mock()
@@ -680,12 +695,11 @@ class TestQuantumInspireAPI(unittest.TestCase):
         backend_mock = Mock()
         self.coreapi_client.handlers['backendtypes'] = partial(self.__fake_backendtype_handler, call_mock=backend_mock)
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
-        expected = 'https://api.quantum-inspire.com/jobs/1/result/mocked'
         qasm = 'version 1.0...'
 
         actual = api.execute_qasm(qasm, collect_tries=1)
         self.assertIsNone(api.project_name)
-        self.assertEqual(job_mock.call_count, 2)
+        self.assertEqual(job_mock.call_count, 4)
         first_call = job_mock.call_args_list[0]
         first_call_arguments = first_call[0]
         self.assertEqual(first_call_arguments[0], 'create')
@@ -695,12 +709,15 @@ class TestQuantumInspireAPI(unittest.TestCase):
         second_call_arguments = second_call[0]
         self.assertEqual(second_call_arguments[0], 'read')
         asset_mock.assert_called_once_with('create')
-        project_mock.assert_has_calls([call('create'), call('delete')], any_order=True)
+        project_mock.assert_called_once_with('create')
         backend_mock.assert_called_once_with('default')
         self.assertEqual(expected, actual)
 
     @patch('quantuminspire.api.QuantumInspireAPI.get_projects')
     def test_execute_qasm_UsesProject(self, get_projects_mock):
+        expected = self.__fake_job_handler({}, 'read', None, None, ['test', 'read'], {})
+        self.coreapi_client.getters['mocked_job'] = expected
+        self.coreapi_client.getters['mocked_asset'] = self.__fake_asset_handler({}, 'create', None, None, ['test', 'create'], {})
         job_mock = Mock()
         self.coreapi_client.handlers['jobs'] = partial(self.__fake_job_handler, call_mock=job_mock)
         asset_mock = Mock()
@@ -715,12 +732,12 @@ class TestQuantumInspireAPI(unittest.TestCase):
         api = QuantumInspireAPI('FakeURL', self.authentication, project_name,
                                 coreapi_client_class=self.coreapi_client)
         backend = api.get_backend_type(identifier=1)
-        expected = 'https://api.quantum-inspire.com/jobs/1/result/mocked'
         qasm = 'version 1.0...'
         number_of_shots = 1024
+
         actual = api.execute_qasm(qasm, number_of_shots=number_of_shots, collect_tries=1)
         self.assertEqual(api.project_name, project_name)
-        self.assertEqual(job_mock.call_count, 2)
+        self.assertEqual(job_mock.call_count, 5)
         first_call = job_mock.call_args_list[0]
         first_call_arguments = first_call[0]
         self.assertEqual(first_call_arguments[0], 'create')
@@ -728,5 +745,5 @@ class TestQuantumInspireAPI(unittest.TestCase):
         second_call_arguments = second_call[0]
         self.assertEqual(second_call_arguments[0], 'read')
         asset_mock.assert_called_once_with('create')
-        project_mock.assert_called_once_with('create')
+        project_mock.assert_called_with('delete')
         self.assertEqual(expected, actual)

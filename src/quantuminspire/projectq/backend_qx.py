@@ -331,7 +331,8 @@ class QIBackend(BasicEngine):
             if self._perform_execution:
                 self._quantum_inspire_result = self.quantum_inspire_api.execute_qasm(
                     self._cqasm, number_of_shots=self._num_runs, backend_type=self.backend_type)
-                if len(self._quantum_inspire_result.get('histogram', {})) == 0:
+
+                if not self._quantum_inspire_result or not self._quantum_inspire_result.get('histogram', {}):
                     raw_text = self._quantum_inspire_result.get('raw_text', 'no raw_text in result structure')
                     raise ProjectQBackendError(
                         'Result structure does not contain proper histogram. raw_text field: %s' % raw_text)
