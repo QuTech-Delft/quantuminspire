@@ -56,7 +56,7 @@ class QuantumInspireJob:
         return self.__api.get(result_uri)
 
     def get_job_identifier(self):
-        """ Gets the set job identification number for the wrappered job.
+        """ Gets the set job identification number for the wrapped job.
 
         Returns:
             int: The job identification number.
