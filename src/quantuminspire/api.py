@@ -390,6 +390,21 @@ class QuantumInspireAPI:
 
     def execute_qasm_async(self, qasm, backend_type=None, number_of_shots=256, default_number_of_shots=256,
                            identifier=None, full_state_projection=True):
+        """ Creates the project, asset and job with the given qasm code and returns directly without waiting
+            for the job to complete.
+
+        Args:
+            qasm (str): The qasm code as string object.
+            backend_type (OrderedDict, int, str or None): The backend_type on to execute the algorithm.
+            number_of_shots (int): Execution times of the algorithm before collecting the results.
+            default_number_of_shots (int): The default used number of shots for the project.
+            identifier (str or None): The identifier of the project, asset and job.
+            full_state_projection (bool): Do not use full state projection when set to False (default is True).
+
+        Returns:
+            QuantumInspireJob: A encapulated job obtain containing methods the get the status of the job and
+                               retrieve the execution results.
+        """
         if not isinstance(backend_type, OrderedDict):
             backend_type = self.get_backend_type(backend_type)
 
