@@ -32,7 +32,7 @@ class QuantumInspireJob:
         try:
             _ = api.get_job(job_identifier)
         except ErrorMessage as error:
-            raise ValueError('Invalid job identifier!')
+            raise ValueError('Invalid job identifier!') from error
 
     def check_status(self):
         """ Checks the execution status of the job.
