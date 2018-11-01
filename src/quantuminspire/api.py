@@ -336,7 +336,7 @@ class QuantumInspireAPI:
             the maximum number of tries has been reached.
 
         Args:
-            quantum_inspire_job (int): The created job.
+            quantum_inspire_job (QuantumInspireJob): A job object.
             collect_max_tries (int): The maximum number of request tries.
             sec_retry_delay (float): The time delay in between requests in seconds.
 
