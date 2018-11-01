@@ -381,7 +381,7 @@ class QuantumInspireAPI:
                                                           full_state_projection=full_state_projection)
 
             has_results = self._wait_for_completed_job(quantum_inspire_job, collect_tries)
-            return quantum_inspire_job.retrieve_results() if has_results else None
+            return quantum_inspire_job.retrieve_results() if has_results else OrderedDict()
 
         finally:
             if delete_project_afterwards:

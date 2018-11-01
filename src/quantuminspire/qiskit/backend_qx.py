@@ -144,7 +144,7 @@ class QiSimulatorPy(BaseBackend):
         execution_results = self.__api.execute_qasm(compiled_qasm, number_of_shots=number_of_shots,
                                                     backend_type=self.__backend)
 
-        if not execution_results or not execution_results.get('histogram', {}):
+        if not execution_results.get('histogram', {}):
             raise QisKitBackendError('Result from backend contains no histogram data!')
 
         measurements = QiSimulatorPy.__collect_measurements(experiment)
