@@ -15,16 +15,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import io
 import unittest
 from collections import OrderedDict
 from functools import partial
-from unittest.mock import Mock, call, patch
-import io
+from unittest.mock import Mock, patch
 
-import quantuminspire
 from quantuminspire.api import QuantumInspireAPI
-from quantuminspire.job import QuantumInspireJob
 from quantuminspire.exceptions import ApiError
+from quantuminspire.job import QuantumInspireJob
+
 
 class MockApiBasicAuth:
 
@@ -37,7 +37,6 @@ class MockApiBasicAuth:
 
 
 class MockApiClient:
-
     handlers = dict()
     getters = dict()
 
@@ -77,6 +76,7 @@ class TestQuantumInspireAPI(unittest.TestCase):
                                  overrides=None, action=None, encoding=None, transform=None):
             self.assertEqual(keys[0], mock_key)
             return mock_result
+
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
         self.coreapi_client.handlers[mock_key] = mock_result_callable
         actual = api._action([mock_key])
@@ -94,6 +94,7 @@ class TestQuantumInspireAPI(unittest.TestCase):
     def test_zload_schema_RaisesException(self):
         def raises_error(self, url):
             raise NotImplementedError
+
         coreapi_client = MockApiClient
         coreapi_client.get = raises_error
         self.assertRaises(Exception, QuantumInspireAPI, 'FakeURL',
@@ -204,14 +205,16 @@ class TestQuantumInspireAPI(unittest.TestCase):
                              ('owner', 'https://api.quantum-inspire.com/users/1/'),
                              ('assets', 'https://api.quantum-inspire.com/projects/1/assets/'),
                              ('backend_type', 'https://api.quantum-inspire.com/backendtypes/1/'),
-                             ('default_number_of_shots', 1)]),
+                             ('default_number_of_shots', 1),
+                             ('user_data', '')]),
                 OrderedDict([('url', 'https://api.quantum-inspire.com/projects/2/'),
                              ('id', 12),
                              ('name', 'Grover algorithm - 1900-01-01 11:00'),
                              ('owner', 'https://api.quantum-inspire.com/users/2/'),
                              ('assets', 'https://api.quantum-inspire.com/projects/2/assets/'),
                              ('backend_type', 'https://api.quantum-inspire.com/backendtypes/2/'),
-                             ('default_number_of_shots', 2)])]
+                             ('default_number_of_shots', 2),
+                             ('user_data', '')])]
 
     def __mock_project_handler(self, input_params, input_key, mock_api, document, keys, params=None,
                                validate=None, overrides=None, action=None, encoding=None, transform=None):
@@ -254,7 +257,7 @@ class TestQuantumInspireAPI(unittest.TestCase):
         expected = self.__mock_project_handler({}, 'create', None, None, ['test', 'create'], {})
         self.coreapi_client.handlers['projects'] = partial(self.__mock_project_handler, expected_payload, 'create')
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
-        actual = api._create_project(name, default_number_of_shots, backend)
+        actual = api.create_project(name, default_number_of_shots, backend)
         self.assertDictEqual(expected, actual)
 
     def test_delete_project_HasCorrectInputAndOutput(self):
@@ -262,7 +265,7 @@ class TestQuantumInspireAPI(unittest.TestCase):
         expected_payload = {'id': identity}
         self.coreapi_client.handlers['projects'] = partial(self.__mock_project_handler, expected_payload, 'delete')
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
-        actual = api._delete_project(project_id=identity)
+        actual = api.delete_project(project_id=identity)
         self.assertIsNone(actual)
 
     def __mock_list_jobs_handler(self, mock_api, document, keys, params=None, validate=None,
@@ -287,7 +290,8 @@ class TestQuantumInspireAPI(unittest.TestCase):
                              ('backend_type', 'https,//api.quantum-inspire.com/backendtypes/1/'),
                              ('results', 'https,//api.quantum-inspire.com/jobs/509/result/'),
                              ('queued_at', '2018-08-24T07,01,21.257557Z'),
-                             ('number_of_shots', 1024)])]
+                             ('number_of_shots', 1024),
+                             ('user_data', '')])]
 
     def __mock_job_handler(self, input_params, input_key, mock_api, document, keys, params=None,
                            validate=None, overrides=None, action=None, encoding=None, transform=None,
@@ -303,7 +307,8 @@ class TestQuantumInspireAPI(unittest.TestCase):
                             ('backend_type', 'https,//api.quantum-inspire.com/backendtypes/1/'),
                             ('results', 'https,//api.quantum-inspire.com/jobs/509/result/'),
                             ('queued_at', '2018-08-24T07,01,21.257557Z'),
-                            ('number_of_shots', 1024)])
+                            ('number_of_shots', 1024),
+                            ('user_data', '')])
 
     def test_list_jobs_HasCorrectInputAndOutput(self):
         self.coreapi_client.handlers['jobs'] = self.__mock_list_jobs_handler
@@ -322,6 +327,24 @@ class TestQuantumInspireAPI(unittest.TestCase):
         actual = api.get_job(job_id=identity)
         self.assertDictEqual(actual, expected)
 
+    def test_get_jobs_from_project_HasCorrectInAndOutput(self):
+        identity = 1
+        expected_payload = {'id': identity}
+        expected = self.__mock_job_handler({}, 'read', None, None, ['test', 'read'], {})
+        self.coreapi_client.handlers['projects'] = partial(self.__mock_job_handler, expected_payload, 'jobs')
+        api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
+        actual = api.get_jobs_from_project(project_id=identity)
+        self.assertDictEqual(actual, expected)
+
+    def test_delete_job_HasCorrectInAndOutput(self):
+        identity = 1
+        expected_payload = {'id': identity}
+        expected = self.__mock_job_handler({}, 'read', None, None, ['test', 'read'], {})
+        self.coreapi_client.handlers['jobs'] = partial(self.__mock_job_handler, expected_payload, 'delete')
+        api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
+        actual = api.delete_job(job_id=identity)
+        self.assertDictEqual(actual, expected)
+
     def __test_create_job_HasCorrectInputAndOutput(self, full_state_projection):
         name = 'TestJob'
         asset = {'url': 'https://api.quantum-inspire.com/assets/1/'}
@@ -334,6 +357,7 @@ class TestQuantumInspireAPI(unittest.TestCase):
             'backend_type': project['backend_type'],
             'number_of_shots': number_of_shots,
             'full_state_projection': full_state_projection,
+            'user_data': ''
         }
         expected = self.__mock_job_handler({}, 'create', None, None, ['test', 'create'], {})
         self.coreapi_client.handlers['jobs'] = partial(self.__mock_job_handler, expected_payload, 'create')
@@ -619,7 +643,8 @@ class TestQuantumInspireAPI(unittest.TestCase):
                             ('number_of_shots', 1)])
 
     def test_execute_qasm_DifferentBackend(self):
-        self.coreapi_client.getters['mocked_job'] = self.__fake_job_handler({}, 'read', None, None, ['test', 'read'], {})
+        self.coreapi_client.getters['mocked_job'] = self.__fake_job_handler({}, 'read', None, None, ['test', 'read'],
+                                                                            {})
         job_mock = Mock()
         self.coreapi_client.handlers['jobs'] = partial(self.__fake_job_handler, call_mock=job_mock)
         asset_mock = Mock()
@@ -652,7 +677,8 @@ class TestQuantumInspireAPI(unittest.TestCase):
         self.assertEqual(project_call[1]['params']['backend_type'], r'https://api.quantum-inspire.com/backendtypes/1/')
 
     def __test_execute_qasm_fsp_propagates_correctly_to_job(self, full_state_projection):
-        self.coreapi_client.getters['mocked_job'] = self.__fake_job_handler({}, 'read', None, None, ['test', 'read'], {})
+        self.coreapi_client.getters['mocked_job'] = self.__fake_job_handler({}, 'read', None, None, ['test', 'read'],
+                                                                            {})
         job_mock = Mock()
         self.coreapi_client.handlers['jobs'] = partial(self.__fake_job_handler, call_mock=job_mock)
         asset_mock = Mock()
@@ -717,7 +743,8 @@ class TestQuantumInspireAPI(unittest.TestCase):
     def test_execute_qasm_UsesProject(self, get_projects_mock):
         expected = self.__fake_job_handler({}, 'read', None, None, ['test', 'read'], {})
         self.coreapi_client.getters['mocked_job'] = expected
-        self.coreapi_client.getters['mocked_asset'] = self.__fake_asset_handler({}, 'create', None, None, ['test', 'create'], {})
+        self.coreapi_client.getters['mocked_asset'] = self.__fake_asset_handler({}, 'create', None, None,
+                                                                                ['test', 'create'], {})
         job_mock = Mock()
         self.coreapi_client.handlers['jobs'] = partial(self.__fake_job_handler, call_mock=job_mock)
         asset_mock = Mock()

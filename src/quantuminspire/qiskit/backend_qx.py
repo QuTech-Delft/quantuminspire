@@ -17,20 +17,20 @@ limitations under the License.
 """
 
 import io
+import json
 import logging
-import time
+import uuid
 from collections import defaultdict
 
-from qiskit import Result
-from qiskit.qobj import Result as qobjResult
-from qiskit.qobj import ExperimentResult
 from qiskit.backends import BaseBackend
-from quantuminspire import __version__ as quantum_inspire_version
+from qiskit.qobj import ExperimentResult, Qobj, QobjExperiment
+
 from quantuminspire.exceptions import QisKitBackendError
 from quantuminspire.qiskit.circuit_parser import CircuitToString
+from quantuminspire.qiskit.qi_job import QIJob
 
 
-class QiSimulatorPy(BaseBackend):
+class QuantumInspireBackend(BaseBackend):
     DEFAULT_CONFIGURATION = {
         'name': 'qi_simulator',
         'url': 'https://www.quantum-inspire.com/',
@@ -54,46 +54,47 @@ class QiSimulatorPy(BaseBackend):
 
                 | key                    | description
                 |------------------------|----------------------------------------------------------------------------
-                | name (str)*            | The name of the simulator or quantum system.
+                | name (str)*            | The name of the quantum inspire backend. The API can list the name of each
+                                            available backend using the function api.list_backend_types(). One of the
+                                            listed names must be used.
                 | url (str)              | The URL of the server for connecting to the backend system. Not used.
                 | description (str)*     | A short description of the configuration and system.
-                | qi_backend_name (str)* | The name of the quantum inspire backend. The API can list the name of each
-                                           available backend using the function api.list_backend_types(). One of the
-                                           listed names must be used.
                 | basis_gates (str)      | A comma-separated set of basis gates to compile to.
                 | coupling_map (dict)    | A map to target the connectivity for specific device. Currently not used.
                 | simulator (bool)       | Specifies whether the backend is a simulator or a quantum system. Not used.
                 | local (bool)           | Indicates whether the system is running locally or remotely. Not used.
         """
-        super().__init__(configuration or QiSimulatorPy.DEFAULT_CONFIGURATION, provider='QuTech Delft')
-        self.__backend_name = self.configuration()['qi_backend_name']
-        self.__backend = api.get_backend_type_by_name(self.__backend_name)
+
+        super().__init__(configuration or QuantumInspireBackend.DEFAULT_CONFIGURATION, provider='QuTech Delft')
+        self.__backend = api.get_backend_type_by_name(self.name())
         self.__logger = logger
         self.__api = api
 
-    def run(self, job):
-        """ Runs a quantum job on the Quantum Inspire platform.
+    @property
+    def backend_name(self):
+        return self.name()
+
+    def run(self, qobj):
+        """ Submits a quantum job to the Quantum Inspire platform.
 
         Args:
-            job (Qobj): The quantum job with the qiskit algorithm and quantum inspire backend.
+            qobj (Qobj): The quantum job with the qiskit algorithm and quantum inspire backend.
 
         Returns:
-            Result: The result of the executed job.
+            QIJob: A job that has been submitted.
         """
         self.__logger.info('run')
-        start_time = time.time()
+        QuantumInspireBackend.__validate(qobj)
+        number_of_shots = qobj.config.shots
 
-        QiSimulatorPy.__validate(job)
-        experiments = job.experiments
-        number_of_shots = job.config.shots
-        experiment_names = [experiment.header.name for experiment in experiments]
-        result_list = [self._run_experiment(experiment, number_of_shots) for experiment in experiments]
-        execution_time = time.time() - start_time
-        qobj_result = qobjResult(backend_name=self.__backend_name, backend_version=quantum_inspire_version,
-                                 qobj_id=job.qobj_id, job_id=job.qobj_id, success=True, results=result_list,
-                                 time_taken=execution_time)
-        self.__logger.info('run: return Result structure')
-        return Result(qobj_result, experiment_names)
+        identifier = uuid.uuid1()
+        project_name = 'qi-sdk-project-{}'.format(identifier)
+        project = self.__api.create_project(project_name, number_of_shots, self.__backend)
+        experiments = qobj.experiments
+        job = QIJob(self, str(project['id']), self.__api)
+        [self._submit_experiment(experiment, number_of_shots, project=project) for experiment in experiments]
+        job.experiments = experiments
+        return job
 
     def _generate_cqasm(self, experiment):
         """ Generates the CQASM from the qiskit experiment.
@@ -123,42 +124,47 @@ class QiSimulatorPy(BaseBackend):
 
             return stream.getvalue()
 
-    def _run_experiment(self, experiment, number_of_shots):
-        """Run a circuit and return a single Result object.
+    def _submit_experiment(self, experiment, number_of_shots, project=None):
+        compiled_qasm = self._generate_cqasm(experiment)
+        measurements = self._collect_measurements(experiment)
+        user_data = json.dumps(measurements)
+        job_id = self.__api.execute_qasm_async(compiled_qasm, backend_type=self.__backend,
+                                               number_of_shots=number_of_shots, project=project,
+                                               job_name=experiment.header.name, user_data=user_data)
+        return job_id
 
+    def get_experiment_results(self, qi_job):
+        """
+        Get results from experiments from the Quantum-inspire platform.
         Args:
-            experiment (QobjExperiment): Quantum object with circuits list.
-            number_of_shots (int): The number of times the algorithm is executed.
+            qi_job (QIJob): A job that has already been submitted and which execution is completed.
 
         Raises:
             QisKitBackendError: if an error occurred during execution by the backend.
 
         Returns:
-            Dict: A dictionary with results; containing the data, execution time, status, etc.
+            List: A list of experiment results; containing the data, execution time, status, etc.
         """
-        start_time = time.time()
-        self.__logger.info('\nRunning circuit... ({00} shots)'.format(number_of_shots))
 
-        compiled_qasm = self._generate_cqasm(experiment)
-        number_of_qubits = experiment.header.number_of_qubits
-        execution_results = self.__api.execute_qasm(compiled_qasm, number_of_shots=number_of_shots,
-                                                    backend_type=self.__backend)
+        jobs = self.__api.get_jobs_from_project(qi_job.job_id())
+        results = [self.__api.get(job['results']) for job in jobs]
+        experiment_results = []
+        for result, job in zip(results, jobs):
+            if not result.get('histogram', {}):
+                raise QisKitBackendError(
+                    'Result from backend contains no histogram data!\n{}'.format(result.get('raw_text')))
 
-        if not execution_results.get('histogram', {}):
-            raise QisKitBackendError('Result from backend contains no histogram data!')
+            measurements = json.loads(job.get('user_data'))
+            histogram = QuantumInspireBackend.__convert_histogram(result, measurements, result['number_of_qubits'],
+                                                                  job['number_of_shots'])
 
-        measurements = QiSimulatorPy.__collect_measurements(experiment)
-        histogram = QiSimulatorPy.__convert_histogram(execution_results, measurements, number_of_qubits,
-                                                      number_of_shots)
-        experiment_result_data = {'counts': histogram, 'snapshots': {}}
+            experiment_result_data = {'counts': histogram, 'snapshots': {}}
 
-        execution_time = time.time() - start_time
-        self.__logger.info('Execution done in {0:.2g} seconds.\n'.format(execution_time))
-        experiment_result_dictionary = {'name': experiment.header.name, 'seed': None, 'shots': number_of_shots,
-                                        'data': experiment_result_data, 'status': 'DONE', 'success': True,
-                                        'time_taken': execution_time}
-        experiment_result = ExperimentResult(**experiment_result_dictionary)
-        return experiment_result
+            experiment_result_dictionary = {'name': job.get('name'), 'seed': None, 'shots': job.get('number_of_shots'),
+                                            'data': experiment_result_data, 'status': 'DONE', 'success': True,
+                                            'time_taken': result.get('execution_time_in_seconds')}
+            experiment_results.append(ExperimentResult(**experiment_result_dictionary))
+        return experiment_results
 
     @staticmethod
     def __validate(job):
@@ -167,11 +173,11 @@ class QiSimulatorPy(BaseBackend):
         Args:
             job (QObj): The quantum job with the qiskit algorithm and quantum inspire backend.
         """
-        QiSimulatorPy.__validate_number_of_shots(job)
+        QuantumInspireBackend.__validate_number_of_shots(job)
 
         for experiment in job.experiments:
-            QiSimulatorPy.__validate_number_of_clbits(experiment)
-            QiSimulatorPy.__validate_no_gates_after_measure(experiment)
+            QuantumInspireBackend.__validate_number_of_clbits(experiment)
+            QuantumInspireBackend.__validate_no_gates_after_measure(experiment)
 
     @staticmethod
     def __validate_number_of_shots(job):
@@ -220,7 +226,7 @@ class QiSimulatorPy(BaseBackend):
                     raise QisKitBackendError('Operation after measurement!')
 
     @staticmethod
-    def __collect_measurements(experiment):
+    def _collect_measurements(experiment):
         """ Determines the measured qubits and classical bits. The full-state measured
             qubits is returned when no measurements are present in the compiled circuit.
 

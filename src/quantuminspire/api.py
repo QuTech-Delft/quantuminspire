@@ -15,17 +15,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import itertools
 import logging
 import time
 import uuid
-import itertools
 from collections import OrderedDict
 from urllib.parse import urljoin
 
 import coreapi
 
-from quantuminspire.job import QuantumInspireJob
 from quantuminspire.exceptions import ApiError
+from quantuminspire.job import QuantumInspireJob
 
 
 class QuantumInspireAPI:
@@ -179,7 +179,7 @@ class QuantumInspireAPI:
         """
         return self._action(['projects', 'read'], params={'id': project_id})
 
-    def _create_project(self, name, default_number_of_shots, backend):
+    def create_project(self, name, default_number_of_shots, backend):
         """ Creates a new project for executing QASM code.
 
         Args:
@@ -197,7 +197,7 @@ class QuantumInspireAPI:
         }
         return self._action(['projects', 'create'], params=payload)
 
-    def _delete_project(self, project_id):
+    def delete_project(self, project_id):
         """ Deletes a project together with all its assets, jobs and results.
 
         Args:
@@ -223,6 +223,14 @@ class QuantumInspireAPI:
         """
         return self._action(['jobs', 'list'])
 
+    def get_jobs_from_project(self, project_id):
+        """ Gets the jobs with its properties; name, status, backend, results, etc from a single project.
+
+        Returns:
+            list[OrderedDict]: List of projects with properties.
+        """
+        return self._action(['projects', 'jobs', 'list'], params={'id': project_id})
+
     def get_job(self, job_id):
         """ Gets the properties of a job.
 
@@ -234,7 +242,18 @@ class QuantumInspireAPI:
         """
         return self._action(['jobs', 'read'], params={'id': job_id})
 
-    def _create_job(self, name, asset, project, number_of_shots, full_state_projection=True):
+    def delete_job(self, job_id):
+        """ Delete a job.
+
+        Args:
+            job_id (int): The job identification number.
+
+        Returns:
+            .
+        """
+        return self._action(['jobs', 'delete'], params={'id': job_id})
+
+    def _create_job(self, name, asset, project, number_of_shots, full_state_projection=True, user_data=''):
         """ Creates a new job for executing QASM code.
 
         Args:
@@ -244,6 +263,7 @@ class QuantumInspireAPI:
             number_of_shots (int): The number of executions before returning the result.
             full_state_projection (bool): Used for optimizing simulations. For more information see:
                                           https://www.quantum-inspire.com/kbase/optimization-of-simulations/
+            user_data(str): Data that the user wants to pass along with the job.
 
         Returns:
             OrderedDict: The properties of the new project.
@@ -255,6 +275,7 @@ class QuantumInspireAPI:
             'backend_type': project['backend_type'],
             'number_of_shots': number_of_shots,
             'full_state_projection': full_state_projection,
+            'user_data': user_data
         }
         return self._action(['jobs', 'create'], params=payload)
 
@@ -343,10 +364,10 @@ class QuantumInspireAPI:
         Returns:
             Boolean: True if the job result could be collected else false.
         """
-        shots = itertools.count() if collect_max_tries is None else range(collect_max_tries)
-        for shot in shots:
+        attempts = itertools.count() if collect_max_tries is None else range(collect_max_tries)
+        for attempt in attempts:
             time.sleep(sec_retry_delay)
-            status_message = '(id {}, iteration {})'.format(quantum_inspire_job.get_job_identifier(), shot)
+            status_message = '(id {}, iteration {})'.format(quantum_inspire_job.get_job_identifier(), attempt)
             if quantum_inspire_job.check_status() == 'COMPLETE':
                 self.__logger.info('Got result: %s', status_message)
                 return True
@@ -386,10 +407,10 @@ class QuantumInspireAPI:
         finally:
             if delete_project_afterwards:
                 project_identifier = quantum_inspire_job.get_project_identifier()
-                self._delete_project(project_identifier)
+                self.delete_project(project_identifier)
 
     def execute_qasm_async(self, qasm, backend_type=None, number_of_shots=256, default_number_of_shots=256,
-                           identifier=None, full_state_projection=True):
+                           identifier=None, full_state_projection=True, project=None, job_name=None, user_data=''):
         """ Creates the project, asset and job with the given qasm code and returns directly without waiting
             for the job to complete.
 
@@ -400,6 +421,9 @@ class QuantumInspireAPI:
             default_number_of_shots (int): The default used number of shots for the project.
             identifier (str or None): The identifier of the project, asset and job.
             full_state_projection (bool): Do not use full state projection when set to False (default is True).
+            project (OrderedDict): The properties of an existing project.
+            job_name(str): Name for the job that is to be executed.
+            user_data(str): Data that the user wants to pass along with the job.
 
         Returns:
             QuantumInspireJob: A encapulated job obtain containing methods the get the status of the job and
@@ -408,7 +432,6 @@ class QuantumInspireAPI:
         if not isinstance(backend_type, OrderedDict):
             backend_type = self.get_backend_type(backend_type)
 
-        project = None
         if identifier is None:
             identifier = uuid.uuid1()
 
@@ -418,13 +441,14 @@ class QuantumInspireAPI:
 
         if project is None:
             project_name = self.project_name if self.project_name else 'qi-sdk-project-{}'.format(identifier)
-            project = self._create_project(project_name, default_number_of_shots, backend_type)
+            project = self.create_project(project_name, default_number_of_shots, backend_type)
 
         asset_name = 'qi-sdk-asset-{}'.format(identifier)
         asset = self._create_asset(asset_name, project, qasm)
 
-        job_name = 'qi-sdk-job-{}'.format(identifier)
-        job = self._create_job(job_name, asset, project, number_of_shots,
+        if job_name is None:
+            job_name = 'qi-sdk-job-{}'.format(identifier)
+        job = self._create_job(job_name, asset, project, number_of_shots, user_data=user_data,
                                full_state_projection=full_state_projection)
 
         self.__logger.info('Submitted qasm code to quantum inspire %s', job_name)
