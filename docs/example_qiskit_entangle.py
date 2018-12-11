@@ -18,7 +18,7 @@ from getpass import getpass
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, execute
 
-from quantuminspire.qiskit.quantum_inspire_provider import QuantumInspireProvider
+from quantuminspire.qiskit import QI
 
 
 def get_authentication():
@@ -34,9 +34,8 @@ if __name__ == '__main__':
 
     if 'authentication' not in vars().keys():
         authentication = get_authentication()
-    qi_provider = QuantumInspireProvider()
-    qi_provider.set_authentication_details(*authentication)
-    qi_backend = qi_provider.get_backend('QX single-node simulator')
+    QI.set_authentication_details(*authentication)
+    qi_backend = QI.get_backend('QX single-node simulator')
 
     q = QuantumRegister(2)
     b = ClassicalRegister(2)

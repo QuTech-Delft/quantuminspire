@@ -42,11 +42,12 @@ class QuantumInspireBackend(BaseBackend):
         'local': False
     }
 
-    def __init__(self, api, configuration=None, logger=logging):
+    def __init__(self, api, provider, configuration=None, logger=logging):
         """ Python implementation of a quantum simulator using Quantum Inspire API.
 
         Args:
             api (QuantumInspireApi): The interface instance to the Quantum Inspire API.
+            provider (QuantumInspireProvider): Provider for this backend.
             configuration (dict, optional): The configuration of the quantum inspire backend. The configuration must
                 implement the fields given by the QiSimulatorPy.DEFAULT_CONFIGURATION. All configuration fields are
                 listed in the table below. The table rows with an asterisk specify fields which can have a custom
@@ -65,7 +66,7 @@ class QuantumInspireBackend(BaseBackend):
                 | local (bool)           | Indicates whether the system is running locally or remotely. Not used.
         """
 
-        super().__init__(configuration or QuantumInspireBackend.DEFAULT_CONFIGURATION, provider='QuTech Delft')
+        super().__init__(configuration or QuantumInspireBackend.DEFAULT_CONFIGURATION, provider=provider)
         self.__backend = api.get_backend_type_by_name(self.name())
         self.__logger = logger
         self.__api = api
@@ -250,7 +251,7 @@ class QuantumInspireBackend(BaseBackend):
                 raise QisKitBackendError("Classical bit is used to measure multiple qubits!")
         else:
             measurements = [[index, index] for index in range(number_of_qubits)]
-        return measurements
+        return {'measurements': measurements, 'number_of_clbits': number_of_clbits}
 
     @staticmethod
     def __convert_histogram(result, measurements, number_of_qubits, number_of_shots):
@@ -262,7 +263,7 @@ class QuantumInspireBackend(BaseBackend):
             Args:
                 result (dict): The result output from the quantum inspire backend with full-
                                state projection histogram output.
-                measurements (dict): The circuit properties with gate operations and header.
+                measurements (dict): Measured qubits/classical bits map and number of classical bits
                 number_of_qubits (int): number of qubits used in the algorithm
                 number_of_shots (int): The number of times the algorithm is executed.
 
@@ -277,9 +278,10 @@ class QuantumInspireBackend(BaseBackend):
 
         output_histogram = defaultdict(lambda: 0)
         for qubit_state, counts in histogram.items():
-            converter_list = [[item[1], qubit_state[item[0]]] for item in measurements]
-            converter_list.sort(key=lambda x: x[0])
-            classical_state = ''.join([item[1] for item in converter_list])
+            classical_state = ['0'] * measurements['number_of_clbits']
+            for q, c in measurements['measurements']:
+                classical_state[c] = qubit_state[q]
+            classical_state = ''.join(classical_state)
             output_histogram[classical_state] += counts
 
         return dict(output_histogram)

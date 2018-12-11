@@ -26,6 +26,7 @@ from qiskit.qobj import QobjExperiment
 
 from quantuminspire.api import QuantumInspireAPI
 from quantuminspire.exceptions import QisKitBackendError
+from quantuminspire.qiskit import QuantumInspireProvider
 from quantuminspire.qiskit.backend_qx import QuantumInspireBackend
 from quantuminspire.qiskit.qi_job import QIJob
 
@@ -86,17 +87,17 @@ class TestQiSimulatorPy(unittest.TestCase):
         experiment = self._instructions_to_two_qubit_experiment(instructions)
 
         measurements = QuantumInspireBackend._collect_measurements(experiment)
-        self.assertEqual(measurements, [[1, 0], [0, 1]])
+        self.assertDictEqual(measurements, {'measurements': [[1, 0], [0, 1]], 'number_of_clbits': 2})
 
     def test__collect_measurements_without_measurements(self):
         instructions = [{'name': 'cx', 'params': [], 'texparams': [], 'qubits': [0, 1]}]
         experiment = self._instructions_to_two_qubit_experiment(instructions)
 
         measurements = QuantumInspireBackend._collect_measurements(experiment)
-        self.assertEqual(measurements, [[0, 0], [1, 1]])
+        self.assertDictEqual(measurements, {'measurements': [[0, 0], [1, 1]], 'number_of_clbits': 2})
 
     def test_backend_name(self):
-        simulator = QuantumInspireBackend(Mock(), logger=Mock())
+        simulator = QuantumInspireBackend(Mock(), Mock(), logger=Mock())
         name = simulator.backend_name
         self.assertEqual('qi_simulator', name)
 
@@ -105,7 +106,7 @@ class TestQiSimulatorPy(unittest.TestCase):
         api.create_project.return_value = {'id': 42}
         api.get_jobs_from_project.return_value = []
         api.execute_qasm_async.return_value = 42
-        simulator = QuantumInspireBackend(api)
+        simulator = QuantumInspireBackend(api, Mock())
         instructions = [{'name': 'cx', 'params': [], 'texparams': [], 'qubits': [0, 1], 'clbits': [0, 1]},
                         {'name': 'measure', 'qubits': [0], 'clbits': [1]}]
         qobj_dict = self._basic_qobj_dictionary
@@ -121,7 +122,7 @@ class TestQiSimulatorPy(unittest.TestCase):
         api.get_jobs_from_project.return_value = [{'results': '{}'}]
         job = Mock()
         job.get_id.return_value = 42
-        simulator = QuantumInspireBackend(api)
+        simulator = QuantumInspireBackend(api, Mock())
         with self.assertRaises(QisKitBackendError) as error:
             simulator.get_experiment_results(job)
         self.assertEqual(('Result from backend contains no histogram data!\nError',), error.exception.args)
@@ -141,7 +142,7 @@ class TestQiSimulatorPy(unittest.TestCase):
         jobs['user_data'] = json.dumps(measurements)
         api.get_jobs_from_project.return_value = [jobs]
         job = QIJob('backend', '42', api)
-        simulator = QuantumInspireBackend(api)
+        simulator = QuantumInspireBackend(api, Mock())
         experiment_result = simulator.get_experiment_results(job)[0]
         self.assertEqual(experiment_result.data['counts']['01'], 50)
         self.assertEqual(experiment_result.data['counts']['11'], 40)
@@ -149,7 +150,7 @@ class TestQiSimulatorPy(unittest.TestCase):
         self.assertEqual(experiment_result.shots, number_of_shots)
 
     def test_validate_NegativeShotCount(self):
-        simulator = QuantumInspireBackend(Mock(), logger=Mock())
+        simulator = QuantumInspireBackend(Mock(), Mock(), logger=Mock())
         job_dict = self._basic_qobj_dictionary
         job_dict['config']['shots'] = 0
         job = qiskit.qobj.Qobj.from_dict(job_dict)
@@ -157,7 +158,7 @@ class TestQiSimulatorPy(unittest.TestCase):
         self.assertRaises(QisKitBackendError, simulator.run, job)
 
     def test_validate_NoClassicalQubits(self):
-        simulator = QuantumInspireBackend(Mock(), logger=Mock())
+        simulator = QuantumInspireBackend(Mock(), Mock(), logger=Mock())
 
         job_dict = self._basic_qobj_dictionary
         job_dict['experiments'][0]['instructions'] = None
@@ -168,7 +169,7 @@ class TestQiSimulatorPy(unittest.TestCase):
 
     def test_validate_OperationAfterMeasure(self):
         with patch.object(QuantumInspireBackend, "_submit_experiment", return_value=Mock()):
-            simulator = QuantumInspireBackend(Mock(), logger=Mock())
+            simulator = QuantumInspireBackend(Mock(), Mock(), logger=Mock())
             instructions = [{'name': 'CX', 'qubits': [0]}, {'name': 'measure', 'qubits': [0]},
                             {'name': 'X', 'qubits': [0]}]
             job_dict = self._basic_qobj_dictionary
@@ -178,7 +179,7 @@ class TestQiSimulatorPy(unittest.TestCase):
 
     def test_no_operation_after_measure_cx_gate(self):
         with patch.object(QuantumInspireBackend, "_submit_experiment", return_value=Mock()):
-            simulator = QuantumInspireBackend(Mock(), logger=Mock())
+            simulator = QuantumInspireBackend(Mock(), Mock(), logger=Mock())
             instructions = [{'name': 'X', 'qubits': [1]}, {'name': 'measure', 'qubits': [0], 'clbits': [0]},
                             {'name': 'CX', 'qubits': [0, 1], 'clbits': [0, 1]}]
             job_dict = self._basic_qobj_dictionary
@@ -190,7 +191,8 @@ class TestQiSimulatorPy(unittest.TestCase):
 class TestQiSimulatorPyHistogram(unittest.TestCase):
     def setUp(self):
         self.mock_api = Mock(spec=QuantumInspireAPI)
-        self.simulator = QuantumInspireBackend(self.mock_api)
+        self.mock_provider = Mock(spec=QuantumInspireProvider)
+        self.simulator = QuantumInspireBackend(self.mock_api, self.mock_provider)
         self._basic_job_dictionary = OrderedDict([('url', 'http://saevar-qutech-nginx/api/jobs/24/'),
                                                   ('name', 'BLA_BLU'),
                                                   ('id', 24),
@@ -222,10 +224,10 @@ class TestQiSimulatorPyHistogram(unittest.TestCase):
         self.assertDictEqual(expected_histogram, actual)
 
     @staticmethod
-    def _instructions_to_experiment(instructions):
+    def _instructions_to_experiment(instructions, number_of_clbits=2):
         experiment_dictionary = {'instructions': instructions,
-                                 'header': {'number_of_qubits': 2, 'number_of_clbits': 2, 'name': 'test_circuit',
-                                            'qubit_labels': [['q0', 0], ['q0', 1]],
+                                 'header': {'number_of_qubits': 2, 'number_of_clbits': number_of_clbits,
+                                            'name': 'test_circuit', 'qubit_labels': [['q0', 0], ['q0', 1]],
                                             'clbit_labels': [['c0', 0], ['c1', 1]]}
                                  }
         return experiment_dictionary
@@ -241,6 +243,22 @@ class TestQiSimulatorPyHistogram(unittest.TestCase):
             mock_result={'histogram': {'0': 0.1, '1': 0.2, '2': 0.3, '3': 0.4}, 'execution_time_in_seconds': 2.1,
                          'number_of_qubits': 2},
             expected_histogram={'00': 100.0, '01': 200.0, '10': 300.0, '11': 400.0}
+        )
+
+    def test_classical_bits_are_displayed_correctly(self):
+        self.run_histogram_test(
+            single_experiment=self._instructions_to_experiment(
+                [{'name': 'h', 'params': [], 'texparams': [], 'qubits': [0]},
+                 {'name': 'cx', 'params': [],
+                  'texparams': [], 'qubits': [0, 1]},
+                 {'name': 'measure', 'qubits': [0], 'clbits': [0]},
+                 {'name': 'measure', 'qubits': [0], 'clbits': [3]},
+                 {'name': 'measure', 'qubits': [1], 'clbits': [4]},
+                 {'name': 'measure', 'qubits': [1], 'clbits': [7]}],
+                number_of_clbits=8),
+            mock_result={'histogram': {'0': 0.1, '1': 0.2, '2': 0.3, '3': 0.4}, 'execution_time_in_seconds': 2.1,
+                         'number_of_qubits': 2},
+            expected_histogram={'00000000': 100.0, '00001001': 200.0, '10010000': 300.0, '10011001': 400.0}
         )
 
     def test_convert_histogram_SwappedClassicalQubits(self):
@@ -265,7 +283,7 @@ class TestQiSimulatorPyHistogram(unittest.TestCase):
                  {'name': 'measure', 'qubits': [0], 'clbits': [0]}]),
             mock_result={'histogram': {'0': 0.1, '1': 0.2, '2': 0.3, '3': 0.4}, 'execution_time_in_seconds': 2.1,
                          'number_of_qubits': 2},
-            expected_histogram={'0': 400.0, '1': 600.0}
+            expected_histogram={'00': 400.0, '01': 600.0}
         )
 
     def test_convert_histogram_LessMeasurementsQubitTwo(self):
@@ -277,7 +295,7 @@ class TestQiSimulatorPyHistogram(unittest.TestCase):
                  {'name': 'measure', 'qubits': [1], 'clbits': [1]}]),
             mock_result={'histogram': {'0': 0.1, '1': 0.2, '2': 0.3, '3': 0.4}, 'execution_time_in_seconds': 2.1,
                          'number_of_qubits': 2},
-            expected_histogram={'0': 300.0, '1': 700.0}
+            expected_histogram={'00': 300.0, '10': 700.0}
         )
 
     def test_convert_histogram_ClassicalBitsMeasureSameQubits(self):

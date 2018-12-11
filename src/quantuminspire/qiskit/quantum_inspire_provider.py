@@ -36,7 +36,7 @@ class QuantumInspireProvider(BaseProvider):
         for backend in available_backends:
             config = QuantumInspireBackend.DEFAULT_CONFIGURATION.copy()
             config['name'] = backend['name']
-            backends.append(QuantumInspireBackend(self._api, configuration=config))
+            backends.append(QuantumInspireBackend(self._api, provider=self, configuration=config))
 
         return backends
 
