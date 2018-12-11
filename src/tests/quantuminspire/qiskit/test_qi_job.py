@@ -86,7 +86,7 @@ class TestQIJob(unittest.TestCase):
         backend = Mock()
         job = QIJob(backend, job_id, api)
         with self.assertRaises(JobTimeoutError):
-            job.result(0)
+            job.result(timeout=1e-3, wait=0)
 
     def test_cancel(self):
         api = Mock()
