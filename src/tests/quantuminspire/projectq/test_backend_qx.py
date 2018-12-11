@@ -103,8 +103,8 @@ class TestProjectQBackend(unittest.TestCase):
         api = MockApiClient()
         function_mock.return_value = count
         backend = QIBackend(quantum_inspire_api=api, verbose=verbose)
-        command = MagicMock(gate=gate, qubits=[[MagicMock(id=identity)], [MagicMock(id=identity+1)]],
-                            control_qubits=[MagicMock(id=identity-1), MagicMock(id=identity)])
+        command = MagicMock(gate=gate, qubits=[[MagicMock(id=identity)], [MagicMock(id=identity + 1)]],
+                            control_qubits=[MagicMock(id=identity - 1), MagicMock(id=identity)])
         backend._store(command)
         self.assertEqual(backend.qasm, qasm)
 
@@ -114,8 +114,8 @@ class TestProjectQBackend(unittest.TestCase):
         api = MockApiClient()
         function_mock.return_value = count
         backend = QIBackend(quantum_inspire_api=api)
-        command = MagicMock(gate=gate, qubits=[[MagicMock(id=identity)], [MagicMock(id=identity+1)]],
-                            control_qubits=[MagicMock(id=identity-1), MagicMock(id=identity)])
+        command = MagicMock(gate=gate, qubits=[[MagicMock(id=identity)], [MagicMock(id=identity + 1)]],
+                            control_qubits=[MagicMock(id=identity - 1), MagicMock(id=identity)])
         self.assertRaises(NotImplementedError, backend._store, command)
 
     def test_store_ReturnsCorrectQasm(self):
