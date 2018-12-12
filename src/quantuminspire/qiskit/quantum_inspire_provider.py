@@ -42,7 +42,7 @@ class QuantumInspireProvider(BaseProvider):
 
     def set_authentication_details(self, email, password, qi_url=None):
         """
-        Set a single authentication for quantum-inspire.
+        Set a single authentication for Quantum Inspire.
 
         Args:
             email (str): A valid email address.
