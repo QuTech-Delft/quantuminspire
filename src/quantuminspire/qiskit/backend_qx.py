@@ -22,6 +22,7 @@ import logging
 import uuid
 from collections import defaultdict
 
+from coreapi.exceptions import ErrorMessage
 from qiskit.backends import BaseBackend
 from qiskit.qobj import ExperimentResult, Qobj, QobjExperiment
 
@@ -96,6 +97,25 @@ class QuantumInspireBackend(BaseBackend):
         [self._submit_experiment(experiment, number_of_shots, project=project) for experiment in experiments]
         job.experiments = experiments
         return job
+
+    def retrieve_job(self, job_id):
+        """
+        Retrieve a specified job by its job_id
+
+        Args:
+            job_id (str): The job id.
+
+        Returns:
+            QIJob: The job that has been retrieved.
+
+        Raises:
+            QisKitBackendError: If job not found or error occurs during retrieval of the job.
+        """
+        try:
+            self.__api.get_project(job_id)
+        except ErrorMessage:
+            raise QisKitBackendError("Could not retrieve job with job_id '{}' ".format(job_id))
+        return QIJob(self, job_id, self.__api)
 
     def _generate_cqasm(self, experiment):
         """ Generates the CQASM from the qiskit experiment.

@@ -22,6 +22,7 @@ class QuantumInspireProvider(BaseProvider):
 
         Args:
             name (str): Name of the requested backend.
+            **kwargs (dict): Used for filtering, not implemented.
 
         Returns:
             list<QuantumInspireBackend>: List of backends that meet the filter requirements.

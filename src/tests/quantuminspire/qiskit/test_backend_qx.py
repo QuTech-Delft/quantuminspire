@@ -22,6 +22,7 @@ from collections import OrderedDict
 from unittest.mock import Mock, patch
 
 import qiskit
+from coreapi.exceptions import ErrorMessage
 from qiskit.qobj import QobjExperiment
 
 from quantuminspire.api import QuantumInspireAPI
@@ -186,6 +187,24 @@ class TestQiSimulatorPy(unittest.TestCase):
             job_dict['experiments'][0]['instructions'] = instructions
             job = qiskit.qobj.Qobj.from_dict(job_dict)
             self.assertRaises(QisKitBackendError, simulator.run, job)
+
+    def test_retrieve_job(self):
+        api = Mock()
+        api.get_jobs_from_project.return_value = []
+        provider = 'provider'
+        backend = QuantumInspireBackend(api, provider)
+        qi_job = backend.retrieve_job('42')
+        api.get_project.assert_called_with('42')
+        self.assertEqual('42', qi_job.job_id())
+
+    def test_retrieve_job_with_error(self):
+        api = Mock(side_effect=ErrorMessage(error='404'))
+        api.get_project.side_effect=ErrorMessage(error='404')
+        provider = 'provider'
+        backend = QuantumInspireBackend(api, provider)
+        with self.assertRaises(QisKitBackendError) as error:
+            backend.retrieve_job('wrong')
+        self.assertEqual(("Could not retrieve job with job_id 'wrong' ",), error.exception.args)
 
 
 class TestQiSimulatorPyHistogram(unittest.TestCase):

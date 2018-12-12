@@ -12,8 +12,8 @@ class QIJob(BaseJob):
     A job that is to be executed on the Quantum-inspire platform. A QIJob is normally created by calling run on the
     QuantumInspireBackend but can also be recreated using a job_id:
 
-            qi_api = QuantumInspireAPI(url, authentication)
-            job = QIJob(qi_backend, job_id, qi_api)
+            qi_backend = QI.get_backend('QX single-node simulator')
+            job = qi_backend.retrieve_job(job_id)
             result = job.result()
     """
 
@@ -39,8 +39,10 @@ class QIJob(BaseJob):
 
     def submit(self):
         """
-        Submit a job to the quantum-inspire platform. Raises an error if the job has already been submitted.
+        Submit a job to the quantum-inspire platform.
 
+        Raises:
+             JobError: An error if the job has already been submitted.
         """
         if self._job_id is not None:
             raise JobError('Job has already been submitted!')
