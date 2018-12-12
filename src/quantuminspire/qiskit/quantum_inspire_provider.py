@@ -24,7 +24,7 @@ class QuantumInspireProvider(BaseProvider):
             name (str): Name of the requested backend.
 
         Returns:
-            QuantumInspireBackend: List of backends tha meed the filter requirements.
+            list<QuantumInspireBackend>: List of backends that meet the filter requirements.
         """
         if self._api is None:
             raise ApiError('Authentication details have not been set.')
