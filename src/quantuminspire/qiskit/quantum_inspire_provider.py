@@ -9,7 +9,7 @@ QI_URL = 'https://api.quantum-inspire.com'
 
 
 class QuantumInspireProvider(BaseProvider):
-    """ Provides a backend and an api for a single quantum-insprie account. """
+    """ Provides a backend and an api for a single Quantum Inspire account. """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
