@@ -54,7 +54,7 @@ class QIBackend(BasicEngine):
         self._num_runs = num_runs
         self._verbose = verbose
         self._cqasm = str()
-        self._measured_states = dict()
+        self._measured_states = {}
         self.quantum_inspire_api = quantum_inspire_api
         self.backend_type = backend_type
 
@@ -111,6 +111,7 @@ class QIBackend(BasicEngine):
             print('   _allocated_qubits {0}'.format(self._allocated_qubits))
 
         if self._clear:
+            self._measured_states = {}
             self._clear = False
             self.qasm = ""
             self._measured_ids = []
@@ -303,9 +304,12 @@ class QIBackend(BasicEngine):
         self._cqasm = qasm
 
     def _execute_cqasm(self):
-        """ Execute self._cqasm, raise error if raw_text in result from API is not empty (which indicates an error)
+        """ Execute self._cqasm through the API.
 
         Sets self._quantum_inspire_result with the result object in the API response.
+
+        Raises:
+            ProjectQBackendError: when raw_text in result from API is not empty (indicating a backend error)
         """
         self._quantum_inspire_result = self.quantum_inspire_api.execute_qasm(
             self._cqasm,
