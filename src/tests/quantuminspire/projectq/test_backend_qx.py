@@ -103,8 +103,8 @@ class TestProjectQBackend(unittest.TestCase):
         api = MockApiClient()
         function_mock.return_value = count
         backend = QIBackend(quantum_inspire_api=api, verbose=verbose)
-        command = MagicMock(gate=gate, qubits=[[MagicMock(id=identity)], [MagicMock(id=identity+1)]],
-                            control_qubits=[MagicMock(id=identity-1), MagicMock(id=identity)])
+        command = MagicMock(gate=gate, qubits=[[MagicMock(id=identity)], [MagicMock(id=identity + 1)]],
+                            control_qubits=[MagicMock(id=identity - 1), MagicMock(id=identity)])
         backend._store(command)
         self.assertEqual(backend.qasm, qasm)
 
@@ -114,8 +114,8 @@ class TestProjectQBackend(unittest.TestCase):
         api = MockApiClient()
         function_mock.return_value = count
         backend = QIBackend(quantum_inspire_api=api)
-        command = MagicMock(gate=gate, qubits=[[MagicMock(id=identity)], [MagicMock(id=identity+1)]],
-                            control_qubits=[MagicMock(id=identity-1), MagicMock(id=identity)])
+        command = MagicMock(gate=gate, qubits=[[MagicMock(id=identity)], [MagicMock(id=identity + 1)]],
+                            control_qubits=[MagicMock(id=identity - 1), MagicMock(id=identity)])
         self.assertRaises(NotImplementedError, backend._store, command)
 
     def test_store_ReturnsCorrectQasm(self):
@@ -203,7 +203,7 @@ class TestProjectQBackend(unittest.TestCase):
         backend = QIBackend(quantum_inspire_api=api)
         value_a = 0.4892578125
         value_b = 0.5097656250
-        backend._probabilities = {'00000000': value_a, '11010000': value_b}
+        backend._measured_states = {0: value_a, 11: value_b}  # 00000000 and 00001011
         expected = {'00': value_a, '11': value_b}
         backend.main_engine = MagicMock()
         backend._measured_ids = [0, 1]
@@ -211,16 +211,18 @@ class TestProjectQBackend(unittest.TestCase):
         actual = backend.get_probabilities([MagicMock(id=0), MagicMock(id=1)])
         self.assertDictEqual(expected, actual)
 
-    def test_calculate_probabilities(self):
-        counts = {'00': 10, '01': 20, '10': 30, '11': 40}
+    def test_get_probabilities_reversed_measurement_order_ReturnsCorrectResult(self):
         api = MockApiClient()
-        backend = QIBackend(quantum_inspire_api=api, verbose=True)
-        with patch.object(random, 'random', return_value=1e-5), patch(
-         'sys.stdout', new_callable=io.StringIO) as mock_stdout:
-            actual = backend._calculate_probabilities(counts)
-            std_output = mock_stdout.getvalue()
-        self.assertEqual(actual, '00')
-        self.assertTrue('*' in std_output)
+        backend = QIBackend(quantum_inspire_api=api)
+        value_a = 0.4892578125
+        value_b = 0.5097656250
+        backend._measured_states = {0: value_a, 11: value_b}  # 00000000 and 00001011
+        expected = {'00': value_a, '10': value_b}
+        backend.main_engine = MagicMock()
+        backend._measured_ids = [1, 0]
+        backend.main_engine.mapper.current_mapping = [0, 1, 2, 3, 4, 5, 6, 7]
+        actual = backend.get_probabilities([MagicMock(id=0), MagicMock(id=2)])
+        self.assertDictEqual(expected, actual)
 
     @patch('quantuminspire.projectq.backend_qx.get_control_count')
     def test_receive(self, function_mock):
@@ -253,34 +255,8 @@ class TestProjectQBackend(unittest.TestCase):
             std_output = std_mock.getvalue()
             actual = backend._quantum_inspire_result
         api.execute_qasm.assert_called_once()
-        self.assertTrue('QIBackend: measured' in std_output)
         self.assertEqual(api.execute_qasm(), actual)
         self.assertTrue(backend._clear)
-
-    def test_run_DontPerformExecution(self):
-        api = MockApiClient()
-        with patch('sys.stdout', new_callable=io.StringIO):
-            backend = QIBackend(quantum_inspire_api=api, perform_execution=False,
-                                verbose=2)
-            backend.qasm = "_"
-            backend._measured_ids = [0, 1]
-            backend.main_engine = MagicMock()
-            backend.main_engine.mapper.current_mapping = [0, 1]
-            backend._run()
-        api.execute_qasm.assert_not_called()
-        self.assertIsNone(backend._quantum_inspire_result)
-
-    def test_run_RaisesErrorRunCirCuit(self):
-        api = MockApiClient()
-        with patch('sys.stdout', new_callable=io.StringIO):
-            backend = QIBackend(quantum_inspire_api=api, verbose=2)
-            backend.qasm = "_"
-            backend._measured_ids = [0, 1]
-            backend.main_engine = MagicMock()
-            backend.main_engine.mapper.current_mapping = [0, 1]
-            api.execute_qasm.return_value = MagicMock(get=[])
-            self.assertRaisesRegex(ProjectQBackendError, 'Aborting', backend._run)
-        api.execute_qasm.assert_called_once()
 
     def test_run_RaisesErrorNoResult(self):
         api = MockApiClient()
@@ -295,7 +271,6 @@ class TestProjectQBackend(unittest.TestCase):
             api.execute_qasm.return_value = result_mock
             self.assertRaisesRegex(ProjectQBackendError, 'raw_text', backend._run)
         api.execute_qasm.assert_called_once()
-
 
     @patch('quantuminspire.projectq.backend_qx.Measure')
     def test_run_NoMeasurements(self, measure_mock):

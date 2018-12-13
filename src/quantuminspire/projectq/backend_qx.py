@@ -21,6 +21,7 @@ limitations under the License.
 
 import random
 from collections import defaultdict
+from functools import reduce
 
 from projectq.cengines import BasicEngine
 from projectq.meta import LogicalQubitIDTag, get_control_count
@@ -37,7 +38,7 @@ class QIBackend(BasicEngine):
     """
 
     def __init__(self, num_runs=1024, verbose=0, quantum_inspire_api=None,
-                 backend_type=None, perform_execution=True):
+                 backend_type=None):
         """
         Initialize the Backend object.
 
@@ -47,15 +48,13 @@ class QIBackend(BasicEngine):
             verbose (int): Verbosity level
             quantum_inspire_api (QuantumInspireAPI or None): connection to QI platform
             backend_type (dict or str or None): Backend to use for execution.
-            perform_execution (bool): If True perform execution, otherwise generate cQASM
         """
         BasicEngine.__init__(self)
         self._reset()
-        self._perform_execution = perform_execution
-        self._probabilities = dict()
         self._num_runs = num_runs
         self._verbose = verbose
         self._cqasm = str()
+        self._measured_states = {}
         self.quantum_inspire_api = quantum_inspire_api
         self.backend_type = backend_type
 
@@ -112,7 +111,7 @@ class QIBackend(BasicEngine):
             print('   _allocated_qubits {0}'.format(self._allocated_qubits))
 
         if self._clear:
-            self._probabilities = dict()
+            self._measured_states = {}
             self._clear = False
             self.qasm = ""
             self._measured_ids = []
@@ -213,26 +212,6 @@ class QIBackend(BasicEngine):
                                .format(qb_id))
         return mapping[qb_id]
 
-    @staticmethod
-    def format_histogram(histogram_input, number_of_qubits, number_of_runs=None):
-        """ Converts the histogram into the correct format with binary value state items.
-
-        Args:
-            histogram_input (dict): The histogram result output of the executed cqasm.
-            number_of_qubits (int): The number of qubits.
-            number_of_runs (int): The number of runs
-
-        Returns:
-            dict: The converted histogram.
-        """
-        histogram = {}
-        for register, value in histogram_input.items():
-            byte_value = ("{:0%db}" % number_of_qubits).format(int(register))
-            if number_of_runs is not None:
-                value = int(number_of_runs * value)
-            histogram[byte_value] = value
-        return histogram
-
     def get_probabilities(self, qureg):
         """
         Return the list of basis states with corresponding probabilities.
@@ -245,54 +224,56 @@ class QIBackend(BasicEngine):
             Only call this function after the circuit has been executed!
 
         Args:
-            qureg (list<Qubit>): Quantum register determining the order of the
-                qubits.
+            qureg (list<Qubit>): Quantum register of size n determining the contents of the
+                probability states.
 
         Returns:
-            probability_dict (dict): Dictionary mapping n-bit strings to
-            probabilities.
+            probability_dict (dict): Dictionary mapping n-bit strings of '0' and '1' to probabilities.
 
         Raises:
             RuntimeError: If no data is available (i.e., if the circuit has
                 not been executed). Or if a qubit was supplied which was not
                 present in the circuit (might have gotten optimized away).
         """
-        if len(self._probabilities) == 0:
+        if len(self._measured_states) == 0:
             raise RuntimeError("Please, run the circuit first!")
 
-        probability_dict = defaultdict(lambda: 0)
+        mask_bits = map(lambda qubit: self._logical_to_physical(qubit.id), qureg)
 
-        for state in self._probabilities:
-            mapped_state = ['0'] * len(self._measured_ids)
-            for i in range(len(qureg)):
-                logical_id = qureg[i].id
-                if logical_id in self._measured_ids:
-                    index = self._measured_ids.index(i)
-                    mapped_state[index] = state[self._logical_to_physical(logical_id)]
-            probability = self._probabilities[state]
-            probability_dict["".join(mapped_state)] += probability
+        filtered_states = QIBackend._filter_histogram(self._measured_states, mask_bits)
 
-        return dict(probability_dict)
+        probability_dict = {self._map_state_to_bit_string(state, qureg): probability
+                            for state, probability in filtered_states.items()}
 
-    def _calculate_probabilities(self, counts):
-        """ Determine probabilities and set single measurement to register """
-        # Determine random outcome
-        P = random.random()
-        p_sum = 0.
-        measured = ""
-        for state in counts:
-            probability = counts[state] * 1. / self._num_runs
-            state = list(reversed(state))
-            state = "".join(state)
-            p_sum += probability
-            star = ""
-            if p_sum >= P and measured == "":
-                measured = state
-                star = "*"
-            self._probabilities[state] = probability
-            if self._verbose and probability > 0:
-                print("{0} with p = {1}{2}".format(state, probability, star))
-        return measured
+        return probability_dict
+
+    def _map_state_to_bit_string(self, state, qureg):
+        """
+
+        Args:
+            state (int): state represented as an integer number
+            qureg (list<Qubit>): list of qubits for which to extract the state bit
+
+        Returns:
+            (string): a string of '0' and '1' corresponding to the bit value in state of each Qubit in qureg
+
+        Examples:
+            state = int('0b101010', 2)
+            qureg = [Qubit(0), Qubit(1), Qubit(5)]
+            print(self._map_state_to_bit_string(state, qureg)  # prints '011'
+
+        """
+        mapped_state = ''
+
+        for i in range(len(qureg)):
+            logical_id = qureg[i].id
+            physical_id = self._logical_to_physical(logical_id)
+            if int(state) & (1 << physical_id):
+                mapped_state += '1'
+            else:
+                mapped_state += '0'
+
+        return mapped_state
 
     def _run(self):
         """
@@ -303,65 +284,108 @@ class QIBackend(BasicEngine):
         if self.qasm == "":
             return
 
-        if self._verbose:
-            print('_run (id {0})'.format((id(self), )))
-
         # finally: add measurement commands for all measured qubits if no measurements are given.
         # only measurements after all gate operations will perform properly
         if not self._measured_ids:
             self.__add_measure_all_qubits()
 
-        if self._verbose >= 2:
-            print('_run: self._allocated_qubits {0}'.format((self._allocated_qubits, )))
-        max_qubit_id = self._max_qubit_id
+        self._finalize_qasm()
+        self._execute_cqasm()
+        self._filter_result_by_measured_qubits()
+        self._register_random_measurement_outcome()
+        self._reset()
 
+    def _finalize_qasm(self):
+        """ Finalize qasm (add version and qubits line) """
         qasm = 'version 1.0\n# generated by Quantum Inspire {0} class\nqubits {1}\n\n'.format(
-            self.__class__, max_qubit_id+1)
+            self.__class__, self._number_of_qubits)
         qasm += self.qasm
 
-        try:
-            if self._verbose:
-                print('sending cqasm:')
-                print('------')
-                print(qasm)
-                print('------')
+        self._cqasm = qasm
 
-            self._cqasm = qasm
+    def _execute_cqasm(self):
+        """ Execute self._cqasm through the API.
 
-            if self._perform_execution:
-                self._quantum_inspire_result = self.quantum_inspire_api.execute_qasm(
-                    self._cqasm, number_of_shots=self._num_runs, backend_type=self.backend_type)
+        Sets self._quantum_inspire_result with the result object in the API response.
 
-                if not self._quantum_inspire_result.get('histogram', {}):
-                    raw_text = self._quantum_inspire_result.get('raw_text', 'no raw_text in result structure')
-                    raise ProjectQBackendError(
-                        'Result structure does not contain proper histogram. raw_text field: %s' % raw_text)
-            else:
-                self._quantum_inspire_result = None
-                return
+        Raises:
+            ProjectQBackendError: when raw_text in result from API is not empty (indicating a backend error)
+        """
+        self._quantum_inspire_result = self.quantum_inspire_api.execute_qasm(
+            self._cqasm,
+            number_of_shots=self._num_runs,
+            backend_type=self.backend_type
+        )
 
-            number_of_qubits = len(self.main_engine.active_qubits)
-            counts = QIBackend.format_histogram(self._quantum_inspire_result['histogram'],
-                                                number_of_qubits=number_of_qubits,
-                                                number_of_runs=self._num_runs)
-            measured = self._calculate_probabilities(counts)
+        if not self._quantum_inspire_result.get('histogram', {}):
+            raw_text = self._quantum_inspire_result.get('raw_text', 'no raw_text in result structure')
+            raise ProjectQBackendError(
+                'Result structure does not contain proper histogram. raw_text field: %s' % raw_text)
 
-            class QB():
-                def __init__(self, ID):
-                    self.id = ID
+    def _filter_result_by_measured_qubits(self):
+        """ Filters the raw result by collapsing states so that unmeasured qubits are ignored.
 
-            # register measurement result
-            if self._verbose:
-                print('QIBackend: counts {0}'.format(counts))
-                print('QIBackend: measured {0}'.format(measured))
-            for ID in self._measured_ids:
-                location = self._logical_to_physical(ID)
+        Populates self._measured_states by filtering self._quantum_inspire_result['histogram'] based on
+        self._measured_ids (which are supposed to be logical qubit id's).
+        """
+        mask_bits = map(lambda bit: self._logical_to_physical(bit), self._measured_ids)
+        self._measured_states = QIBackend._filter_histogram(self._quantum_inspire_result['histogram'], mask_bits)
 
-                result = int(measured[location])
-                self.main_engine.set_measurement_result(QB(ID), result)
-            self._reset()
-        except TypeError as ex:
-            raise ProjectQBackendError("Failed to run the circuit. Aborting.")
+    @staticmethod
+    def _filter_histogram(histogram, mask_bits):
+        """ Filter a histogram (dict) by mask_bits (list)
+
+        Args:
+            histogram (dict<int|str, float>): input histogram mapping state to probability
+            mask_bits (list<int>): list of bits that are to be kept in the filtered histogram
+
+        Returns:
+            (dict<int, float>): collapsed histogram mapping state to probability
+
+        Keys in a histogram dict are the states represented as an integer number (may be int or string), values the
+        probability corresponding to that state.
+
+        The mask_bits list specifies the relevant bits, any bit not set to 1 in the mask will be ignored (masked out).
+        The probabilities of equivalent states summed.
+
+        For example, if we have two states b0010 and b0011, and mask_bits is [1] we only care about bit 1 (the second
+        bit from the right). The output will specify only one state, b0010, and the probability is the sum of the
+        two original probabilities.
+
+        """
+        mask = reduce(lambda x, y: x | (1 << y), mask_bits, 0)
+
+        filtered_states = defaultdict(lambda: 0)
+        for state, probability in histogram.items():
+            filtered_states[int(state) & mask] += probability
+
+        return dict(filtered_states)
+
+    def _register_random_measurement_outcome(self):
+        """ Samples the _measured_states for a single result and registers this as the outcome of the circuit. """
+
+        class QB:
+            def __init__(self, qubit_id):
+                self.id = qubit_id
+
+        random_measurement = self._sample_measured_states_once()
+
+        for logical_qubit_id in self._measured_ids:
+            physical_qubit_id = self._logical_to_physical(logical_qubit_id)
+
+            result = bool(random_measurement & (1 << physical_qubit_id))
+
+            self.main_engine.set_measurement_result(QB(logical_qubit_id), result)
+
+    def _sample_measured_states_once(self):
+        """ Obtain a random state from the _measured_states, taking into account the probability distribution. """
+        states = list(self._measured_states.keys())
+        weights = list(self._measured_states.values())
+        return random.choices(states, weights=weights)[0]
+
+    @property
+    def _number_of_qubits(self):
+        return self._max_qubit_id + 1
 
     def receive(self, command_list):
         """
