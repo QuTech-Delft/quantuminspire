@@ -19,7 +19,7 @@ class QIJob(BaseJob):
 
     def __init__(self, backend, job_id, api, qobj=None):
         """
-        Construct a new QIJob object.
+        Construct a new QIJob object. Not normally called directly, use a backend object to create/retrieve jobs.
 
         Args:
             backend (QuantumInspireBackend): A quantum-inspire backend.
