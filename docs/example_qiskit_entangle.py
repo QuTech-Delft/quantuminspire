@@ -16,11 +16,9 @@ Copyright 2018 QuTech Delft. Licensed under the Apache License, Version 2.0.
 """
 from getpass import getpass
 
-from coreapi.auth import BasicAuthentication
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, execute
 
-from quantuminspire.api import QuantumInspireAPI
-from quantuminspire.qiskit.backend_qx import QiSimulatorPy
+from quantuminspire.qiskit import QI
 
 
 def get_authentication():
@@ -29,16 +27,15 @@ def get_authentication():
     email = input()
     print('Enter password')
     password = getpass()
-    return BasicAuthentication(email, password)
+    return email, password
 
 
 if __name__ == '__main__':
 
     if 'authentication' not in vars().keys():
         authentication = get_authentication()
-    uri = "https://api.quantum-inspire.com"
-    qi_api = QuantumInspireAPI(uri, authentication)
-    qi_backend = QiSimulatorPy(qi_api)
+    QI.set_authentication_details(*authentication)
+    qi_backend = QI.get_backend('QX single-node simulator')
 
     q = QuantumRegister(2)
     b = ClassicalRegister(2)
@@ -48,8 +45,8 @@ if __name__ == '__main__':
     circuit.cx(q[0], q[1])
     circuit.measure(q, b)
 
-    result = execute(circuit, backend=qi_backend, shots=256)
-
-    histogram = result.get_counts(circuit)
+    qi_job = execute(circuit, backend=qi_backend, shots=256)
+    qi_result = qi_job.result()
+    histogram = qi_result.get_counts(circuit)
     print('\nState\tCounts')
     [print('{0}\t{1}'.format(state, counts)) for state, counts in histogram.items()]
