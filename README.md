@@ -1,7 +1,7 @@
 # Quantum Inspire SDK
 
-*Note: this is an initial alpha release of the SDK, it is still under
-heavy development.*
+*Note: this SDK is made available as a public beta, please report any
+issues or bugs in the github issue tracker.*
 
 The Quantum Inspire platform allows to execute quantum algorithms using the cQASM language. 
 
