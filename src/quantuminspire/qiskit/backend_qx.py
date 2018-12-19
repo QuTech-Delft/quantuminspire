@@ -23,24 +23,32 @@ import uuid
 from collections import defaultdict
 
 from coreapi.exceptions import ErrorMessage
-from qiskit.backends import BaseBackend
-from qiskit.qobj import ExperimentResult, Qobj, QobjExperiment
+from qiskit.providers import BaseBackend
+from qiskit.providers.models import BackendConfiguration
+from qiskit.qobj import Qobj, QobjExperiment
+from qiskit.result.models import ExperimentResult
 
 from quantuminspire.exceptions import QisKitBackendError
 from quantuminspire.qiskit.circuit_parser import CircuitToString
 from quantuminspire.qiskit.qi_job import QIJob
+from quantuminspire.version import __version__ as quantum_inspire_version
 
 
 class QuantumInspireBackend(BaseBackend):
     DEFAULT_CONFIGURATION = {
-        'name': 'qi_simulator',
+        'backend_name': 'qi_simulator',
+        'backend_version': quantum_inspire_version,
+        'n_qubits': 26,
         'url': 'https://www.quantum-inspire.com/',
         'description': 'A Quantum Inspire Simulator for QASM files',
         'qi_backend_name': 'QX single-node simulator',
-        'basis_gates': 'x,y,z,h,s,cx,ccx,u1,u2,u3,id,snapshot',
-        'coupling_map': 'all-to-all',
+        'basis_gates': ['x', 'y', 'z', 'h', 's', 'cx', 'ccx', 'u1', 'u2', 'u3', 'id', 'snapshot'],
+        'coupling_map': ['all-to-all'],
         'simulator': True,
-        'local': False
+        'local': False,
+        'memory': False,
+        'open_pulse': False,
+        'max_shots': 1024,
     }
 
     def __init__(self, api, provider, configuration=None, logger=logging):
@@ -67,7 +75,9 @@ class QuantumInspireBackend(BaseBackend):
                 | local (bool)           | Indicates whether the system is running locally or remotely. Not used.
         """
 
-        super().__init__(configuration or QuantumInspireBackend.DEFAULT_CONFIGURATION, provider=provider)
+        super().__init__(configuration=(configuration or
+                                        BackendConfiguration.from_dict(QuantumInspireBackend.DEFAULT_CONFIGURATION)),
+                         provider=provider)
         self.__backend = api.get_backend_type_by_name(self.name())
         self.__logger = logger
         self.__api = api

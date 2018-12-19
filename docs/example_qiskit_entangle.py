@@ -16,13 +16,14 @@ Copyright 2018 QuTech Delft. Licensed under the Apache License, Version 2.0.
 """
 from getpass import getpass
 
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, execute
-
+from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.tools.compiler import execute
 from quantuminspire.qiskit import QI
 
 
 def get_authentication():
     """ Gets the authentication for connecting to the Quantum Inspire API."""
+    return "k.f.j.martens@tudelft.nl", 'Y3st3rd4y.?'
     print('Enter email:')
     email = input()
     print('Enter password')
