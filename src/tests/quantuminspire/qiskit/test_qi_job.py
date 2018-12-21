@@ -1,18 +1,26 @@
 import unittest
 from unittest.mock import Mock
 
-from qiskit.backends import JobStatus, JobError, JobTimeoutError
-from qiskit.qobj import Qobj, ExperimentResult
+from qiskit.providers import JobStatus, JobError, JobTimeoutError
+from qiskit.qobj import Qobj
+from qiskit.result.models import ExperimentResult, ExperimentResultData
+from qiskit.validation.base import Obj
 
 from quantuminspire.qiskit.qi_job import QIJob
 
 
 class TestQIJob(unittest.TestCase):
     def setUp(self):
-        self.experiment_result_dictionary_1 = {'name': 'Test1', 'seed': None, 'shots': 42, 'data': {'0': 42},
-                                               'status': 'DONE', 'success': True, 'time_taken': 0.42}
-        self.experiment_result_dictionary_2 = {'name': 'Test2', 'seed': None, 'shots': 23, 'data': {'1': 42},
-                                               'status': 'DONE', 'success': True, 'time_taken': 0.12}
+        experiment_result_data = ExperimentResultData.from_dict({'counts': {'0x0': 42}})
+        experiment_result_data_2 = ExperimentResultData.from_dict({'counts': {'0x1': 42}})
+        header_1 = Obj.from_dict({'name': 'Test1'})
+        header_2 = Obj.from_dict({'name': 'Test2'})
+        self.experiment_result_dictionary_1 = {'name': 'Test1', 'shots': 42, 'data': experiment_result_data,
+                                               'status': 'DONE', 'success': True, 'time_taken': 0.42,
+                                               'header': header_1}
+        self.experiment_result_dictionary_2 = {'name': 'Test2', 'shots': 23, 'data': experiment_result_data_2,
+                                               'status': 'DONE', 'success': True, 'time_taken': 0.12,
+                                               'header': header_2}
         self.experiment_result_1 = ExperimentResult(**self.experiment_result_dictionary_1)
         self.experiment_result_2 = ExperimentResult(**self.experiment_result_dictionary_2)
 
@@ -63,20 +71,23 @@ class TestQIJob(unittest.TestCase):
 
     def test_result(self):
         api = Mock()
-        api.get_jobs_from_project.return_value = [{'name': 'test_job', 'status': 'COMPLETE'},
-                                                  {'name': 'other_job', 'status': 'COMPLETE'}]
+        api.get_jobs_from_project.return_value = [{'name': 'Test1', 'status': 'COMPLETE'},
+                                                  {'name': 'Test2', 'status': 'COMPLETE'}]
         job_id = '42'
         backend = Mock()
         backend.get_experiment_results.return_value = [self.experiment_result_1, self.experiment_result_2]
+        backend.backend_name = 'some backend'
         job = QIJob(backend, job_id, api)
         results = job.result()
 
-        self.assertEqual('SUCCESS = True', results.status)
-        self.assertDictEqual({'0': 42}, results.get_data('test_job'))
-        self.assertDictEqual({'1': 42}, results.get_data('other_job'))
-        self.assertEqual('42', results.job_id())
-        self.assertListEqual(['test_job', 'other_job'], results.get_names())
-        self.assertListEqual(['DONE', 'DONE'], results.circuit_statuses())
+        self.assertTrue(results.success)
+        self.assertDictEqual({'counts': {'0x0': 42}}, results.data(0))
+        self.assertDictEqual({'counts': {'0x1': 42}}, results.data(1))
+        self.assertDictEqual({'0': 42}, results.get_counts(0))
+        self.assertDictEqual({'1': 42}, results.get_counts(1))
+        self.assertEqual('42', results.job_id)
+        self.assertListEqual(['Test1', 'Test2'], [r.name for r in results.results])
+        self.assertListEqual(['DONE', 'DONE'], [r.status for r in results.results])
 
     def test_result_timeout(self):
         api = Mock()

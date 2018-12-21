@@ -34,7 +34,7 @@ class TestQiCircuitToString(unittest.TestCase):
     @staticmethod
     def _generate_cqasm_from_instructions(instructions, number_of_qubits=2):
         experiment_dict = {'instructions': None,
-                           'header': {'number_of_qubits': number_of_qubits,
+                           'header': {'n_qubits': number_of_qubits,
                                       'number_of_clbits': number_of_qubits,
                                       'compiled_circuit_qasm': ''},
                            'config': {'coupling_map': 'all-to-all',

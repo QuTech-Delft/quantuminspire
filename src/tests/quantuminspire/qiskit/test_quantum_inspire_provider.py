@@ -2,6 +2,7 @@ import unittest
 from unittest import mock
 
 from coreapi.auth import BasicAuthentication
+from qiskit.providers import QiskitBackendNotFoundError
 
 from quantuminspire.exceptions import ApiError
 from quantuminspire.qiskit.quantum_inspire_provider import QuantumInspireProvider, QI_URL
@@ -21,7 +22,7 @@ class TestQuantumInspireProvider(unittest.TestCase):
             quantum_inpire_provider._api.get_backend_types.return_value = [{'name': 'qi_simulator'}]
             backend = quantum_inpire_provider.get_backend(name='qi_simulator')
             self.assertEqual('qi_simulator', backend.name())
-            with self.assertRaises(KeyError) as error:
+            with self.assertRaises(QiskitBackendNotFoundError) as error:
                 quantum_inpire_provider.get_backend(name='not-quantum-inspire')
             self.assertEqual(('No backend matches the criteria',), error.exception.args)
 

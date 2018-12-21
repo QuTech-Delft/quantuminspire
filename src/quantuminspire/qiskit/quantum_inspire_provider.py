@@ -1,6 +1,7 @@
+from copy import copy
+
 from coreapi.auth import BasicAuthentication
 from qiskit.providers import BaseProvider
-from qiskit.providers.models import BackendConfiguration
 
 from quantuminspire.api import QuantumInspireAPI
 from quantuminspire.exceptions import ApiError
@@ -36,7 +37,7 @@ class QuantumInspireProvider(BaseProvider):
             available_backends = filter(lambda b: b['name'] == name, available_backends)
         backends = []
         for backend in available_backends:
-            config = BackendConfiguration.from_dict(QuantumInspireBackend.DEFAULT_CONFIGURATION)
+            config = copy(QuantumInspireBackend.DEFAULT_CONFIGURATION)
             config.backend_name = backend['name']
             backends.append(QuantumInspireBackend(self._api, provider=self, configuration=config))
 

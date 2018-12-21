@@ -67,11 +67,9 @@ class QIJob(BaseJob):
             if timeout is not None and elapsed_time > timeout:
                 raise JobTimeoutError('Failed getting result: timeout reached.')
             time.sleep(wait)
-        jobs = self._api.get_jobs_from_project(self._job_id)
-        experiment_names = [job['name'] for job in jobs]
         experiment_results = self._backend.get_experiment_results(self)
-        return Result(backend_name=self.backend().backend_name, backend_version=quantum_inspire_version,
-                      job_id=self.job_id, qobj_id=None, success=True, results=experiment_results)
+        return Result(backend_name=self._backend.backend_name, backend_version=quantum_inspire_version,
+                      job_id=self.job_id(), qobj_id=self.job_id(), success=True, results=experiment_results)
 
     def cancel(self):
         """ Cancel the job and delete the project. """
