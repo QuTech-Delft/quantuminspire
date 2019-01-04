@@ -11,3 +11,12 @@ script:
   - coverage run --source="./src/quantuminspire" -m unittest discover -s src/tests -t src -v
 after_success:
   - coveralls
+deploy:
+  provider: pypi
+  user: qinspire
+  password:
+    secure: ayJgYx7awWMgCWr/Y8ep7RpE/Rn0WpPCkIYMeN+wjJ2Y5GmsOmANHCTrA1WQ8+zol8ceyqjPdA/d4lC0nRLxnV+4iSScABsMKoLn3mdRmi+QncLUYDfUBoYe8HdQFO5OfADSH0XuPgNnCf39OE8VRF7pTL3DNnsXEd+DsIsDww8sR1UM/8AUUfRD4W2+yXKLHqg72Qhmky5a80Q4RBhDNvoOYo2nXHpdgHdPXtUYu/LH1/a4lk6cdCqQHzjAiWL2+9IXtgjJmcp2N8JHTmLkt8OA8Lz8ymNg00lr1oKv7fSrAdGz8Y/1EmccVxeId7bybL6vrTIhZfy9LIwRqwURp0pBmfoON+KXv1lSNrVRntek0vx6WTDohIc7L8LT9S+RIpcL9Vj5LD0z6gFQwBBQBomPlB/q7ZJ7wGMtNv8eJe0T0NYY61eMGhhmRA2b6xguunSq/ko0+VMlv4cxkRtmcVxw2olKL4YWwg7EwcU1OvT+K8StBOU2MNwmQCMsw1KWR3pQYa/N3Fsml82nnZysmP2qzJWrgN1IIOBsOEtm6zztywY+wnE3oBIiQIIPv+zKJ0D49od5qDHiBJQTp1QhOtjUSZsBajN3TB1/UvOxR4VNAYxsnd5qTfTHsXJik/jdg+iDuIsOxfNiOE/xBJSiVfAsj4IG0txpiaxEgPoDQdM=
+  on:
+    tags: true
+    branch: master
+    skip_existing: true
