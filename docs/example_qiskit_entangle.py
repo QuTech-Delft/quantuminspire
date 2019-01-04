@@ -23,7 +23,6 @@ from quantuminspire.qiskit import QI
 
 def get_authentication():
     """ Gets the authentication for connecting to the Quantum Inspire API."""
-    return "k.f.j.martens@tudelft.nl", 'Y3st3rd4y.?'
     print('Enter email:')
     email = input()
     print('Enter password')
