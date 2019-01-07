@@ -20,9 +20,27 @@ on cQASM can be found in the Quantum Inspire
 
 ## Installation
 
-The source for the SDK can be found at Github. For the default installation execute:
+The Quantum Inspire SDK can be installed from PyPI via pip:
 
 ```
+$ pip install quantuminspire
+```
+
+In addition, to use Quantum Inspire through Qiskit or ProjectQ, install either or both of
+the qiskit and projectq packages:
+
+```
+$ pip install qiskit
+$ pip install projectq
+```
+
+### Installing from source
+
+The source for the SDK can also be found at Github. For the default installation execute:
+
+```
+$ git clone https://github.com/QuTech-Delft/quantuminspire
+$ cd quantuminspire
 $ pip install .
 ```
 
