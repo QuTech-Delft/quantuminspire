@@ -16,7 +16,6 @@ limitations under the License.
 """
 
 import itertools
-import logging
 import time
 import uuid
 from collections import OrderedDict
@@ -30,8 +29,7 @@ from quantuminspire.job import QuantumInspireJob
 
 class QuantumInspireAPI:
 
-    def __init__(self, base_uri, authentication, project_name=None,
-                 logger=logging, coreapi_client_class=coreapi.Client):
+    def __init__(self, base_uri, authentication, project_name=None, coreapi_client_class=coreapi.Client):
         """ Python interface to the Quantum Inspire API For documentation see:
                 https://dev.quantum-inspire.com/api
                 https://dev.quantum-inspire.com/api/docs/#jobs-create
@@ -41,12 +39,10 @@ class QuantumInspireAPI:
             authentication (BasicAuthentication): The basic HTTP authentication.
             project_name (str or None): The used project for execution jobs.
                                         Project will not deleted when a name is given.
-            logger (Logger): The logging module instance.
         """
         self.__client = coreapi_client_class(auth=authentication)
         self.project_name = project_name
         self.base_uri = base_uri
-        self.__logger = logger
         try:
             self._load_schema()
         except Exception as ex:
@@ -369,10 +365,7 @@ class QuantumInspireAPI:
             time.sleep(sec_retry_delay)
             status_message = '(id {}, iteration {})'.format(quantum_inspire_job.get_job_identifier(), attempt)
             if quantum_inspire_job.check_status() == 'COMPLETE':
-                self.__logger.info('Got result: %s', status_message)
                 return True
-            self.__logger.info('Waiting for result: %s', status_message)
-        self.__logger.error('Failed getting result: %s', status_message)
         return False
 
     def execute_qasm(self, qasm, backend_type=None, number_of_shots=256, collect_tries=None,
@@ -451,5 +444,4 @@ class QuantumInspireAPI:
         job = self._create_job(job_name, asset, project, number_of_shots, user_data=user_data,
                                full_state_projection=full_state_projection)
 
-        self.__logger.info('Submitted qasm code to quantum inspire %s', job_name)
         return QuantumInspireJob(self, job['id'])

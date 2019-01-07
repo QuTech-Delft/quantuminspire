@@ -23,7 +23,7 @@ from unittest.mock import Mock, patch
 
 import qiskit
 from coreapi.exceptions import ErrorMessage
-from qiskit.qobj import QobjExperiment
+from qiskit.qobj import QobjExperiment, Qobj
 
 from quantuminspire.api import QuantumInspireAPI
 from quantuminspire.exceptions import QisKitBackendError
@@ -47,7 +47,8 @@ class TestQiSimulatorPy(unittest.TestCase):
                                        'experiments': [{'instructions': operations,
                                                         'header': {'n_qubits': 2, 'memory_slots': 2,
                                                                    'name': 'test',
-                                                                   'compiled_circuit_qasm': 'dummy'},
+                                                                   'compiled_circuit_qasm': 'dummy',
+                                                                   'creg_sizes': [['c1', 2]]},
                                                         'config': {'coupling_map': 'all-to-all',
                                                                    'basis_gates': 'x,y,z,h,s,cx,ccx,u1,u2,u3,id,snapshot',
                                                                    'n_qubits': 2}}],
@@ -99,7 +100,7 @@ class TestQiSimulatorPy(unittest.TestCase):
         self.assertDictEqual(measurements, {'measurements': [[0, 0], [1, 1]], 'number_of_clbits': 2})
 
     def test_backend_name(self):
-        simulator = QuantumInspireBackend(Mock(), Mock(), logger=Mock())
+        simulator = QuantumInspireBackend(Mock(), Mock())
         name = simulator.backend_name
         self.assertEqual('qi_simulator', name)
 
@@ -113,7 +114,7 @@ class TestQiSimulatorPy(unittest.TestCase):
                         {'name': 'measure', 'qubits': [0], 'memory': [1]}]
         qobj_dict = self._basic_qobj_dictionary
         qobj_dict['experiments'][0]['instructions'] = instructions
-        qobj = qiskit.qobj.Qobj.from_dict(qobj_dict)
+        qobj = Qobj.from_dict(qobj_dict)
 
         job = simulator.run(qobj)
         self.assertEqual('42', job.job_id())
@@ -141,7 +142,9 @@ class TestQiSimulatorPy(unittest.TestCase):
                                 'number_of_qubits': 2}
         jobs = self._basic_job_dictionary
         measurements = QuantumInspireBackend._collect_measurements(experiment)
-        jobs['user_data'] = json.dumps(measurements)
+        user_data = {'name': 'name', 'memory_slots': 2,
+                     'creg_sizes': [['c1', 2]], 'measurements': measurements}
+        jobs['user_data'] = json.dumps(user_data)
         api.get_jobs_from_project.return_value = [jobs]
         job = QIJob('backend', '42', api)
         simulator = QuantumInspireBackend(api, Mock())
@@ -152,7 +155,7 @@ class TestQiSimulatorPy(unittest.TestCase):
         self.assertEqual(experiment_result.shots, number_of_shots)
 
     def test_validate_NegativeShotCount(self):
-        simulator = QuantumInspireBackend(Mock(), Mock(), logger=Mock())
+        simulator = QuantumInspireBackend(Mock(), Mock())
         job_dict = self._basic_qobj_dictionary
         job_dict['config']['shots'] = 0
         job = qiskit.qobj.Qobj.from_dict(job_dict)
@@ -160,7 +163,7 @@ class TestQiSimulatorPy(unittest.TestCase):
         self.assertRaises(QisKitBackendError, simulator.run, job)
 
     def test_validate_NoClassicalQubits(self):
-        simulator = QuantumInspireBackend(Mock(), Mock(), logger=Mock())
+        simulator = QuantumInspireBackend(Mock(), Mock())
 
         job_dict = self._basic_qobj_dictionary
         job_dict['experiments'][0]['instructions'] = None
@@ -171,7 +174,7 @@ class TestQiSimulatorPy(unittest.TestCase):
 
     def test_validate_OperationAfterMeasure(self):
         with patch.object(QuantumInspireBackend, "_submit_experiment", return_value=Mock()):
-            simulator = QuantumInspireBackend(Mock(), Mock(), logger=Mock())
+            simulator = QuantumInspireBackend(Mock(), Mock())
             instructions = [{'name': 'CX', 'qubits': [0]}, {'name': 'measure', 'qubits': [0]},
                             {'name': 'X', 'qubits': [0]}]
             job_dict = self._basic_qobj_dictionary
@@ -181,9 +184,9 @@ class TestQiSimulatorPy(unittest.TestCase):
 
     def test_no_operation_after_measure_cx_gate(self):
         with patch.object(QuantumInspireBackend, "_submit_experiment", return_value=Mock()):
-            simulator = QuantumInspireBackend(Mock(), Mock(), logger=Mock())
-            instructions = [{'name': 'X', 'qubits': [1]}, {'name': 'measure', 'qubits': [0], 'memory': [0]},
-                            {'name': 'CX', 'qubits': [0, 1], 'memory': [0, 1]}]
+            simulator = QuantumInspireBackend(Mock(), Mock())
+            instructions = [{'name': 'X', 'qubits': [1]}, {'name': 'measure', 'qubits': [0]},
+                            {'name': 'CX', 'qubits': [0, 1]}]
             job_dict = self._basic_qobj_dictionary
             job_dict['experiments'][0]['instructions'] = instructions
             job = qiskit.qobj.Qobj.from_dict(job_dict)
@@ -232,7 +235,9 @@ class TestQiSimulatorPyHistogram(unittest.TestCase):
         self.mock_api.get.return_value = mock_result
         jobs = self._basic_job_dictionary
         measurements = QuantumInspireBackend._collect_measurements(QobjExperiment.from_dict(single_experiment))
-        jobs['user_data'] = json.dumps(measurements)
+        user_data = {'name': 'name', 'memory_slots': 2,
+                     'creg_sizes': [['c1', 2]], 'measurements': measurements}
+        jobs['user_data'] = json.dumps(user_data)
         self.mock_api.get_jobs_from_project.return_value = [jobs]
         job = QIJob('backend', '42', self.mock_api)
 

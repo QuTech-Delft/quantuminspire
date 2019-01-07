@@ -20,7 +20,13 @@ on cQASM can be found in the Quantum Inspire
 
 ## Installation
 
-The source for the SDK can be found at Github. For the default installation execute:
+The Quantum Inspire SDK can be installed from PyPI via pip:
+
+```
+$ pip install quantuminspire
+```
+
+The source for the SDK can also be found at Github. For the default installation execute:
 
 ```
 $ pip install .

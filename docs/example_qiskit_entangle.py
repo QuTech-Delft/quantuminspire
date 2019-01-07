@@ -7,17 +7,17 @@ Quantum Inspire.
 For documentation on how to use QisKit we refer to
 [https://qiskit.org/](https://qiskit.org/).
 
-Specific to Quantum Inspire is the creation of the QuantumInspireAPI
-instance, which is used to instantiate a QiSimulatorPy backend later
-on that is used to execute the circuit.
+Specific to Quantum Inspire is the creation of the QI instance, which is used to set the authentication of the user and
+provides a Quantum Inspire backend that is used to execute the circuit.
 
 
-Copyright 2018 QuTech Delft. Licensed under the Apache License, Version 2.0.
+Copyright 2018-19 QuTech Delft. Licensed under the Apache License, Version 2.0.
 """
 from getpass import getpass
 
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.tools.compiler import execute
+
 from quantuminspire.qiskit import QI
 
 

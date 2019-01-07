@@ -17,9 +17,8 @@ limitations under the License.
 """
 import io
 import json
-import logging
 import uuid
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 
 from coreapi.exceptions import ErrorMessage
 from qiskit.providers import BaseBackend
@@ -45,12 +44,12 @@ class QuantumInspireBackend(BaseBackend):
         conditional=False,
         simulator=True,
         local=False,
-        memory=False,
+        memory=True,
         open_pulse=False,
         max_shots=1024
     )
 
-    def __init__(self, api, provider, configuration=None, logger=logging):
+    def __init__(self, api, provider, configuration=None):
         """ Python implementation of a quantum simulator using Quantum Inspire API.
 
         Args:
@@ -80,7 +79,6 @@ class QuantumInspireBackend(BaseBackend):
                                         QuantumInspireBackend.DEFAULT_CONFIGURATION),
                          provider=provider)
         self.__backend = api.get_backend_type_by_name(self.name())
-        self.__logger = logger
         self.__api = api
 
     @property
@@ -96,7 +94,6 @@ class QuantumInspireBackend(BaseBackend):
         Returns:
             QIJob: A job that has been submitted.
         """
-        self.__logger.info('run')
         QuantumInspireBackend.__validate(qobj)
         number_of_shots = qobj.config.shots
 
@@ -141,7 +138,6 @@ class QuantumInspireBackend(BaseBackend):
         number_of_qubits = experiment.header.n_qubits
 
         instructions = experiment.instructions
-        self.__logger.info('generate_cqasm: %d qubits' % number_of_qubits)
 
         with io.StringIO() as stream:
             stream.write('version 1.0\n')
@@ -159,10 +155,11 @@ class QuantumInspireBackend(BaseBackend):
     def _submit_experiment(self, experiment, number_of_shots, project=None):
         compiled_qasm = self._generate_cqasm(experiment)
         measurements = self._collect_measurements(experiment)
-        user_data = json.dumps(measurements)
+        user_data = {'name': experiment.header.name, 'memory_slots': experiment.header.memory_slots,
+                     'creg_sizes': experiment.header.creg_sizes, 'measurements': measurements}
         job_id = self.__api.execute_qasm_async(compiled_qasm, backend_type=self.__backend,
                                                number_of_shots=number_of_shots, project=project,
-                                               job_name=experiment.header.name, user_data=user_data)
+                                               job_name=experiment.header.name, user_data=json.dumps(user_data))
         return job_id
 
     def get_experiment_results(self, qi_job):
@@ -186,12 +183,13 @@ class QuantumInspireBackend(BaseBackend):
                 raise QisKitBackendError(
                     'Result from backend contains no histogram data!\n{}'.format(result.get('raw_text')))
 
-            measurements = json.loads(job.get('user_data'))
+            user_data = json.loads(job.get('user_data'))
+            measurements = user_data.pop('measurements')
             histogram = QuantumInspireBackend.__convert_histogram(result, measurements, result['number_of_qubits'],
                                                                   job['number_of_shots'])
             histogram_obj = Obj.from_dict(histogram)
             experiment_result_data = ExperimentResultData(counts=histogram_obj)
-            header = Obj.from_dict({'name': job.get('name')})
+            header = Obj.from_dict(user_data)
             experiment_result_dictionary = {'name': job.get('name'), 'seed': 42, 'shots': job.get('number_of_shots'),
                                             'data': experiment_result_data, 'status': 'DONE', 'success': True,
                                             'time_taken': result.get('execution_time_in_seconds'), 'header': header}
@@ -263,7 +261,7 @@ class QuantumInspireBackend(BaseBackend):
             qubits is returned when no measurements are present in the compiled circuit.
 
         Args:
-            compiled_circuit (dict): The circuit properties with gate operations and header.
+            experiment (QobjExperiment): The experiment with gate operations and header.
 
         Returns:
             List: A list of lists, for each measurement List contains a list of [qubit_index, classical_bit_index]
@@ -316,4 +314,4 @@ class QuantumInspireBackend(BaseBackend):
             classical_state_hex = hex(int(classical_state, 2))
             output_histogram[classical_state_hex] += int(counts)
 
-        return dict(output_histogram)
+        return OrderedDict(sorted(output_histogram.items(), key=lambda kv: int(kv[0], 16)))

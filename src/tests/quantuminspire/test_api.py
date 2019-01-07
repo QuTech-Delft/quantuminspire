@@ -531,8 +531,7 @@ class TestQuantumInspireAPI(unittest.TestCase):
         expected_payload = {'id': job_id}
         self.coreapi_client.handlers['jobs'] = partial(self.__mock_job_handler, expected_payload, 'read',
                                                        status='RUNNING')
-        api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client,
-                                logger=Mock())
+        api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
         quantum_inspire_job = QuantumInspireJob(api, job_id)
         is_completed = api._wait_for_completed_job(quantum_inspire_job, collect_max_tries, sec_retry_delay=0.0)
         self.assertFalse(is_completed)

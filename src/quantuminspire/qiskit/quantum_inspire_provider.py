@@ -18,6 +18,9 @@ class QuantumInspireProvider(BaseProvider):
         self._backends = []
         self._api = None
 
+    def __str__(self):
+        return 'QI'
+
     def backends(self, name=None, **kwargs):
         """
         Provides a list of backends.
@@ -37,9 +40,10 @@ class QuantumInspireProvider(BaseProvider):
             available_backends = filter(lambda b: b['name'] == name, available_backends)
         backends = []
         for backend in available_backends:
-            config = copy(QuantumInspireBackend.DEFAULT_CONFIGURATION)
-            config.backend_name = backend['name']
-            backends.append(QuantumInspireBackend(self._api, provider=self, configuration=config))
+            if backend['is_allowed']:
+                config = copy(QuantumInspireBackend.DEFAULT_CONFIGURATION)
+                config.backend_name = backend['name']
+                backends.append(QuantumInspireBackend(self._api, provider=self, configuration=config))
 
         return backends
 
