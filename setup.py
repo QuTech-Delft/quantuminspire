@@ -38,7 +38,7 @@ setup(name='quantuminspire',
       python_requires='>=3.6',
       package_dir={'': 'src'},
       classifiers=[
-          'Development Status :: 3 - Alpha',
+          'Development Status :: 3 - Beta',
           'Programming Language :: Python :: 3',
           'Programming Language :: Python :: 3.6',
           'Programming Language :: Python :: 3.7',
