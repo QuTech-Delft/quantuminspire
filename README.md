@@ -120,17 +120,17 @@ print(result['histogram'])
 
 ## Known issues
 
-* Authentication for the Quantum Inspire platform is currently password only; this will change
-to API-token based authentication in the near future;
-* There is no method to submit an algorithm and retrieve the results at a later moment. 
-* Qiskit 0.6.0 compatibility is not complete
-* It is not possible to simulate algorithms that do not use full state projection
+* Authentication for the Quantum Inspire platform is currently password only; this
+  will change to API-token based authentication in the near future;
+* It is not possible to simulate algorithms that do not use full state
+  projection through Qiskit / ProjectQ
 * Some test-cases call protected methods
-* Known issues and common questions regarding the Quantum Inspire platform can be found in the [FAQ](https://www.quantum-inspire.com/faq/).
+* Known issues and common questions regarding the Quantum Inspire platform
+  can be found in the [FAQ](https://www.quantum-inspire.com/faq/).
  
 ## Bug reports
 
-Please submit bug-reports [on the github issue tracker](https://github.com/qutech-sd/SDK/issues).
+Please submit bug-reports [on the github issue tracker](https://github.com/QuTech-Delft/quantuminspire/issues).
 
 ## Testing
 
