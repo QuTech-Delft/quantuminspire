@@ -23,6 +23,8 @@ from unittest.mock import Mock, patch
 
 import qiskit
 from coreapi.exceptions import ErrorMessage
+from qiskit.providers.models import BackendConfiguration
+from qiskit.providers.models.backendconfiguration import GateConfig
 from qiskit.qobj import QobjExperiment, Qobj
 
 from quantuminspire.api import QuantumInspireAPI
@@ -30,6 +32,7 @@ from quantuminspire.exceptions import QisKitBackendError
 from quantuminspire.qiskit import QuantumInspireProvider
 from quantuminspire.qiskit.backend_qx import QuantumInspireBackend
 from quantuminspire.qiskit.qi_job import QIJob
+from quantuminspire.version import __version__ as quantum_inspire_version
 
 
 def first_item(iterable):
@@ -103,6 +106,24 @@ class TestQiSimulatorPy(unittest.TestCase):
         simulator = QuantumInspireBackend(Mock(), Mock())
         name = simulator.backend_name
         self.assertEqual('qi_simulator', name)
+
+    def test_backend_default_configuration(self):
+        simulator = QuantumInspireBackend(Mock(), Mock())
+        configuration = simulator.configuration()
+        expected_configuration = BackendConfiguration(
+            backend_name='qi_simulator',
+            backend_version=quantum_inspire_version,
+            n_qubits=26,
+            basis_gates=['x', 'y', 'z', 'h', 's', 'cx', 'ccx', 'u1', 'u2', 'u3', 'id', 'snapshot'],
+            gates=[GateConfig(name='NotUsed', parameters=['NaN'], qasm_def='NaN')],
+            conditional=False,
+            simulator=True,
+            local=False,
+            memory=False,
+            open_pulse=False,
+            max_shots=1024
+        )
+        self.assertDictEqual(configuration.to_dict(), expected_configuration.to_dict())
 
     def test_run_ReturnsCorrectResult(self):
         api = Mock()
