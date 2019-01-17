@@ -387,7 +387,7 @@ class QuantumInspireAPI:
                          the results could not be collected.
         """
         try:
-            delete_project_afterwards = self.project_name is not None
+            delete_project_afterwards = self.project_name is None
             quantum_inspire_job = self.execute_qasm_async(qasm, backend_type=backend_type,
                                                           number_of_shots=number_of_shots,
                                                           default_number_of_shots=default_number_of_shots,

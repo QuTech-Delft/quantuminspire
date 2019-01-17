@@ -16,10 +16,10 @@ limitations under the License.
 """
 
 import io
-import unittest
 from collections import OrderedDict
 from functools import partial
-from unittest.mock import Mock, patch
+from unittest import mock, TestCase
+from unittest.mock import Mock, patch, call
 
 from quantuminspire.api import QuantumInspireAPI
 from quantuminspire.exceptions import ApiError
@@ -58,7 +58,7 @@ class MockApiClient:
                                                 overrides, action, encoding, transform)
 
 
-class TestQuantumInspireAPI(unittest.TestCase):
+class TestQuantumInspireAPI(TestCase):
 
     def setUp(self):
         self.authentication = MockApiBasicAuth('user', 'unknown')
@@ -149,7 +149,7 @@ class TestQuantumInspireAPI(unittest.TestCase):
     def test_list_backend_types_HasCorrectInputAndOutput(self):
         self.coreapi_client.handlers['backendtypes'] = self.__mock_backendtypes_handler
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
-        with unittest.mock.patch('sys.stdout', new_callable=io.StringIO) as mock_stdout:
+        with patch('sys.stdout', new_callable=io.StringIO) as mock_stdout:
             api.list_backend_types()
             print_string = mock_stdout.getvalue()
             self.assertIn('Backend: QX', print_string)
@@ -231,7 +231,7 @@ class TestQuantumInspireAPI(unittest.TestCase):
     def test_list_projects_HasCorrectInputAndOutput(self):
         self.coreapi_client.handlers['projects'] = self.__mock_list_projects_handler
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
-        with unittest.mock.patch('sys.stdout', new_callable=io.StringIO) as mock_stdout:
+        with patch('sys.stdout', new_callable=io.StringIO) as mock_stdout:
             api.list_projects()
             print_string = mock_stdout.getvalue()
             self.assertIn('Project: Grover', print_string)
@@ -313,7 +313,7 @@ class TestQuantumInspireAPI(unittest.TestCase):
     def test_list_jobs_HasCorrectInputAndOutput(self):
         self.coreapi_client.handlers['jobs'] = self.__mock_list_jobs_handler
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
-        with unittest.mock.patch('sys.stdout', new_callable=io.StringIO) as mock_stdout:
+        with patch('sys.stdout', new_callable=io.StringIO) as mock_stdout:
             api.list_jobs()
             print_string = mock_stdout.getvalue()
             self.assertIn('Job: name', print_string)
@@ -422,7 +422,7 @@ class TestQuantumInspireAPI(unittest.TestCase):
     def test_list_results_HasCorrectOutput(self):
         self.coreapi_client.handlers['results'] = self.__mock_list_results_handler
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
-        with unittest.mock.patch('sys.stdout', new_callable=io.StringIO) as mock_stdout:
+        with patch('sys.stdout', new_callable=io.StringIO) as mock_stdout:
             api.list_results()
             print_string = mock_stdout.getvalue()
             self.assertIn('Result: id', print_string)
@@ -476,7 +476,7 @@ class TestQuantumInspireAPI(unittest.TestCase):
     def test_list_assets_HasCorrectOutput(self):
         self.coreapi_client.handlers['assets'] = self.__mock_list_assets_handler
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
-        with unittest.mock.patch('sys.stdout', new_callable=io.StringIO) as mock_stdout:
+        with patch('sys.stdout', new_callable=io.StringIO) as mock_stdout:
             api.list_assets()
             print_string = mock_stdout.getvalue()
             self.assertIn('Asset: name', print_string)
@@ -641,17 +641,26 @@ class TestQuantumInspireAPI(unittest.TestCase):
                             ('queued_at', '2018-08-24T07,01,21.257557Z'),
                             ('number_of_shots', 1)])
 
-    def test_execute_qasm_DifferentBackend(self):
-        self.coreapi_client.getters['mocked_job'] = self.__fake_job_handler({}, 'read', None, None, ['test', 'read'],
-                                                                            {})
+    def __mocks_for_api_execution(self):
+        expected_job_result = self.__fake_job_handler({}, 'read', None, None, ['test', 'read'], {})
+        self.coreapi_client.getters['mocked_job'] = expected_job_result
+        expected_asset = self.__fake_asset_handler({}, 'create', None, None, ['test', 'create'], {})
+        self.coreapi_client.getters['mocked_asset'] = expected_asset
+
         job_mock = Mock()
         self.coreapi_client.handlers['jobs'] = partial(self.__fake_job_handler, call_mock=job_mock)
         asset_mock = Mock()
         self.coreapi_client.handlers['assets'] = partial(self.__fake_asset_handler, call_mock=asset_mock)
-        project_mock = Mock()
-        self.coreapi_client.handlers['projects'] = partial(self.__fake_project_handler_params, call_mock=project_mock)
         backend_mock = Mock()
         self.coreapi_client.handlers['backendtypes'] = partial(self.__fake_backendtype_handler, call_mock=backend_mock)
+        project_mock = Mock()
+        self.coreapi_client.handlers['projects'] = partial(self.__fake_project_handler_params, call_mock=project_mock)
+
+        return expected_job_result, job_mock, asset_mock, backend_mock, project_mock
+
+    def test_execute_qasm_DifferentBackend(self):
+        mocks = self.__mocks_for_api_execution()
+        project_mock = mocks[4]
 
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
         backend_type = api.get_backend_type(identifier=2)
@@ -676,100 +685,69 @@ class TestQuantumInspireAPI(unittest.TestCase):
         self.assertEqual(project_call[1]['params']['backend_type'], r'https://api.quantum-inspire.com/backendtypes/1/')
 
     def __test_execute_qasm_fsp_propagates_correctly_to_job(self, full_state_projection):
-        self.coreapi_client.getters['mocked_job'] = self.__fake_job_handler({}, 'read', None, None, ['test', 'read'],
-                                                                            {})
-        job_mock = Mock()
-        self.coreapi_client.handlers['jobs'] = partial(self.__fake_job_handler, call_mock=job_mock)
-        asset_mock = Mock()
-        self.coreapi_client.handlers['assets'] = partial(self.__fake_asset_handler, call_mock=asset_mock)
-        project_mock = Mock()
-        self.coreapi_client.handlers['projects'] = partial(self.__fake_project_handler, call_mock=project_mock)
-        backend_mock = Mock()
-        self.coreapi_client.handlers['backendtypes'] = partial(self.__fake_backendtype_handler, call_mock=backend_mock)
+        mocks = self.__mocks_for_api_execution()
+        job_mock = mocks[1]
+
         qasm = 'version 1.0...'
-
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
-        backend = api.get_backend_type(identifier=1)
-        _ = api.execute_qasm(qasm, backend, collect_tries=1, full_state_projection=full_state_projection)
+        _ = api.execute_qasm(qasm, collect_tries=1, full_state_projection=full_state_projection)
 
-        self.assertEqual(4, job_mock.call_count)
-        first_call = job_mock.call_args_list[0]
-        first_call_arguments = first_call[0]
-        self.assertEqual(first_call_arguments[0], 'create')
-        self.assertIn('full_state_projection', first_call_arguments[1])
-        second_call = job_mock.call_args_list[1]
-        second_call_arguments = second_call[0]
-        self.assertEqual(second_call_arguments[0], 'read')
-        return first_call_arguments[1]['full_state_projection']
+        job_mock.assert_called_with('read', {'id': 509})
+        job_call_items = job_mock.call_args_list[0][0][1]
+        self.assertEqual('NEW', job_call_items['status'])
+        self.assertEqual(256, job_call_items['number_of_shots'])
+        self.assertEqual(full_state_projection, job_call_items['full_state_projection'])
 
     def test_execute_qasm_with_fsp_creates_job_with_fsp(self):
-        self.assertTrue(self.__test_execute_qasm_fsp_propagates_correctly_to_job(True))
+        self.__test_execute_qasm_fsp_propagates_correctly_to_job(True)
 
     def test_execute_qasm_without_fsp_creates_job_without_fsp(self):
-        self.assertFalse(self.__test_execute_qasm_fsp_propagates_correctly_to_job(False))
+        self.__test_execute_qasm_fsp_propagates_correctly_to_job(False)
 
-    def test_execute_qasm_CreatesNewProject(self):
-        expected = self.__fake_job_handler({}, 'read', None, None, ['test', 'read'], {})
-        self.coreapi_client.getters['mocked_job'] = expected
-        job_mock = Mock()
-        self.coreapi_client.handlers['jobs'] = partial(self.__fake_job_handler, call_mock=job_mock)
-        asset_mock = Mock()
-        self.coreapi_client.handlers['assets'] = partial(self.__fake_asset_handler, call_mock=asset_mock)
-        project_mock = Mock()
-        self.coreapi_client.handlers['projects'] = partial(self.__fake_project_handler, call_mock=project_mock)
-        backend_mock = Mock()
-        self.coreapi_client.handlers['backendtypes'] = partial(self.__fake_backendtype_handler, call_mock=backend_mock)
+    def test_execute_qasm_project_is_deleted(self):
+        expected_job_result, job_mock, asset_mock, backend_mock, project_mock = self.__mocks_for_api_execution()
+
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
-        qasm = 'version 1.0...'
-
-        actual = api.execute_qasm(qasm, collect_tries=1)
         self.assertIsNone(api.project_name)
-        self.assertEqual(job_mock.call_count, 4)
-        first_call = job_mock.call_args_list[0]
-        first_call_arguments = first_call[0]
-        self.assertEqual(first_call_arguments[0], 'create')
-        self.assertIn('full_state_projection', first_call_arguments[1])
-        self.assertTrue(first_call_arguments[1]['full_state_projection'])
-        second_call = job_mock.call_args_list[1]
-        second_call_arguments = second_call[0]
-        self.assertEqual(second_call_arguments[0], 'read')
-        asset_mock.assert_called_once_with('create')
-        project_mock.assert_called_once_with('create')
-        backend_mock.assert_called_once_with('default')
-        self.assertEqual(expected, actual)
+
+        qasm = 'version 1.0...'
+        number_of_shots = 256
+        default_number_of_shots = 256
+        actual_job_result = api.execute_qasm(qasm, collect_tries=1)
+        self.assertEqual(expected_job_result, actual_job_result)
+
+        job_mock.assert_called_with('read', {'id': 509})
+        job_call_items = job_mock.call_args_list[0][0][1]
+        self.assertEqual('NEW', job_call_items['status'])
+        self.assertEqual(256, job_call_items['number_of_shots'])
+        self.assertTrue(job_call_items['full_state_projection'])
+
+        asset_mock.assert_called_with('create')
+        backend_mock.assert_called_with('default')
+        project_mock.assert_has_calls([call('create', params=mock.ANY), call('delete', params={'id': 1})])
 
     @patch('quantuminspire.api.QuantumInspireAPI.get_projects')
-    def test_execute_qasm_UsesProject(self, get_projects_mock):
-        expected = self.__fake_job_handler({}, 'read', None, None, ['test', 'read'], {})
-        self.coreapi_client.getters['mocked_job'] = expected
-        self.coreapi_client.getters['mocked_asset'] = self.__fake_asset_handler({}, 'create', None, None,
-                                                                                ['test', 'create'], {})
-        job_mock = Mock()
-        self.coreapi_client.handlers['jobs'] = partial(self.__fake_job_handler, call_mock=job_mock)
-        asset_mock = Mock()
-        self.coreapi_client.handlers['assets'] = partial(self.__fake_asset_handler, call_mock=asset_mock)
-        project_mock = Mock()
-        self.coreapi_client.handlers['projects'] = partial(self.__fake_project_handler, call_mock=project_mock)
-        backend_mock = Mock()
-        self.coreapi_client.handlers['backendtypes'] = partial(self.__fake_backendtype_handler, call_mock=backend_mock)
+    def test_execute_qasm_project_not_deleted_with_number_of_shots(self, get_projects_mock):
+        expected_job_result, job_mock, asset_mock, backend_mock, project_mock = self.__mocks_for_api_execution()
+
         get_projects_mock.return_value = {}
         project_name = 'Grover algorithm - 1900-01-01 10:00'
-
-        api = QuantumInspireAPI('FakeURL', self.authentication, project_name,
+        api = QuantumInspireAPI('FakeURL', self.authentication, project_name=project_name,
                                 coreapi_client_class=self.coreapi_client)
-        backend = api.get_backend_type(identifier=1)
-        qasm = 'version 1.0...'
-        number_of_shots = 1024
-
-        actual = api.execute_qasm(qasm, number_of_shots=number_of_shots, collect_tries=1)
         self.assertEqual(api.project_name, project_name)
-        self.assertEqual(job_mock.call_count, 5)
-        first_call = job_mock.call_args_list[0]
-        first_call_arguments = first_call[0]
-        self.assertEqual(first_call_arguments[0], 'create')
-        second_call = job_mock.call_args_list[1]
-        second_call_arguments = second_call[0]
-        self.assertEqual(second_call_arguments[0], 'read')
-        asset_mock.assert_called_once_with('create')
-        project_mock.assert_called_with('delete')
-        self.assertEqual(expected, actual)
+
+        qasm = 'version 1.0...'
+        actual_job_result = api.execute_qasm(qasm, number_of_shots=1024, collect_tries=1)
+        self.assertEqual(expected_job_result, actual_job_result)
+
+        job_mock.assert_called_with('read', {'id': 509})
+        job_call_items = job_mock.call_args_list[0][0][1]
+        self.assertEqual('NEW', job_call_items['status'])
+        self.assertEqual(1024, job_call_items['number_of_shots'])
+        self.assertTrue(job_call_items['full_state_projection'])
+
+        asset_mock.assert_called_with('create')
+        backend_mock.assert_called_with('default')
+
+        project_mock.assert_called_with('create', params=mock.ANY)
+        self.assertTrue(call('delete') not in project_mock.call_args_list)
