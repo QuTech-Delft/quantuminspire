@@ -44,7 +44,7 @@ class QuantumInspireBackend(BaseBackend):
         conditional=False,
         simulator=True,
         local=False,
-        memory=True,
+        memory=False,
         open_pulse=False,
         max_shots=1024
     )
