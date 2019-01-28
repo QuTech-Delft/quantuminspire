@@ -38,7 +38,7 @@ class TestQiCircuitToString(unittest.TestCase):
                                       'number_of_clbits': number_of_qubits,
                                       'compiled_circuit_qasm': ''},
                            'config': {'coupling_map': 'all-to-all',
-                                      'basis_gates': 'x,y,z,h,s,cx,ccx,u1,u2,u3,id,snapshot',
+                                      'basis_gates': 'x,y,z,h,rx,ry,rz,s,cx,ccx,u1,u2,u3,id,snapshot',
                                       'n_qubits': number_of_qubits}}
 
         experiment_dict['instructions'] = instructions
@@ -147,3 +147,18 @@ class TestQiCircuitToString(unittest.TestCase):
         instructions = [{'name': 'u3', 'qubits': [0], 'params': [1, 2, 3]}]
         result = self._generate_cqasm_from_instructions(instructions, 2)
         self.assertTrue('Rz q[0], 1.000000\nRy q[0], 2.000000\nRz q[0], 3.000000\n' in result)
+
+    def test_generate_cqasm_CorrectOutputRotationX(self):
+        instructions = [{'name': 'rx', 'qubits': [0], 'params': [np.pi / 2]}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('Rx q[0], 1.570796\n' in result)
+
+    def test_generate_cqasm_CorrectOutputRotationY(self):
+        instructions = [{'name': 'ry', 'qubits': [0], 'params': [np.pi / 2]}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('Ry q[0], 1.570796\n' in result)
+
+    def test_generate_cqasm_CorrectOutputRotationZ(self):
+        instructions = [{'name': 'rz', 'qubits': [0], 'params': [np.pi / 2]}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('Rz q[0], 1.570796\n' in result)

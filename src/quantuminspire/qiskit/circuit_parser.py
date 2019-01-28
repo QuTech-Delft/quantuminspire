@@ -201,3 +201,39 @@ class CircuitToString:
         angles = circuit['params'][:3]
         index_q0 = [circuit['qubits'][0]] * 3
         return ''.join('%s q[%d], %f\n' % pair for pair in zip(gates, index_q0, angles))
+
+    def _rx(self, circuit):
+        """ Translates the Rx element.
+
+        Args: circuit (dict): The qiskit circuit with rx element.
+
+        Returns:
+            Str: CQASM code string.
+        """
+        angle_q0 = circuit['params'][0]
+        qubit_indices = tuple(circuit['qubits'])
+        return 'Rx q[%d], %f\n' % (*qubit_indices, angle_q0)
+
+    def _ry(self, circuit):
+        """ Translates the Ry element.
+
+        Args: circuit (dict): The qiskit circuit with ry element.
+
+        Returns:
+            Str: CQASM code string.
+        """
+        angle_q0 = circuit['params'][0]
+        qubit_indices = tuple(circuit['qubits'])
+        return 'Ry q[%d], %f\n' % (*qubit_indices, angle_q0)
+
+    def _rz(self, circuit):
+        """ Translates the Rz element.
+
+        Args: circuit (dict): The qiskit circuit with rz element.
+
+        Returns:
+            Str: CQASM code string.
+        """
+        angle_q0 = circuit['params'][0]
+        qubit_indices = tuple(circuit['qubits'])
+        return 'Rz q[%d], %f\n' % (*qubit_indices, angle_q0)

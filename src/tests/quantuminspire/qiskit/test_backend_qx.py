@@ -53,7 +53,8 @@ class TestQiSimulatorPy(unittest.TestCase):
                                                                    'compiled_circuit_qasm': 'dummy',
                                                                    'creg_sizes': [['c1', 2]]},
                                                         'config': {'coupling_map': 'all-to-all',
-                                                                   'basis_gates': 'x,y,z,h,s,cx,ccx,u1,u2,u3,id,snapshot',
+                                                                   'basis_gates': 'x,y,z,h,rx,ry,rz,s,cx,ccx,'
+                                                                                  'u1,u2,u3,id,snapshot',
                                                                    'n_qubits': 2}}],
                                        'header': {'backend_name': 'QX single-node simulator'},
                                        'type': 'QASM', 'schema_version': '1.0.0'}
@@ -81,7 +82,7 @@ class TestQiSimulatorPy(unittest.TestCase):
                                       'name': 'circuit0',
                                       'compiled_circuit_qasm': ''},
                            'config': {'coupling_map': 'all-to-all',
-                                      'basis_gates': 'x,y,z,h,s,cx,ccx,u1,u2,u3,id,snapshot',
+                                      'basis_gates': 'x,y,z,h,rx,ry,rz,s,cx,ccx,u1,u2,u3,id,snapshot',
                                       'n_qubits': 2}}
         experiment = qiskit.qobj.QobjExperiment.from_dict(experiment_dict)
         return experiment
@@ -114,7 +115,7 @@ class TestQiSimulatorPy(unittest.TestCase):
             backend_name='qi_simulator',
             backend_version=quantum_inspire_version,
             n_qubits=26,
-            basis_gates=['x', 'y', 'z', 'h', 's', 'cx', 'ccx', 'u1', 'u2', 'u3', 'id', 'snapshot'],
+            basis_gates=['x', 'y', 'z', 'h', 'rx', 'ry', 'rz', 's', 'cx', 'ccx', 'u1', 'u2', 'u3', 'id', 'snapshot'],
             gates=[GateConfig(name='NotUsed', parameters=['NaN'], qasm_def='NaN')],
             conditional=False,
             simulator=True,
