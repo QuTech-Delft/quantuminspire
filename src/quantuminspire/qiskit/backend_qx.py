@@ -274,11 +274,7 @@ class QuantumInspireBackend(BaseBackend):
         measurements = [[number_of_qubits - 1 - m.qubits[0],
                          number_of_clbits - 1 - m.memory[0]]
                         for m in operations if m.name == 'measure']
-        if measurements:
-            used_classical_bits = [item[1] for item in measurements]
-            if any([bit for bit in used_classical_bits if used_classical_bits.count(bit) > 1]):
-                raise QisKitBackendError("Classical bit is used to measure multiple qubits!")
-        else:
+        if not measurements:
             measurements = [[index, index] for index in range(number_of_qubits)]
         return {'measurements': measurements, 'number_of_clbits': number_of_clbits}
 
