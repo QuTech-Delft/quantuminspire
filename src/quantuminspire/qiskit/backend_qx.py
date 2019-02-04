@@ -39,7 +39,7 @@ class QuantumInspireBackend(BaseBackend):
         backend_name='qi_simulator',
         backend_version=quantum_inspire_version,
         n_qubits=26,
-        basis_gates=['x', 'y', 'z', 'h', 's', 'cx', 'ccx', 'u1', 'u2', 'u3', 'id', 'snapshot'],
+        basis_gates=['x', 'y', 'z', 'h', 'rx', 'ry', 'rz', 's', 'cx', 'ccx', 'u1', 'u2', 'u3', 'id', 'snapshot'],
         gates=[GateConfig(name='NotUsed', parameters=['NaN'], qasm_def='NaN')],
         conditional=False,
         simulator=True,

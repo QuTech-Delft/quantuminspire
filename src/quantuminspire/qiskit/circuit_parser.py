@@ -36,7 +36,8 @@ class CircuitToString:
     def _cx(self, circuit):
         """ Translates the controlled X element.
 
-        Args: circuit (dict): The qiskit circuit with CX element.
+        Args:
+            circuit (dict): The qiskit circuit with CX element.
 
         Returns:
             Str: CQASM code string.
@@ -47,7 +48,8 @@ class CircuitToString:
     def _ccx(self, circuit):
         """ Translates the Toffoli element.
 
-        Args: circuit (dict): The qiskit circuit with CCX element.
+        Args:
+            circuit (dict): The qiskit circuit with CCX element.
 
         Returns:
             Str: CQASM code string.
@@ -58,7 +60,8 @@ class CircuitToString:
     def _measure(self, circuit):
         """ Translates the measure element. Not used!
 
-        Args: circuit (dict): The qiskit circuit with measure element.
+        Args:
+            circuit (dict): The qiskit circuit with measure element.
 
         Returns:
             None.
@@ -68,7 +71,8 @@ class CircuitToString:
     def _h(self, circuit):
         """ Translates the H element.
 
-        Args: circuit (dict): The qiskit circuit with Hadamard element.
+        Args:
+            circuit (dict): The qiskit circuit with Hadamard element.
 
         Returns:
             Str: CQASM code string.
@@ -79,7 +83,8 @@ class CircuitToString:
     def _barrier(self, circuit):
         """ Translates the | element. Not used!
 
-        Args: circuit (dict): The qiskit circuit with barrier element.
+        Args:
+            circuit (dict): The qiskit circuit with barrier element.
 
         Returns:
             None.
@@ -89,7 +94,8 @@ class CircuitToString:
     def _id(self, circuit):
         """ Translates the ID element. Not used!
 
-        Args: circuit (dict): The qiskit circuit with identity element.
+        Args:
+            circuit (dict): The qiskit circuit with identity element.
 
         Returns:
             None.
@@ -99,7 +105,8 @@ class CircuitToString:
     def _x(self, circuit):
         """ Translates the X element.
 
-        Args: circuit (dict): The qiskit circuit with X element.
+        Args:
+            circuit (dict): The qiskit circuit with X element.
 
         Returns:
             Str: CQASM code string.
@@ -110,7 +117,8 @@ class CircuitToString:
     def _y(self, circuit):
         """ Translates the Y element.
 
-        Args: circuit (dict): The qiskit circuit with Y element.
+        Args:
+            circuit (dict): The qiskit circuit with Y element.
 
         Returns:
             Str: CQASM code string.
@@ -121,7 +129,8 @@ class CircuitToString:
     def _z(self, circuit):
         """ Translates the Z element.
 
-        Args: circuit (dict): The qiskit circuit with Z element.
+        Args:
+            circuit (dict): The qiskit circuit with Z element.
 
         Returns:
             Str: CQASM code string.
@@ -132,7 +141,8 @@ class CircuitToString:
     def _u(self, circuit):
         """ Translates the U element.
 
-        Args: circuit (dict): The qiskit circuit with U element.
+        Args:
+            circuit (dict): The qiskit circuit with U element.
 
         Raises:
             ValueError: When the provided rotation angles are invalid!
@@ -152,7 +162,8 @@ class CircuitToString:
     def _u0(self, circuit):
         """ Translates the U0 element. Not used!
 
-        Args: circuit (dict): The qiskit circuit with U0 element.
+        Args:
+            circuit (dict): The qiskit circuit with U0 element.
 
         Returns:
             None.
@@ -162,7 +173,8 @@ class CircuitToString:
     def _u1(self, circuit):
         """ Translates the U1 element.
 
-        Args: circuit (dict): The qiskit circuit with U1 element.
+        Args:
+            circuit (dict): The qiskit circuit with U1 element.
 
         Raises:
             ValueError: When the provided rotation angles are invalid!
@@ -181,7 +193,8 @@ class CircuitToString:
     def _u2(self, circuit):
         """ Translates the U2 element. Not usable!
 
-        Args: circuit (dict): The qiskit circuit with U2 element.
+        Args:
+            circuit (dict): The qiskit circuit with U2 element.
 
         Raises:
             ValueError: When the provided rotation angles are invalid!
@@ -192,7 +205,8 @@ class CircuitToString:
     def _u3(self, circuit):
         """ Translates the U3 element.
 
-        Args: circuit (dict): The qiskit circuit with U3 element.
+        Args:
+            circuit (dict): The qiskit circuit with U3 element.
 
         Returns:
             Str: CQASM code string.
@@ -201,3 +215,50 @@ class CircuitToString:
         angles = circuit['params'][:3]
         index_q0 = [circuit['qubits'][0]] * 3
         return ''.join('%s q[%d], %f\n' % pair for pair in zip(gates, index_q0, angles))
+
+    def __r(self, circuit, axis):
+        """ Translates the Rotation element for an axis (x,y,z).
+
+        Args:
+            circuit (dict): The qiskit circuit with rotation element for axis.
+            axis (int or char): The axis for which the Rotation operator is parsed ('x', 'y' or 'z')
+
+        Returns:
+            Str: CQASM code string.
+        """
+        angle_q0 = circuit['params'][0]
+        qubit_indices = tuple(circuit['qubits'])
+        return 'R%c q[%d], %f\n' % (axis, *qubit_indices, angle_q0)
+
+    def _rx(self, circuit):
+        """ Translates the Rx element.
+
+        Args:
+            circuit (dict): The qiskit circuit with rx element.
+
+        Returns:
+            Str: CQASM code string.
+        """
+        return self.__r(circuit, 'x')
+
+    def _ry(self, circuit):
+        """ Translates the Ry element.
+
+        Args:
+            circuit (dict): The qiskit circuit with ry element.
+
+        Returns:
+            Str: CQASM code string.
+        """
+        return self.__r(circuit, 'y')
+
+    def _rz(self, circuit):
+        """ Translates the Rz element.
+
+        Args:
+            circuit (dict): The qiskit circuit with rz element.
+
+        Returns:
+            Str: CQASM code string.
+        """
+        return self.__r(circuit, 'z')
