@@ -18,6 +18,7 @@ limitations under the License.
 
 import json
 import unittest
+import numpy as np
 from collections import OrderedDict
 from unittest.mock import Mock, patch
 
@@ -173,11 +174,13 @@ class TestQiSimulatorPy(unittest.TestCase):
         job = QIJob('backend', '42', api)
         simulator = QuantumInspireBackend(api, Mock())
         experiment_result = simulator.get_experiment_results(job)[0]
-        self.assertEqual(experiment_result.data.to_dict()['counts']['0x1'], 60)
-        self.assertEqual(experiment_result.data.to_dict()['counts']['0x3'], 40)
-        self.assertEqual(len(experiment_result.data.to_dict()['memory']), 100)
-        self.assertEqual(experiment_result.data.to_dict()['memory'].count('0x1'), 60)
-        self.assertEqual(experiment_result.data.to_dict()['memory'].count('0x3'), 40)
+        self.assertEqual(experiment_result.data.counts.to_dict()['0x1'], 60)
+        self.assertEqual(experiment_result.data.counts.to_dict()['0x3'], 40)
+        self.assertEqual(experiment_result.data.probabilities.to_dict()['0x1'], 0.6)
+        self.assertEqual(experiment_result.data.probabilities.to_dict()['0x3'], 0.4)
+        self.assertEqual(len(experiment_result.data.memory), 100)
+        self.assertEqual(experiment_result.data.memory.count('0x1'), 60)
+        self.assertEqual(experiment_result.data.memory.count('0x3'), 40)
         self.assertEqual(experiment_result.name, 'circuit0')
         self.assertEqual(experiment_result.shots, number_of_shots)
 
@@ -203,8 +206,10 @@ class TestQiSimulatorPy(unittest.TestCase):
         job = QIJob('backend', '42', api)
         simulator = QuantumInspireBackend(api, Mock())
         experiment_result = simulator.get_experiment_results(job)[0]
-        self.assertEqual(experiment_result.data.to_dict()['counts']['0x0'], 0)
-        self.assertEqual(experiment_result.data.to_dict()['counts']['0x3'], 0)
+        self.assertEqual(experiment_result.data.counts.to_dict()['0x0'], 0)
+        self.assertEqual(experiment_result.data.counts.to_dict()['0x3'], 0)
+        self.assertEqual(experiment_result.data.probabilities.to_dict()['0x0'], 0.5)
+        self.assertEqual(experiment_result.data.probabilities.to_dict()['0x3'], 0.5)
         self.assertEqual('memory' in experiment_result.data.to_dict(), False)
         self.assertEqual(experiment_result.name, 'circuit0')
         self.assertEqual(experiment_result.shots, number_of_shots)
@@ -310,7 +315,8 @@ class TestQiSimulatorPyHistogram(unittest.TestCase):
                                                   ('user_data', '')
                                                   ])
 
-    def run_histogram_test(self, single_experiment, mock_result1, mock_result2, expected_histogram, expected_memory):
+    def run_histogram_test(self, single_experiment, mock_result1, mock_result2, expected_histogram,
+                           expected_histogram_prob, expected_memory):
         self.mock_api.set(mock_result1, mock_result2)
         jobs = self._basic_job_dictionary
         measurements = QuantumInspireBackend._collect_measurements(QobjExperiment.from_dict(single_experiment))
@@ -323,9 +329,13 @@ class TestQiSimulatorPyHistogram(unittest.TestCase):
         result = self.simulator.get_experiment_results(job)
         self.assertEqual(1, len(result))
         first_experiment = first_item(result)
-        actual = first_experiment.data.to_dict()['counts']
+        actual = first_experiment.data.counts.to_dict()
         self.assertDictEqual(expected_histogram, actual)
-        memory = first_experiment.data.to_dict()['memory']
+        probabilities = first_experiment.data.probabilities.to_dict()
+        self.assertTrue(len(expected_histogram_prob.keys() - probabilities.keys()) == 0)
+        for key in set(probabilities.keys()) & set(expected_histogram_prob.keys()):
+            self.assertTrue(np.isclose(expected_histogram_prob[key], probabilities[key]))
+        memory = first_experiment.data.memory
         self.assertListEqual(expected_memory, memory)
 
     @staticmethod
@@ -350,6 +360,7 @@ class TestQiSimulatorPyHistogram(unittest.TestCase):
                           'raw_data_url': 'http://saevar-qutech-nginx/api/results/24/raw-data/'},
             mock_result2=[0] * 10 + [1] * 20 + [2] * 30 + [3] * 40,
             expected_histogram={'0x0': 100, '0x1': 200, '0x2': 300, '0x3': 400},
+            expected_histogram_prob={'0x0': 0.1, '0x1': 0.2, '0x2': 0.3, '0x3': 0.4},
             expected_memory=['0x0'] * 10 + ['0x1'] * 20 + ['0x2'] * 30 + ['0x3'] * 40
         )
 
@@ -369,6 +380,7 @@ class TestQiSimulatorPyHistogram(unittest.TestCase):
                           'raw_data_url': 'http://saevar-qutech-nginx/api/results/24/raw-data/'},
             mock_result2=[0] * 10 + [1] * 20 + [2] * 30 + [3] * 40,
             expected_histogram={'0x0': 100, '0x9': 200, '0x90': 300, '0x99': 400},
+            expected_histogram_prob={'0x0': 0.1, '0x9': 0.2, '0x90': 0.3, '0x99': 0.4},
             expected_memory=['0x0'] * 10 + ['0x9'] * 20 + ['0x90'] * 30 + ['0x99'] * 40
         )
 
@@ -385,6 +397,7 @@ class TestQiSimulatorPyHistogram(unittest.TestCase):
                           'raw_data_url': 'http://saevar-qutech-nginx/api/results/24/raw-data/'},
             mock_result2=[0] * 10 + [1] * 20 + [2] * 30 + [3] * 40,
             expected_histogram={'0x0': 100, '0x1': 300, '0x2': 200, '0x3': 400},
+            expected_histogram_prob={'0x0': 0.1, '0x1': 0.3, '0x2': 0.2, '0x3': 0.4},
             expected_memory=['0x0'] * 10 + ['0x2'] * 20 + ['0x1'] * 30 + ['0x3'] * 40
         )
 
@@ -400,6 +413,7 @@ class TestQiSimulatorPyHistogram(unittest.TestCase):
                           'raw_data_url': 'http://saevar-qutech-nginx/api/results/24/raw-data/'},
             mock_result2=[0] * 10 + [1] * 20 + [2] * 30 + [3] * 40,
             expected_histogram={'0x0': 400, '0x1': 600},
+            expected_histogram_prob={'0x0': 0.4, '0x1': 0.6},
             expected_memory=['0x0'] * 10 + ['0x1'] * 20 + ['0x0'] * 30 + ['0x1'] * 40
         )
 
@@ -415,6 +429,7 @@ class TestQiSimulatorPyHistogram(unittest.TestCase):
                           'raw_data_url': 'http://saevar-qutech-nginx/api/results/24/raw-data/'},
             mock_result2=[0] * 10 + [1] * 20 + [2] * 30 + [3] * 40,
             expected_histogram={'0x0': 300, '0x2': 700},
+            expected_histogram_prob={'0x0': 0.3, '0x2': 0.7},
             expected_memory=['0x0'] * 30 + ['0x2'] * 70
         )
 
@@ -433,6 +448,7 @@ class TestQiSimulatorPyHistogram(unittest.TestCase):
                           'raw_data_url': 'http://saevar-qutech-nginx/api/results/24/raw-data/'},
             mock_result2=[0] * 10 + [1] * 20 + [2] * 30 + [3] * 40,
             expected_histogram={'0x0': 300, '0x1': 700},
+            expected_histogram_prob={'0x0': 0.3, '0x1': 0.7},
             expected_memory=['0x0'] * 30 + ['0x1'] * 70
         )
 
@@ -449,6 +465,7 @@ class TestQiSimulatorPyHistogram(unittest.TestCase):
                               'raw_data_url': 'http://saevar-qutech-nginx/api/results/24/raw-data/'},
                 mock_result2=[],
                 expected_histogram={},
+                expected_histogram_prob={},
                 expected_memory=[]
             )
         self.assertEqual(('Result from backend contains no histogram data!\noopsy daisy',), error.exception.args)
