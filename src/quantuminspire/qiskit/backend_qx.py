@@ -311,7 +311,7 @@ class QuantumInspireBackend(BaseBackend):
         Args:
             result (dict): The result output from the quantum inspire backend with full-
                            state projection histogram output.
-            measurements (dict): Measured qubits/classical bits map and number of classical bits
+            measurements (dict): list of measured qubits/classical bits map and number of classical bits
             number_of_qubits (int): number of qubits used in the algorithm
             number_of_shots (int): The number of times the algorithm is executed.
 
