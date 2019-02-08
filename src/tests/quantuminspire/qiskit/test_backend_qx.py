@@ -346,20 +346,19 @@ class TestQiSimulatorPyHistogram(unittest.TestCase):
         )
 
     def test_convert_histogram_ClassicalBitsMeasureSameQubits(self):
-        with self.assertRaisesRegex(QisKitBackendError, 'Classical bit is used to measure multiple qubits!'):
-            self.run_histogram_test(
-                single_experiment={'instructions': [{'name': 'h', 'params': [], 'texparams': [], 'qubits': [0]},
-                                                    {'name': 'cx', 'params': [], 'texparams': [], 'qubits': [0, 1]},
-                                                    {'name': 'measure', 'qubits': [0], 'memory': [0]},
-                                                    {'name': 'measure', 'qubits': [1], 'memory': [0]}],
-                                   'header': {'n_qubits': 2, 'memory_slots': 2, 'name': 'test',
-                                              'qubit_labels': [['q0', 0], ['q0', 1]],
-                                              'clbit_labels': [['c0', 0], ['c1', 1]]}
-                                   },
-                mock_result={'histogram': {'0': 0.1, '1': 0.2, '2': 0.3, '3': 0.4}, 'execution_time_in_seconds': 2.1,
-                             'n_qubits': 2},
-                expected_histogram=None
-            )
+        self.run_histogram_test(
+            single_experiment={'instructions': [{'name': 'h', 'params': [], 'texparams': [], 'qubits': [0]},
+                                                {'name': 'cx', 'params': [], 'texparams': [], 'qubits': [0, 1]},
+                                                {'name': 'measure', 'qubits': [0], 'memory': [0]},
+                                                {'name': 'measure', 'qubits': [1], 'memory': [0]}],
+                               'header': {'n_qubits': 2, 'memory_slots': 2, 'name': 'test',
+                                          'qubit_labels': [['q0', 0], ['q0', 1]],
+                                          'clbit_labels': [['c0', 0], ['c1', 1]]}
+                               },
+            mock_result={'histogram': {'0': 0.1, '1': 0.2, '2': 0.3, '3': 0.4}, 'execution_time_in_seconds': 2.1,
+                         'number_of_qubits': 2},
+            expected_histogram={'0x0': 300, '0x1': 700}
+        )
 
     def test_empty_histogram(self):
         with self.assertRaises(QisKitBackendError) as error:
@@ -370,7 +369,7 @@ class TestQiSimulatorPyHistogram(unittest.TestCase):
                       'texparams': [], 'qubits': [0, 1]},
                      {'name': 'measure', 'qubits': [1], 'memory': [1]}]),
                 mock_result={'histogram': {}, 'execution_time_in_seconds': 2.1,
-                             'n_qubits': 2, 'raw_text': 'oopsy daisy'},
+                             'number_of_qubits': 2, 'raw_text': 'oopsy daisy'},
                 expected_histogram={}
             )
         self.assertEqual(('Result from backend contains no histogram data!\noopsy daisy',), error.exception.args)
