@@ -184,8 +184,7 @@ class QuantumInspireBackend(BaseBackend):
             histogram = QuantumInspireBackend.__convert_histogram(result, measurements, result['number_of_qubits'],
                                                                   job['number_of_shots'])
             histogram_obj = Obj.from_dict(histogram)
-            raw_data_url = result.get('raw_data_url')
-            raw_data = self.__api.get(raw_data_url)
+            raw_data = self.__api.get_raw_data(str(result['id']))
             memory_data = self.__get_memory_data(raw_data, measurements, result['number_of_qubits'])
             if memory_data:
                 experiment_result_data = ExperimentResultData(counts=histogram_obj, memory=memory_data)

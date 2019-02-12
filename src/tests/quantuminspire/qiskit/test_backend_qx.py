@@ -155,10 +155,8 @@ class TestQiSimulatorPy(unittest.TestCase):
     @staticmethod
     def __api_get_return_values(url):
         if url == 'http://saevar-qutech-nginx/api/jobs/24/result/':
-            return {'histogram': {'1': 0.6, '3': 0.4}, 'execution_time_in_seconds': 2.1,
+            return {'id': 1, 'histogram': {'1': 0.6, '3': 0.4}, 'execution_time_in_seconds': 2.1,
                     'number_of_qubits': 2, 'raw_data_url': 'http://saevar-qutech-nginx/api/results/24/raw-data/'}
-        if url == 'http://saevar-qutech-nginx/api/results/24/raw-data/':
-            return [1] * 60 + [3] * 40
         return None
 
     def test_get_experiment_results_returns_correct_value(self):
@@ -170,6 +168,7 @@ class TestQiSimulatorPy(unittest.TestCase):
         experiment = self._instructions_to_two_qubit_experiment(instructions)
         api = Mock()
         api.get.side_effect = self.__api_get_return_values
+        api.get_raw_data.return_value = [1] * 60 + [3] * 40
         jobs = self._basic_job_dictionary
         measurements = QuantumInspireBackend._collect_measurements(experiment)
         user_data = {'name': 'name', 'memory_slots': 2,
@@ -190,10 +189,8 @@ class TestQiSimulatorPy(unittest.TestCase):
     @staticmethod
     def __api_get_return_values_single_shot(url):
         if url == 'http://saevar-qutech-nginx/api/jobs/24/result/':
-            return {'histogram': {'0': 0.5, '3': 0.5}, 'execution_time_in_seconds': 2.1,
+            return {'id': 1, 'histogram': {'0': 0.5, '3': 0.5}, 'execution_time_in_seconds': 2.1,
                     'number_of_qubits': 2, 'raw_data_url': 'http://saevar-qutech-nginx/api/results/24/raw-data/'}
-        if url == 'http://saevar-qutech-nginx/api/results/24/raw-data/':
-            return []
         return None
 
     def test_get_experiment_results_returns_single_shot(self):
@@ -206,6 +203,7 @@ class TestQiSimulatorPy(unittest.TestCase):
         experiment = self._instructions_to_two_qubit_experiment(instructions)
         api = Mock()
         api.get.side_effect = self.__api_get_return_values_single_shot
+        api.get_raw_data.return_value = []
         jobs = self._basic_job_dictionary
         measurements = QuantumInspireBackend._collect_measurements(experiment)
         user_data = {'name': 'name', 'memory_slots': 2,
@@ -291,11 +289,13 @@ class ApiMock(Mock):
         self.result = res1
         self.raw_data = res2
 
-    def get(self, url):
-        if 'raw-data' in url:
+    def get_raw_data(self, id):
+        if id == '1':
             return self.raw_data
-        else:
-            return self.result
+        return None
+
+    def get(self, url):
+        return self.result
 
 
 class TestQiSimulatorPyHistogram(unittest.TestCase):
@@ -353,8 +353,9 @@ class TestQiSimulatorPyHistogram(unittest.TestCase):
                   'texparams': [], 'qubits': [0, 1]},
                  {'name': 'measure', 'qubits': [0], 'memory': [0]},
                  {'name': 'measure', 'qubits': [1], 'memory': [1]}]),
-            mock_result1={'histogram': {'0': 0.1, '1': 0.2, '2': 0.3, '3': 0.4}, 'execution_time_in_seconds': 2.1,
-                          'number_of_qubits': 2, 'raw_data_url': 'http://saevar-qutech-nginx/api/results/24/raw-data/'},
+            mock_result1={'id': 1, 'histogram': {'0': 0.1, '1': 0.2, '2': 0.3, '3': 0.4},
+                          'execution_time_in_seconds': 2.1, 'number_of_qubits': 2,
+                          'raw_data_url': 'http://saevar-qutech-nginx/api/results/24/raw-data/'},
             mock_result2=[0] * 10 + [1] * 20 + [2] * 30 + [3] * 40,
             expected_histogram={'0x0': 100, '0x1': 200, '0x2': 300, '0x3': 400},
             expected_memory=['0x0'] * 10 + ['0x1'] * 20 + ['0x2'] * 30 + ['0x3'] * 40
@@ -371,8 +372,9 @@ class TestQiSimulatorPyHistogram(unittest.TestCase):
                  {'name': 'measure', 'qubits': [1], 'memory': [4]},
                  {'name': 'measure', 'qubits': [1], 'memory': [7]}],
                 memory_slots=8),
-            mock_result1={'histogram': {'0': 0.1, '1': 0.2, '2': 0.3, '3': 0.4}, 'execution_time_in_seconds': 2.1,
-                          'number_of_qubits': 2, 'raw_data_url': 'http://saevar-qutech-nginx/api/results/24/raw-data/'},
+            mock_result1={'id': 1, 'histogram': {'0': 0.1, '1': 0.2, '2': 0.3, '3': 0.4},
+                          'execution_time_in_seconds': 2.1, 'number_of_qubits': 2,
+                          'raw_data_url': 'http://saevar-qutech-nginx/api/results/24/raw-data/'},
             mock_result2=[0] * 10 + [1] * 20 + [2] * 30 + [3] * 40,
             expected_histogram={'0x0': 100, '0x9': 200, '0x90': 300, '0x99': 400},
             expected_memory=['0x0'] * 10 + ['0x9'] * 20 + ['0x90'] * 30 + ['0x99'] * 40
@@ -386,8 +388,9 @@ class TestQiSimulatorPyHistogram(unittest.TestCase):
                   'texparams': [], 'qubits': [0, 1]},
                  {'name': 'measure', 'qubits': [0], 'memory': [1]},
                  {'name': 'measure', 'qubits': [1], 'memory': [0]}]),
-            mock_result1={'histogram': {'0': 0.1, '1': 0.2, '2': 0.3, '3': 0.4}, 'execution_time_in_seconds': 2.1,
-                          'number_of_qubits': 2, 'raw_data_url': 'http://saevar-qutech-nginx/api/results/24/raw-data/'},
+            mock_result1={'id': 1, 'histogram': {'0': 0.1, '1': 0.2, '2': 0.3, '3': 0.4},
+                          'execution_time_in_seconds': 2.1, 'number_of_qubits': 2,
+                          'raw_data_url': 'http://saevar-qutech-nginx/api/results/24/raw-data/'},
             mock_result2=[0] * 10 + [1] * 20 + [2] * 30 + [3] * 40,
             expected_histogram={'0x0': 100, '0x1': 300, '0x2': 200, '0x3': 400},
             expected_memory=['0x0'] * 10 + ['0x2'] * 20 + ['0x1'] * 30 + ['0x3'] * 40
@@ -400,8 +403,9 @@ class TestQiSimulatorPyHistogram(unittest.TestCase):
                  {'name': 'cx', 'params': [],
                   'texparams': [], 'qubits': [0, 1]},
                  {'name': 'measure', 'qubits': [0], 'memory': [0]}]),
-            mock_result1={'histogram': {'0': 0.1, '1': 0.2, '2': 0.3, '3': 0.4}, 'execution_time_in_seconds': 2.1,
-                          'number_of_qubits': 2, 'raw_data_url': 'http://saevar-qutech-nginx/api/results/24/raw-data/'},
+            mock_result1={'id': 1, 'histogram': {'0': 0.1, '1': 0.2, '2': 0.3, '3': 0.4},
+                          'execution_time_in_seconds': 2.1, 'number_of_qubits': 2,
+                          'raw_data_url': 'http://saevar-qutech-nginx/api/results/24/raw-data/'},
             mock_result2=[0] * 10 + [1] * 20 + [2] * 30 + [3] * 40,
             expected_histogram={'0x0': 400, '0x1': 600},
             expected_memory=['0x0'] * 10 + ['0x1'] * 20 + ['0x0'] * 30 + ['0x1'] * 40
@@ -414,8 +418,9 @@ class TestQiSimulatorPyHistogram(unittest.TestCase):
                  {'name': 'cx', 'params': [],
                   'texparams': [], 'qubits': [0, 1]},
                  {'name': 'measure', 'qubits': [1], 'memory': [1]}]),
-            mock_result1={'histogram': {'0': 0.1, '1': 0.2, '2': 0.3, '3': 0.4}, 'execution_time_in_seconds': 2.1,
-                          'number_of_qubits': 2, 'raw_data_url': 'http://saevar-qutech-nginx/api/results/24/raw-data/'},
+            mock_result1={'id': 1, 'histogram': {'0': 0.1, '1': 0.2, '2': 0.3, '3': 0.4},
+                          'execution_time_in_seconds': 2.1, 'number_of_qubits': 2,
+                          'raw_data_url': 'http://saevar-qutech-nginx/api/results/24/raw-data/'},
             mock_result2=[0] * 10 + [1] * 20 + [2] * 30 + [3] * 40,
             expected_histogram={'0x0': 300, '0x2': 700},
             expected_memory=['0x0'] * 30 + ['0x2'] * 70
