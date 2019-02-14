@@ -88,7 +88,7 @@ class QuantumInspireBackend(BaseBackend):
         """ Submits a quantum job to the Quantum Inspire platform.
 
         Args:
-            qobj (Qobj): The quantum job with the qiskit algorithm and quantum inspire backend.
+            qobj (Qobj): The quantum job with the Qiskit algorithm and quantum inspire backend.
 
         Returns:
             QIJob: A job that has been submitted.
@@ -107,7 +107,7 @@ class QuantumInspireBackend(BaseBackend):
 
     def retrieve_job(self, job_id):
         """
-        Retrieve a specified job by its job_id
+        Retrieve a specified job by its job_id.
 
         Args:
             job_id (str): The job id.
@@ -128,7 +128,7 @@ class QuantumInspireBackend(BaseBackend):
         """ Generates the cQASM from the Qiskit experiment.
 
         Args:
-            experiment (QobjExperiment): The experiment that contains instructions to be converted to cQASM
+            experiment (QobjExperiment): The experiment that contains instructions to be converted to cQASM.
 
         Returns:
             str: The cQASM code that can be sent to the Quantum Inspire API.
@@ -166,7 +166,7 @@ class QuantumInspireBackend(BaseBackend):
             qi_job (QIJob): A job that has already been submitted and which execution is completed.
 
         Raises:
-            QisKitBackendError: if an error occurred during execution by the backend.
+            QisKitBackendError: If an error occurred during execution by the backend.
 
         Returns:
             List: A list of experiment results; containing the data, execution time, status, etc.
@@ -199,10 +199,10 @@ class QuantumInspireBackend(BaseBackend):
 
     @staticmethod
     def __validate(job):
-        """ Validates the number of shots, classical bits and compiled qiskit circuits.
+        """ Validates the number of shots, classical bits and compiled Qiskit circuits.
 
         Args:
-            job (QObj): The quantum job with the qiskit algorithm and quantum inspire backend.
+            job (QObj): The quantum job with the Qiskit algorithm and quantum inspire backend.
         """
         QuantumInspireBackend.__validate_number_of_shots(job)
 
@@ -215,7 +215,7 @@ class QuantumInspireBackend(BaseBackend):
         """ Checks whether the number of shots has a valid value.
 
         Args:
-            job (QObj): The quantum job with the qiskit algorithm and quantum inspire backend.
+            job (QObj): The quantum job with the Qiskit algorithm and quantum inspire backend.
 
         Raises:
             QisKitBackendError: When the value is not correct.
@@ -265,7 +265,8 @@ class QuantumInspireBackend(BaseBackend):
             experiment (QobjExperiment): The experiment with gate operations and header.
 
         Returns:
-            List: A list of lists, for each measurement List contains a list of [qubit_index, classical_bit_index]
+            List: A list of lists, for each measurement the returned list contains a list of
+                  [qubit_index, classical_bit_index], which represents the measurement of a qubit to a classical bit
         """
         header = experiment.header
         number_of_qubits = header.n_qubits
@@ -280,13 +281,14 @@ class QuantumInspireBackend(BaseBackend):
         return {'measurements': measurements, 'number_of_clbits': number_of_clbits}
 
     @staticmethod
-    def __qubit_2_classical_hex(qubit_register, measurements, number_of_qubits):
-        """ this function converts the qubit register data to the hexadecimal representation of the classical state
+    def __qubit_to_classical_hex(qubit_register, measurements, number_of_qubits):
+        """ This function converts the qubit register data to the hexadecimal representation of the classical state.
 
         Args:
-            qubit_register (int): The measured value of the qubits represented as int
-            measurements (dict): Measured qubits/classical bits map and number of classical bits
-            number_of_qubits (int): number of qubits used in the algorithm
+            qubit_register (int): The measured value of the qubits represented as int.
+            measurements (dict): The dictionary contains a measured qubits/classical bits map (list) and the
+                                 number of classical bits (int).
+            number_of_qubits (int): Number of qubits used in the algorithm.
 
         Returns:
             str: The hexadecimal value of the classical state.
@@ -310,8 +312,9 @@ class QuantumInspireBackend(BaseBackend):
         Args:
             result (dict): The result output from the quantum inspire backend with full-
                            state projection histogram output.
-            measurements (dict): list of measured qubits/classical bits map and number of classical bits
-            number_of_qubits (int): number of qubits used in the algorithm
+            measurements (dict): The dictionary contains a measured qubits/classical bits map (list) and the
+                                 number of classical bits (int).
+            number_of_qubits (int): Number of qubits used in the algorithm.
             number_of_shots (int): The number of times the algorithm is executed.
 
         Returns:
@@ -322,33 +325,34 @@ class QuantumInspireBackend(BaseBackend):
         output_histogram = defaultdict(lambda: 0)
 
         for qubit_register, probability in state_probability.items():
-            classical_state_hex = QuantumInspireBackend.__qubit_2_classical_hex(qubit_register, measurements,
-                                                                                number_of_qubits)
+            classical_state_hex = QuantumInspireBackend.__qubit_to_classical_hex(qubit_register, measurements,
+                                                                                 number_of_qubits)
             output_histogram[classical_state_hex] += int(probability * number_of_shots)
         return OrderedDict(sorted(output_histogram.items(), key=lambda kv: int(kv[0], 16)))
 
     @staticmethod
     def __get_memory_data(raw_data, measurements, number_of_qubits):
         """ The quantum inspire backend returns the single shot values. This function
-            converts the raw data to hexadecimal memory data according the Qiskit spec
+            converts the raw data to hexadecimal memory data according the Qiskit spec.
 
         Note:
-            When shots = 1, the backend returns an empty list as raw_data
+            When shots = 1, the backend returns an empty list as raw_data.
 
         Args:
             raw_data (list): The raw data output from the quantum inspire backend with the
-                            data for each shot.
-            measurements (dict): Measured qubits/classical bits map and number of classical bits
-            number_of_qubits (int): number of qubits used in the algorithm
+                             data for each shot.
+            measurements (dict): The dictionary contains a measured qubits/classical bits map (list) and the
+                                 number of classical bits (int).
+            number_of_qubits (int): Number of qubits used in the algorithm.
 
         Returns:
             List: The result with converted hexadecimal memory values for each shot
-                  or an empty list when no raw_data was returned by the backend
+                  or an empty list when no raw_data was returned by the backend.
 
         """
         memory_data = []
         for qubit_register in raw_data:
-            classical_state_hex = QuantumInspireBackend.__qubit_2_classical_hex(qubit_register, measurements,
-                                                                                number_of_qubits)
+            classical_state_hex = QuantumInspireBackend.__qubit_to_classical_hex(qubit_register, measurements,
+                                                                                 number_of_qubits)
             memory_data.append(classical_state_hex)
         return memory_data

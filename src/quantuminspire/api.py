@@ -308,7 +308,7 @@ class QuantumInspireAPI:
             result_id (str): The result identification number.
 
         Returns:
-            List: The raw data as a list. Empty list when there is no raw data
+            List: The raw data as a list. Empty list when there is no raw data.
         """
         result = self.get_result(result_id)
         raw_data_url = result.get('raw_data_url')

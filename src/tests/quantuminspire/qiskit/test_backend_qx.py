@@ -152,13 +152,6 @@ class TestQiSimulatorPy(unittest.TestCase):
             simulator.get_experiment_results(job)
         self.assertEqual(('Result from backend contains no histogram data!\nError',), error.exception.args)
 
-    @staticmethod
-    def __api_get_return_values(url):
-        if url == 'http://saevar-qutech-nginx/api/jobs/24/result/':
-            return {'id': 1, 'histogram': {'1': 0.6, '3': 0.4}, 'execution_time_in_seconds': 2.1,
-                    'number_of_qubits': 2, 'raw_data_url': 'http://saevar-qutech-nginx/api/results/24/raw-data/'}
-        return None
-
     def test_get_experiment_results_returns_correct_value(self):
         number_of_shots = 100
         instructions = [{'name': 'h', 'params': [], 'texparams': [], 'qubits': [0]},
@@ -167,7 +160,9 @@ class TestQiSimulatorPy(unittest.TestCase):
                         {'name': 'measure', 'qubits': [0], 'memory': [0]}]
         experiment = self._instructions_to_two_qubit_experiment(instructions)
         api = Mock()
-        api.get.side_effect = self.__api_get_return_values
+        api.get.return_value = {'id': 1, 'histogram': {'1': 0.6, '3': 0.4}, 'execution_time_in_seconds': 2.1,
+                                'number_of_qubits': 2,
+                                'raw_data_url': 'http://saevar-qutech-nginx/api/results/24/raw-data/'}
         api.get_raw_data.return_value = [1] * 60 + [3] * 40
         jobs = self._basic_job_dictionary
         measurements = QuantumInspireBackend._collect_measurements(experiment)
@@ -186,13 +181,6 @@ class TestQiSimulatorPy(unittest.TestCase):
         self.assertEqual(experiment_result.name, 'circuit0')
         self.assertEqual(experiment_result.shots, number_of_shots)
 
-    @staticmethod
-    def __api_get_return_values_single_shot(url):
-        if url == 'http://saevar-qutech-nginx/api/jobs/24/result/':
-            return {'id': 1, 'histogram': {'0': 0.5, '3': 0.5}, 'execution_time_in_seconds': 2.1,
-                    'number_of_qubits': 2, 'raw_data_url': 'http://saevar-qutech-nginx/api/results/24/raw-data/'}
-        return None
-
     def test_get_experiment_results_returns_single_shot(self):
         number_of_shots = 1
         self._basic_job_dictionary['number_of_shots'] = number_of_shots
@@ -202,7 +190,9 @@ class TestQiSimulatorPy(unittest.TestCase):
                         {'name': 'measure', 'qubits': [0], 'memory': [0]}]
         experiment = self._instructions_to_two_qubit_experiment(instructions)
         api = Mock()
-        api.get.side_effect = self.__api_get_return_values_single_shot
+        api.get.return_value = {'id': 1, 'histogram': {'0': 0.5, '3': 0.5}, 'execution_time_in_seconds': 2.1,
+                                'number_of_qubits': 2,
+                                'raw_data_url': 'http://saevar-qutech-nginx/api/results/24/raw-data/'}
         api.get_raw_data.return_value = []
         jobs = self._basic_job_dictionary
         measurements = QuantumInspireBackend._collect_measurements(experiment)
@@ -289,13 +279,15 @@ class ApiMock(Mock):
         self.result = res1
         self.raw_data = res2
 
-    def get_raw_data(self, id):
-        if id == '1':
+    def get_raw_data(self, result_id):
+        if result_id == '1':
             return self.raw_data
         return None
 
     def get(self, url):
-        return self.result
+        if 'result' in url:
+            return self.result
+        return None
 
 
 class TestQiSimulatorPyHistogram(unittest.TestCase):
