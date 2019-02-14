@@ -20,27 +20,16 @@ import numpy as np
 
 
 class CircuitToString:
-    """ Contains the translational elements to convert the qiskit circuits to CQASM code."""
-
-    _u1_operator_switch = {
-        np.pi / 2: 'S',
-        np.pi / 4: 'T',
-        -np.pi / 4: 'Tdag'
-    }
-
-    _u_operator_switch = {
-        np.pi / 2: 'S',
-        -np.pi / 2: 'Sdag',
-    }
+    """ Contains the translational elements to convert the Qiskit circuits to cQASM code."""
 
     def _cx(self, circuit):
         """ Translates the controlled X element.
 
         Args:
-            circuit (dict): The qiskit circuit with CX element.
+            circuit (dict): The Qiskit circuit with CX element.
 
         Returns:
-            Str: CQASM code string.
+            str: cQASM code string.
         """
         qubit_indices = tuple(circuit['qubits'])
         return 'CNOT q[%d], q[%d]\n' % qubit_indices
@@ -49,10 +38,10 @@ class CircuitToString:
         """ Translates the Toffoli element.
 
         Args:
-            circuit (dict): The qiskit circuit with CCX element.
+            circuit (dict): The Qiskit circuit with CCX element.
 
         Returns:
-            Str: CQASM code string.
+            str: cQASM code string.
         """
         qubit_indices = tuple(circuit['qubits'])
         return 'Toffoli q[%d], q[%d], q[%d]\n' % qubit_indices
@@ -61,7 +50,7 @@ class CircuitToString:
         """ Translates the measure element. Not used!
 
         Args:
-            circuit (dict): The qiskit circuit with measure element.
+            circuit (dict): The Qiskit circuit with measure element.
 
         Returns:
             None.
@@ -72,10 +61,10 @@ class CircuitToString:
         """ Translates the H element.
 
         Args:
-            circuit (dict): The qiskit circuit with Hadamard element.
+            circuit (dict): The Qiskit circuit with Hadamard element.
 
         Returns:
-            Str: CQASM code string.
+            str: cQASM code string.
         """
         qubit_indices = tuple(circuit['qubits'])
         return 'H q[%d]\n' % qubit_indices
@@ -84,7 +73,7 @@ class CircuitToString:
         """ Translates the | element. Not used!
 
         Args:
-            circuit (dict): The qiskit circuit with barrier element.
+            circuit (dict): The Qiskit circuit with barrier element.
 
         Returns:
             None.
@@ -95,7 +84,7 @@ class CircuitToString:
         """ Translates the ID element. Not used!
 
         Args:
-            circuit (dict): The qiskit circuit with identity element.
+            circuit (dict): The Qiskit circuit with identity element.
 
         Returns:
             None.
@@ -106,10 +95,10 @@ class CircuitToString:
         """ Translates the X element.
 
         Args:
-            circuit (dict): The qiskit circuit with X element.
+            circuit (dict): The Qiskit circuit with X element.
 
         Returns:
-            Str: CQASM code string.
+            str: cQASM code string.
         """
         qubit_indices = tuple(circuit['qubits'])
         return 'X q[%d]\n' % qubit_indices
@@ -118,10 +107,10 @@ class CircuitToString:
         """ Translates the Y element.
 
         Args:
-            circuit (dict): The qiskit circuit with Y element.
+            circuit (dict): The Qiskit circuit with Y element.
 
         Returns:
-            Str: CQASM code string.
+            str: cQASM code string.
         """
         qubit_indices = tuple(circuit['qubits'])
         return 'Y q[%d]\n' % qubit_indices
@@ -130,40 +119,30 @@ class CircuitToString:
         """ Translates the Z element.
 
         Args:
-            circuit (dict): The qiskit circuit with Z element.
+            circuit (dict): The Qiskit circuit with Z element.
 
         Returns:
-            Str: CQASM code string.
+            str: cQASM code string.
         """
         qubit_indices = tuple(circuit['qubits'])
         return 'Z q[%d]\n' % qubit_indices
 
     def _u(self, circuit):
-        """ Translates the U element.
+        """ Translates the U element to U3.
 
         Args:
-            circuit (dict): The qiskit circuit with U element.
-
-        Raises:
-            ValueError: When the provided rotation angles are invalid!
+            circuit (dict): The Qiskit circuit with U element.
 
         Returns:
-            Str: CQASM code string.
+            str: cQASM code string.
         """
-        parameters = circuit['params']
-        angles_q0_q1 = parameters[:2]
-        angle_q2 = parameters[2]
-        qubit_indices = tuple(circuit['qubits'])
-        operator = CircuitToString._u_operator_switch.get(angle_q2)
-        if angles_q0_q1 != [0, 0] or operator is None:
-            raise ValueError('Gate U with parameters not implemented (parameters=%s)!' % parameters)
-        return '%s q[%d]\n' % (operator, *qubit_indices)
+        return self._u3(circuit)
 
     def _u0(self, circuit):
         """ Translates the U0 element. Not used!
 
         Args:
-            circuit (dict): The qiskit circuit with U0 element.
+            circuit (dict): The Qiskit circuit with U0 element.
 
         Returns:
             None.
@@ -171,60 +150,63 @@ class CircuitToString:
         return None
 
     def _u1(self, circuit):
-        """ Translates the U1 element.
+        """ Translates the U1(lambda) element to U3(0, 0, lambda).
 
         Args:
-            circuit (dict): The qiskit circuit with U1 element.
-
-        Raises:
-            ValueError: When the provided rotation angles are invalid!
+            circuit (dict): The Qiskit circuit with U1 element.
 
         Returns:
-            Str: CQASM code string.
+            str: cQASM code string.
         """
-        angle_q0 = circuit['params'][0]
-        qubit_indices = tuple(circuit['qubits'])
-        operator = CircuitToString._u1_operator_switch.get(angle_q0)
-        parameters = circuit['params']
-        if operator is None:
-            raise ValueError('Gate U1 with parameters not implemented (parameters=%s)!' % parameters)
-        return '%s q[%d]\n' % (operator, *qubit_indices)
+        tempcircuit = circuit
+        tempcircuit['params'].insert(0, 0)
+        tempcircuit['params'].insert(0, 0)
+        tempcircuit['texparams'].insert(0, '0')
+        tempcircuit['texparams'].insert(0, '0')
+        return self._u3(tempcircuit)
 
     def _u2(self, circuit):
-        """ Translates the U2 element. Not usable!
+        """ Translates the U2(phi, lambda) element to U3(pi/2, phi, lambda).
 
         Args:
-            circuit (dict): The qiskit circuit with U2 element.
+            circuit (dict): The Qiskit circuit with U2 element.
 
-        Raises:
-            ValueError: When the provided rotation angles are invalid!
         """
-        parameters = circuit['params']
-        raise ValueError('Gate U2 not implemented (parameters=%s)!' % parameters)
+        tempcircuit = circuit
+        tempcircuit['params'].insert(0, np.pi/2)
+        tempcircuit['texparams'].insert(0, '\\frac{\\pi}{2}')
+        return self._u3(tempcircuit)
 
     def _u3(self, circuit):
-        """ Translates the U3 element.
+        """ Translates the U3(theta, phi, lambda) element to 3 rotation gates.
+            Any single qubit operation (a 2x2 unitary matrix) can be written as the product of rotations.
+            As an example, a unitary single-qubit gate can be expressed as a combination of
+            Rz and Ry rotations (Nielsen and Chuang, 10th edition, section 4.2).
+            U(theta, phi, lambda) = Rz(phi)Ry(theta)Rz(lambda).
+            Note: The expression above is the matrix multiplication, when implementing this in a gate circuit,
+            the gates need to be executed in reversed order.
+            Any rotation of 0 radials is left out of the resulting circuit.
 
         Args:
-            circuit (dict): The qiskit circuit with U3 element.
+            circuit (dict): The Qiskit circuit with U3 element.
 
         Returns:
-            Str: CQASM code string.
+            str: cQASM code string.
         """
         gates = ['Rz', 'Ry', 'Rz']
-        angles = circuit['params'][:3]
+        angles = list(circuit['params'][i] for i in [2, 0, 1])
         index_q0 = [circuit['qubits'][0]] * 3
-        return ''.join('%s q[%d], %f\n' % pair for pair in zip(gates, index_q0, angles))
+        return ''.join('%s q[%d], %f\n' % triplet for triplet in zip(gates, index_q0, angles) if triplet[2] != 0)
 
     def __r(self, circuit, axis):
         """ Translates the Rotation element for an axis (x,y,z).
 
         Args:
-            circuit (dict): The qiskit circuit with rotation element for axis.
-            axis (int or char): The axis for which the Rotation operator is parsed ('x', 'y' or 'z')
+            circuit (dict): The Qiskit circuit with rotation element for axis.
+            axis (int or char): The axis for which the Rotation operator is parsed ('x', 'y' or 'z').
 
         Returns:
-            Str: CQASM code string.
+            str: cQASM code string.
         """
         angle_q0 = circuit['params'][0]
         qubit_indices = tuple(circuit['qubits'])
@@ -234,10 +216,10 @@ class CircuitToString:
         """ Translates the Rx element.
 
         Args:
-            circuit (dict): The qiskit circuit with rx element.
+            circuit (dict): The Qiskit circuit with Rx element.
 
         Returns:
-            Str: CQASM code string.
+            str: cQASM code string.
         """
         return self.__r(circuit, 'x')
 
@@ -245,10 +227,10 @@ class CircuitToString:
         """ Translates the Ry element.
 
         Args:
-            circuit (dict): The qiskit circuit with ry element.
+            circuit (dict): The Qiskit circuit with Ry element.
 
         Returns:
-            Str: CQASM code string.
+            str: cQASM code string.
         """
         return self.__r(circuit, 'y')
 
@@ -256,9 +238,9 @@ class CircuitToString:
         """ Translates the Rz element.
 
         Args:
-            circuit (dict): The qiskit circuit with rz element.
+            circuit (dict): The Qiskit circuit with Rz element.
 
         Returns:
-            Str: CQASM code string.
+            str: cQASM code string.
         """
         return self.__r(circuit, 'z')
