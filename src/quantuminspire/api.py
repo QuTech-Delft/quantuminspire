@@ -301,6 +301,20 @@ class QuantumInspireAPI:
         """
         return self._action(['results', 'read'], params={'id': result_id})
 
+    def get_raw_data(self, result_id):
+        """ Gets the raw data from the result of the executed QASM code.
+
+        Args:
+            result_id (str): The result identification number.
+
+        Returns:
+            List: The raw data as a list. Empty list when there is no raw data.
+        """
+        result = self.get_result(result_id)
+        raw_data_url = result.get('raw_data_url')
+        raw_data = self.get(raw_data_url)
+        return raw_data
+
     #  assets  #
 
     def list_assets(self):

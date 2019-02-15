@@ -419,6 +419,10 @@ class TestQuantumInspireAPI(TestCase):
                             ('quantum_states_url', 'https,//api.quantum-inspire.com/results/2/quantum-states/162c/'),
                             ('measurement_register_url', 'https,//api.quantum-inspire.com/results/2/162c/')])
 
+    def __mock_raw_data_handler(self, input_url):
+        self.assertTrue('raw-data' in input_url)
+        return [0, 3, 3, 0]
+
     def test_list_results_HasCorrectOutput(self):
         self.coreapi_client.handlers['results'] = self.__mock_list_results_handler
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
@@ -442,6 +446,17 @@ class TestQuantumInspireAPI(TestCase):
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
         actual = api.get_result(result_id=identity)
         self.assertDictEqual(actual, expected)
+
+    def test_get_raw_data_HasCorrectInputAndOutput(self):
+        identity = 1
+        expected_payload = {'id': identity}
+        expected_raw_data = self.__mock_raw_data_handler('https,//api.quantum-inspire.com/results/2/raw-data/162c/')
+        self.coreapi_client.handlers['results'] = partial(self.__mock_result_handler, expected_payload, 'read')
+        self.coreapi_client.getters['https,//api.quantum-inspire.com/results/2/raw-data/162c/'] = \
+            self.__mock_raw_data_handler('https,//api.quantum-inspire.com/results/2/raw-data/162c/')
+        api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
+        actual = api.get_raw_data(result_id=identity)
+        self.assertListEqual(actual, expected_raw_data)
 
     def __mock_list_assets_handler(self, mock_api, document, keys, params=None, validate=None,
                                    overrides=None, action=None, encoding=None, transform=None):
