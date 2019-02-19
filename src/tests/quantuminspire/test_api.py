@@ -152,7 +152,7 @@ class TestQuantumInspireAPI(TestCase):
         with patch('sys.stdout', new_callable=io.StringIO) as mock_stdout:
             api.list_backend_types()
             print_string = mock_stdout.getvalue()
-            self.assertIn('Backend: QX', print_string)
+            self.assertIn('Backend type: QX', print_string)
 
     def test_get_backend_types_HasCorrectInputAndOutput(self):
         expected = self.__mock_backendtypes_handler(None, None, ['test', 'list'])
@@ -234,7 +234,9 @@ class TestQuantumInspireAPI(TestCase):
         with patch('sys.stdout', new_callable=io.StringIO) as mock_stdout:
             api.list_projects()
             print_string = mock_stdout.getvalue()
-            self.assertIn('Project: Grover', print_string)
+            self.assertIn('Project name: Grover', print_string)
+            self.assertIn('id: 11', print_string)
+            self.assertIn('id: 12', print_string)
 
     def test_get_project_HasCorrectInAndOutput(self):
         identity = 1
@@ -279,7 +281,7 @@ class TestQuantumInspireAPI(TestCase):
                              ('backend', 'https,//api.quantum-inspire.com/backends/1/'),
                              ('backend_type', 'https,//api.quantum-inspire.com/backendtypes/1/'),
                              ('results', 'https,//api.quantum-inspire.com/jobs/530/result/'),
-                             ('queued_at', '2018-08-24T11,53,41.352732Z'),
+                             ('queued_at', '2018-08-24T11:53:41:352732Z'),
                              ('number_of_shots', 1024)]),
                 OrderedDict([('url', 'https,//api.quantum-inspire.com/jobs/509/'),
                              ('name', 'qi-sdk-job-7e37c8fa-a76b-11e8-b5a0-a44cc848f1f2'),
@@ -289,7 +291,7 @@ class TestQuantumInspireAPI(TestCase):
                              ('backend', 'https,//api.quantum-inspire.com/backends/1/'),
                              ('backend_type', 'https,//api.quantum-inspire.com/backendtypes/1/'),
                              ('results', 'https,//api.quantum-inspire.com/jobs/509/result/'),
-                             ('queued_at', '2018-08-24T07,01,21.257557Z'),
+                             ('queued_at', '2018-08-24T07:01:21:257557Z'),
                              ('number_of_shots', 1024),
                              ('user_data', '')])]
 
@@ -306,7 +308,7 @@ class TestQuantumInspireAPI(TestCase):
                             ('backend', 'https,//api.quantum-inspire.com/backends/1/'),
                             ('backend_type', 'https,//api.quantum-inspire.com/backendtypes/1/'),
                             ('results', 'https,//api.quantum-inspire.com/jobs/509/result/'),
-                            ('queued_at', '2018-08-24T07,01,21.257557Z'),
+                            ('queued_at', '2018-08-24T07:01:21:257557Z'),
                             ('number_of_shots', 1024),
                             ('user_data', '')])
 
@@ -316,7 +318,12 @@ class TestQuantumInspireAPI(TestCase):
         with patch('sys.stdout', new_callable=io.StringIO) as mock_stdout:
             api.list_jobs()
             print_string = mock_stdout.getvalue()
-            self.assertIn('Job: name', print_string)
+            self.assertIn('Job name:', print_string)
+            self.assertIn('id: 530', print_string)
+            self.assertIn('name: qi-sdk-job-5852eb68-a794-11e8-9447-a44cc848f1f2', print_string)
+            self.assertIn('id: 509', print_string)
+            self.assertIn('name: qi-sdk-job-7e37c8fa-a76b-11e8-b5a0-a44cc848f1f2', print_string)
+            self.assertIn('status: COMPLETE', print_string)
 
     def test_get_job_HasCorrectInAndOutput(self):
         identity = 1
@@ -343,7 +350,7 @@ class TestQuantumInspireAPI(TestCase):
         self.coreapi_client.handlers['jobs'] = partial(self.__mock_job_handler, expected_payload, 'delete')
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
         actual = api.delete_job(job_id=identity)
-        self.assertDictEqual(actual, expected)
+        self.assertEqual(actual, expected)
 
     def __test_create_job_HasCorrectInputAndOutput(self, full_state_projection):
         name = 'TestJob'
@@ -377,7 +384,7 @@ class TestQuantumInspireAPI(TestCase):
         return [OrderedDict([('id', 502),
                              ('url', 'https,//api.quantum-inspire.com/results/1/'),
                              ('job', 'https,//api.quantum-inspire.com/jobs/10/'),
-                             ('created_at', '1900-01-01T01,00,00.00000Z'),
+                             ('created_at', '1900-01-01T01:00:00:00000Z'),
                              ('number_of_qubits', 2),
                              ('seconds', 0.0),
                              ('raw_text', ''),
@@ -390,7 +397,7 @@ class TestQuantumInspireAPI(TestCase):
                 OrderedDict([('id', 485),
                              ('url', 'https,//api.quantum-inspire.com/results/1/'),
                              ('job', 'https,//api.quantum-inspire.com/jobs/20/'),
-                             ('created_at', '1900-01-01T01,00,00.00000Z'),
+                             ('created_at', '1900-01-01T01:00:00:00000Z'),
                              ('number_of_qubits', 2),
                              ('seconds', 0.0),
                              ('raw_text', ''),
@@ -408,7 +415,7 @@ class TestQuantumInspireAPI(TestCase):
         return OrderedDict([('id', 485),
                             ('url', 'https,//api.quantum-inspire.com/results/1/'),
                             ('job', 'https,//api.quantum-inspire.com/jobs/20/'),
-                            ('created_at', '1900-01-01T01,00,00.00000Z'),
+                            ('created_at', '1900-01-01T01:00:00:00000Z'),
                             ('number_of_qubits', 2),
                             ('seconds', 0.0),
                             ('raw_text', ''),
@@ -429,7 +436,7 @@ class TestQuantumInspireAPI(TestCase):
         with patch('sys.stdout', new_callable=io.StringIO) as mock_stdout:
             api.list_results()
             print_string = mock_stdout.getvalue()
-            self.assertIn('Result: id', print_string)
+            self.assertIn('Result id:', print_string)
 
     def test_get_results_HasCorrectInputAndOutput(self):
         expected = self.__mock_list_results_handler(None, None, ['test', 'list'])
@@ -494,7 +501,7 @@ class TestQuantumInspireAPI(TestCase):
         with patch('sys.stdout', new_callable=io.StringIO) as mock_stdout:
             api.list_assets()
             print_string = mock_stdout.getvalue()
-            self.assertIn('Asset: name', print_string)
+            self.assertIn('Asset name:', print_string)
 
     def test_get_assets_HasCorrectInputAndOutput(self):
         expected = self.__mock_list_assets_handler(None, None, ['test', 'list'])
@@ -638,7 +645,7 @@ class TestQuantumInspireAPI(TestCase):
                             ('backend', 'https,//api.quantum-inspire.com/backends/1/'),
                             ('backend_type', 'https,//api.quantum-inspire.com/backendtypes/1/'),
                             ('results', 'mocked_job'),
-                            ('queued_at', '2018-08-24T07,01,21.257557Z'),
+                            ('queued_at', '2018-08-24T07:01:21:257557Z'),
                             ('number_of_shots', 1)])
 
     def __fake_no_results_job_handler(self, mock_api, document, keys, params=None, validate=None,
@@ -653,7 +660,7 @@ class TestQuantumInspireAPI(TestCase):
                             ('backend', 'https,//api.quantum-inspire.com/backends/1/'),
                             ('backend_type', 'https,//api.quantum-inspire.com/backendtypes/1/'),
                             ('results', ''),
-                            ('queued_at', '2018-08-24T07,01,21.257557Z'),
+                            ('queued_at', '2018-08-24T07:01:21:257557Z'),
                             ('number_of_shots', 1)])
 
     def __mocks_for_api_execution(self):
