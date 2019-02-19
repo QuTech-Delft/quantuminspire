@@ -181,15 +181,20 @@ class QuantumInspireBackend(BaseBackend):
 
             user_data = json.loads(job.get('user_data'))
             measurements = user_data.pop('measurements')
-            histogram = QuantumInspireBackend.__convert_histogram(result, measurements, result['number_of_qubits'],
-                                                                  job['number_of_shots'])
+            histogram, full_state_histogram = QuantumInspireBackend.__convert_histograms(result, measurements,
+                                                                                         result['number_of_qubits'],
+                                                                                         job['number_of_shots'])
             histogram_obj = Obj.from_dict(histogram)
+            full_state_histogram_obj = Obj.from_dict(full_state_histogram)
             raw_data = self.__api.get_raw_data(str(result['id']))
             memory_data = self.__get_memory_data(raw_data, measurements, result['number_of_qubits'])
             if memory_data:
-                experiment_result_data = ExperimentResultData(counts=histogram_obj, memory=memory_data)
+                experiment_result_data = ExperimentResultData(counts=histogram_obj,
+                                                              probabilities=full_state_histogram_obj,
+                                                              memory=memory_data)
             else:
-                experiment_result_data = ExperimentResultData(counts=histogram_obj)
+                experiment_result_data = ExperimentResultData(counts=histogram_obj,
+                                                              probabilities=full_state_histogram_obj)
             header = Obj.from_dict(user_data)
             experiment_result_dictionary = {'name': job.get('name'), 'seed': 42, 'shots': job.get('number_of_shots'),
                                             'data': experiment_result_data, 'status': 'DONE', 'success': True,
@@ -266,7 +271,7 @@ class QuantumInspireBackend(BaseBackend):
 
         Returns:
             List: A list of lists, for each measurement the returned list contains a list of
-                  [qubit_index, classical_bit_index], which represents the measurement of a qubit to a classical bit
+                  [qubit_index, classical_bit_index], which represents the measurement of a qubit to a classical bit.
         """
         header = experiment.header
         number_of_qubits = header.n_qubits
@@ -303,34 +308,6 @@ class QuantumInspireBackend(BaseBackend):
         return classical_state_hex
 
     @staticmethod
-    def __convert_histogram(result, measurements, number_of_qubits, number_of_shots):
-        """ The quantum inspire backend always uses full state projection. The SDK user
-            can measure not all qubits and change the combined classical bits. This function
-            converts the histogram output, such that it represents the counts measured with the
-            classical bits.
-
-        Args:
-            result (dict): The result output from the quantum inspire backend with full-
-                           state projection histogram output.
-            measurements (dict): The dictionary contains a measured qubits/classical bits map (list) and the
-                                 number of classical bits (int).
-            number_of_qubits (int): Number of qubits used in the algorithm.
-            number_of_shots (int): The number of times the algorithm is executed.
-
-        Returns:
-            Dict: The result with converted histogram.
-
-        """
-        state_probability = result['histogram']
-        output_histogram = defaultdict(lambda: 0)
-
-        for qubit_register, probability in state_probability.items():
-            classical_state_hex = QuantumInspireBackend.__qubit_to_classical_hex(qubit_register, measurements,
-                                                                                 number_of_qubits)
-            output_histogram[classical_state_hex] += int(probability * number_of_shots)
-        return OrderedDict(sorted(output_histogram.items(), key=lambda kv: int(kv[0], 16)))
-
-    @staticmethod
     def __get_memory_data(raw_data, measurements, number_of_qubits):
         """ The quantum inspire backend returns the single shot values. This function
             converts the raw data to hexadecimal memory data according the Qiskit spec.
@@ -348,7 +325,6 @@ class QuantumInspireBackend(BaseBackend):
         Returns:
             List: The result with converted hexadecimal memory values for each shot
                   or an empty list when no raw_data was returned by the backend.
-
         """
         memory_data = []
         for qubit_register in raw_data:
@@ -356,3 +332,34 @@ class QuantumInspireBackend(BaseBackend):
                                                                                  number_of_qubits)
             memory_data.append(classical_state_hex)
         return memory_data
+
+    @staticmethod
+    def __convert_histograms(result, measurements, number_of_qubits, number_of_shots):
+        """ The quantum inspire backend always uses full state projection. The SDK user
+            can measure not all qubits and change the combined classical bits. This function
+            converts the result to two histogram outputs: one that represents the counts
+            measured with the classical bits and a second histogram that represents the
+            probabilities measured with the classical bits.
+
+            Args:
+                result (dict): The result output from the quantum inspire backend with full-
+                               state projection histogram output.
+                measurements (dict): The dictionary contains a measured qubits/classical bits map (list) and the
+                                     number of classical bits (int).
+                number_of_qubits (int): Number of qubits used in the algorithm.
+                number_of_shots (int): The number of times the algorithm is executed.
+
+            Returns:
+                (Dict, Dict): The result with 2 converted histograms. One with counts and one with probabilities
+        """
+        output_histogram_counts = defaultdict(lambda: 0)
+        output_histogram_probabilities = defaultdict(lambda: 0)
+        state_probability = result['histogram']
+        for qubit_register, probability in state_probability.items():
+            classical_state_hex = QuantumInspireBackend.__qubit_to_classical_hex(qubit_register, measurements,
+                                                                                 number_of_qubits)
+            output_histogram_counts[classical_state_hex] += int(probability * number_of_shots)
+            output_histogram_probabilities[classical_state_hex] += probability
+
+        return (OrderedDict(sorted(output_histogram_counts.items(), key=lambda kv: int(kv[0], 16))),
+                OrderedDict(sorted(output_histogram_probabilities.items(), key=lambda kv: int(kv[0], 16))))

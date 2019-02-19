@@ -15,6 +15,7 @@ Copyright 2018-19 QuTech Delft. Licensed under the Apache License, Version 2.0.
 """
 from getpass import getpass
 
+from qiskit.validation.base import Obj
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.tools.compiler import execute
 
@@ -50,3 +51,9 @@ if __name__ == '__main__':
     histogram = qi_result.get_counts(circuit)
     print('\nState\tCounts')
     [print('{0}\t{1}'.format(state, counts)) for state, counts in histogram.items()]
+    # Print the full state probabilities histogram
+    probabilities_histogram = Obj.to_dict(qi_result.data(circuit)['probabilities'])
+    print('\nState\tProbabilities')
+    # Format the hexadecimal key to a zero-padded binary string with length of the number of classical bits
+    [print('{0}\t{1}'.format(format(int(str(bin(int(key, 16)))[2:], 2), '0{}b'.format(b.size)),
+                             val)) for key, val in probabilities_histogram.items()]
