@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 """
-
+import copy
 import numpy as np
 
 
@@ -150,7 +150,8 @@ class CircuitToString:
         return None
 
     def _u1(self, circuit):
-        """ Translates the U1(lambda) element to U3(0, 0, lambda).
+        """ Translates the U1(lambda) element to U3(0, 0, lambda). A copy of the circuit is made to prevent
+            side-effects for the caller.
 
         Args:
             circuit (dict): The Qiskit circuit with U1 element.
@@ -158,21 +159,20 @@ class CircuitToString:
         Returns:
             str: cQASM code string.
         """
-        tempcircuit = circuit
-        tempcircuit['params'].insert(0, 0)
-        tempcircuit['params'].insert(0, 0)
-        tempcircuit['texparams'].insert(0, '0')
-        tempcircuit['texparams'].insert(0, '0')
+        tempcircuit = copy.deepcopy(circuit)
+        tempcircuit['params'][0:0] = (0, 0)
+        tempcircuit['texparams'][0:0] = ('0', '0')
         return self._u3(tempcircuit)
 
     def _u2(self, circuit):
-        """ Translates the U2(phi, lambda) element to U3(pi/2, phi, lambda).
+        """ Translates the U2(phi, lambda) element to U3(pi/2, phi, lambda). A copy of the circuit is made to prevent
+            side-effects for the caller.
 
         Args:
             circuit (dict): The Qiskit circuit with U2 element.
 
         """
-        tempcircuit = circuit
+        tempcircuit = copy.deepcopy(circuit)
         tempcircuit['params'].insert(0, np.pi/2)
         tempcircuit['texparams'].insert(0, '\\frac{\\pi}{2}')
         return self._u3(tempcircuit)
