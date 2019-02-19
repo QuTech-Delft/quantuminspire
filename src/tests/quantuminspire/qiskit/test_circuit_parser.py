@@ -33,15 +33,13 @@ class TestQiCircuitToString(unittest.TestCase):
 
     @staticmethod
     def _generate_cqasm_from_instructions(instructions, number_of_qubits=2):
-        experiment_dict = {'instructions': None,
+        experiment_dict = {'instructions': instructions,
                            'header': {'n_qubits': number_of_qubits,
                                       'number_of_clbits': number_of_qubits,
                                       'compiled_circuit_qasm': ''},
                            'config': {'coupling_map': 'all-to-all',
                                       'basis_gates': 'x,y,z,h,rx,ry,rz,s,cx,ccx,u1,u2,u3,id,snapshot',
                                       'n_qubits': number_of_qubits}}
-
-        experiment_dict['instructions'] = instructions
         experiment = qiskit.qobj.QobjExperiment.from_dict(experiment_dict)
         simulator = QuantumInspireBackend(Mock(), Mock())
         result = simulator._generate_cqasm(experiment)
@@ -94,17 +92,25 @@ class TestQiCircuitToString(unittest.TestCase):
         self.assertTrue('Z q[0]\n' in result)
 
     def test_generate_cqasm_CorrectOutputGateU(self):
-        instructions = [{'name': 'u', 'qubits': [0], 'params': [0, 0, np.pi / 2]}]
+        instructions = [{'name': 'u', 'qubits': [0], 'params': [0, 0, np.pi / 2],
+                         'texparams': ['0', '0', '\\frac{\\pi}{2}']}]
         result = self._generate_cqasm_from_instructions(instructions, 2)
-        self.assertTrue('S q[0]\n' in result)
+        self.assertTrue('Rz q[0], 1.570796\n' in result)
 
-        instructions = [{'name': 'u', 'qubits': [0], 'params': [0, 0, -np.pi / 2]}]
+        instructions = [{'name': 'u', 'qubits': [0], 'params': [-np.pi / 2, 0, 0],
+                         'texparams': ['-\\frac{\\pi}{2}', '0', '0']}]
         result = self._generate_cqasm_from_instructions(instructions, 2)
-        self.assertTrue('Sdag q[0]\n' in result)
+        self.assertTrue('Ry q[0], -1.570796\n' in result)
 
-    def test_generate_cqasm_RaisesErrorGateU(self):
-        instructions = [{'name': 'u', 'qubits': [0], 'params': [0, 0, 0]}]
-        self.assertRaises(ValueError, self._generate_cqasm_from_instructions, instructions)
+        instructions = [{'name': 'u', 'qubits': [0], 'params': [np.pi / 4, np.pi / 2, -np.pi / 2],
+                         'texparams': ['\\frac{\\pi}{4}', '\\frac{\\pi}{2}', '-\\frac{\\pi}{2}']}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('Rz q[0], -1.570796\nRy q[0], 0.785398\nRz q[0], 1.570796\n' in result)
+
+        instructions = [{'name': 'u', 'qubits': [1], 'params': [0.123456, 0.654321, -0.333333],
+                         'texparams': ['0.123456', '0.654321', '-0.333333']}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('Rz q[1], -0.333333\nRy q[1], 0.123456\nRz q[1], 0.654321\n' in result)
 
     def test_generate_cqasm_CorrectOutputGateU0(self):
         instructions = [{'name': 'u0', 'qubits': [0]}]
@@ -112,42 +118,90 @@ class TestQiCircuitToString(unittest.TestCase):
         self.assertFalse('U0' in result)
 
     def test_generate_cqasm_CorrectOutputGateU1(self):
-        instructions = [{'name': 'u1', 'qubits': [0], 'params': [np.pi / 2]}]
+        instructions = [{'name': 'u1', 'qubits': [0], 'params': [np.pi / 2], 'texparams': ['\\frac{\\pi}{2}']}]
         result = self._generate_cqasm_from_instructions(instructions, 2)
-        self.assertTrue('S q[0]\n' in result)
+        self.assertTrue('Rz q[0], 1.570796\n' in result)
 
-        instructions = [{'name': 'u1', 'qubits': [1], 'params': [np.pi / 4]}]
+        instructions = [{'name': 'u1', 'qubits': [1], 'params': [np.pi / 4], 'texparams': ['\\frac{\\pi}{4}']}]
         result = self._generate_cqasm_from_instructions(instructions, 2)
-        self.assertTrue('T q[1]\n' in result)
+        self.assertTrue('Rz q[1], 0.785398\n' in result)
 
-        instructions = [{'name': 'u1', 'qubits': [2], 'params': [-np.pi / 4]}]
+        instructions = [{'name': 'u1', 'qubits': [2], 'params': [-np.pi / 4], 'texparams': ['-\\frac{\\pi}{4}']}]
+        result = self._generate_cqasm_from_instructions(instructions, 3)
+        self.assertTrue('Rz q[2], -0.785398\n' in result)
+
+        instructions = [{'name': 'u1', 'qubits': [2], 'params': [0.123456], 'texparams': ['0.123456']}]
+        result = self._generate_cqasm_from_instructions(instructions, 3)
+        self.assertTrue('Rz q[2], 0.123456\n' in result)
+
+        instructions = [{'name': 'u1', 'qubits': [0], 'params': [0], 'texparams': ['0']}]
         result = self._generate_cqasm_from_instructions(instructions, 2)
-        self.assertTrue('Tdag q[2]\n' in result)
-
-    def test_generate_cqasm_RaisesErrorGateU1(self):
-        instructions = [{'name': 'u1', 'qubits': [2], 'params': [42]}]
-        self.assertRaises(ValueError, self._generate_cqasm_from_instructions, instructions)
+        self.assertFalse('q[0]' in result)
 
     def test_generate_cqasm_CorrectOutputGateU2(self):
-        instructions = [{'name': 'u2', 'qubits': [0], 'params': [np.pi]}]
-        self.assertRaises(ValueError, self._generate_cqasm_from_instructions, instructions)
+        instructions = [{'name': 'u2', 'qubits': [0], 'params': [np.pi, np.pi / 2],
+                         'texparams': ['\\pi', '\\frac{\\pi}{2}']}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('Rz q[0], 1.570796\nRy q[0], 1.570796\nRz q[0], 3.141593\n' in result)
+
+        instructions = [{'name': 'u2', 'qubits': [1], 'params': [0, np.pi], 'texparams': ['0', '\\pi']}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('Rz q[1], 3.141593\nRy q[1], 1.570796\n' in result)
+
+        instructions = [{'name': 'u2', 'qubits': [2], 'params': [0.123456, -0.654321],
+                         'texparams': ['0.123456', '-0.654321']}]
+        result = self._generate_cqasm_from_instructions(instructions, 3)
+        self.assertTrue('Rz q[2], -0.654321\nRy q[2], 1.570796\nRz q[2], 0.123456\n' in result)
+
+        instructions = [{'name': 'u2', 'qubits': [0], 'params': [0, 0], 'texparams': ['0', '0']}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('Ry q[0], 1.570796\n' in result)
 
     def test_generate_cqasm_CorrectOutputU3(self):
-        instructions = [{'name': 'u3', 'qubits': [0], 'params': [1, 2, 3]}]
+        instructions = [{'name': 'u3', 'qubits': [0], 'params': [1, 2, 3], 'texparams': ['1', '2', '3']}]
         result = self._generate_cqasm_from_instructions(instructions, 2)
-        self.assertTrue('Rz q[0], 1.000000\nRy q[0], 2.000000\nRz q[0], 3.000000\n' in result)
+        self.assertTrue('Rz q[0], 3.000000\nRy q[0], 1.000000\nRz q[0], 2.000000\n' in result)
+
+        instructions = [{'name': 'u3', 'qubits': [1], 'params': [0.123456, 0.654321, -0.333333],
+                         'texparams': ['0.123456', '0.654321', '-0.333333']}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('Rz q[1], -0.333333\nRy q[1], 0.123456\nRz q[1], 0.654321\n' in result)
+
+        instructions = [{'name': 'u3', 'qubits': [1], 'params': [0, 0.654321, 0], 'texparams': ['0', '0.654321', '0']}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('Rz q[1], 0.654321\n' in result)
+
+        instructions = [{'name': 'u3', 'qubits': [2], 'params': [0.654321, 0, 0], 'texparams': ['0.654321', '0', '0']}]
+        result = self._generate_cqasm_from_instructions(instructions, 3)
+        self.assertTrue('Ry q[2], 0.654321\n' in result)
+
+        instructions = [{'name': 'u3', 'qubits': [0], 'params': [0, 0, 0], 'texparams': ['0', '0', '0']}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertFalse('q[0]' in result)
 
     def test_generate_cqasm_CorrectOutputRotationX(self):
         instructions = [{'name': 'rx', 'qubits': [0], 'params': [np.pi / 2]}]
         result = self._generate_cqasm_from_instructions(instructions, 2)
         self.assertTrue('Rx q[0], 1.570796\n' in result)
 
+        instructions = [{'name': 'rx', 'qubits': [1], 'params': [0.123456]}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('Rx q[1], 0.123456\n' in result)
+
     def test_generate_cqasm_CorrectOutputRotationY(self):
         instructions = [{'name': 'ry', 'qubits': [0], 'params': [np.pi / 2]}]
         result = self._generate_cqasm_from_instructions(instructions, 2)
         self.assertTrue('Ry q[0], 1.570796\n' in result)
 
+        instructions = [{'name': 'ry', 'qubits': [1], 'params': [0.654321]}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('Ry q[1], 0.654321\n' in result)
+
     def test_generate_cqasm_CorrectOutputRotationZ(self):
         instructions = [{'name': 'rz', 'qubits': [0], 'params': [np.pi / 2]}]
         result = self._generate_cqasm_from_instructions(instructions, 2)
         self.assertTrue('Rz q[0], 1.570796\n' in result)
+
+        instructions = [{'name': 'rz', 'qubits': [1], 'params': [-np.pi / 2]}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('Rz q[1], -1.570796\n' in result)
