@@ -19,6 +19,7 @@ import io
 import json
 import uuid
 import numpy as np
+from typing import Dict, List, Tuple
 from collections import defaultdict, OrderedDict, Counter
 
 from coreapi.exceptions import ErrorMessage
@@ -33,6 +34,8 @@ from quantuminspire.exceptions import QisKitBackendError
 from quantuminspire.qiskit.circuit_parser import CircuitToString
 from quantuminspire.qiskit.qi_job import QIJob
 from quantuminspire.version import __version__ as quantum_inspire_version
+from quantuminspire.job import QuantumInspireJob
+from quantuminspire.api import QuantumInspireAPI
 
 
 class QuantumInspireBackend(BaseBackend):
@@ -50,7 +53,8 @@ class QuantumInspireBackend(BaseBackend):
         max_shots=1024
     )
 
-    def __init__(self, api, provider, configuration=None):
+    def __init__(self, api: QuantumInspireAPI, provider,
+                 configuration: BackendConfiguration = None) -> None:
         """ Python implementation of a quantum simulator using Quantum Inspire API.
 
         Args:
@@ -82,10 +86,10 @@ class QuantumInspireBackend(BaseBackend):
         self.__api = api
 
     @property
-    def backend_name(self):
+    def backend_name(self) -> str:
         return self.name()
 
-    def run(self, qobj):
+    def run(self, qobj: Qobj) -> QIJob:
         """ Submits a quantum job to the Quantum Inspire platform.
 
         Args:
@@ -106,7 +110,7 @@ class QuantumInspireBackend(BaseBackend):
         job.experiments = experiments
         return job
 
-    def retrieve_job(self, job_id):
+    def retrieve_job(self, job_id: str) -> QIJob:
         """ Retrieve a specified job by its job_id.
 
         Args:
@@ -119,12 +123,13 @@ class QuantumInspireBackend(BaseBackend):
             QisKitBackendError: If job not found or error occurs during retrieval of the job.
         """
         try:
-            self.__api.get_project(job_id)
-        except ErrorMessage:
+            self.__api.get_project(int(job_id))
+        except (ErrorMessage, ValueError):
             raise QisKitBackendError("Could not retrieve job with job_id '{}' ".format(job_id))
         return QIJob(self, job_id, self.__api)
 
-    def _generate_cqasm(self, experiment):
+    @staticmethod
+    def _generate_cqasm(experiment: QobjExperiment) -> str:
         """ Generates the cQASM from the Qiskit experiment.
 
         Args:
@@ -149,7 +154,8 @@ class QuantumInspireBackend(BaseBackend):
 
             return stream.getvalue()
 
-    def _submit_experiment(self, experiment, number_of_shots, project=None):
+    def _submit_experiment(self, experiment: QobjExperiment, number_of_shots: int, project: OrderedDict = None)\
+            -> QuantumInspireJob:
         compiled_qasm = self._generate_cqasm(experiment)
         measurements = self._collect_measurements(experiment)
         user_data = {'name': experiment.header.name, 'memory_slots': experiment.header.memory_slots,
@@ -159,7 +165,7 @@ class QuantumInspireBackend(BaseBackend):
                                                job_name=experiment.header.name, user_data=json.dumps(user_data))
         return job_id
 
-    def get_experiment_results(self, qi_job):
+    def get_experiment_results(self, qi_job: QIJob) -> List[ExperimentResult]:
         """ Get results from experiments from the Quantum-inspire platform.
 
         Args:
@@ -194,11 +200,11 @@ class QuantumInspireBackend(BaseBackend):
         return experiment_results
 
     @staticmethod
-    def __validate(job):
+    def __validate(job: Qobj) -> None:
         """ Validates the number of shots, classical bits and compiled Qiskit circuits.
 
         Args:
-            job (QObj): The quantum job with the Qiskit algorithm and quantum inspire backend.
+            job (Qobj): The quantum job with the Qiskit algorithm and quantum inspire backend.
         """
         QuantumInspireBackend.__validate_number_of_shots(job)
 
@@ -207,11 +213,11 @@ class QuantumInspireBackend(BaseBackend):
             QuantumInspireBackend.__validate_no_gates_after_measure(experiment)
 
     @staticmethod
-    def __validate_number_of_shots(job):
+    def __validate_number_of_shots(job: Qobj) -> None:
         """ Checks whether the number of shots has a valid value.
 
         Args:
-            job (QObj): The quantum job with the Qiskit algorithm and quantum inspire backend.
+            job (Qobj): The quantum job with the Qiskit algorithm and quantum inspire backend.
 
         Raises:
             QisKitBackendError: When the value is not correct.
@@ -221,7 +227,7 @@ class QuantumInspireBackend(BaseBackend):
             raise QisKitBackendError('Invalid shots (number_of_shots={})'.format(number_of_shots))
 
     @staticmethod
-    def __validate_number_of_clbits(experiment):
+    def __validate_number_of_clbits(experiment: QobjExperiment) -> None:
         """ Checks whether the number of classical bits has a valid value.
 
         Args:
@@ -235,7 +241,7 @@ class QuantumInspireBackend(BaseBackend):
             raise QisKitBackendError("Invalid amount of classical bits ({})!".format(number_of_clbits))
 
     @staticmethod
-    def __validate_no_gates_after_measure(experiment):
+    def __validate_no_gates_after_measure(experiment: QobjExperiment) -> None:
         """ Checks whether the number of classical bits has a valid value.
 
         Args:
@@ -253,7 +259,7 @@ class QuantumInspireBackend(BaseBackend):
                     raise QisKitBackendError('Operation after measurement!')
 
     @staticmethod
-    def _collect_measurements(experiment):
+    def _collect_measurements(experiment: QobjExperiment) -> Dict:
         """ Determines the measured qubits and classical bits. The full-state measured
             qubits is returned when no measurements are present in the compiled circuit.
 
@@ -261,8 +267,9 @@ class QuantumInspireBackend(BaseBackend):
             experiment (QobjExperiment): The experiment with gate operations and header.
 
         Returns:
-            list: A list of lists, for each measurement the returned list contains a list of
-                  [qubit_index, classical_bit_index], which represents the measurement of a qubit to a classical bit.
+            dict: The dict contains measurements, which is a list of lists, for each measurement the list contains
+                  a list of [qubit_index, classical_bit_index], which represents the measurement of a qubit to a
+                  classical bit, and the second field in the dict is the number of classical bits (int).
         """
         header = experiment.header
         number_of_qubits = header.n_qubits
@@ -277,7 +284,7 @@ class QuantumInspireBackend(BaseBackend):
         return {'measurements': measurements, 'number_of_clbits': number_of_clbits}
 
     @staticmethod
-    def __qubit_to_classical_hex(qubit_register, measurements, number_of_qubits):
+    def __qubit_to_classical_hex(qubit_register: int, measurements: Dict, number_of_qubits: int) -> str:
         """ This function converts the qubit register data to the hexadecimal representation of the classical state.
 
         Args:
@@ -299,7 +306,7 @@ class QuantumInspireBackend(BaseBackend):
         return classical_state_hex
 
     @staticmethod
-    def __convert_histogram(result, measurements):
+    def __convert_histogram(result: Dict, measurements: Dict) -> Obj:
         """ The quantum inspire backend always uses full state projection. The SDK user
             can measure not all qubits and change the combined classical bits. This function
             converts the result to a histogram output that represents the probabilities
@@ -326,7 +333,7 @@ class QuantumInspireBackend(BaseBackend):
                                                       key=lambda kv: int(kv[0], 16)))
         return Obj.from_dict(full_state_histogram_obj)
 
-    def __convert_result_data(self, result, measurements):
+    def __convert_result_data(self, result: Dict, measurements: Dict) -> Tuple[Obj, List[str]]:
         """ The quantum inspire backend returns the single shot values as raw data. This function
             converts this list of single shot values to hexadecimal memory data according the Qiskit spec.
             From this memory data the counts histogram is constructed by counting the single shot values.
@@ -363,15 +370,14 @@ class QuantumInspireBackend(BaseBackend):
                 classical_state_hex = QuantumInspireBackend.__qubit_to_classical_hex(qubit_register, measurements,
                                                                                      number_of_qubits)
                 memory_data.append(classical_state_hex)
-            for elem, count in Counter(memory_data).items():
-                histogram_data[elem] = count
+            histogram_data = {elem: count for elem, count in Counter(memory_data).items()}
         else:
             state_probabilities = result['histogram']
-            prob = np.random.rand()
+            random_probability = np.random.rand()
             sum_probability = 0.0
             for qubit_register, probability in state_probabilities.items():
                 sum_probability += probability
-                if prob < sum_probability:
+                if random_probability < sum_probability:
                     classical_state_hex = QuantumInspireBackend.__qubit_to_classical_hex(qubit_register, measurements,
                                                                                          number_of_qubits)
                     memory_data.append(classical_state_hex)

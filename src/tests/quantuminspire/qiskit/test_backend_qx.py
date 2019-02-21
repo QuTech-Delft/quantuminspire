@@ -220,6 +220,41 @@ class TestQiSimulatorPy(unittest.TestCase):
         self.assertEqual(experiment_result.name, 'circuit0')
         self.assertEqual(experiment_result.shots, number_of_shots)
 
+    def test_get_experiment_results_multiple_single_shots(self):
+        one_shot_results = {'0x0': 0, '0x1': 0, '0x2': 0, '0x3': 0}
+        for i in range(10000):
+            number_of_shots = 1
+            self._basic_job_dictionary['number_of_shots'] = number_of_shots
+            instructions = [{'name': 'h', 'params': [], 'texparams': [], 'qubits': [0]},
+                            {'name': 'cx', 'params': [], 'texparams': [], 'qubits': [0, 1]},
+                            {'name': 'measure', 'qubits': [1], 'memory': [1]},
+                            {'name': 'measure', 'qubits': [0], 'memory': [0]}]
+            experiment = self._instructions_to_two_qubit_experiment(instructions)
+            api = Mock()
+            api.get.return_value = {'id': 1, 'histogram': {'0': 0.2, '1': 0.3, '2': 0.4, '3': 0.1},
+                                    'execution_time_in_seconds': 2.1, 'number_of_qubits': 2,
+                                    'raw_data_url': 'http://saevar-qutech-nginx/api/results/24/raw-data/'}
+            api.get_raw_data.return_value = []
+            jobs = self._basic_job_dictionary
+            measurements = QuantumInspireBackend._collect_measurements(experiment)
+            user_data = {'name': 'name', 'memory_slots': 2,
+                         'creg_sizes': [['c1', 2]], 'measurements': measurements}
+            jobs['user_data'] = json.dumps(user_data)
+            api.get_jobs_from_project.return_value = [jobs]
+            job = QIJob('backend', '42', api)
+            simulator = QuantumInspireBackend(api, Mock())
+            experiment_result = simulator.get_experiment_results(job)[0]
+            # Exactly one value in memory
+            self.assertEqual(len(experiment_result.data.memory), 1)
+            # The only value in memory is the same as the value in the counts histogram.
+            self.assertEqual(list(experiment_result.data.counts.to_dict().keys())[0], experiment_result.data.memory[0])
+            one_shot_results[experiment_result.data.memory[0]] += 1
+
+        self.assertIn(one_shot_results['0x0'], range(1850, 2150))
+        self.assertIn(one_shot_results['0x1'], range(2850, 3150))
+        self.assertIn(one_shot_results['0x2'], range(3850, 4150))
+        self.assertIn(one_shot_results['0x3'], range(850, 1150))
+
     def test_validate_NegativeShotCount(self):
         simulator = QuantumInspireBackend(Mock(), Mock())
         job_dict = self._basic_qobj_dictionary
@@ -264,7 +299,7 @@ class TestQiSimulatorPy(unittest.TestCase):
         provider = 'provider'
         backend = QuantumInspireBackend(api, provider)
         qi_job = backend.retrieve_job('42')
-        api.get_project.assert_called_with('42')
+        api.get_project.assert_called_with(42)
         self.assertEqual('42', qi_job.job_id())
 
     def test_retrieve_job_with_error(self):
@@ -283,7 +318,8 @@ class ApiMock(Mock):
         self.result = {}
         self.raw_data = []
 
-    def _get_child_mock(self, **kw):
+    @staticmethod
+    def _get_child_mock(**kw):
         return Mock(**kw)
 
     def set(self, res1, res2):
