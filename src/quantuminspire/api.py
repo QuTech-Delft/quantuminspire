@@ -18,6 +18,7 @@ limitations under the License.
 import itertools
 import time
 import uuid
+from typing import List, Dict, Union
 from collections import OrderedDict
 from urllib.parse import urljoin
 
@@ -29,7 +30,8 @@ from quantuminspire.job import QuantumInspireJob
 
 class QuantumInspireAPI:
 
-    def __init__(self, base_uri, authentication, project_name=None, coreapi_client_class=coreapi.Client):
+    def __init__(self, base_uri: str, authentication: coreapi.auth.BasicAuthentication, project_name: str = None,
+                 coreapi_client_class: coreapi.Client = coreapi.Client) -> None:
         """ Python interface to the Quantum Inspire API (Application Programmer Interface).
 
         The Quantum Inspire API supplies an interface for executing cQASM programs and can be used to access the
@@ -49,14 +51,14 @@ class QuantumInspireAPI:
         The Core API schema is published on: https://api.quantum-inspire.com/schema/
 
         Args:
-            base_uri (str): The base uri of the Quantum Inspire API-location where the schema can be found (in path
-                            'schema/').
-            authentication (BasicAuthentication): The basic HTTP authentication with username/password.
-            project_name (str, optional): The used project for execution of the jobs. When no name is given a
-                                          temporary project is created and deleted after the job execution.
-                                          The project will not be deleted when a project name is supplied here.
-            coreapi_client_class (client, optional): Coreapi client to interact with the API through a schema.
-                                                     Default set to coreapi.Client.
+            base_uri: The base uri of the Quantum Inspire API-location where the schema can be found (in path
+                      'schema/').
+            authentication: The basic HTTP authentication with username/password.
+            project_name: The used project for execution of the jobs. When no name is given a
+                          temporary project is created and deleted after the job execution.
+                          The project will not be deleted when a project name is supplied here.
+            coreapi_client_class: Coreapi client to interact with the API through a schema.
+                                  Default set to coreapi.Client.
         Raises:
             ApiError: an ApiError exception is raised when the schema could not be loaded.
         """
@@ -68,15 +70,15 @@ class QuantumInspireAPI:
         except Exception as ex:
             raise ApiError('Could not connect to {}'.format(base_uri)) from ex
 
-    def get(self, uri_path):
+    def get(self, uri_path: str) -> Union[OrderedDict, List[OrderedDict], List[int]]:
         """ Method for making requests to the coreapi client instance to get some piece of information. The information
             requested depends on the uri_path parameter.
 
         Args:
-            uri_path (str): The URL where to request the data.
-                            The uri_path has the form <api_uri><object><object-id><request>
-                            e.g. 'https://api.quantum-inspire.com/jobs/1234567/result/' to get the result of job with
-                            job-id 1234567
+            uri_path: The URL where to request the data.
+                      The uri_path has the form <api_uri><object><object-id><request>
+                      e.g. 'https://api.quantum-inspire.com/jobs/1234567/result/' to get the result of job with
+                      job-id 1234567
 
         Raises:
             A ValueError or coreapi exception (e.g. coreapi.Exceptions.ErrorMessage) is thrown when the get was not
@@ -84,17 +86,17 @@ class QuantumInspireAPI:
             a network error occurred.
 
         Returns:
-            OrderedDict: The resulting data from the get-request. The structure of the data depends heavily on the
-                         request.
+            The resulting data from the get-request. The structure of the data depends heavily on the
+            request.
         """
         return self.__client.get(uri_path)
 
-    def _action(self, action, params=None):
+    def _action(self, action: List[str], params: Dict = None) -> OrderedDict:
         """ Adapter for performing an action on an object via the Quantum Inspire API.
 
         Args:
-            action (list): A list with strings indexing into the link. The last element of the list defines the action.
-            params (dict): Some links may accept a set of parameters with names as keys.
+            action: A list with strings indexing into the link. The last element of the list defines the action.
+            params: Some links may accept a set of parameters with names as keys.
 
         Raises:
             A ValueError or coreapi exception (e.g. coreapi.Exceptions.ErrorMessage) is thrown when the action was not
@@ -102,12 +104,12 @@ class QuantumInspireAPI:
             a network error occurred.
 
         Returns:
-            OrderedDict: The resulting data from the action-request. The structure of the data depends on the
-                         request.
+            The resulting data from the action-request. The structure of the data depends on the
+            request.
         """
         return self.__client.action(self.document, action, params=params)
 
-    def _load_schema(self):
+    def _load_schema(self) -> None:
         """ Loads the schema with metadata that explains how the api-data is structured.
 
         Raises:
@@ -116,16 +118,16 @@ class QuantumInspireAPI:
         """
         self.document = self.get(urljoin(self.base_uri, 'schema/'))
 
-    def list_backend_types(self):
+    def list_backend_types(self) -> None:
         """ Prints the backend types with the name and the maximum number of qubits it supports."""
         backends = self.get_backend_types()
         [print('Backend type: {name}, number of qubits: {number_of_qubits})'.format(**backend)) for backend in backends]
 
-    def get_default_backend_type(self):
+    def get_default_backend_type(self) -> OrderedDict:
         """ Gets the properties of the default backend type.
 
         Returns:
-            OrderedDict: The default backend type with all of its properties:
+            The default backend type with all of its properties:
                 | key                        | description
                 |----------------------------|-------------------------------------------------------------------------
                 | url (str)                  | The url for the backend type.
@@ -149,18 +151,18 @@ class QuantumInspireAPI:
         """
         return self._action(['backendtypes', 'list'])
 
-    def get_backend_type_by_id(self, backend_id):
+    def get_backend_type_by_id(self, backend_id: int) -> OrderedDict:
         """ Gets the properties of a specific backend type, given the backend id.
 
         Args:
-            backend_id (int): The backend identification number.
+            backend_id: The backend identification number.
 
         Raises:
             ApiError: An ApiError exception is raised when the backend type indicated by backend_id does not exist.
 
         Returns:
-            OrderedDict: The requested backend type indicated by backend_id with all of its properties.
-                         See 'get_default_backend_type' for the description of the backend type properties.
+            The requested backend type indicated by backend_id with all of its properties.
+            See 'get_default_backend_type' for the description of the backend type properties.
         """
         try:
             backend_type = self._action(['backendtypes', 'read'], params={'id': backend_id})
@@ -168,18 +170,18 @@ class QuantumInspireAPI:
             raise ApiError('Backend type with id {} does not exist!'.format(backend_id))
         return backend_type
 
-    def get_backend_type_by_name(self, backend_name):
+    def get_backend_type_by_name(self, backend_name: str) -> OrderedDict:
         """ Gets the properties of a backend type, given the backend name (case insensitive).
 
         Args:
-            backend_name (str): The backend name.
+            backend_name: The backend name.
 
         Raises:
             ApiError: An ApiError exception is thrown when the backend name does not exists.
 
         Returns:
-            OrderedDict: The properties of the backend type of the specific backend.
-                         See 'get_default_backend_type' for the description of the backend type properties.
+            The properties of the backend type of the specific backend.
+            See 'get_default_backend_type' for the description of the backend type properties.
         """
         backend_type = next((backend for backend in self.get_backend_types()
                         if backend['name'].lower() == backend_name.lower()), None)
@@ -187,22 +189,22 @@ class QuantumInspireAPI:
             raise ApiError('Backend type with name {} does not exist!'.format(backend_name))
         return backend_type
 
-    def get_backend_type(self, identifier=None):
+    def get_backend_type(self, identifier: Union[int, str] = None) -> OrderedDict:
         """ Gets the properties of the backend type, given the identifier. If no identifier is given,
             the default backend type will be returned. With an identifier of type string or int,
             the backend type will be searched by name or id respectively.
 
         Args:
-            identifier (None, int or str): The backend type identifier.
+            identifier: The backend type identifier.
 
         Raises:
             ApiError: If the requested backend type does not exists.
             ValueError: If the backend type identifier is not of the correct type.
 
         Returns:
-            OrderedDict: This method returns the default backend type or the backend type as identified by
-                         the parameter of this method.
-                         See 'get_default_backend_type' for the description of the backend type properties.
+            This method returns the default backend type or the backend type as identified by
+            the parameter of this method.
+            See 'get_default_backend_type' for the description of the backend type properties.
         """
         if identifier is None:
             return self.get_default_backend_type()
@@ -223,16 +225,16 @@ class QuantumInspireAPI:
         [print('Project name: {name}, id: {id}, backend type: {backend_type}'.format(**project))
          for project in projects]
 
-    def get_project(self, project_id):
+    def get_project(self, project_id: int) -> OrderedDict:
         """ Gets the properties of a project, given the project id.
         Args:
-            project_id (int): The project identification number.
+            project_id: The project identification number.
 
         Raises:
             ApiError: If the requested project does not exists.
 
         Returns:
-            OrderedDict: The properties describing the project:
+            The properties describing the project:
                 | key                           | description
                 |-------------------------------|----------------------------------------------------------------------
                 | url (str)                     | The url for this project.
@@ -249,27 +251,27 @@ class QuantumInspireAPI:
             raise ApiError('Project with id {} does not exist!'.format(project_id))
         return project
 
-    def get_projects(self):
+    def get_projects(self) -> List[OrderedDict]:
         """ Gets all the projects registered to the user the API is currently authenticated for.
 
         Returns:
-            OrderedDict: The projects with all of its properties.
-                         See 'get_project' for the description of the project properties.
+            The projects with all of its properties.
+            See 'get_project' for the description of the project properties.
         """
         return self._action(['projects', 'list'])
 
-    def create_project(self, name, default_number_of_shots, backend_type):
+    def create_project(self, name: str, default_number_of_shots: int, backend_type: OrderedDict) -> OrderedDict:
         """ Creates a new project for executing cQASM code.
 
         Args:
-            name (str): The name for the project. The name need not be unique.
-            default_number_of_shots (int): The default number of executions of the program before collecting
-                                           the results.
-            backend_type (OrderedDict): The properties of the backend type.
+            name: The name for the project. The name need not be unique.
+            default_number_of_shots: The default number of executions of the program before collecting
+                                     the results.
+            backend_type: The properties of the backend type.
 
         Returns:
-            OrderedDict: The newly created project with all of its properties.
-                         See 'get_project' for the description of the project properties.
+            The newly created project with all of its properties.
+            See 'get_project' for the description of the project properties.
         """
         payload = {
             'name': name,
@@ -278,12 +280,12 @@ class QuantumInspireAPI:
         }
         return self._action(['projects', 'create'], params=payload)
 
-    def delete_project(self, project_id):
+    def delete_project(self, project_id: int) -> None:
         """ Deletes the project identified by project_id together with all its assets, jobs and results.
             Only projects can be deleted that are registered for the user the API is currently authenticated for.
 
         Args:
-            project_id (int): The project identification number.
+            project_id: The project identification number.
 
         Raises:
             ApiError: If the project identified by project_id does not exists.
@@ -298,23 +300,23 @@ class QuantumInspireAPI:
 
     #  jobs  #
 
-    def list_jobs(self):
+    def list_jobs(self) -> None:
         """ Prints a list of all the jobs registered to the current user the API is authenticated for.
             For each job the name, identification number and status is printed.
         """
         jobs = self.get_jobs()
         [print('Job name: {name}, id: {id}, status: {status}'.format(**job)) for job in jobs]
 
-    def get_job(self, job_id):
+    def get_job(self, job_id: int) -> OrderedDict:
         """ Gets the properties of a job, given the job id.
         Args:
-            job_id (int): The job identification number.
+            job_id: The job identification number.
 
         Raises:
             ApiError: If the requested job does not exists.
 
         Returns:
-            OrderedDict: The properties describing the job:
+            The properties describing the job:
                 | key                           | description
                 |-------------------------------|----------------------------------------------------------------------
                 | url (str)                     | The url for the job.
@@ -339,20 +341,27 @@ class QuantumInspireAPI:
             raise ApiError('Job with id {} does not exist!'.format(job_id))
         return job
 
-    def get_jobs(self):
+    def get_jobs(self) -> List[OrderedDict]:
         """ Gets all the jobs registered to projects for the user the API is currently authenticated for.
 
         Returns:
-            list[OrderedDict]: The jobs with all of its properties.
-                               See 'get_job' for the description of the job properties.
+            The jobs with all of its properties.
+            See 'get_job' for the description of the job properties.
         """
         return self._action(['jobs', 'list'])
 
-    def get_jobs_from_project(self, project_id):
+    def get_jobs_from_project(self, project_id: int) -> List[OrderedDict]:
         """ Gets the jobs with its properties for a single project, given the project id.
 
+        Args:
+            project_id: The project identification number.
+
         Returns:
-            list[OrderedDict]: List of jobs with its properties for the project with identification project_id.
+            List of jobs with its properties for the project with identification project_id.
+            An empty list is returned when the project has no jobs.
+
+        Raises:
+            ApiError: If the project identified by project_id does not exists.
         """
         try:
             jobs = self._action(['projects', 'jobs', 'list'], params={'id': project_id})
@@ -360,16 +369,16 @@ class QuantumInspireAPI:
             raise ApiError('Project with id {} does not exist!'.format(project_id))
         return jobs
 
-    def delete_job(self, job_id):
+    def delete_job(self, job_id: int) -> OrderedDict:
         """ Deletes the job identified by job_id.
             Only jobs can be deleted that are registered for the user the API is currently authenticated for.
 
         Args:
-            job_id (int): The job identification number.
+            job_id: The job identification number.
 
         Returns:
-            OrderedDict: The deleted job indicated by the job identification number.
-                         See 'get_job' for the description of the job properties.
+            The deleted job indicated by the job identification number.
+            See 'get_job' for the description of the job properties.
 
         Raises:
             ApiError: If the job identified by job_id does not exists.
@@ -379,22 +388,23 @@ class QuantumInspireAPI:
         except Exception as ex:
             raise ApiError('Job with id {} does not exist!'.format(job_id))
 
-    def _create_job(self, name, asset, project, number_of_shots, full_state_projection=True, user_data=''):
+    def _create_job(self, name: str, asset: OrderedDict, project: OrderedDict, number_of_shots: int,
+                    full_state_projection: bool = True, user_data: str = '') -> OrderedDict:
         """ Creates a new job for executing cQASM code. This method is used by execute_qasm_async and indirectly
             by execute_qasm.
 
         Args:
-            name (str): The name for the job.
-            asset (OrderedDict):  The asset with the cQASM code.
-            project (OrderedDict): The project with backend type.
-            number_of_shots (int): The number of executions before returning the result.
-            full_state_projection (bool): Used for optimizing simulations. For more information see:
-                                          https://www.quantum-inspire.com/kbase/optimization-of-simulations/
-            user_data(str): Data that the user wants to pass along with the job.
+            name: The name for the job.
+            asset:  The asset with the cQASM code.
+            project: The project with backend type.
+            number_of_shots: The number of executions before returning the result.
+            full_state_projection: Used for optimizing simulations. For more information see:
+                                   https://www.quantum-inspire.com/kbase/optimization-of-simulations/
+            user_data: Data that the user wants to pass along with the job.
 
         Returns:
-            OrderedDict: The properties describing the new job.
-                         See 'get_job' for the description of the job properties.
+            The properties describing the new job.
+            See 'get_job' for the description of the job properties.
         """
         payload = {
             'status': 'NEW',
@@ -409,23 +419,23 @@ class QuantumInspireAPI:
 
     #  results  #
 
-    def list_results(self):
+    def list_results(self) -> None:
         """ Prints a list of all the results registered to the current user the API is authenticated for.
             For each result the identification number and creation date is printed.
         """
         results = self.get_results()
         [print('Result id: {id} (date: {created_at})'.format(**result)) for result in results]
 
-    def get_result(self, result_id):
+    def get_result(self, result_id: int) -> OrderedDict:
         """ Gets the histogram results of the executed cQASM code, given the result_id.
         Args:
-            result_id (int): The result identification number.
+            result_id: The result identification number.
 
         Raises:
             ApiError: If the requested result does not exists.
 
         Returns:
-            OrderedDict: The properties describing the result:
+            The properties describing the result:
                 | key                               | description
                 |-----------------------------------|-------------------------------------------------------------------
                 | id (int)                          | Unique id of the result.
@@ -452,27 +462,27 @@ class QuantumInspireAPI:
             raise ApiError('Result with id {} does not exist!'.format(result_id))
         return result
 
-    def get_results(self):
+    def get_results(self) -> List[OrderedDict]:
         """ Gets all the results registered for the user the API is currently authenticated for.
 
         Returns:
-            list[OrderedDict]: The results with all of its properties.
-                               See 'get_result' for the description of the result properties.
+            The results with all of its properties.
+            See 'get_result' for the description of the result properties.
         """
         return self._action(['results', 'list'])
 
-    def get_raw_data(self, result_id):
+    def get_raw_data(self, result_id: int) -> List[int]:
         """ Gets the raw data from the result of the executed cQASM code, given the result_id. The raw data consists
             of a list with integer state values for each shot of the experiment (see job.number_of_shots).
 
         Args:
-            result_id (int): The identification number of the result.
+            result_id: The identification number of the result.
 
         Raises:
             ApiError: If the requested result with identification result_id does not exists.
 
         Returns:
-            list(int): The raw data as a list of integer values. An empty list is returned when there is no raw data.
+            The raw data as a list of integer values. An empty list is returned when there is no raw data.
         """
         result = self.get_result(result_id)
         raw_data_url = result.get('raw_data_url')
@@ -481,22 +491,22 @@ class QuantumInspireAPI:
 
     #  assets  #
 
-    def list_assets(self):
+    def list_assets(self) -> None:
         """ Prints a list of the assets registered to the current user the API is authenticated for.
             For each asset the name, identification number and project identification number is printed."""
         assets = self.get_assets()
         [print('Asset name: {name}, id: {id}, (project_id: {project_id})'.format(**asset)) for asset in assets]
 
-    def get_asset(self, asset_id):
+    def get_asset(self, asset_id: int) -> OrderedDict:
         """ Gets the properties of the asset, given the asset_id.
         Args:
-            asset_id (int): The asset identification number.
+            asset_id: The asset identification number.
 
         Raises:
             ApiError: If the requested asset does not exists.
 
         Returns:
-            OrderedDict: The properties describing the asset:
+            The properties describing the asset:
                 | key                       | description
                 |---------------------------|---------------------------------------------------------------------------
                 | url (str)                 | The url to get this asset.
@@ -514,28 +524,28 @@ class QuantumInspireAPI:
             raise ApiError('Asset with id {} does not exist!'.format(asset_id))
         return asset
 
-    def get_assets(self):
+    def get_assets(self) -> List[OrderedDict]:
         """ Gets all the assets registered for the user the API is currently authenticated for.
 
         Returns:
-            list[OrderedDict]: The assets with all of its properties.
-                               See 'get_asset' for the description of the asset properties.
+            The assets with all of its properties.
+            See 'get_asset' for the description of the asset properties.
         """
         return self._action(['assets', 'list'])
 
-    def _create_asset(self, name, project, content):
+    def _create_asset(self, name: str, project: OrderedDict, content: str) -> OrderedDict:
         """ This method is used by execute_qasm_async to generate a new asset with a unique name to hold the
             content of the cQASM program for the project given. Assets are deleted when the project for which the asset
             was created is deleted.
 
         Args:
-            name (str): The name of the new asset.
-            project (OrderedDict): The project to which the asset is linked to.
-            content (str): The cQASM code content.
+            name: The name of the new asset.
+            project: The project to which the asset is linked to.
+            content: The cQASM code content.
 
         Returns:
-            OrderedDict: The properties of the asset.
-                         See 'get_asset' for the description of the asset properties.
+            The properties of the asset.
+            See 'get_asset' for the description of the asset properties.
         """
         payload = {
             'name': name,
@@ -547,17 +557,18 @@ class QuantumInspireAPI:
 
     #  other  #
 
-    def _wait_for_completed_job(self, quantum_inspire_job, collect_max_tries, sec_retry_delay=0.5):
+    def _wait_for_completed_job(self, quantum_inspire_job: QuantumInspireJob, collect_max_tries: int,
+                                sec_retry_delay: float = 0.5) -> bool:
         """ Holds the process and requests the job status until completed or when
             the maximum number of tries has been reached.
 
         Args:
-            quantum_inspire_job (QuantumInspireJob): A job object.
-            collect_max_tries (int): The maximum number of request tries.
-            sec_retry_delay (float): The time delay in between job status checks in seconds.
+            quantum_inspire_job: A job object.
+            collect_max_tries: The maximum number of request tries.
+            sec_retry_delay: The time delay in between job status checks in seconds.
 
         Returns:
-            bool: True if the job result could be collected else False.
+            True if the job result could be collected else False.
         """
         attempts = itertools.count() if collect_max_tries is None else range(collect_max_tries)
         for attempt in attempts:
@@ -567,8 +578,9 @@ class QuantumInspireAPI:
                 return True
         return False
 
-    def execute_qasm(self, qasm, backend_type=None, number_of_shots=256, collect_tries=None,
-                     default_number_of_shots=256, identifier=None, full_state_projection=True):
+    def execute_qasm(self, qasm: str, backend_type: Union[OrderedDict, int, str] = None,
+                     number_of_shots: int = 256, collect_tries: int = None, default_number_of_shots: int = 256,
+                     identifier: str = None, full_state_projection: bool = True) -> OrderedDict:
         """ With this method a cQASM program is executed, and the result is returned when the job is completed.
 
             The method 'execute_qasm_async' is called which returns a QuantumInspireJob directly without waiting
@@ -584,17 +596,17 @@ class QuantumInspireAPI:
             are returned.
 
         Args:
-            qasm (str): The cQASM code as string object.
-            backend_type (OrderedDict, int, str or None): The backend_type to execute the algorithm on.
-            number_of_shots (int): Execution times of the algorithm before collecting the results.
-            collect_tries (int): The number of times the status of the job is check for completion before returning.
-            default_number_of_shots (int): The default used number of shots for the project.
-            identifier (str or None): The identifier to generate names for the project, asset and job when necessary.
-            full_state_projection (bool): Do not use full state projection when set to False (default is True).
+            qasm: The cQASM code as string object.
+            backend_type: The backend_type to execute the algorithm on.
+            number_of_shots: Execution times of the algorithm before collecting the results.
+            collect_tries: The number of times the status of the job is check for completion before returning.
+            default_number_of_shots: The default used number of shots for the project.
+            identifier: The identifier to generate names for the project, asset and job when necessary.
+            full_state_projection: Do not use full state projection when set to False (default is True).
 
         Returns:
-            OrderedDict: The results of the executed cQASM if successful else an empty dictionary if
-                         the results could not be collected within the given number of tries.
+            The results of the executed cQASM if successful else an empty dictionary if
+            the results could not be collected within the given number of tries.
         """
         delete_project_afterwards = self.project_name is None
         quantum_inspire_job = None
@@ -612,8 +624,10 @@ class QuantumInspireAPI:
                 project_identifier = quantum_inspire_job.get_project_identifier()
                 self.delete_project(project_identifier)
 
-    def execute_qasm_async(self, qasm, backend_type=None, number_of_shots=256, default_number_of_shots=256,
-                           identifier=None, full_state_projection=True, project=None, job_name=None, user_data=''):
+    def execute_qasm_async(self, qasm: str, backend_type: Union[OrderedDict, int, str] = None,
+                           number_of_shots:int = 256, default_number_of_shots:int = 256,
+                           identifier: str = None, full_state_projection: bool = True,
+                           project: OrderedDict = None, job_name: str = None, user_data: str = '') -> QuantumInspireJob:
         """ With this method a cQASM program (job) is scheduled to be executed asynchronously. The method returns
             directly without waiting for the job to complete, as opposed to method 'execute_qasm' which waits for
             the job to finish and returns the result.
@@ -654,20 +668,20 @@ class QuantumInspireAPI:
             the status of the job and retrieve the execution results when the job is completed.
 
         Args:
-            qasm (str): The qasm code as a string object.
-            backend_type (OrderedDict, int, str or None): The backend_type to execute the algorithm on.
-            number_of_shots (int): Execution times of the algorithm before the results can be collected.
-            default_number_of_shots (int): The default used number of shots for the project.
-            identifier (str or None): The identifier used for generating names for the project, asset and job.
-            full_state_projection (bool): Do not use full state projection when set to False (default is True).
-            project (OrderedDict): The properties of an existing project, the asset and job are linked to. Only used
-                                   when the project_name member of the api is empty.
-            job_name(str): Name for the job that is to be executed, when empty a job name is generated (see identifier)
-            user_data(str): Data that the user wants to pass along with the job.
+            qasm: The qasm code as a string object.
+            backend_type: The backend_type to execute the algorithm on.
+            number_of_shots: Execution times of the algorithm before the results can be collected.
+            default_number_of_shots: The default used number of shots for the project.
+            identifier: The identifier used for generating names for the project, asset and job.
+            full_state_projection: Do not use full state projection when set to False (default is True).
+            project: The properties of an existing project, the asset and job are linked to. Only used
+                     when the project_name member of the api is empty.
+            job_name: Name for the job that is to be executed, when empty a job name is generated (see identifier)
+            user_data: Data that the user wants to pass along with the job.
 
         Returns:
-            QuantumInspireJob: An encapsulated job object containing methods the get the status of the job and
-                               retrieve the execution results.
+            An encapsulated job object containing methods the get the status of the job and
+            retrieve the execution results.
         """
         if not isinstance(backend_type, OrderedDict):
             backend_type = self.get_backend_type(backend_type)
