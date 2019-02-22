@@ -30,10 +30,10 @@ from qiskit.qobj import QobjExperiment, Qobj
 
 from quantuminspire.api import QuantumInspireAPI
 from quantuminspire.exceptions import QisKitBackendError
-from quantuminspire.qiskit import QuantumInspireProvider
-from quantuminspire.qiskit.backend_qx import QuantumInspireBackend
 from quantuminspire.qiskit.qi_job import QIJob
 from quantuminspire.version import __version__ as quantum_inspire_version
+from quantuminspire.qiskit.backend_qx import QuantumInspireBackend
+from quantuminspire.qiskit.quantum_inspire_provider import QuantumInspireProvider
 
 
 def first_item(iterable):
@@ -222,6 +222,7 @@ class TestQiSimulatorPy(unittest.TestCase):
 
     def test_get_experiment_results_multiple_single_shots(self):
         one_shot_results = {'0x0': 0, '0x1': 0, '0x2': 0, '0x3': 0}
+        np.random.seed(2019)
         for i in range(10000):
             number_of_shots = 1
             self._basic_job_dictionary['number_of_shots'] = number_of_shots
@@ -250,10 +251,10 @@ class TestQiSimulatorPy(unittest.TestCase):
             self.assertEqual(list(experiment_result.data.counts.to_dict().keys())[0], experiment_result.data.memory[0])
             one_shot_results[experiment_result.data.memory[0]] += 1
 
-        self.assertIn(one_shot_results['0x0'], range(1850, 2150))
-        self.assertIn(one_shot_results['0x1'], range(2850, 3150))
-        self.assertIn(one_shot_results['0x2'], range(3850, 4150))
-        self.assertIn(one_shot_results['0x3'], range(850, 1150))
+        self.assertEqual(one_shot_results['0x0'], 2066)
+        self.assertEqual(one_shot_results['0x1'], 2947)
+        self.assertEqual(one_shot_results['0x2'], 4003)
+        self.assertEqual(one_shot_results['0x3'], 984)
 
     def test_validate_NegativeShotCount(self):
         simulator = QuantumInspireBackend(Mock(), Mock())
@@ -296,8 +297,7 @@ class TestQiSimulatorPy(unittest.TestCase):
     def test_retrieve_job(self):
         api = Mock()
         api.get_jobs_from_project.return_value = []
-        provider = 'provider'
-        backend = QuantumInspireBackend(api, provider)
+        backend = QuantumInspireBackend(api, QuantumInspireProvider())
         qi_job = backend.retrieve_job('42')
         api.get_project.assert_called_with(42)
         self.assertEqual('42', qi_job.job_id())
@@ -305,8 +305,7 @@ class TestQiSimulatorPy(unittest.TestCase):
     def test_retrieve_job_with_error(self):
         api = Mock(side_effect=ErrorMessage(error='404'))
         api.get_project.side_effect = ErrorMessage(error='404')
-        provider = 'provider'
-        backend = QuantumInspireBackend(api, provider)
+        backend = QuantumInspireBackend(api, QuantumInspireProvider())
         with self.assertRaises(QisKitBackendError) as error:
             backend.retrieve_job('wrong')
         self.assertEqual(("Could not retrieve job with job_id 'wrong' ",), error.exception.args)

@@ -5,7 +5,6 @@ from qiskit.providers import BaseProvider
 
 from quantuminspire.api import QuantumInspireAPI
 from quantuminspire.exceptions import ApiError
-from quantuminspire.qiskit.backend_qx import QuantumInspireBackend
 
 QI_URL = 'https://api.quantum-inspire.com'
 
@@ -32,6 +31,8 @@ class QuantumInspireProvider(BaseProvider):
         Returns:
             list<QuantumInspireBackend>: List of backends that meet the filter requirements.
         """
+        from quantuminspire.qiskit.backend_qx import QuantumInspireBackend
+
         if self._api is None:
             raise ApiError('Authentication details have not been set.')
 
