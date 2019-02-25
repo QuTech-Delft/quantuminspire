@@ -19,7 +19,7 @@ import io
 import json
 import uuid
 import numpy as np
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Any
 from collections import defaultdict, OrderedDict, Counter
 
 from coreapi.exceptions import ErrorMessage
@@ -36,7 +36,6 @@ from quantuminspire.qiskit.qi_job import QIJob
 from quantuminspire.version import __version__ as quantum_inspire_version
 from quantuminspire.job import QuantumInspireJob
 from quantuminspire.api import QuantumInspireAPI
-from quantuminspire.qiskit.quantum_inspire_provider import QuantumInspireProvider
 
 
 class QuantumInspireBackend(BaseBackend):
@@ -54,13 +53,13 @@ class QuantumInspireBackend(BaseBackend):
         max_shots=1024
     )
 
-    def __init__(self, api: QuantumInspireAPI, provider: QuantumInspireProvider,
+    def __init__(self, api: QuantumInspireAPI, provider: Any,
                  configuration: BackendConfiguration = None) -> None:
         """ Python implementation of a quantum simulator using Quantum Inspire API.
 
         Args:
             api: The interface instance to the Quantum Inspire API.
-            provider: Provider for this backend.
+            provider (QuantumInspireProvider): Provider for this backend.
             configuration: The configuration of the quantum inspire backend. The
                 configuration must implement the fields given by the QiSimulatorPy.DEFAULT_CONFIGURATION. All
                 configuration fields are listed in the table below. The table rows with an asterisk specify fields which
