@@ -251,6 +251,19 @@ class TestProjectQBackend(unittest.TestCase):
         with patch('sys.stdout', new_callable=io.StringIO):
             self.assertRaises(RuntimeError, backend.receive, command_list)
 
+    @patch('quantuminspire.projectq.backend_qx.get_control_count')
+    def test_receive_multiple_flush(self, function_mock):
+        function_mock.return_value = 1
+        command = MagicMock(gate=NOT, qubits=[[MagicMock(id=0)], [MagicMock(id=1)]])
+        command_list = [command, MagicMock(gate=FlushGate()), MagicMock(gate=FlushGate())]
+        api = MockApiClient()
+        backend = QIBackend(quantum_inspire_api=api)
+        backend.main_engine = MagicMock()
+        with patch('sys.stdout', new_callable=io.StringIO):
+            backend.receive(command_list)
+        self.assertEqual(backend.qasm, "")
+        self.assertTrue(backend._clear)
+
     def test_run_NoQasm(self):
         api = MockApiClient()
         backend = QIBackend(quantum_inspire_api=api)
