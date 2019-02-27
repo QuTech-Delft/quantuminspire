@@ -19,7 +19,7 @@ import io
 import json
 import uuid
 import numpy as np
-from typing import Dict, List, Tuple, Any
+from typing import Dict, List, Tuple, Union, Optional, Any
 from collections import defaultdict, OrderedDict, Counter
 
 from coreapi.exceptions import ErrorMessage
@@ -54,7 +54,7 @@ class QuantumInspireBackend(BaseBackend):
     )
 
     def __init__(self, api: QuantumInspireAPI, provider: Any,
-                 configuration: BackendConfiguration = None) -> None:
+                 configuration: Optional[BackendConfiguration] = None) -> None:
         """ Python implementation of a quantum simulator using Quantum Inspire API.
 
         Args:
@@ -154,8 +154,8 @@ class QuantumInspireBackend(BaseBackend):
 
             return stream.getvalue()
 
-    def _submit_experiment(self, experiment: QobjExperiment, number_of_shots: int, project: OrderedDict = None)\
-            -> QuantumInspireJob:
+    def _submit_experiment(self, experiment: QobjExperiment, number_of_shots: int,
+                           project: Optional[OrderedDict] = None) -> QuantumInspireJob:
         compiled_qasm = self._generate_cqasm(experiment)
         measurements = self._collect_measurements(experiment)
         user_data = {'name': experiment.header.name, 'memory_slots': experiment.header.memory_slots,
@@ -259,7 +259,7 @@ class QuantumInspireBackend(BaseBackend):
                     raise QisKitBackendError('Operation after measurement!')
 
     @staticmethod
-    def _collect_measurements(experiment: QobjExperiment) -> Dict:
+    def _collect_measurements(experiment: QobjExperiment) -> Dict[str, Union[List[List[int]], int]]:
         """ Determines the measured qubits and classical bits. The full-state measured
             qubits is returned when no measurements are present in the compiled circuit.
 
@@ -284,7 +284,8 @@ class QuantumInspireBackend(BaseBackend):
         return {'measurements': measurements, 'number_of_clbits': number_of_clbits}
 
     @staticmethod
-    def __qubit_to_classical_hex(qubit_register: int, measurements: Dict, number_of_qubits: int) -> str:
+    def __qubit_to_classical_hex(qubit_register: str, measurements: Dict[str, Union[List[List[int]], int]],
+                                 number_of_qubits: int) -> str:
         """ This function converts the qubit register data to the hexadecimal representation of the classical state.
 
         Args:
@@ -305,7 +306,8 @@ class QuantumInspireBackend(BaseBackend):
         return classical_state_hex
 
     @staticmethod
-    def __convert_histogram(result: Dict, measurements: Dict) -> Obj:
+    def __convert_histogram(result: Dict[str, Union[int, str, float, Dict[str, float]]],
+                            measurements: Dict[str, Union[List[List[int]], int]]) -> Obj:
         """ The quantum inspire backend always uses full state projection. The SDK user
             can measure not all qubits and change the combined classical bits. This function
             converts the result to a histogram output that represents the probabilities
@@ -332,7 +334,8 @@ class QuantumInspireBackend(BaseBackend):
                                                       key=lambda kv: int(kv[0], 16)))
         return Obj.from_dict(full_state_histogram_obj)
 
-    def __convert_result_data(self, result: Dict, measurements: Dict) -> Tuple[Obj, List[str]]:
+    def __convert_result_data(self, result: Dict[str, Union[int, str, float, Dict[str, float]]],
+                              measurements: Dict[str, Union[List[List[int]], int]]) -> Tuple[Obj, List[str]]:
         """ The quantum inspire backend returns the single shot values as raw data. This function
             converts this list of single shot values to hexadecimal memory data according the Qiskit spec.
             From this memory data the counts histogram is constructed by counting the single shot values.
