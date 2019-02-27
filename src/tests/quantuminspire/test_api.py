@@ -16,6 +16,7 @@ limitations under the License.
 """
 
 import io
+from coreapi.exceptions import CoreAPIException, ErrorMessage
 from collections import OrderedDict
 from functools import partial
 from unittest import mock, TestCase
@@ -93,7 +94,7 @@ class TestQuantumInspireAPI(TestCase):
 
     def test_zload_schema_RaisesException(self):
         def raises_error(self, url):
-            raise NotImplementedError
+            raise CoreAPIException
 
         coreapi_client = MockApiClient
         coreapi_client.get = raises_error
@@ -136,7 +137,8 @@ class TestQuantumInspireAPI(TestCase):
     def __mock_backendtype_handler(self, mock_api, document, keys, params=None, validate=None,
                                    overrides=None, action=None, encoding=None, transform=None):
         self.assertEqual(keys[1], 'read')
-        self.assertEqual(params, {'id': 1})
+        if params['id'] != 1:
+            raise ErrorMessage('Not found')
         return OrderedDict([('url', 'https://api.quantum-inspire.com/backendtypes/1/'),
                             ('name', 'QX Single-node Simulator'),
                             ('is_hardware_backend', False),
@@ -227,7 +229,8 @@ class TestQuantumInspireAPI(TestCase):
         self.assertDictEqual(params, input_params)
         self.assertEqual(keys[1], input_key)
         if input_key == 'read' or input_key == 'delete':
-            self.assertEqual(11, params['id'])
+            if params['id'] != 11:
+                raise ErrorMessage('Not found')
         return OrderedDict([('url', 'https://api.quantum-inspire.com/projects/11/'),
                             ('id', 11),
                             ('name', 'Grover algorithm - 1900-01-01 10:00'),
@@ -323,7 +326,8 @@ class TestQuantumInspireAPI(TestCase):
         self.assertDictEqual(params, input_params)
         self.assertEqual(keys[1], input_key)
         if input_key == 'read' or input_key == 'delete' or input_key == 'jobs':
-            self.assertEqual(509, params['id'])
+            if params['id'] != 509:
+                raise ErrorMessage('Not found')
         return OrderedDict([('url', 'https,//api.quantum-inspire.com/jobs/509/'),
                             ('name', 'qi-sdk-job-7e37c8fa-a76b-11e8-b5a0-a44cc848f1f2'),
                             ('id', 509),
@@ -458,7 +462,8 @@ class TestQuantumInspireAPI(TestCase):
         self.assertDictEqual(params, input_params)
         self.assertEqual(keys[1], input_key)
         if input_key == 'read':
-            self.assertEqual(485, params['id'])
+            if params['id'] != 485:
+                raise ErrorMessage('Not found')
         return OrderedDict([('id', 485),
                             ('url', 'https,//api.quantum-inspire.com/results/485/'),
                             ('job', 'https,//api.quantum-inspire.com/jobs/20/'),
@@ -542,7 +547,8 @@ class TestQuantumInspireAPI(TestCase):
         self.assertDictEqual(params, input_params)
         self.assertEqual(keys[1], input_key)
         if input_key == 'read' or input_key == 'delete':
-            self.assertEqual(171, params['id'])
+            if params['id'] != 171:
+                raise ErrorMessage('Not found')
         return OrderedDict([('url', 'https,//api.quantum-inspire.com/assets/171/'),
                             ('id', 171),
                             ('name', 'Grover algorithm - 2018-07-18 13,32'),
