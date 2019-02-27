@@ -1,5 +1,5 @@
 from copy import copy
-from typing import List, Optional
+from typing import List, Optional, Any
 
 from coreapi.auth import BasicAuthentication
 from qiskit.providers import BaseProvider
@@ -14,7 +14,7 @@ QI_URL = 'https://api.quantum-inspire.com'
 class QuantumInspireProvider(BaseProvider):
     """ Provides a backend and an api for a single Quantum Inspire account. """
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self._backends = []
         self._api = None
@@ -22,7 +22,7 @@ class QuantumInspireProvider(BaseProvider):
     def __str__(self) -> str:
         return 'QI'
 
-    def backends(self, name: str = None, **kwargs) -> List[QuantumInspireBackend]:
+    def backends(self, name: Optional[str] = None, **kwargs: Any) -> List[QuantumInspireBackend]:
         """
         Provides a list of backends.
 
