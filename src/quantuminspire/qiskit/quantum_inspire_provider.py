@@ -1,11 +1,12 @@
 from copy import copy
+from typing import List, Optional, Any
 
 from coreapi.auth import BasicAuthentication
 from qiskit.providers import BaseProvider
 
+from quantuminspire.qiskit.backend_qx import QuantumInspireBackend
 from quantuminspire.api import QuantumInspireAPI
 from quantuminspire.exceptions import ApiError
-from quantuminspire.qiskit.backend_qx import QuantumInspireBackend
 
 QI_URL = 'https://api.quantum-inspire.com'
 
@@ -13,24 +14,24 @@ QI_URL = 'https://api.quantum-inspire.com'
 class QuantumInspireProvider(BaseProvider):
     """ Provides a backend and an api for a single Quantum Inspire account. """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self._backends = []
         self._api = None
 
-    def __str__(self):
+    def __str__(self) -> str:
         return 'QI'
 
-    def backends(self, name=None, **kwargs):
+    def backends(self, name: Optional[str] = None, **kwargs: Any) -> List[QuantumInspireBackend]:
         """
         Provides a list of backends.
 
         Args:
-            name (str): Name of the requested backend.
-            **kwargs (dict): Used for filtering, not implemented.
+            name: Name of the requested backend.
+            **kwargs: Used for filtering, not implemented.
 
         Returns:
-            list<QuantumInspireBackend>: List of backends that meet the filter requirements.
+            List of backends that meet the filter requirements.
         """
         if self._api is None:
             raise ApiError('Authentication details have not been set.')
@@ -47,13 +48,13 @@ class QuantumInspireProvider(BaseProvider):
 
         return backends
 
-    def set_authentication_details(self, email, password, qi_url=None):
+    def set_authentication_details(self, email: str, password: str, qi_url: Optional[str] = None) -> None:
         """
         Set a single authentication for Quantum Inspire.
 
         Args:
-            email (str): A valid email address.
-            password (str): Password for the account.
+            email: A valid email address.
+            password: Password for the account.
             qi_url: Optional URL that points to quantum-inspire api.
 
         """
