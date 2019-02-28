@@ -249,7 +249,7 @@ class TestProjectQBackend(unittest.TestCase):
         backend = QIBackend(quantum_inspire_api=api)
         backend.main_engine = MagicMock()
         with patch('sys.stdout', new_callable=io.StringIO):
-            self.assertRaises(RuntimeError, backend.receive, command_list)
+            self.assertRaisesRegex(RuntimeError, "Operation after Flush.", backend.receive, command_list)
 
     @patch('quantuminspire.projectq.backend_qx.get_control_count')
     def test_receive_multiple_flush(self, function_mock):
