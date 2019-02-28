@@ -140,3 +140,12 @@ Run all unittests and collect the code coverage using:
 coverage run --source="./src/quantuminspire" -m unittest discover -s src/tests -t src -v
 coverage report -m
 ```
+
+##Note
+
+If you are getting import errors related to `tests.quantuminspire` when running
+the above commands after a `pip install -e .`, as a workaround you should remove
+the package `tests` installed by older versions of `marshmallow-polyfield` (a Qiskit
+dependency):
+
+`rm -Rf env/lib/python3.6/site-packages/tests`
