@@ -264,6 +264,22 @@ class TestProjectQBackend(unittest.TestCase):
         self.assertEqual(backend.qasm, "")
         self.assertTrue(backend._clear)
 
+    def test_maximum_qubit(self):
+        command_alloc0 = MagicMock(gate=Allocate, qubits=[[MagicMock(id=0)], [MagicMock(id=1)]])
+        command_alloc1 = MagicMock(gate=Allocate, qubits=[[MagicMock(id=1)], [MagicMock(id=1)]])
+        command_alloc2 = MagicMock(gate=Allocate, qubits=[[MagicMock(id=2)], [MagicMock(id=1)]])
+        command_dealloc0 = MagicMock(gate=Deallocate, qubits=[[MagicMock(id=0)], [MagicMock(id=1)]])
+        command_dealloc1 = MagicMock(gate=Deallocate, qubits=[[MagicMock(id=1)], [MagicMock(id=1)]])
+        command_dealloc2 = MagicMock(gate=Deallocate, qubits=[[MagicMock(id=2)], [MagicMock(id=1)]])
+        command_list = [command_alloc1, command_alloc2, command_dealloc1,
+                        command_alloc0, command_dealloc0, command_dealloc2]
+        api = MockApiClient()
+        backend = QIBackend(quantum_inspire_api=api)
+        backend.main_engine = MagicMock()
+        backend.receive(command_list)
+        self.assertEqual(backend._number_of_qubits, 3)
+        self.assertEqual(len(backend._allocated_qubits), 0)
+
     def test_run_NoQasm(self):
         api = MockApiClient()
         backend = QIBackend(quantum_inspire_api=api)

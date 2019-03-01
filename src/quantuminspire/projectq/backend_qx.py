@@ -20,9 +20,9 @@ limitations under the License.
 """
 
 import random
-from collections import defaultdict, OrderedDict
+from collections import defaultdict
 from functools import reduce
-from typing import List, Dict, Iterator, Union, Optional
+from typing import List, Dict, Iterator, Union, Optional, Any, Set
 
 from projectq.cengines import BasicEngine
 from projectq.meta import LogicalQubitIDTag, get_control_count
@@ -39,8 +39,8 @@ class QIBackend(BasicEngine):
 
     """
 
-    def __init__(self, num_runs: int = 1024, verbose: int = 0, quantum_inspire_api: QuantumInspireAPI = None,
-                 backend_type: Optional[Union[OrderedDict, int, str]] = None):
+    def __init__(self, num_runs: int = 1024, verbose: int = 0, quantum_inspire_api: Optional[QuantumInspireAPI] = None,
+                 backend_type: Optional[Union[Dict[str, Any], int, str]] = None) -> None:
         """
         Initialize the Backend object.
 
@@ -52,21 +52,21 @@ class QIBackend(BasicEngine):
                           used.
         """
         BasicEngine.__init__(self)
-        self._flushed = False
+        self._flushed: bool = False
         """ bool: Because engines are meant to be 'single use' by the way ProjectQ is designed,
         any additional gates received after a FlushGate triggers an exception. """
         self._reset()
-        self._num_runs = num_runs
-        self._verbose = verbose
-        self._cqasm = str()
-        self._measured_states = {}
-        self._measured_ids = []
-        self._allocated_qubits = set()
-        self._max_qubit_id = -1
+        self._num_runs: int = num_runs
+        self._verbose: int = verbose
+        self._cqasm: str = str()
+        self._measured_states: Dict[int, float] = {}
+        self._measured_ids: List[int] = []
+        self._allocated_qubits: Set[int] = set()
+        self._max_qubit_id: int = -1
         if not quantum_inspire_api:
             raise RuntimeError("Api is required")
-        self.quantum_inspire_api = quantum_inspire_api
-        self.backend_type = backend_type
+        self.quantum_inspire_api: QuantumInspireAPI = quantum_inspire_api
+        self.backend_type: Optional[Union[Dict[str, Any], int, str]] = backend_type
 
     def cqasm(self) -> str:
         """ Return cqasm code that is generated last. """
@@ -225,7 +225,7 @@ class QIBackend(BasicEngine):
                                "eng.flush() was called and that the qubit "
                                "was eliminated during optimization."
                                .format(qb_id))
-        return mapping[qb_id]
+        return int(mapping[qb_id])
 
     def get_probabilities(self, qureg: List[Qubit]) -> Dict[str, float]:
         """
@@ -343,10 +343,11 @@ class QIBackend(BasicEngine):
         self._measured_ids (which are supposed to be logical qubit id's).
         """
         mask_bits = map(lambda bit: self._logical_to_physical(bit), self._measured_ids)
-        self._measured_states = QIBackend._filter_histogram(self._quantum_inspire_result['histogram'], mask_bits)
+        histogram: Dict[int, float] = {int(k): v for k, v in self._quantum_inspire_result['histogram'].items()}
+        self._measured_states = QIBackend._filter_histogram(histogram, mask_bits)
 
     @staticmethod
-    def _filter_histogram(histogram: Dict[Union[int, str], float], mask_bits: Iterator[int]) -> Dict[int, float]:
+    def _filter_histogram(histogram: Dict[int, float], mask_bits: Iterator[int]) -> Dict[int, float]:
         """ Filter a histogram by mask_bits.
 
         Args:
@@ -369,9 +370,9 @@ class QIBackend(BasicEngine):
         """
         mask = reduce(lambda x, y: x | (1 << y), mask_bits, 0)
 
-        filtered_states = defaultdict(lambda: 0)
+        filtered_states: Dict[int, float] = defaultdict(lambda: 0)
         for state, probability in histogram.items():
-            filtered_states[int(state) & mask] += probability
+            filtered_states[state & mask] += probability
 
         return dict(filtered_states)
 
@@ -379,8 +380,8 @@ class QIBackend(BasicEngine):
         """ Samples the _measured_states for a single result and registers this as the outcome of the circuit. """
 
         class QB:
-            def __init__(self, qubit_id):
-                self.id = qubit_id
+            def __init__(self, qubit_id: int) -> None:
+                self.id: int = qubit_id
 
         random_measurement = self._sample_measured_states_once()
 
@@ -417,7 +418,7 @@ class QIBackend(BasicEngine):
                 self._flushed = True
                 self._reset()
 
-    def __add_measure_all_qubits(self):
+    def __add_measure_all_qubits(self) -> None:
         """ Adds measurements at the end of the quantum algorithm for all allocated qubits. """
         qubits_reference = self.main_engine.active_qubits.copy()
         qubits_counts = len(qubits_reference)
