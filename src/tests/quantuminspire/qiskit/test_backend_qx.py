@@ -147,7 +147,7 @@ class TestQiSimulatorPy(unittest.TestCase):
         api.get.return_value = {'histogram': [], 'raw_text': 'Error'}
         api.get_jobs_from_project.return_value = [{'results': '{}'}]
         job = Mock()
-        job.get_id.return_value = 42
+        job.job_id.return_value = '42'
         simulator = QuantumInspireBackend(api, Mock())
         with self.assertRaises(QisKitBackendError) as error:
             simulator.get_experiment_results(job)
@@ -326,7 +326,7 @@ class ApiMock(Mock):
         self.raw_data = res2
 
     def get_raw_data(self, result_id):
-        if result_id == '1':
+        if result_id == 1:
             return self.raw_data
         return None
 

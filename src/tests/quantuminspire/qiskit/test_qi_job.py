@@ -44,7 +44,7 @@ class TestQIJob(unittest.TestCase):
         job = QIJob(backend, job_id, api, qobj)
 
         self.assertIs(qobj, job._qobj)
-        self.assertIsNone(job.job_id())
+        self.assertEqual(job.job_id(), '')
         self.assertEqual(api, job._api)
         self.assertIsNone(job.experiments)
         self.assertEqual(JobStatus.INITIALIZING, job._status)
@@ -53,7 +53,8 @@ class TestQIJob(unittest.TestCase):
         api = Mock()
         api.get_jobs_from_project.return_value = []
         job_id = '42'
-        backend = 'test_backend'
+        backend = Mock()
+        backend.run.return_value = '25'
         job = QIJob(backend, job_id, api)
         with self.assertRaises(JobError):
             job.submit()
@@ -107,7 +108,7 @@ class TestQIJob(unittest.TestCase):
         backend = Mock()
         job = QIJob(backend, job_id, api)
         job.cancel()
-        api.delete_project.assert_called_with('42')
+        api.delete_project.assert_called_with(42)
 
     def test_status(self):
         api = Mock()
