@@ -11,7 +11,7 @@ from quantuminspire.exceptions import ApiError
 QI_URL = 'https://api.quantum-inspire.com'
 
 
-class QuantumInspireProvider(BaseProvider):
+class QuantumInspireProvider(BaseProvider):  # type: ignore
     """ Provides a backend and an api for a single Quantum Inspire account. """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:

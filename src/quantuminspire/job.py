@@ -10,7 +10,7 @@ class QuantumInspireJob:
             methods to check the status and retrieve the results from the API.
 
         Arguments:
-            api (QuantumInspireApi): An instance to the API.
+            api: An instance to the API.
             job_identifier: The job identification number.
         """
         QuantumInspireJob.__check_arguments(api, job_identifier)

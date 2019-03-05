@@ -38,18 +38,18 @@ from quantuminspire.job import QuantumInspireJob
 from quantuminspire.version import __version__ as quantum_inspire_version
 
 
-class QuantumInspireBackend(BaseBackend):
+class QuantumInspireBackend(BaseBackend):  # type: ignore
     DEFAULT_CONFIGURATION = BackendConfiguration(
         backend_name='qi_simulator',
         backend_version=quantum_inspire_version,
         n_qubits=26,
         basis_gates=['x', 'y', 'z', 'h', 'rx', 'ry', 'rz', 's', 'cx', 'ccx', 'u1', 'u2', 'u3', 'id', 'snapshot'],
         gates=[GateConfig(name='NotUsed', parameters=['NaN'], qasm_def='NaN')],
-        conditional=False,
-        simulator=True,
         local=False,
-        memory=True,
+        simulator=True,
+        conditional=False,
         open_pulse=False,
+        memory=True,
         max_shots=1024
     )
 
@@ -59,35 +59,37 @@ class QuantumInspireBackend(BaseBackend):
 
         Args:
             api: The interface instance to the Quantum Inspire API.
-            provider (QuantumInspireProvider): Provider for this backend.
+            provider: Provider for this backend.
             configuration: The configuration of the quantum inspire backend. The
                 configuration must implement the fields given by the QiSimulatorPy.DEFAULT_CONFIGURATION. All
                 configuration fields are listed in the table below. The table rows with an asterisk specify fields which
                 can have a custom value and are allowed to be changed according to the description column.
 
-                | key                    | description
-                |------------------------|----------------------------------------------------------------------------
-                | name (str)*            | The name of the quantum inspire backend. The API can list the name of each
-                                            available backend using the function api.list_backend_types(). One of the
-                                            listed names must be used.
-                | basis_gates (str)      | A comma-separated set of basis gates to compile to.
-                | gates (GateConfig):    | List of basis gates on the backend. Not used.
-                | conditional (bool)     | Backend supports conditional operations.
-                | memory (bool):         | Backend supports memory. True.
-                | simulator (bool)       | Specifies whether the backend is a simulator or a quantum system. Not used.
-                | local (bool)           | Indicates whether the system is running locally or remotely. Not used.
-                | open_pulse (bool)      | Backend supports open pulse. False.
-                | max_shots (int)        | Maximum number of shots supported.
+                | key                     | description
+                |-------------------------|----------------------------------------------------------------------------
+                | backend_name (str)*     | The name of the quantum inspire backend. The API can list the name of each
+                |                         | available backend using the function api.list_backend_types(). One of the
+                |                         | listed names must be used.
+                | backend_version (str)   | Backend version in the form X.Y.Z.
+                | n_qubits (int)          | Number of qubits.
+                | basis_gates (list[str]) | A list of basis gates to compile to.
+                | gates (GateConfig)      | List of basis gates on the backend. Not used.
+                | local (bool)            | Indicates whether the system is running locally or remotely. Not used.
+                | simulator (bool)        | Specifies whether the backend is a simulator or a quantum system. Not used.
+                | conditional (bool)      | Backend supports conditional operations.
+                | open_pulse (bool)       | Backend supports open pulse. False.
+                | memory (bool)           | Backend supports memory. True.
+                | max_shots (int)         | Maximum number of shots supported.
         """
         super().__init__(configuration=(configuration or
                                         QuantumInspireBackend.DEFAULT_CONFIGURATION),
                          provider=provider)
-        self.__backend = api.get_backend_type_by_name(self.name())
-        self.__api = api
+        self.__backend: Dict[str, Any] = api.get_backend_type_by_name(self.name())
+        self.__api: QuantumInspireAPI = api
 
     @property
     def backend_name(self) -> str:
-        return self.name()
+        return self.name()  # type: ignore
 
     def run(self, qobj: Qobj) -> QIJob:
         """ Submits a quantum job to the Quantum Inspire platform.

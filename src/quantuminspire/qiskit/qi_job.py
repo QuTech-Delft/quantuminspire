@@ -8,7 +8,7 @@ from quantuminspire import __version__ as quantum_inspire_version
 from quantuminspire.api import QuantumInspireAPI
 
 
-class QIJob(BaseJob):
+class QIJob(BaseJob):  # type: ignore
     """
     A job that is to be executed on the Quantum-inspire platform. A QIJob is normally created by calling run on the
     QuantumInspireBackend but can also be recreated using a job_id:
@@ -23,7 +23,7 @@ class QIJob(BaseJob):
         Construct a new QIJob object. Not normally called directly, use a backend object to create/retrieve jobs.
 
         Args:
-            backend (QuantumInspireBackend): A quantum-inspire backend.
+            backend: A quantum-inspire backend.
             job_id: Id of the job as provided by the quantum-inspire api.
             api: A quantum-inspire api.
             qobj: A qiskit quantum object.
