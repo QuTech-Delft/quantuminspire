@@ -34,7 +34,7 @@ from quantuminspire.api import QuantumInspireAPI
 from quantuminspire.exceptions import ProjectQBackendError
 
 
-class QIBackend(BasicEngine):
+class QIBackend(BasicEngine):  # type: ignore
     """ Backend for Quantum Inspire
 
     """
