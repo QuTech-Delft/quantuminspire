@@ -1,3 +1,10 @@
+properties([
+  pipelineTriggers([[$class: 'PeriodicFolderTrigger', interval: '1d']]),
+  parameters([
+    string(name: 'API_URL', defaultValue: 'https://api.quantum-inspire.com/', description: 'Quantum Inspire API url'),
+    string(name: 'API_CREDENTIALS_ID', defaultValue: 'api.quantum-inspire.com', description: 'Jenkins credentials ID'),
+  ])
+])
 pipeline {
     agent {
         dockerfile {
@@ -5,29 +12,53 @@ pipeline {
               args '-v pip_cache:/var/pip_cache'
         }
     }
+    environment {
+       PERSIST_WORKSPACE = ""
+    }
     stages {
-        stage('Build') {
+        stage('Checkout modules') {
             steps {
                 sh 'virtualenv venv'
-                sh '. ./venv/bin/activate && pip install .[qiskit,projectq] --cache-dir /var/pip_cache'
-                sh 'pwd'
-                sh 'ls -lah'
-            }
-        }
-        stage('Tests') {
-            steps {
                 sh '''
-                       . ./venv/bin/activate &&
-                       coverage run --source="./src/quantuminspire" -m unittest discover -s src/tests -t src -v &&
-                       coverage report -m &&
-                       coverage xml
+                    . ./venv/bin/activate &&
+                    pwd &&
+                    ls -lah &&
+                    pip install qiskit &&
+                    pip uninstall -y qiskit &&
+                    git clone https://github.com/Qiskit/qiskit &&
+                    pip install ./qiskit -r ./qiskit/requirements-dev.txt
                    '''
             }
         }
-        stage('Coverage') {
+        stage('Build') {
             steps {
-                step([$class: 'CoberturaPublisher', coberturaReportFile: 'coverage.xml'])
+                sh 'virtualenv venv'
+                sh '. ./venv/bin/activate && pip install . --cache-dir /var/pip_cache -r ./src/tests/requirements.txt'
+           }
+        }
+        stage('Backend Test') {
+            steps {
+                script {
+                    PERSIST_WORKSPACE = WORKSPACE
+                }
+                dir(PERSIST_WORKSPACE) {
+                    withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: API_CREDENTIALS_ID,
+                        usernameVariable: 'API_USERNAME', passwordVariable: 'API_PASSWORD']]) {
+                        sh 'pwd'
+                        sh 'set'
+                        sh 'echo "API_URL: ${API_URL}"'
+                        sh 'echo "API_CREDENTIALS_ID: ${API_CREDENTIALS_ID}"'
+                        sh 'echo "API_USERNAME: ${API_USERNAME}"'
+                        sh 'echo "API_PASSWORD: ${API_PASSWORD}"'
+                        sh '. ./venv/bin/activate && python ./docs/example_qiskit_entangle.py'
+                    }
+                }
             }
         }
+        //stage('Collect') {
+            //steps {
+            //    step([$class: 'CoberturaPublisher', coberturaReportFile: 'coverage.xml'])
+            //}
+        //}
     }
 }

@@ -23,8 +23,8 @@ from qiskit.tools.compiler import execute
 
 from quantuminspire.qiskit import QI
 
-QI_EMAIL = os.getenv('QI_EMAIL')
-QI_PASSWORD = os.getenv('QI_PASSWORD')
+QI_EMAIL = os.getenv('API_USERNAME')
+QI_PASSWORD = os.getenv('API_PASSWORD')
 
 
 def get_authentication():
