@@ -19,7 +19,7 @@ import io
 import json
 import uuid
 import numpy as np
-from typing import Dict, List, Tuple, Union, Optional, Any
+from typing import Dict, List, Tuple, Optional, Any
 from collections import defaultdict, OrderedDict, Counter
 
 from coreapi.exceptions import ErrorMessage
@@ -30,26 +30,26 @@ from qiskit.qobj import Qobj, QobjExperiment
 from qiskit.result.models import ExperimentResult, ExperimentResultData
 from qiskit.validation.base import Obj
 
-from quantuminspire.exceptions import QisKitBackendError
 from quantuminspire.qiskit.circuit_parser import CircuitToString
 from quantuminspire.qiskit.qi_job import QIJob
-from quantuminspire.version import __version__ as quantum_inspire_version
-from quantuminspire.job import QuantumInspireJob
 from quantuminspire.api import QuantumInspireAPI
+from quantuminspire.exceptions import QisKitBackendError
+from quantuminspire.job import QuantumInspireJob
+from quantuminspire.version import __version__ as quantum_inspire_version
 
 
-class QuantumInspireBackend(BaseBackend):
+class QuantumInspireBackend(BaseBackend):  # type: ignore
     DEFAULT_CONFIGURATION = BackendConfiguration(
         backend_name='qi_simulator',
         backend_version=quantum_inspire_version,
         n_qubits=26,
         basis_gates=['x', 'y', 'z', 'h', 'rx', 'ry', 'rz', 's', 'cx', 'ccx', 'u1', 'u2', 'u3', 'id', 'snapshot'],
         gates=[GateConfig(name='NotUsed', parameters=['NaN'], qasm_def='NaN')],
-        conditional=False,
-        simulator=True,
         local=False,
-        memory=True,
+        simulator=True,
+        conditional=False,
         open_pulse=False,
+        memory=True,
         max_shots=1024
     )
 
@@ -59,35 +59,37 @@ class QuantumInspireBackend(BaseBackend):
 
         Args:
             api: The interface instance to the Quantum Inspire API.
-            provider (QuantumInspireProvider): Provider for this backend.
+            provider: Provider for this backend.
             configuration: The configuration of the quantum inspire backend. The
                 configuration must implement the fields given by the QiSimulatorPy.DEFAULT_CONFIGURATION. All
                 configuration fields are listed in the table below. The table rows with an asterisk specify fields which
                 can have a custom value and are allowed to be changed according to the description column.
 
-                | key                    | description
-                |------------------------|----------------------------------------------------------------------------
-                | name (str)*            | The name of the quantum inspire backend. The API can list the name of each
-                                            available backend using the function api.list_backend_types(). One of the
-                                            listed names must be used.
-                | basis_gates (str)      | A comma-separated set of basis gates to compile to.
-                | gates (GateConfig):    | List of basis gates on the backend. Not used.
-                | conditional (bool)     | Backend supports conditional operations.
-                | memory (bool):         | Backend supports memory. True.
-                | simulator (bool)       | Specifies whether the backend is a simulator or a quantum system. Not used.
-                | local (bool)           | Indicates whether the system is running locally or remotely. Not used.
-                | open_pulse (bool)      | Backend supports open pulse. False.
-                | max_shots (int)        | Maximum number of shots supported.
+                | key                     | description
+                |-------------------------|----------------------------------------------------------------------------
+                | backend_name (str)*     | The name of the quantum inspire backend. The API can list the name of each
+                |                         | available backend using the function api.list_backend_types(). One of the
+                |                         | listed names must be used.
+                | backend_version (str)   | Backend version in the form X.Y.Z.
+                | n_qubits (int)          | Number of qubits.
+                | basis_gates (list[str]) | A list of basis gates to compile to.
+                | gates (GateConfig)      | List of basis gates on the backend. Not used.
+                | local (bool)            | Indicates whether the system is running locally or remotely. Not used.
+                | simulator (bool)        | Specifies whether the backend is a simulator or a quantum system. Not used.
+                | conditional (bool)      | Backend supports conditional operations.
+                | open_pulse (bool)       | Backend supports open pulse. False.
+                | memory (bool)           | Backend supports memory. True.
+                | max_shots (int)         | Maximum number of shots supported.
         """
         super().__init__(configuration=(configuration or
                                         QuantumInspireBackend.DEFAULT_CONFIGURATION),
                          provider=provider)
-        self.__backend = api.get_backend_type_by_name(self.name())
-        self.__api = api
+        self.__backend: Dict[str, Any] = api.get_backend_type_by_name(self.name())
+        self.__api: QuantumInspireAPI = api
 
     @property
     def backend_name(self) -> str:
-        return self.name()
+        return self.name()  # type: ignore
 
     def run(self, qobj: Qobj) -> QIJob:
         """ Submits a quantum job to the Quantum Inspire platform.
@@ -155,7 +157,7 @@ class QuantumInspireBackend(BaseBackend):
             return stream.getvalue()
 
     def _submit_experiment(self, experiment: QobjExperiment, number_of_shots: int,
-                           project: Optional[OrderedDict] = None) -> QuantumInspireJob:
+                           project: Optional[Dict[str, Any]] = None) -> QuantumInspireJob:
         compiled_qasm = self._generate_cqasm(experiment)
         measurements = self._collect_measurements(experiment)
         user_data = {'name': experiment.header.name, 'memory_slots': experiment.header.memory_slots,
@@ -177,7 +179,7 @@ class QuantumInspireBackend(BaseBackend):
         Returns:
             A list of experiment results; containing the data, execution time, status, etc.
         """
-        jobs = self.__api.get_jobs_from_project(qi_job.job_id())
+        jobs = self.__api.get_jobs_from_project(int(qi_job.job_id()))
         results = [self.__api.get(job['results']) for job in jobs]
         experiment_results = []
         for result, job in zip(results, jobs):
@@ -185,7 +187,7 @@ class QuantumInspireBackend(BaseBackend):
                 raise QisKitBackendError(
                     'Result from backend contains no histogram data!\n{}'.format(result.get('raw_text')))
 
-            user_data = json.loads(job.get('user_data'))
+            user_data = json.loads(str(job.get('user_data')))
             measurements = user_data.pop('measurements')
             histogram_obj, memory_data = self.__convert_result_data(result, measurements)
             full_state_histogram_obj = self.__convert_histogram(result, measurements)
@@ -259,7 +261,7 @@ class QuantumInspireBackend(BaseBackend):
                     raise QisKitBackendError('Operation after measurement!')
 
     @staticmethod
-    def _collect_measurements(experiment: QobjExperiment) -> Dict[str, Union[List[List[int]], int]]:
+    def _collect_measurements(experiment: QobjExperiment) -> Dict[str, Any]:
         """ Determines the measured qubits and classical bits. The full-state measured
             qubits is returned when no measurements are present in the compiled circuit.
 
@@ -284,8 +286,7 @@ class QuantumInspireBackend(BaseBackend):
         return {'measurements': measurements, 'number_of_clbits': number_of_clbits}
 
     @staticmethod
-    def __qubit_to_classical_hex(qubit_register: str, measurements: Dict[str, Union[List[List[int]], int]],
-                                 number_of_qubits: int) -> str:
+    def __qubit_to_classical_hex(qubit_register: str, measurements: Dict[str, Any], number_of_qubits: int) -> str:
         """ This function converts the qubit register data to the hexadecimal representation of the classical state.
 
         Args:
@@ -301,13 +302,12 @@ class QuantumInspireBackend(BaseBackend):
         classical_state = ['0'] * measurements['number_of_clbits']
         for q, c in measurements['measurements']:
             classical_state[c] = qubit_state[q]
-        classical_state = ''.join(classical_state)
-        classical_state_hex = hex(int(classical_state, 2))
+        classical_state_str = ''.join(classical_state)
+        classical_state_hex = hex(int(classical_state_str, 2))
         return classical_state_hex
 
     @staticmethod
-    def __convert_histogram(result: Dict[str, Union[int, str, float, Dict[str, float]]],
-                            measurements: Dict[str, Union[List[List[int]], int]]) -> Obj:
+    def __convert_histogram(result: Dict[str, Any], measurements: Dict[str, Any]) -> Obj:
         """ The quantum inspire backend always uses full state projection. The SDK user
             can measure not all qubits and change the combined classical bits. This function
             converts the result to a histogram output that represents the probabilities
@@ -322,20 +322,20 @@ class QuantumInspireBackend(BaseBackend):
         Returns:
             The resulting full state histogram with probabilities.
         """
-        output_histogram_probabilities = defaultdict(lambda: 0)
+        output_histogram_probabilities: Dict[str, float] = defaultdict(lambda: 0)
         number_of_qubits = result['number_of_qubits']
-        state_probability = result['histogram']
+        state_probability: Dict[str, float] = result['histogram']
         for qubit_register, probability in state_probability.items():
             classical_state_hex = QuantumInspireBackend.__qubit_to_classical_hex(qubit_register, measurements,
                                                                                  number_of_qubits)
             output_histogram_probabilities[classical_state_hex] += probability
 
-        full_state_histogram_obj = OrderedDict(sorted(output_histogram_probabilities.items(),
-                                                      key=lambda kv: int(kv[0], 16)))
+        sorted_histogram_probabilities: List[Tuple[Any, Any]] = sorted(output_histogram_probabilities.items(),
+                                                                       key=lambda kv: int(kv[0], 16))
+        full_state_histogram_obj = OrderedDict(sorted_histogram_probabilities)
         return Obj.from_dict(full_state_histogram_obj)
 
-    def __convert_result_data(self, result: Dict[str, Union[int, str, float, Dict[str, float]]],
-                              measurements: Dict[str, Union[List[List[int]], int]]) -> Tuple[Obj, List[str]]:
+    def __convert_result_data(self, result: Dict[str, Any], measurements: Dict[str, Any]) -> Tuple[Obj, List[str]]:
         """ The quantum inspire backend returns the single shot values as raw data. This function
             converts this list of single shot values to hexadecimal memory data according the Qiskit spec.
             From this memory data the counts histogram is constructed by counting the single shot values.
@@ -363,13 +363,13 @@ class QuantumInspireBackend(BaseBackend):
             the second result is a list with converted hexadecimal memory values for each shot.
         """
         memory_data = []
-        histogram_data = defaultdict(lambda: 0)
-        number_of_qubits = result['number_of_qubits']
-        raw_data = self.__api.get_raw_data(str(result['id']))
+        histogram_data: Dict[str, int] = defaultdict(lambda: 0)
+        number_of_qubits: int = result['number_of_qubits']
+        raw_data = self.__api.get_raw_data(result['id'])
         if raw_data:
-            for qubit_register in raw_data:
-                classical_state_hex = QuantumInspireBackend.__qubit_to_classical_hex(qubit_register, measurements,
-                                                                                     number_of_qubits)
+            for raw_qubit_register in raw_data:
+                classical_state_hex = QuantumInspireBackend.__qubit_to_classical_hex(str(raw_qubit_register),
+                                                                                     measurements, number_of_qubits)
                 memory_data.append(classical_state_hex)
             histogram_data = {elem: count for elem, count in Counter(memory_data).items()}
         else:
@@ -385,5 +385,6 @@ class QuantumInspireBackend(BaseBackend):
                     histogram_data[classical_state_hex] = 1
                     break
 
-        histogram_obj = OrderedDict(sorted(histogram_data.items(), key=lambda kv: int(kv[0], 16)))
+        sorted_histogram_data: List[Tuple[Any, Any]] = sorted(histogram_data.items(), key=lambda kv: int(kv[0], 16))
+        histogram_obj = OrderedDict(sorted_histogram_data)
         return Obj.from_dict(histogram_obj), memory_data

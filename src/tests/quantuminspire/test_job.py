@@ -1,6 +1,6 @@
 from unittest import TestCase
 from unittest.mock import Mock
-
+from collections import OrderedDict
 from coreapi.exceptions import ErrorMessage
 
 from quantuminspire.job import QuantumInspireJob
@@ -32,7 +32,20 @@ class TestQuantumInspireJob(TestCase):
         self.assertEqual(expected, actual)
 
     def test_retrieve_result(self):
-        expected = 'dict_histogram'
+        expected = OrderedDict([('id', 502),
+                                ('url', 'https,//api.quantum-inspire.com/results/502/'),
+                                ('job', 'https,//api.quantum-inspire.com/jobs/10/'),
+                                ('created_at', '1900-01-01T01:00:00:00000Z'),
+                                ('number_of_qubits', 2),
+                                ('seconds', 0.0),
+                                ('raw_text', ''),
+                                ('raw_data_url', 'https,//api.quantum-inspire.com/results/502/raw-data/f2b6/'),
+                                ('histogram', {'3', 0.5068359375, '0', 0.4931640625}),
+                                ('histogram_url', 'https,//api.quantum-inspire.com/results/502/histogram/f2b6/'),
+                                ('measurement_mask', 0),
+                                ('quantum_states_url',
+                                 'https,//api.quantum-inspire.com/results/502/quantum-states/f2b6d/'),
+                                ('measurement_register_url', 'https,//api.quantum-inspire.com/results/502/f2b6d/')])
         result_mock = Mock()
         api = Mock()
         api.get_job.return_value = {'results': result_mock}
@@ -41,7 +54,7 @@ class TestQuantumInspireJob(TestCase):
         job_identifier = 1
         qi_job = QuantumInspireJob(api, job_identifier)
         actual = qi_job.retrieve_results()
-        self.assertEqual(expected, actual)
+        self.assertDictEqual(expected, actual)
         api.get_job.assert_called_with(job_identifier)
         api.get.assert_called_once_with(result_mock)
 

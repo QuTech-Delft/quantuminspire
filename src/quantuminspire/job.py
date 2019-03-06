@@ -1,27 +1,29 @@
+from typing import Dict, Any
+from collections import OrderedDict
 from coreapi.exceptions import ErrorMessage
 
 
 class QuantumInspireJob:
 
-    def __init__(self, api, job_identifier):
-        """ The QuantumInstpire Job class encapsulates the base job of the API and has
-            methods to check the status and retieve the results from the API.
+    def __init__(self, api: Any, job_identifier: int) -> None:
+        """ The QuantumInspire Job class encapsulates the base job of the API and has
+            methods to check the status and retrieve the results from the API.
 
         Arguments:
-            api (QuantumInspireApi): An instance to the API.
-            job_identifier (int): The job identification number.
+            api: An instance to the API.
+            job_identifier: The job identification number.
         """
         QuantumInspireJob.__check_arguments(api, job_identifier)
-        self.__job_identifier = job_identifier
-        self.__api = api
+        self.__job_identifier: int = job_identifier
+        self.__api: Any = api
 
     @staticmethod
-    def __check_arguments(api, job_identifier):
+    def __check_arguments(api: Any, job_identifier: int) -> None:
         """ Checks whether the supplied arguments are of correct type.
 
         Arguments:
-            api (QuantumInspireApi): An instance to the API.
-            job_identifier (int): The job identification number.
+            api: An instance to the API.
+            job_identifier: The job identification number.
 
         Raises:
             ValueError: When the api is not a QuantumInspireApi or when the
@@ -34,41 +36,41 @@ class QuantumInspireJob:
         except ErrorMessage as error:
             raise ValueError('Invalid job identifier!') from error
 
-    def check_status(self):
+    def check_status(self) -> str:
         """ Checks the execution status of the job.
 
         Returns:
-            str: The status of the job.
+            The status of the job.
         """
         job = self.__api.get_job(self.__job_identifier)
-        return job['status']
+        return str(job['status'])
 
-    def retrieve_results(self):
+    def retrieve_results(self) -> Dict[str, Any]:
         """ Gets the results of the job.
 
         Returns:
-            OrderedDict: The execution results with a histogram item containing the result
-            histogram of the job. When an error has occured the raw_text item shall not be
+            The execution results with a histogram item containing the result
+            histogram of the job. When an error has occurred the raw_text item shall not be
             an empty string.
         """
         job = self.__api.get_job(self.__job_identifier)
         result_uri = job['results']
-        return self.__api.get(result_uri)
+        return OrderedDict(self.__api.get(result_uri))
 
-    def get_job_identifier(self):
+    def get_job_identifier(self) -> int:
         """ Gets the set job identification number for the wrapped job.
 
         Returns:
-            int: The job identification number.
+            The job identification number.
         """
         return self.__job_identifier
 
-    def get_project_identifier(self):
-        """ Gets the project identification number of the wrappered job.
+    def get_project_identifier(self) -> int:
+        """ Gets the project identification number of the wrapped job.
 
         Returns:
-            int: The project identification number.
+            The project identification number.
         """
         job = self.__api.get_job(self.__job_identifier)
         asset = self.__api.get(job['input'])
-        return asset['project_id']
+        return int(asset['project_id'])

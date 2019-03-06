@@ -11,13 +11,13 @@ from quantuminspire.exceptions import ApiError
 QI_URL = 'https://api.quantum-inspire.com'
 
 
-class QuantumInspireProvider(BaseProvider):
+class QuantumInspireProvider(BaseProvider):  # type: ignore
     """ Provides a backend and an api for a single Quantum Inspire account. """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        self._backends = []
-        self._api = None
+        self._backends: List[QuantumInspireBackend] = []
+        self._api: Optional[QuantumInspireAPI] = None
 
     def __str__(self) -> str:
         return 'QI'
@@ -38,7 +38,7 @@ class QuantumInspireProvider(BaseProvider):
 
         available_backends = self._api.get_backend_types()
         if name is not None:
-            available_backends = filter(lambda b: b['name'] == name, available_backends)
+            available_backends = list(filter(lambda b: b['name'] == name, available_backends))
         backends = []
         for backend in available_backends:
             if backend['is_allowed']:
