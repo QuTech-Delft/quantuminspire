@@ -46,17 +46,14 @@ class TestQuantumInspireJob(TestCase):
                                 ('quantum_states_url',
                                  'https,//api.quantum-inspire.com/results/502/quantum-states/f2b6d/'),
                                 ('measurement_register_url', 'https,//api.quantum-inspire.com/results/502/f2b6d/')])
-        result_mock = Mock()
         api = Mock()
-        api.get_job.return_value = {'results': result_mock}
-        api.get.return_value = expected
+        api.get_result_from_job.return_value = expected
         type(api).__name__ = 'QuantumInspireAPI'
         job_identifier = 1
         qi_job = QuantumInspireJob(api, job_identifier)
         actual = qi_job.retrieve_results()
         self.assertDictEqual(expected, actual)
-        api.get_job.assert_called_with(job_identifier)
-        api.get.assert_called_once_with(result_mock)
+        api.get_result_from_job.assert_called_once_with(job_identifier)
 
     def test_get_job_identifier(self):
         api = Mock()
@@ -72,11 +69,11 @@ class TestQuantumInspireJob(TestCase):
         asset = {'project_id': expected}
         type(api).__name__ = 'QuantumInspireAPI'
         api.get_job.return_value = {'input': asset}
-        api.get.return_value = asset
+        api.get_asset_from_job.return_value = asset
 
         job_identifier = 1
         qi_job = QuantumInspireJob(api, job_identifier)
         actual = qi_job.get_project_identifier()
         self.assertEqual(expected, actual)
-        api.get.assert_called_once_with(asset)
+        api.get_asset_from_job.assert_called_once_with(job_identifier)
         api.get_job.assert_called_with(job_identifier)

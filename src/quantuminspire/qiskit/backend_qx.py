@@ -180,7 +180,7 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
             A list of experiment results; containing the data, execution time, status, etc.
         """
         jobs = self.__api.get_jobs_from_project(int(qi_job.job_id()))
-        results = [self.__api.get(job['results']) for job in jobs]
+        results = [self.__api.get_result_from_job(job['id']) for job in jobs]
         experiment_results = []
         for result, job in zip(results, jobs):
             if not result.get('histogram', {}):
@@ -365,7 +365,7 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
         memory_data = []
         histogram_data: Dict[str, int] = defaultdict(lambda: 0)
         number_of_qubits: int = result['number_of_qubits']
-        raw_data = self.__api.get_raw_data(result['id'])
+        raw_data = self.__api.get_raw_data_from_result(result['id'])
         if raw_data:
             for raw_qubit_register in raw_data:
                 classical_state_hex = QuantumInspireBackend.__qubit_to_classical_hex(str(raw_qubit_register),
