@@ -53,7 +53,7 @@ class QIBackend(BasicEngine):  # type: ignore
         """
         BasicEngine.__init__(self)
         self._flushed: bool = False
-        """ bool: Because engines are meant to be 'single use' by the way ProjectQ is designed,
+        """ Because engines are meant to be 'single use' by the way ProjectQ is designed,
         any additional gates received after a FlushGate triggers an exception. """
         self._reset()
         self._num_runs: int = num_runs
