@@ -16,7 +16,6 @@ limitations under the License.
 """
 
 import io
-import random
 import unittest
 import warnings
 from collections import OrderedDict
@@ -51,6 +50,10 @@ class TestProjectQBackend(unittest.TestCase):
         self.assertIsInstance(backend.qasm, str)
         self.assertEqual(backend.quantum_inspire_api, api)
         self.assertIsNone(backend.backend_type)
+
+    def test_init_RaisesRuntimeError(self):
+        api = None
+        self.assertRaises(RuntimeError, QIBackend, quantum_inspire_api=api)
 
     def test_cqasm_ReturnsCorrectCqasmData(self):
         api = MockApiClient()
@@ -183,7 +186,7 @@ class TestProjectQBackend(unittest.TestCase):
         actual = backend._logical_to_physical(qd_id)
         self.assertEqual(actual, expected)
 
-    def test_logical_to_physical_ReturnsCorrectResult(self):
+    def test_logical_to_physical_RaisesRuntimeError(self):
         qd_id = 0
         expected = 1234
         api = MockApiClient()
@@ -236,6 +239,46 @@ class TestProjectQBackend(unittest.TestCase):
             backend.receive(command_list)
         self.assertEqual(backend.qasm, "")
         self.assertTrue(backend._clear)
+
+    @patch('quantuminspire.projectq.backend_qx.get_control_count')
+    def test_reuse_after_flush_RaisesRuntimeError(self, function_mock):
+        function_mock.return_value = 1
+        command = MagicMock(gate=NOT, qubits=[[MagicMock(id=0)], [MagicMock(id=1)]])
+        command_list = [command, MagicMock(gate=FlushGate()), command]
+        api = MockApiClient()
+        backend = QIBackend(quantum_inspire_api=api)
+        backend.main_engine = MagicMock()
+        with patch('sys.stdout', new_callable=io.StringIO):
+            self.assertRaisesRegex(RuntimeError, "Operation after Flush.", backend.receive, command_list)
+
+    @patch('quantuminspire.projectq.backend_qx.get_control_count')
+    def test_receive_multiple_flush(self, function_mock):
+        function_mock.return_value = 1
+        command = MagicMock(gate=NOT, qubits=[[MagicMock(id=0)], [MagicMock(id=1)]])
+        command_list = [command, MagicMock(gate=FlushGate()), MagicMock(gate=FlushGate())]
+        api = MockApiClient()
+        backend = QIBackend(quantum_inspire_api=api)
+        backend.main_engine = MagicMock()
+        with patch('sys.stdout', new_callable=io.StringIO):
+            backend.receive(command_list)
+        self.assertEqual(backend.qasm, "")
+        self.assertTrue(backend._clear)
+
+    def test_maximum_qubit(self):
+        command_alloc0 = MagicMock(gate=Allocate, qubits=[[MagicMock(id=0)], [MagicMock(id=1)]])
+        command_alloc1 = MagicMock(gate=Allocate, qubits=[[MagicMock(id=1)], [MagicMock(id=1)]])
+        command_alloc2 = MagicMock(gate=Allocate, qubits=[[MagicMock(id=2)], [MagicMock(id=1)]])
+        command_dealloc0 = MagicMock(gate=Deallocate, qubits=[[MagicMock(id=0)], [MagicMock(id=1)]])
+        command_dealloc1 = MagicMock(gate=Deallocate, qubits=[[MagicMock(id=1)], [MagicMock(id=1)]])
+        command_dealloc2 = MagicMock(gate=Deallocate, qubits=[[MagicMock(id=2)], [MagicMock(id=1)]])
+        command_list = [command_alloc1, command_alloc2, command_dealloc1,
+                        command_alloc0, command_dealloc0, command_dealloc2]
+        api = MockApiClient()
+        backend = QIBackend(quantum_inspire_api=api)
+        backend.main_engine = MagicMock()
+        backend.receive(command_list)
+        self.assertEqual(backend._number_of_qubits, 3)
+        self.assertEqual(len(backend._allocated_qubits), 0)
 
     def test_run_NoQasm(self):
         api = MockApiClient()
