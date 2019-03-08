@@ -359,7 +359,7 @@ class QuantumInspireAPI:
         return ret
 
     def get_jobs_from_asset(self, asset_id: int) -> List[Dict[str, Any]]:
-        """ Gets the jobs with its properties for a asset, given the asset id.
+        """ Gets the jobs with its properties for an asset, given the asset id.
 
         Args:
             asset_id: The asset identification number.
@@ -529,7 +529,7 @@ class QuantumInspireAPI:
             result_id: The identification number of the result.
 
         Raises:
-            ApiError: If the requested result with identification result_id does not exist.
+            ApiError: If the raw data url in result is invalid or the request for the raw data using the url failed.
 
         Returns:
             The raw data as a list of integer values. An empty list is returned when there is no raw data.
@@ -554,7 +554,8 @@ class QuantumInspireAPI:
             result_id: The identification number of the result.
 
         Raises:
-            ApiError: If the requested result with identification result_id does not exist.
+            ApiError: If the quantum states url in result is invalid or the request for the quantum states using the
+            url failed.
 
         Returns:
             The quantum states consists of a list of quantum state values. An empty list is returned when there is
@@ -580,7 +581,8 @@ class QuantumInspireAPI:
             result_id: The identification number of the result.
 
         Raises:
-            ApiError: If the requested result with identification result_id does not exist.
+            ApiError: If the measurement register url in result is invalid or the request for the measurement register
+            using the url failed.
 
         Returns:
             The measurement register consists of a list of measurement register values. An empty list is returned
@@ -660,11 +662,10 @@ class QuantumInspireAPI:
             ApiError: If the project identified by project_id does not exist.
         """
         try:
-            assets = self._action(['projects', 'assets', 'list'], params={'id': project_id})
+            assets: List[Dict[str, Any]] = self._action(['projects', 'assets', 'list'], params={'id': project_id})
         except ErrorMessage as err_msg:
             raise ApiError('Project with id {} does not exist!'.format(project_id)) from err_msg
-        ret: List[Dict[str, Any]] = assets
-        return ret
+        return assets
 
     def get_asset_from_job(self, job_id: int) -> Dict[str, Any]:
         """ Gets the asset data from the job, given the job_id.
