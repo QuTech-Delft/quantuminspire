@@ -675,7 +675,7 @@ class TestQuantumInspireAPI(TestCase):
         self.coreapi_client.handlers['results'] = partial(self.__mock_errors_in_result_handler,
                                                           expected_payload, 'read')
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
-        self.assertRaisesRegex(ApiError, 'Invalid raw data url for result with', api.get_raw_data_from_result,
+        self.assertRaisesRegex(ApiError, 'Invalid raw data url for result with id 485!', api.get_raw_data_from_result,
                                result_id=result_identity)
 
     def test_get_raw_data_invalid_from_result_RaisesApiError(self):
@@ -684,8 +684,8 @@ class TestQuantumInspireAPI(TestCase):
         self.coreapi_client.handlers['results'] = partial(self.__mock_errors_in_result_handler,
                                                           expected_payload, 'read')
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
-        self.assertRaisesRegex(ApiError, 'Raw data for result with id', api.get_raw_data_from_result,
-                               result_id=result_identity)
+        self.assertRaisesRegex(ApiError, 'Raw data for result with id 486 does not exist!',
+                               api.get_raw_data_from_result, result_id=result_identity)
 
     def test_get_quantum_states_from_result_HasCorrectInputAndOutput(self):
         identity = 485
@@ -703,7 +703,7 @@ class TestQuantumInspireAPI(TestCase):
         self.coreapi_client.handlers['results'] = partial(self.__mock_errors_in_result_handler,
                                                           expected_payload, 'read')
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
-        self.assertRaisesRegex(ApiError, 'Invalid quantum states url for result with',
+        self.assertRaisesRegex(ApiError, 'Invalid quantum states url for result with id 485!',
                                api.get_quantum_states_from_result, result_id=result_identity)
 
     def test_get_quantum_states_invalid_from_result_RaisesApiError(self):
@@ -712,7 +712,7 @@ class TestQuantumInspireAPI(TestCase):
         self.coreapi_client.handlers['results'] = partial(self.__mock_errors_in_result_handler,
                                                           expected_payload, 'read')
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
-        self.assertRaisesRegex(ApiError, 'Quantum states for result with id',
+        self.assertRaisesRegex(ApiError, 'Quantum states for result with id 486 does not exist!',
                                api.get_quantum_states_from_result, result_id=result_identity)
 
     def test_get_measurement_register_from_result_HasCorrectInputAndOutput(self):
@@ -732,7 +732,7 @@ class TestQuantumInspireAPI(TestCase):
         self.coreapi_client.handlers['results'] = partial(self.__mock_errors_in_result_handler,
                                                           expected_payload, 'read')
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
-        self.assertRaisesRegex(ApiError, 'Invalid measurement register url for result with',
+        self.assertRaisesRegex(ApiError, 'Invalid measurement register url for result with id 485!',
                                api.get_measurement_register_from_result, result_id=result_identity)
 
     def test_get_measurement_register_invalid_from_result_RaisesApiError(self):
@@ -741,7 +741,7 @@ class TestQuantumInspireAPI(TestCase):
         self.coreapi_client.handlers['results'] = partial(self.__mock_errors_in_result_handler,
                                                           expected_payload, 'read')
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
-        self.assertRaisesRegex(ApiError, 'Measurement register for result with id',
+        self.assertRaisesRegex(ApiError, 'Measurement register for result with id 486 does not exist!',
                                api.get_measurement_register_from_result, result_id=result_identity)
 
     def __mock_list_assets_handler(self, mock_api, document, keys, params=None, validate=None,
@@ -856,7 +856,8 @@ class TestQuantumInspireAPI(TestCase):
         self.coreapi_client.handlers['projects'] = self.__mock_list_assets_handler
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
         other_identity = 999
-        self.assertRaises(ApiError, api.get_assets_from_project, project_id=other_identity)
+        self.assertRaisesRegex(ApiError, 'Project with id 999 does not exist!', api.get_assets_from_project,
+                               project_id=other_identity)
 
     def test_get_assets_from_job_HasCorrectInputAndOutput(self):
         identity = 171
@@ -878,7 +879,8 @@ class TestQuantumInspireAPI(TestCase):
         expected_payload_job = {'id': job_identity}
         self.coreapi_client.handlers['jobs'] = partial(self.__mock_asset_from_job_handler, expected_payload_job, 'read')
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
-        self.assertRaisesRegex(ApiError, 'Asset with id', api.get_asset_from_job, job_id=job_identity)
+        self.assertRaisesRegex(ApiError, 'Asset with id 999 does not exist!', api.get_asset_from_job,
+                               job_id=job_identity)
 
     def test_get_asset_invalid_from_job_RaisesApiError(self):
         identity = 999
@@ -888,7 +890,8 @@ class TestQuantumInspireAPI(TestCase):
         expected_payload_job = {'id': job_identity}
         self.coreapi_client.handlers['jobs'] = partial(self.__mock_asset_from_job_handler, expected_payload_job, 'read')
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
-        self.assertRaisesRegex(ApiError, 'Invalid input url', api.get_asset_from_job, job_id=job_identity)
+        self.assertRaisesRegex(ApiError, 'Invalid input url for job with id 510!', api.get_asset_from_job,
+                               job_id=job_identity)
 
     def test_create_asset_HasCorrectInputAndOutput(self):
         name = 'TestAsset'
@@ -912,7 +915,6 @@ class TestQuantumInspireAPI(TestCase):
         expected_payload = {'id': job_id}
         self.coreapi_client.handlers['jobs'] = partial(self.__mock_job_handler, expected_payload, 'read',
                                                        status='COMPLETE')
-
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
         quantum_inspire_job = QuantumInspireJob(api, job_id)
         is_completed = api._wait_for_completed_job(quantum_inspire_job, collect_max_tries, sec_retry_delay=0.0)
