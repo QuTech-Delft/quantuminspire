@@ -69,7 +69,7 @@ class TestQuantumInspireAPI(TestCase):
         expected = 'Test'
         self.coreapi_client.getters[mock_key] = expected
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
-        actual = api.get(mock_key)
+        actual = api._get(mock_key)
         self.assertEqual(expected, actual)
 
     def test_action_HasCorrectOutput(self, mock_key='MockKey', mock_result=1234):
@@ -285,8 +285,7 @@ class TestQuantumInspireAPI(TestCase):
         expected_payload = {'id': identity}
         self.coreapi_client.handlers['projects'] = partial(self.__mock_project_handler, expected_payload, 'delete')
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
-        actual = api.delete_project(project_id=identity)
-        self.assertIsNone(actual)
+        self.assertIsNone(api.delete_project(project_id=identity))
 
     def test_delete_project_RaisesApiError(self):
         identity = 999
@@ -332,13 +331,42 @@ class TestQuantumInspireAPI(TestCase):
                             ('name', 'qi-sdk-job-7e37c8fa-a76b-11e8-b5a0-a44cc848f1f2'),
                             ('id', 509),
                             ('status', status),
-                            ('input', 'https,//api.quantum-inspire.com/assets/607/'),
+                            ('input', 'https,//api.quantum-inspire.com/assets/171/'),
                             ('backend', 'https,//api.quantum-inspire.com/backends/1/'),
                             ('backend_type', 'https,//api.quantum-inspire.com/backendtypes/1/'),
                             ('results', 'https,//api.quantum-inspire.com/jobs/509/result/'),
                             ('queued_at', '2018-08-24T07:01:21:257557Z'),
                             ('number_of_shots', 1024),
                             ('user_data', '')])
+
+    def __mock_assets_jobs_handler(self, input_params, input_key, mock_api, document, keys, params=None,
+                                   validate=None, overrides=None, action=None, encoding=None, transform=None):
+        self.assertDictEqual(params, input_params)
+        self.assertEqual(keys[1], input_key)
+        if input_key == 'read' or input_key == 'delete' or input_key == 'jobs':
+            if params['id'] != 171:
+                raise ErrorMessage('Not found')
+        return [OrderedDict([('url', 'https,//api.quantum-inspire.com/jobs/530/'),
+                             ('name', 'qi-sdk-job-5852eb68-a794-11e8-9447-a44cc848f1f2'),
+                             ('id', 530),
+                             ('status', 'COMPLETE'),
+                             ('input', 'https,//api.quantum-inspire.com/assets/629/'),
+                             ('backend', 'https,//api.quantum-inspire.com/backends/1/'),
+                             ('backend_type', 'https,//api.quantum-inspire.com/backendtypes/1/'),
+                             ('results', 'https,//api.quantum-inspire.com/jobs/530/result/'),
+                             ('queued_at', '2018-08-24T11:53:41:352732Z'),
+                             ('number_of_shots', 1024)]),
+                OrderedDict([('url', 'https,//api.quantum-inspire.com/jobs/509/'),
+                             ('name', 'qi-sdk-job-7e37c8fa-a76b-11e8-b5a0-a44cc848f1f2'),
+                             ('id', 509),
+                             ('status', 'COMPLETE'),
+                             ('input', 'https,//api.quantum-inspire.com/assets/607/'),
+                             ('backend', 'https,//api.quantum-inspire.com/backends/1/'),
+                             ('backend_type', 'https,//api.quantum-inspire.com/backendtypes/1/'),
+                             ('results', 'https,//api.quantum-inspire.com/jobs/509/result/'),
+                             ('queued_at', '2018-08-24T07:01:21:257557Z'),
+                             ('number_of_shots', 1024),
+                             ('user_data', '')])]
 
     def test_list_jobs_HasCorrectInputAndOutput(self):
         self.coreapi_client.handlers['jobs'] = self.__mock_list_jobs_handler
@@ -384,6 +412,23 @@ class TestQuantumInspireAPI(TestCase):
         self.coreapi_client.handlers['projects'] = partial(self.__mock_job_handler, expected_payload, 'jobs')
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
         self.assertRaises(ApiError, api.get_jobs_from_project, project_id=identity)
+
+    def test_get_jobs_from_asset_HasCorrectInAndOutput(self):
+        identity = 171
+        expected_payload = {'id': identity}
+        expected = self.__mock_assets_jobs_handler(expected_payload, 'jobs', None, None, ['assets', 'jobs'],
+                                                   expected_payload)
+        self.coreapi_client.handlers['assets'] = partial(self.__mock_assets_jobs_handler, expected_payload, 'jobs')
+        api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
+        actual = api.get_jobs_from_asset(asset_id=identity)
+        self.assertListEqual(actual, expected)
+
+    def test_get_jobs_from_asset_RaisesApiError(self):
+        identity = 999
+        expected_payload = {'id': identity}
+        self.coreapi_client.handlers['assets'] = partial(self.__mock_assets_jobs_handler, expected_payload, 'jobs')
+        api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
+        self.assertRaises(ApiError, api.get_jobs_from_asset, asset_id=identity)
 
     def test_delete_job_HasCorrectInAndOutput(self):
         identity = 509
@@ -441,7 +486,8 @@ class TestQuantumInspireAPI(TestCase):
                              ('histogram', {'3', 0.5068359375, '0', 0.4931640625}),
                              ('histogram_url', 'https,//api.quantum-inspire.com/results/502/histogram/f2b6/'),
                              ('measurement_mask', 0),
-                             ('quantum_states_url', 'https,//api.quantum-inspire.com/results/502/quantum-states/f2b6d/'),
+                             ('quantum_states_url',
+                              'https,//api.quantum-inspire.com/results/502/quantum-states/f2b6d/'),
                              ('measurement_register_url', 'https,//api.quantum-inspire.com/results/502/f2b6d/')]),
                 OrderedDict([('id', 485),
                              ('url', 'https,//api.quantum-inspire.com/results/485/'),
@@ -459,10 +505,46 @@ class TestQuantumInspireAPI(TestCase):
 
     def __mock_result_handler(self, input_params, input_key, mock_api, document, keys, params=None,
                               validate=None, overrides=None, action=None, encoding=None, transform=None):
-        self.assertDictEqual(params, input_params)
-        self.assertEqual(keys[1], input_key)
+        self.assertEqual(params['id'], input_params['id'])
+        self.assertTrue(keys[1] == input_key or keys[2] == input_key)
         if input_key == 'read':
             if params['id'] != 485:
+                raise ErrorMessage('Not found')
+        if keys[1] == 'read':
+            return OrderedDict([('id', 485),
+                                ('url', 'https,//api.quantum-inspire.com/results/485/'),
+                                ('job', 'https,//api.quantum-inspire.com/jobs/20/'),
+                                ('created_at', '1900-01-01T01:00:00:00000Z'),
+                                ('number_of_qubits', 2),
+                                ('seconds', 0.0),
+                                ('raw_text', ''),
+                                ('raw_data_url', 'https,//api.quantum-inspire.com/results/485/raw-data/162c/'),
+                                ('histogram', {'0', 0.5029296875, '3', 0.4970703125}),
+                                ('histogram_url', 'https,//api.quantum-inspire.com/results/485/histogram/162c/'),
+                                ('measurement_mask', 0),
+                                ('quantum_states_url',
+                                 'https,//api.quantum-inspire.com/results/485/quantum-states/qstates/'),
+                                ('measurement_register_url', 'https,//api.quantum-inspire.com/results/485/mreg/')])
+        elif keys[1] == 'raw-data':
+            if params['token'] != '162c':
+                raise ErrorMessage('Not found')
+            return [0, 3, 3, 0]
+        elif keys[1] == 'quantum-states':
+            if params['token'] != 'qstates':
+                raise ErrorMessage('Not found')
+            return [1, 2, 3, 4]
+        else:
+            self.assertTrue(keys[1] == 'measurement-register')
+            if params['token'] != 'mreg':
+                raise ErrorMessage('Not found')
+            return [4, 3, 2, 1]
+
+    def __mock_list_result_from_job_handler(self, input_params, input_key, mock_api, document, keys, params=None,
+                                            validate=None, overrides=None, action=None, encoding=None, transform=None):
+        self.assertEqual(params['id'], input_params['id'])
+        self.assertTrue(keys[2] == input_key)
+        if input_key == 'list':
+            if params['id'] != 509:
                 raise ErrorMessage('Not found')
         return OrderedDict([('id', 485),
                             ('url', 'https,//api.quantum-inspire.com/results/485/'),
@@ -478,9 +560,54 @@ class TestQuantumInspireAPI(TestCase):
                             ('quantum_states_url', 'https,//api.quantum-inspire.com/results/485/quantum-states/162c/'),
                             ('measurement_register_url', 'https,//api.quantum-inspire.com/results/485/162c/')])
 
-    def __mock_raw_data_handler(self, input_url):
-        self.assertTrue('raw-data' in input_url)
-        return [0, 3, 3, 0]
+    def __mock_errors_in_result_handler(self, input_params, input_key, mock_api, document, keys, params=None,
+                                        validate=None, overrides=None, action=None, encoding=None, transform=None):
+        self.assertEqual(params['id'], input_params['id'])
+        self.assertTrue(keys[1] == input_key or keys[2] == input_key)
+        if keys[1] == 'read':
+            if params['id'] == 485:
+                return OrderedDict([('id', 485),
+                                    ('url', 'https,//api.quantum-inspire.com/results/485/'),
+                                    ('job', 'https,//api.quantum-inspire.com/jobs/20/'),
+                                    ('created_at', '1900-01-01T01:00:00:00000Z'),
+                                    ('number_of_qubits', 2),
+                                    ('seconds', 0.0),
+                                    ('raw_text', ''),
+                                    ('raw_data_url', ''),
+                                    ('histogram', {'0', 0.5029296875, '3', 0.4970703125}),
+                                    ('histogram_url', 'https,//api.quantum-inspire.com/results/485/histogram/162c/'),
+                                    ('measurement_mask', 0),
+                                    ('quantum_states_url', ''),
+                                    ('measurement_register_url', '')])
+            else:
+                self.assertEqual(params['id'], 486)
+                return OrderedDict([('id', 486),
+                                    ('url', 'https,//api.quantum-inspire.com/results/485/'),
+                                    ('job', 'https,//api.quantum-inspire.com/jobs/20/'),
+                                    ('created_at', '1900-01-01T01:00:00:00000Z'),
+                                    ('number_of_qubits', 2),
+                                    ('seconds', 0.0),
+                                    ('raw_text', ''),
+                                    ('raw_data_url', 'https,//api.quantum-inspire.com/results/485/raw-data/999/'),
+                                    ('histogram', {'0', 0.5029296875, '3', 0.4970703125}),
+                                    ('histogram_url', 'https,//api.quantum-inspire.com/results/485/histogram/162c/'),
+                                    ('measurement_mask', 0),
+                                    ('quantum_states_url',
+                                     'https,//api.quantum-inspire.com/results/485/quantum-states/999/'),
+                                    ('measurement_register_url', 'https,//api.quantum-inspire.com/results/485/999/')])
+        elif keys[1] == 'raw-data':
+            if params['token'] != '162c':
+                raise ErrorMessage('Not found')
+            return [0, 3, 3, 0]
+        elif keys[1] == 'quantum-states':
+            if params['token'] != 'qstates':
+                raise ErrorMessage('Not found')
+            return [1, 2, 3, 4]
+        else:
+            self.assertTrue(keys[1] == 'measurement-register')
+            if params['token'] != 'mreg':
+                raise ErrorMessage('Not found')
+            return [4, 3, 2, 1]
 
     def test_list_results_HasCorrectOutput(self):
         self.coreapi_client.handlers['results'] = self.__mock_list_results_handler
@@ -513,20 +640,116 @@ class TestQuantumInspireAPI(TestCase):
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
         self.assertRaises(ApiError, api.get_result, result_id=identity)
 
-    def test_get_raw_data_HasCorrectInputAndOutput(self):
-        identity = 485
+    def test_get_result_from_job_HasCorrectInputAndOutput(self):
+        identity = 509
         expected_payload = {'id': identity}
-        expected_raw_data = self.__mock_raw_data_handler('https,//api.quantum-inspire.com/results/485/raw-data/162c/')
-        self.coreapi_client.handlers['results'] = partial(self.__mock_result_handler, expected_payload, 'read')
-        self.coreapi_client.getters['https,//api.quantum-inspire.com/results/485/raw-data/162c/'] = \
-            self.__mock_raw_data_handler('https,//api.quantum-inspire.com/results/485/raw-data/162c/')
+        expected = self.__mock_list_result_from_job_handler(expected_payload, 'list', None, None,
+                                                            ['jobs', 'result', 'list'], expected_payload)
+        self.coreapi_client.handlers['jobs'] = partial(self.__mock_list_result_from_job_handler, expected_payload,
+                                                       'list')
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
-        actual = api.get_raw_data(result_id=identity)
+        actual = api.get_result_from_job(identity)
+        self.assertDictEqual(actual, expected)
+
+    def test_get_result_from_job_RaisesApiError(self):
+        identity = 999
+        expected_payload = {'id': identity}
+        self.coreapi_client.handlers['jobs'] = partial(self.__mock_list_result_from_job_handler, expected_payload,
+                                                       'list')
+        api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
+        self.assertRaises(ApiError, api.get_result_from_job, job_id=identity)
+
+    def test_get_raw_data_from_result_HasCorrectInputAndOutput(self):
+        identity = 485
+        expected_payload = {'id': identity, 'token': '162c'}
+        expected_raw_data = self.__mock_result_handler(expected_payload, 'read', None, None,
+                                                       ['test', 'raw-data', 'read'], expected_payload)
+        self.coreapi_client.handlers['results'] = partial(self.__mock_result_handler, expected_payload, 'read')
+        api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
+        actual = api.get_raw_data_from_result(result_id=identity)
         self.assertListEqual(actual, expected_raw_data)
+
+    def test_get_raw_data_unknown_from_result_RaisesApiError(self):
+        result_identity = 485
+        expected_payload = {'id': result_identity}
+        self.coreapi_client.handlers['results'] = partial(self.__mock_errors_in_result_handler,
+                                                          expected_payload, 'read')
+        api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
+        self.assertRaisesRegex(ApiError, 'Invalid raw data url for result with id 485!', api.get_raw_data_from_result,
+                               result_id=result_identity)
+
+    def test_get_raw_data_invalid_from_result_RaisesApiError(self):
+        result_identity = 486
+        expected_payload = {'id': result_identity, 'token': '162c'}
+        self.coreapi_client.handlers['results'] = partial(self.__mock_errors_in_result_handler,
+                                                          expected_payload, 'read')
+        api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
+        self.assertRaisesRegex(ApiError, 'Raw data for result with id 486 does not exist!',
+                               api.get_raw_data_from_result, result_id=result_identity)
+
+    def test_get_quantum_states_from_result_HasCorrectInputAndOutput(self):
+        identity = 485
+        expected_payload = {'id': identity, 'token': 'qstates'}
+        expected_quantum_states = self.__mock_result_handler(expected_payload, 'read', None, None,
+                                                             ['test', 'quantum-states', 'read'], expected_payload)
+        self.coreapi_client.handlers['results'] = partial(self.__mock_result_handler, expected_payload, 'read')
+        api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
+        actual = api.get_quantum_states_from_result(result_id=identity)
+        self.assertListEqual(actual, expected_quantum_states)
+
+    def test_get_quantum_states_unknown_from_result_RaisesApiError(self):
+        result_identity = 485
+        expected_payload = {'id': result_identity, 'token': 'qstates'}
+        self.coreapi_client.handlers['results'] = partial(self.__mock_errors_in_result_handler,
+                                                          expected_payload, 'read')
+        api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
+        self.assertRaisesRegex(ApiError, 'Invalid quantum states url for result with id 485!',
+                               api.get_quantum_states_from_result, result_id=result_identity)
+
+    def test_get_quantum_states_invalid_from_result_RaisesApiError(self):
+        result_identity = 486
+        expected_payload = {'id': result_identity, 'token': 'qstates'}
+        self.coreapi_client.handlers['results'] = partial(self.__mock_errors_in_result_handler,
+                                                          expected_payload, 'read')
+        api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
+        self.assertRaisesRegex(ApiError, 'Quantum states for result with id 486 does not exist!',
+                               api.get_quantum_states_from_result, result_id=result_identity)
+
+    def test_get_measurement_register_from_result_HasCorrectInputAndOutput(self):
+        identity = 485
+        expected_payload = {'id': identity, 'token': 'mreg'}
+        expected_measurement_register = self.__mock_result_handler(expected_payload, 'read', None, None,
+                                                                   ['test', 'measurement-register', 'read'],
+                                                                   expected_payload)
+        self.coreapi_client.handlers['results'] = partial(self.__mock_result_handler, expected_payload, 'read')
+        api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
+        actual = api.get_measurement_register_from_result(result_id=identity)
+        self.assertListEqual(actual, expected_measurement_register)
+
+    def test_get_measurement_register_unknown_from_result_RaisesApiError(self):
+        result_identity = 485
+        expected_payload = {'id': result_identity, 'token': 'qstates'}
+        self.coreapi_client.handlers['results'] = partial(self.__mock_errors_in_result_handler,
+                                                          expected_payload, 'read')
+        api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
+        self.assertRaisesRegex(ApiError, 'Invalid measurement register url for result with id 485!',
+                               api.get_measurement_register_from_result, result_id=result_identity)
+
+    def test_get_measurement_register_invalid_from_result_RaisesApiError(self):
+        result_identity = 486
+        expected_payload = {'id': result_identity, 'token': 'qstates'}
+        self.coreapi_client.handlers['results'] = partial(self.__mock_errors_in_result_handler,
+                                                          expected_payload, 'read')
+        api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
+        self.assertRaisesRegex(ApiError, 'Measurement register for result with id 486 does not exist!',
+                               api.get_measurement_register_from_result, result_id=result_identity)
 
     def __mock_list_assets_handler(self, mock_api, document, keys, params=None, validate=None,
                                    overrides=None, action=None, encoding=None, transform=None):
-        self.assertEqual(keys[1], 'list')
+        self.assertTrue(keys[1] == 'list' or keys[2] == 'list')
+        if keys[0] == 'projects':
+            if params['id'] != 11:
+                raise ErrorMessage('Not found')
         return [OrderedDict([('url', 'https,//api.quantum-inspire.com/assets/31/'),
                              ('id', 31),
                              ('name', 'Grover algorithm - 2018-07-18 13,32'),
@@ -557,6 +780,36 @@ class TestQuantumInspireAPI(TestCase):
                             ('project', 'https,//api.quantum-inspire.com/projects/11/'),
                             ('project_id', 11)])
 
+    def __mock_asset_from_job_handler(self, input_params, input_key, mock_api, document, keys, params=None,
+                                      validate=None, overrides=None, action=None, encoding=None, transform=None,
+                                      status='COMPLETE'):
+        self.assertDictEqual(params, input_params)
+        self.assertEqual(keys[1], input_key)
+        if params['id'] == 509:
+            return OrderedDict([('url', 'https,//api.quantum-inspire.com/jobs/509/'),
+                                ('name', 'qi-sdk-job-7e37c8fa-a76b-11e8-b5a0-a44cc848f1f2'),
+                                ('id', 509),
+                                ('status', status),
+                                ('input', 'https,//api.quantum-inspire.com/assets/999/'),
+                                ('backend', 'https,//api.quantum-inspire.com/backends/1/'),
+                                ('backend_type', 'https,//api.quantum-inspire.com/backendtypes/1/'),
+                                ('results', 'https,//api.quantum-inspire.com/jobs/509/result/'),
+                                ('queued_at', '2018-08-24T07:01:21:257557Z'),
+                                ('number_of_shots', 1024),
+                                ('user_data', '')])
+        elif params['id'] == 510:
+            return OrderedDict([('url', 'https,//api.quantum-inspire.com/jobs/509/'),
+                                ('name', 'qi-sdk-job-7e37c8fa-a76b-11e8-b5a0-a44cc848f1f2'),
+                                ('id', 510),
+                                ('status', status),
+                                ('input', 'https,//api.quantum-inspire.com/assets/negennegennegen/'),
+                                ('backend', 'https,//api.quantum-inspire.com/backends/1/'),
+                                ('backend_type', 'https,//api.quantum-inspire.com/backendtypes/1/'),
+                                ('results', 'https,//api.quantum-inspire.com/jobs/509/result/'),
+                                ('queued_at', '2018-08-24T07:01:21:257557Z'),
+                                ('number_of_shots', 1024),
+                                ('user_data', '')])
+
     def test_list_assets_HasCorrectOutput(self):
         self.coreapi_client.handlers['assets'] = self.__mock_list_assets_handler
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
@@ -581,12 +834,64 @@ class TestQuantumInspireAPI(TestCase):
         actual = api.get_asset(asset_id=identity)
         self.assertDictEqual(actual, expected)
 
-    def test_get_asset_from_project_RaisesApiError(self):
+    def test_get_asset_RaisesApiError(self):
         identity = 999
         expected_payload = {'id': identity}
         self.coreapi_client.handlers['assets'] = partial(self.__mock_asset_handler, expected_payload, 'read')
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
         self.assertRaises(ApiError, api.get_asset, asset_id=identity)
+
+    def test_get_assets_from_project_HasCorrectInputAndOutput(self):
+        identity = 11
+        expected_payload = {'id': identity}
+        expected = self.__mock_list_assets_handler(None, None, ['projects', 'assets', 'list'], expected_payload)
+        self.coreapi_client.handlers['projects'] = self.__mock_list_assets_handler
+        api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
+        actual = api.get_assets_from_project(identity)
+        self.assertListEqual(actual, expected)
+
+    def test_get_assets_from_project_RaisesApiError(self):
+        identity = 11
+        expected_payload = {'id': identity}
+        self.coreapi_client.handlers['projects'] = self.__mock_list_assets_handler
+        api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
+        other_identity = 999
+        self.assertRaisesRegex(ApiError, 'Project with id 999 does not exist!', api.get_assets_from_project,
+                               project_id=other_identity)
+
+    def test_get_assets_from_job_HasCorrectInputAndOutput(self):
+        identity = 171
+        expected_payload = {'id': identity}
+        expected = self.__mock_asset_handler(expected_payload, 'read', None, None, ['assets', 'read'], expected_payload)
+        self.coreapi_client.handlers['assets'] = partial(self.__mock_asset_handler, expected_payload, 'read')
+        job_identity = 509
+        expected_payload_job = {'id': job_identity}
+        self.coreapi_client.handlers['jobs'] = partial(self.__mock_job_handler, expected_payload_job, 'read')
+        api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
+        actual = api.get_asset_from_job(job_identity)
+        self.assertDictEqual(actual, expected)
+
+    def test_get_asset_unknown_from_job_RaisesApiError(self):
+        identity = 999
+        expected_payload = {'id': identity}
+        self.coreapi_client.handlers['assets'] = partial(self.__mock_asset_handler, expected_payload, 'read')
+        job_identity = 509
+        expected_payload_job = {'id': job_identity}
+        self.coreapi_client.handlers['jobs'] = partial(self.__mock_asset_from_job_handler, expected_payload_job, 'read')
+        api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
+        self.assertRaisesRegex(ApiError, 'Asset with id 999 does not exist!', api.get_asset_from_job,
+                               job_id=job_identity)
+
+    def test_get_asset_invalid_from_job_RaisesApiError(self):
+        identity = 999
+        expected_payload = {'id': identity}
+        self.coreapi_client.handlers['assets'] = partial(self.__mock_asset_handler, expected_payload, 'read')
+        job_identity = 510
+        expected_payload_job = {'id': job_identity}
+        self.coreapi_client.handlers['jobs'] = partial(self.__mock_asset_from_job_handler, expected_payload_job, 'read')
+        api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
+        self.assertRaisesRegex(ApiError, 'Invalid input url for job with id 510!', api.get_asset_from_job,
+                               job_id=job_identity)
 
     def test_create_asset_HasCorrectInputAndOutput(self):
         name = 'TestAsset'
@@ -610,7 +915,6 @@ class TestQuantumInspireAPI(TestCase):
         expected_payload = {'id': job_id}
         self.coreapi_client.handlers['jobs'] = partial(self.__mock_job_handler, expected_payload, 'read',
                                                        status='COMPLETE')
-
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
         quantum_inspire_job = QuantumInspireJob(api, job_id)
         is_completed = api._wait_for_completed_job(quantum_inspire_job, collect_max_tries, sec_retry_delay=0.0)
@@ -692,12 +996,12 @@ class TestQuantumInspireAPI(TestCase):
                              overrides=None, action=None, encoding=None, transform=None, call_mock=None):
         if call_mock:
             call_mock(keys[1])
-        return OrderedDict([('url', 'https,//api.quantum-inspire.com/assets/1/'),
+        return OrderedDict([('url', 'https//api.quantum-inspire.com/assets/1/'),
                             ('id', 171),
                             ('name', 'Grover algorithm - 2018-07-18 13,32'),
                             ('contentType', 'text/plain'),
                             ('content', 'version 1.0\n\nqubits 9\n\n\n# Grover search algorithm\n  display'),
-                            ('project', 'https,//api.quantum-inspire.com/projects/1/'),
+                            ('project', 'https//api.quantum-inspire.com/projects/1/'),
                             ('project_id', 1),
                             ('input', {'project_id': 1})])
 
@@ -705,14 +1009,14 @@ class TestQuantumInspireAPI(TestCase):
                            overrides=None, action=None, encoding=None, transform=None, call_mock=None):
         if call_mock:
             call_mock(keys[1], params)
-        return OrderedDict([('url', 'https,//api.quantum-inspire.com/jobs/509/'),
+        return OrderedDict([('url', 'https//api.quantum-inspire.com/jobs/509/'),
                             ('name', 'qi-sdk-job-7e37c8fa-a76b-11e8-b5a0-a44cc848f1f2'),
                             ('id', 509),
                             ('status', 'COMPLETE'),
                             ('full_state_projection', True),
-                            ('input', 'mocked_asset'),
-                            ('backend', 'https,//api.quantum-inspire.com/backends/1/'),
-                            ('backend_type', 'https,//api.quantum-inspire.com/backendtypes/1/'),
+                            ('input', 'https//api.quantum-inspire.com/assets/171/'),
+                            ('backend', 'https//api.quantum-inspire.com/backends/1/'),
+                            ('backend_type', 'https//api.quantum-inspire.com/backendtypes/1/'),
                             ('results', 'mocked_job'),
                             ('queued_at', '2018-08-24T07:01:21:257557Z'),
                             ('number_of_shots', 1)])
@@ -721,13 +1025,13 @@ class TestQuantumInspireAPI(TestCase):
                                       overrides=None, action=None, encoding=None, transform=None, call_mock=None):
         if call_mock:
             call_mock(keys[1])
-        return OrderedDict([('url', 'https,//api.quantum-inspire.com/jobs/509/'),
+        return OrderedDict([('url', 'https//api.quantum-inspire.com/jobs/509/'),
                             ('name', 'qi-sdk-job-7e37c8fa-a76b-11e8-b5a0-a44cc848f1f2'),
                             ('id', 509),
                             ('status', 'FAILED'),
-                            ('input', 'https,//api.quantum-inspire.com/assets/607/'),
-                            ('backend', 'https,//api.quantum-inspire.com/backends/1/'),
-                            ('backend_type', 'https,//api.quantum-inspire.com/backendtypes/1/'),
+                            ('input', 'https//api.quantum-inspire.com/assets/607/'),
+                            ('backend', 'https//api.quantum-inspire.com/backends/1/'),
+                            ('backend_type', 'https//api.quantum-inspire.com/backendtypes/1/'),
                             ('results', ''),
                             ('queued_at', '2018-08-24T07:01:21:257557Z'),
                             ('number_of_shots', 1)])
@@ -736,7 +1040,7 @@ class TestQuantumInspireAPI(TestCase):
         expected_job_result = self.__fake_job_handler({}, 'read', None, None, ['test', 'read'], {})
         self.coreapi_client.getters['mocked_job'] = expected_job_result
         expected_asset = self.__fake_asset_handler({}, 'create', None, None, ['test', 'create'], {})
-        self.coreapi_client.getters['mocked_asset'] = expected_asset
+        self.coreapi_client.getters['171'] = expected_asset
 
         job_mock = Mock()
         self.coreapi_client.handlers['jobs'] = partial(self.__fake_job_handler, call_mock=job_mock)
@@ -813,7 +1117,7 @@ class TestQuantumInspireAPI(TestCase):
         self.assertEqual(256, job_call_items['number_of_shots'])
         self.assertTrue(job_call_items['full_state_projection'])
 
-        asset_mock.assert_called_with('create')
+        asset_mock.assert_any_call('create')
         backend_mock.assert_called_with('default')
         project_mock.assert_has_calls([call('create', params=mock.ANY), call('delete', params={'id': 1})])
 
@@ -831,7 +1135,8 @@ class TestQuantumInspireAPI(TestCase):
         actual_job_result = api.execute_qasm(qasm, number_of_shots=1024, collect_tries=1)
         self.assertEqual(expected_job_result, actual_job_result)
 
-        job_mock.assert_called_with('read', {'id': 509})
+        job_mock.assert_any_call('read', {'id': 509})
+        job_mock.assert_any_call('result', {'id': 509})
         job_call_items = job_mock.call_args_list[0][0][1]
         self.assertEqual('NEW', job_call_items['status'])
         self.assertEqual(1024, job_call_items['number_of_shots'])

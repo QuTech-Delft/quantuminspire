@@ -61,7 +61,7 @@ class QuantumInspireAPI:
                                   Default set to coreapi.Client.
 
         Note: When no project name is given, a temporary project is created for the job and deleted after the job
-              has finished. When a project name is given, a project is created if it does not exists, but re-used
+              has finished. When a project name is given, a project is created if it does not exist, but re-used
               if a project with that name already exists. In either case, the project will not be deleted when a
               project name is supplied here.
 
@@ -76,7 +76,7 @@ class QuantumInspireAPI:
         except (CoreAPIException, TypeError) as ex:
             raise ApiError('Could not connect to {}'.format(base_uri)) from ex
 
-    def get(self, uri_path: str) -> Any:
+    def _get(self, uri_path: str) -> Any:
         """ Method for making requests to the coreapi client instance to get some piece of information. The information
             requested depends on the uri_path parameter.
 
@@ -117,7 +117,7 @@ class QuantumInspireAPI:
 
     def _load_schema(self) -> None:
         """ Loads the schema with metadata that explains how the api-data is structured."""
-        self.document = self.get(urljoin(self.base_uri, 'schema/'))
+        self.document = self._get(urljoin(self.base_uri, 'schema/'))
 
     def list_backend_types(self) -> None:
         """ Prints the backend types with the name and the maximum number of qubits it supports."""
@@ -181,7 +181,7 @@ class QuantumInspireAPI:
             backend_name: The backend name.
 
         Raises:
-            ApiError: An ApiError exception is thrown when the backend name does not exists.
+            ApiError: An ApiError exception is thrown when the backend name does not exist.
 
         Returns:
             The properties of the backend type of the specific backend.
@@ -202,7 +202,7 @@ class QuantumInspireAPI:
             identifier: The backend type identifier.
 
         Raises:
-            ApiError: If the requested backend type does not exists.
+            ApiError: If the requested backend type does not exist.
             ValueError: If the backend type identifier is not of the correct type.
 
         Returns:
@@ -235,7 +235,7 @@ class QuantumInspireAPI:
             project_id: The project identification number.
 
         Raises:
-            ApiError: If the requested project does not exists.
+            ApiError: If the requested project does not exist.
 
         Returns:
             The properties describing the project:
@@ -293,7 +293,7 @@ class QuantumInspireAPI:
             project_id: The project identification number.
 
         Raises:
-            ApiError: If the project identified by project_id does not exists.
+            ApiError: If the project identified by project_id does not exist.
         """
         payload = {
             'id': project_id
@@ -319,7 +319,7 @@ class QuantumInspireAPI:
             job_id: The job identification number.
 
         Raises:
-            ApiError: If the requested job does not exists.
+            ApiError: If the requested job does not exist.
 
         Returns:
             The properties describing the job:
@@ -358,6 +358,26 @@ class QuantumInspireAPI:
         ret: List[Dict[str, Any]] = self._action(['jobs', 'list'])
         return ret
 
+    def get_jobs_from_asset(self, asset_id: int) -> List[Dict[str, Any]]:
+        """ Gets the jobs with its properties for an asset, given the asset id.
+
+        Args:
+            asset_id: The asset identification number.
+
+        Returns:
+            List of jobs with its properties for the asset with identification asset_id.
+            An empty list is returned when the asset has no jobs.
+
+        Raises:
+            ApiError: If the asset identified by asset_id does not exist.
+        """
+        try:
+            jobs = self._action(['assets', 'jobs', 'list'], params={'id': asset_id})
+        except ErrorMessage as err_msg:
+            raise ApiError('Asset with id {} does not exist!'.format(asset_id)) from err_msg
+        ret: List[Dict[str, Any]] = jobs
+        return ret
+
     def get_jobs_from_project(self, project_id: int) -> List[Dict[str, Any]]:
         """ Gets the jobs with its properties for a single project, given the project id.
 
@@ -369,7 +389,7 @@ class QuantumInspireAPI:
             An empty list is returned when the project has no jobs.
 
         Raises:
-            ApiError: If the project identified by project_id does not exists.
+            ApiError: If the project identified by project_id does not exist.
         """
         try:
             jobs = self._action(['projects', 'jobs', 'list'], params={'id': project_id})
@@ -390,7 +410,7 @@ class QuantumInspireAPI:
             See `get_job` for a description of the job properties.
 
         Raises:
-            ApiError: If the job identified by job_id does not exists.
+            ApiError: If the job identified by job_id does not exist.
         """
         try:
             return OrderedDict(self._action(['jobs', 'delete'], params={'id': job_id}))
@@ -442,7 +462,7 @@ class QuantumInspireAPI:
             result_id: The result identification number.
 
         Raises:
-            ApiError: If the requested result does not exists.
+            ApiError: If the requested result does not exist.
 
         Returns:
             The properties describing the result:
@@ -482,7 +502,26 @@ class QuantumInspireAPI:
         ret: List[Dict[str, Any]] = self._action(['results', 'list'])
         return ret
 
-    def get_raw_data(self, result_id: int) -> List[int]:
+    def get_result_from_job(self, job_id: int) -> Dict[str, Any]:
+        """ Gets the result with its properties for a single job, given the job id.
+
+        Args:
+            job_id: The job identification number.
+
+        Returns:
+            The result with its properties for the job with identification job_id.
+            See `get_result` for a description of the result properties.
+
+        Raises:
+            ApiError: If the job identified by job_id does not exist.
+        """
+        try:
+            result = self._action(['jobs', 'result', 'list'], params={'id': job_id})
+        except ErrorMessage as err_msg:
+            raise ApiError('Job with id {} does not exist!'.format(job_id)) from err_msg
+        return OrderedDict(result)
+
+    def get_raw_data_from_result(self, result_id: int) -> List[int]:
         """ Gets the raw data from the result of the executed cQASM code, given the result_id. The raw data consists
             of a list with integer state values for each shot of the experiment (see job.number_of_shots).
 
@@ -490,15 +529,78 @@ class QuantumInspireAPI:
             result_id: The identification number of the result.
 
         Raises:
-            ApiError: If the requested result with identification result_id does not exists.
+            ApiError: If the raw data url in result is invalid or the request for the raw data using the url failed.
 
         Returns:
             The raw data as a list of integer values. An empty list is returned when there is no raw data.
         """
         result = self.get_result(result_id)
         raw_data_url = str(result.get('raw_data_url'))
-        raw_data: List[int] = self.get(raw_data_url)
+        try:
+            token = raw_data_url.split('/')[-2]
+        except IndexError as err_msg:
+            raise ApiError('Invalid raw data url for result with id {}!'.format(result_id)) from err_msg
+        try:
+            raw_data: List[int] = self._action(['results', 'raw-data', 'read'], params={'id': result_id,
+                                                                                        'token': token})
+        except ErrorMessage as err_msg:
+            raise ApiError('Raw data for result with id {} does not exist!'.format(result_id)) from err_msg
         return raw_data
+
+    def get_quantum_states_from_result(self, result_id: int) -> List[Any]:
+        """ Gets the quantum states from the result of the executed cQASM code, given the result_id.
+
+        Args:
+            result_id: The identification number of the result.
+
+        Raises:
+            ApiError: If the quantum states url in result is invalid or the request for the quantum states using the
+            url failed.
+
+        Returns:
+            The quantum states consists of a list of quantum state values. An empty list is returned when there is
+            no data.
+        """
+        result = self.get_result(result_id)
+        quantum_states_url = str(result.get('quantum_states_url'))
+        try:
+            token = quantum_states_url.split('/')[-2]
+        except IndexError as err_msg:
+            raise ApiError('Invalid quantum states url for result with id {}!'.format(result_id)) from err_msg
+        try:
+            quantum_states: List[Any] = self._action(['results', 'quantum-states', 'read'], params={'id': result_id,
+                                                                                                    'token': token})
+        except ErrorMessage as err_msg:
+            raise ApiError('Quantum states for result with id {} does not exist!'.format(result_id)) from err_msg
+        return quantum_states
+
+    def get_measurement_register_from_result(self, result_id: int) -> List[Any]:
+        """ Gets the measurement register from the result of the executed cQASM code, given the result_id.
+
+        Args:
+            result_id: The identification number of the result.
+
+        Raises:
+            ApiError: If the measurement register url in result is invalid or the request for the measurement register
+            using the url failed.
+
+        Returns:
+            The measurement register consists of a list of measurement register values. An empty list is returned
+            when there is no data.
+        """
+        result = self.get_result(result_id)
+        measurement_register_url = str(result.get('measurement_register_url'))
+        try:
+            token = measurement_register_url.split('/')[-2]
+        except IndexError as err_msg:
+            raise ApiError('Invalid measurement register url for result with id {}!'.format(result_id)) from err_msg
+        try:
+            measurement_register: List[Any] = self._action(['results', 'measurement-register', 'read'],
+                                                           params={'id': result_id,
+                                                                   'token': token})
+        except ErrorMessage as err_msg:
+            raise ApiError('Measurement register for result with id {} does not exist!'.format(result_id)) from err_msg
+        return measurement_register
 
     #  assets  #
 
@@ -515,7 +617,7 @@ class QuantumInspireAPI:
             asset_id: The asset identification number.
 
         Raises:
-            ApiError: If the requested asset does not exists.
+            ApiError: If the requested asset does not exist.
 
         Returns:
             The properties describing the asset:
@@ -546,6 +648,50 @@ class QuantumInspireAPI:
         ret: List[Dict[str, Any]] = self._action(['assets', 'list'])
         return ret
 
+    def get_assets_from_project(self, project_id: int) -> List[Dict[str, Any]]:
+        """ Gets the assets with its properties for a single project, given the project id.
+
+        Args:
+            project_id: The project identification number.
+
+        Returns:
+            List of assets with its properties for the project with identification project_id.
+            An empty list is returned when the project has no assets.
+
+        Raises:
+            ApiError: If the project identified by project_id does not exist.
+        """
+        try:
+            assets: List[Dict[str, Any]] = self._action(['projects', 'assets', 'list'], params={'id': project_id})
+        except ErrorMessage as err_msg:
+            raise ApiError('Project with id {} does not exist!'.format(project_id)) from err_msg
+        return assets
+
+    def get_asset_from_job(self, job_id: int) -> Dict[str, Any]:
+        """ Gets the asset data from the job, given the job_id.
+
+        Args:
+            job_id: The identification number of the job.
+
+        Raises:
+            ApiError: If the requested asset with identification from the job 'input' field does not exist.
+
+        Returns:
+            The assets with all of its properties.
+            See `get_asset` for a description of the asset properties.
+        """
+        job = self.get_job(job_id)
+        asset_url = str(job.get('input'))
+        try:
+            asset_id = int(asset_url.split('/')[-2])
+        except (ValueError, IndexError) as err_msg:
+            raise ApiError('Invalid input url for job with id {}!'.format(job_id)) from err_msg
+        try:
+            asset = self._action(['assets', 'read'], params={'id': asset_id})
+        except ErrorMessage as err_msg:
+            raise ApiError('Asset with id {} does not exist!'.format(asset_id)) from err_msg
+        return OrderedDict(asset)
+
     def _create_asset(self, name: str, project: Dict[str, Any], content: str) -> Dict[str, Any]:
         """ This method is used by execute_qasm_async to generate a new asset with a unique name to hold the
             content of the cQASM program for the project given. Assets are deleted when the project for which the asset
@@ -570,7 +716,8 @@ class QuantumInspireAPI:
 
     #  other  #
 
-    def _wait_for_completed_job(self, quantum_inspire_job: QuantumInspireJob, collect_max_tries: Optional[int],
+    @staticmethod
+    def _wait_for_completed_job(quantum_inspire_job: QuantumInspireJob, collect_max_tries: Optional[int],
                                 sec_retry_delay: float = 0.5) -> bool:
         """ Holds the process and requests the job status until completed or when
             the maximum number of tries has been reached.

@@ -1,5 +1,4 @@
 from typing import Dict, Any
-from collections import OrderedDict
 from coreapi.exceptions import ErrorMessage
 
 
@@ -53,9 +52,8 @@ class QuantumInspireJob:
             histogram of the job. When an error has occurred the raw_text item shall not be
             an empty string.
         """
-        job = self.__api.get_job(self.__job_identifier)
-        result_uri = job['results']
-        return OrderedDict(self.__api.get(result_uri))
+        result: Dict[str, Any] = self.__api.get_result_from_job(self.__job_identifier)
+        return result
 
     def get_job_identifier(self) -> int:
         """ Gets the set job identification number for the wrapped job.
@@ -71,6 +69,5 @@ class QuantumInspireJob:
         Returns:
             The project identification number.
         """
-        job = self.__api.get_job(self.__job_identifier)
-        asset = self.__api.get(job['input'])
+        asset = self.__api.get_asset_from_job(self.__job_identifier)
         return int(asset['project_id'])

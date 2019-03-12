@@ -144,8 +144,8 @@ class TestQiSimulatorPy(unittest.TestCase):
 
     def test_get_experiment_results_RaisesSimulationError_when_no_histogram(self):
         api = Mock()
-        api.get.return_value = {'histogram': [], 'raw_text': 'Error'}
-        api.get_jobs_from_project.return_value = [{'results': '{}'}]
+        api.get_jobs_from_project.return_value = [{'id': 42, 'results': '{}'}]
+        api.get_result_from_job.return_value = {'histogram': [], 'raw_text': 'Error'}
         job = Mock()
         job.job_id.return_value = '42'
         simulator = QuantumInspireBackend(api, Mock())
@@ -161,10 +161,10 @@ class TestQiSimulatorPy(unittest.TestCase):
                         {'name': 'measure', 'qubits': [0], 'memory': [0]}]
         experiment = self._instructions_to_two_qubit_experiment(instructions)
         api = Mock()
-        api.get.return_value = {'id': 1, 'histogram': {'1': 0.6, '3': 0.4}, 'execution_time_in_seconds': 2.1,
-                                'number_of_qubits': 2,
-                                'raw_data_url': 'http://saevar-qutech-nginx/api/results/24/raw-data/'}
-        api.get_raw_data.return_value = [1] * 60 + [3] * 40
+        api.get_result_from_job.return_value = {'id': 1, 'histogram': {'1': 0.6, '3': 0.4},
+                                                'execution_time_in_seconds': 2.1, 'number_of_qubits': 2,
+                                                'raw_data_url': 'http://saevar-qutech-nginx/api/results/24/raw-data/'}
+        api.get_raw_data_from_result.return_value = [1] * 60 + [3] * 40
         jobs = self._basic_job_dictionary
         measurements = QuantumInspireBackend._collect_measurements(experiment)
         user_data = {'name': 'name', 'memory_slots': 2,
@@ -193,10 +193,10 @@ class TestQiSimulatorPy(unittest.TestCase):
                         {'name': 'measure', 'qubits': [0], 'memory': [0]}]
         experiment = self._instructions_to_two_qubit_experiment(instructions)
         api = Mock()
-        api.get.return_value = {'id': 1, 'histogram': {'0': 0.5, '3': 0.5}, 'execution_time_in_seconds': 2.1,
-                                'number_of_qubits': 2,
-                                'raw_data_url': 'http://saevar-qutech-nginx/api/results/24/raw-data/'}
-        api.get_raw_data.return_value = []
+        api.get_result_from_job.return_value = {'id': 1, 'histogram': {'0': 0.5, '3': 0.5},
+                                                'execution_time_in_seconds': 2.1, 'number_of_qubits': 2,
+                                                'raw_data_url': 'http://saevar-qutech-nginx/api/results/24/raw-data/'}
+        api.get_raw_data_from_result.return_value = []
         jobs = self._basic_job_dictionary
         measurements = QuantumInspireBackend._collect_measurements(experiment)
         user_data = {'name': 'name', 'memory_slots': 2,
@@ -232,10 +232,11 @@ class TestQiSimulatorPy(unittest.TestCase):
                             {'name': 'measure', 'qubits': [0], 'memory': [0]}]
             experiment = self._instructions_to_two_qubit_experiment(instructions)
             api = Mock()
-            api.get.return_value = {'id': 1, 'histogram': {'0': 0.2, '1': 0.3, '2': 0.4, '3': 0.1},
-                                    'execution_time_in_seconds': 2.1, 'number_of_qubits': 2,
-                                    'raw_data_url': 'http://saevar-qutech-nginx/api/results/24/raw-data/'}
-            api.get_raw_data.return_value = []
+            api.get_result_from_job.return_value = {'id': 1, 'histogram': {'0': 0.2, '1': 0.3, '2': 0.4, '3': 0.1},
+                                                    'execution_time_in_seconds': 2.1, 'number_of_qubits': 2,
+                                                    'raw_data_url':
+                                                        'http://saevar-qutech-nginx/api/results/24/raw-data/'}
+            api.get_raw_data_from_result.return_value = []
             jobs = self._basic_job_dictionary
             measurements = QuantumInspireBackend._collect_measurements(experiment)
             user_data = {'name': 'name', 'memory_slots': 2,
@@ -325,13 +326,13 @@ class ApiMock(Mock):
         self.result = res1
         self.raw_data = res2
 
-    def get_raw_data(self, result_id):
+    def get_raw_data_from_result(self, result_id):
         if result_id == 1:
             return self.raw_data
         return None
 
-    def get(self, url):
-        if 'result' in url:
+    def get_result_from_job(self, job_id):
+        if job_id == 24:
             return self.result
         return None
 
