@@ -62,9 +62,12 @@ $ pip install .[qiskit,projectq]
 
 ## Running
 
-For example usage see the python scripts and Jupyter notebooks in the [docs/](docs/) directory.
+For example usage see the python scripts and Jupyter notebooks in the [docs/](docs/) directory
+when installed from source or the share/doc/quantuminspire/examples/ directory in the
+library root (Python’s sys.prefix for system installations; site.USER_BASE for user
+installations) when installed from PyPI.
 
-For example, to run the ProjectQ example notebook:
+For example, to run the ProjectQ example notebook after installing from source:
 
 ```
 cd docs
@@ -141,7 +144,7 @@ coverage run --source="./src/quantuminspire" -m unittest discover -s src/tests -
 coverage report -m
 ```
 
-##Note
+## Note
 
 If you are getting import errors related to `tests.quantuminspire` when running
 the above commands after a `pip install -e .`, as a workaround you should remove
