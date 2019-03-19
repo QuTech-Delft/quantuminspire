@@ -15,7 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 """
-
 from setuptools import setup
 
 
@@ -31,8 +30,19 @@ def get_version_number(module):
     return version_number
 
 
+def get_long_description():
+    """ Extract the long description from the README file """
+
+    with open('README.md', encoding='utf-8') as f:
+        long_description = f.read()
+
+    return long_description
+
+
 setup(name='quantuminspire',
       description='SDK for the Quantum Inspire platform',
+      long_description=get_long_description(),
+      long_description_content_type='text/markdown',
       version=get_version_number('quantuminspire'),
       author='QuantumInspire',
       python_requires='>=3.6',
