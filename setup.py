@@ -33,7 +33,7 @@ def get_version_number(module):
 def get_long_description():
     """ Extract the long description from the README file """
 
-    with open('README.md') as f:
+    with open('README.md', encoding='utf-8') as f:
         long_description = f.read()
 
     return long_description
