@@ -12,8 +12,8 @@ pipeline {
               args '-v pip_cache:/var/pip_cache'
         }
     }
-    environment {
-       PERSIST_WORKSPACE = ""
+    triggers {
+        cron(env.BRANCH_NAME == "feature/DEM-722/Jenkins" ? "H H(4-7) * * 1-5" : "")
     }
     stages {
         stage('Checkout modules') {
@@ -23,42 +23,38 @@ pipeline {
                     . ./venv/bin/activate &&
                     pwd &&
                     ls -lah &&
-                    pip install qiskit &&
-                    pip uninstall -y qiskit &&
+                    # Installing qiskit, qiskit-aer and qiskit-terra as separated (development) packages doesn't work
+                    # as expected. As a workaround we install the qiskit packages from PyPI, uninstall package qiskit
+                    # and reinstall the development version of qiskit afterwards.
+                    pip install qiskit --cache-dir /var/pip_cache &&
+                    pip uninstall -y qiskit --cache-dir /var/pip_cache &&
                     git clone https://github.com/Qiskit/qiskit &&
-                    pip install ./qiskit -r ./qiskit/requirements-dev.txt
+                    pip install ./qiskit --upgrade --cache-dir /var/pip_cache -r ./qiskit/requirements-dev.txt
                    '''
             }
         }
         stage('Build') {
             steps {
                 sh 'virtualenv venv'
-                sh '. ./venv/bin/activate && pip install . --cache-dir /var/pip_cache -r ./src/tests/requirements.txt'
+                sh '''
+                    . ./venv/bin/activate &&
+                    pip install . --upgrade --cache-dir /var/pip_cache -r ./src/tests/requirements.txt
+                   '''
            }
         }
         stage('Backend Test') {
             steps {
-                script {
-                    PERSIST_WORKSPACE = WORKSPACE
-                }
-                dir(PERSIST_WORKSPACE) {
-                    withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: API_CREDENTIALS_ID,
-                        usernameVariable: 'API_USERNAME', passwordVariable: 'API_PASSWORD']]) {
-                        sh 'pwd'
-                        sh 'set'
-                        sh 'echo "API_URL: ${API_URL}"'
-                        sh 'echo "API_CREDENTIALS_ID: ${API_CREDENTIALS_ID}"'
-                        sh 'echo "API_USERNAME: ${API_USERNAME}"'
-                        sh 'echo "API_PASSWORD: ${API_PASSWORD}"'
-                        sh '. ./venv/bin/activate && python ./docs/example_qiskit_entangle.py'
-                    }
+                withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: API_CREDENTIALS_ID,
+                    usernameVariable: 'QI_EMAIL', passwordVariable: 'QI_PASSWORD']]) {
+                    sh 'pwd'
+                    sh 'set'
+                    sh 'echo "API_URL: ${API_URL}"'
+                    sh 'echo "API_CREDENTIALS_ID: ${API_CREDENTIALS_ID}"'
+                    sh 'echo "QI_EMAIL: ${QI_EMAIL}"'
+                    sh 'echo "QI_PASSWORD: ${QI_PASSWORD}"'
+                    sh '. ./venv/bin/activate && python ./docs/example_qiskit_entangle.py'
                 }
             }
         }
-        //stage('Collect') {
-            //steps {
-            //    step([$class: 'CoberturaPublisher', coberturaReportFile: 'coverage.xml'])
-            //}
-        //}
     }
 }
