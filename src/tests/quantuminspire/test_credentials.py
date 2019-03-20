@@ -17,7 +17,7 @@ limitations under the License.
 import os
 import json
 from unittest import TestCase
-from unittest.mock import MagicMock, patch, mock_open
+from unittest.mock import MagicMock, patch, mock_open, call
 
 from coreapi.auth import BasicAuthentication
 from quantuminspire.credentials import save_token, load_token, get_token_authentication, get_basic_authentication
@@ -50,10 +50,9 @@ class TestCredentials(TestCase):
                 save_token(expected_token)
                 mock_file.assert_called_with(DEFAULT_QIRC_FILE, 'w')
                 handle = mock_file()
-                handle.write.assert_any_call('{')
-                handle.write.assert_any_call('"token"')
-                handle.write.assert_any_call('"'+expected_token+'"')
-                handle.write.assert_any_call('{')
+                all_calls = handle.mock_calls
+                self.assertIn([call.write('{'), call.write('\n  '), call.write('"token"'), call.write(': '),
+                               call.write('"'+expected_token+'"'), call.write('\n'), call.write('}')] , all_calls)
                 token = load_token()
                 self.assertEqual(expected_token, token)
 
@@ -68,10 +67,9 @@ class TestCredentials(TestCase):
                 save_token(expected_token, filename)
                 mock_file.assert_called_with(filename, 'w')
                 handle = mock_file()
-                handle.write.assert_any_call('{')
-                handle.write.assert_any_call('"token"')
-                handle.write.assert_any_call('"'+expected_token+'"')
-                handle.write.assert_any_call('{')
+                all_calls = handle.mock_calls
+                self.assertIn([call.write('{'), call.write('\n  '), call.write('"token"'), call.write(': '),
+                               call.write('"'+expected_token+'"'), call.write('\n'), call.write('}')] , all_calls)
                 token = load_token(filename)
                 self.assertEqual(expected_token, token)
 

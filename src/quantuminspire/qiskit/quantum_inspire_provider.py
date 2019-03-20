@@ -49,41 +49,39 @@ class QuantumInspireProvider(BaseProvider):  # type: ignore
 
         return backends
 
-    def set_authentication_details(self, email: str, password: str, qi_url: Optional[str] = None) -> None:
+    def set_basic_authentication_details(self, email: str, password: str, qi_url: str = QI_URL) -> None:
         """
-        Set a single authentication for Quantum Inspire.
+        Set up basic authentication for Quantum Inspire.
 
         Args:
             email: A valid email address.
             password: Password for the account.
-            qi_url: Optional URL that points to quantum-inspire api.
+            qi_url: URL that points to quantum-inspire api.
         """
         authentication = get_basic_authentication(email, password)
         self.set_authentication(authentication, qi_url)
 
-    def set_token_authentication_details(self, token: str, qi_url: Optional[str] = None) -> None:
+    def set_token_authentication_details(self, token: str, qi_url: str = QI_URL) -> None:
         """
         Set up token authentication for Quantum Inspire.
 
         Args:
             token: A valid token.
-            qi_url: Optional URL that points to quantum-inspire api.
+            qi_url: URL that points to quantum-inspire api.
         """
         authentication = get_token_authentication(token)
         self.set_authentication(authentication, qi_url)
 
     def set_authentication(self, authentication: Optional[coreapi.auth.AuthBase] = None,
-                           qi_url: Optional[str] = None) -> None:
+                           qi_url: str = QI_URL) -> None:
         """
-        Set the authentication for Quantum Inspire.
+        Initializes the API and sets the authentication for Quantum Inspire.
 
         Args:
             authentication: The authentication, can be one of the following coreapi authentications:
                             BasicAuthentication(email, password), HTTP authentication with valid email/password.
                             TokenAuthentication(token, scheme="token"), token authentication with a valid API-token.
                             When authentication is None, api will try to load a token from the default resource.
-            qi_url: Optional URL that points to quantum-inspire api.
+            qi_url: URL that points to quantum-inspire api.
         """
-        if qi_url is None:
-            qi_url = QI_URL
         self._api = QuantumInspireAPI(qi_url, authentication)

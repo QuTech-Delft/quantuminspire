@@ -70,10 +70,15 @@ class QuantumInspireAPI:
               project name is supplied here.
 
         Raises:
-            ApiError: an ApiError exception is raised when the schema could not be loaded.
+            ApiError: An ApiError exception is raised when no authentication is given and the token could not be
+                      loaded or the schema could not be loaded.
         """
         if authentication is None:
-            authentication = TokenAuthentication(load_token(), scheme="token")
+            token = load_token()
+            if token is not None:
+                authentication = TokenAuthentication(token, scheme="token")
+            else:
+                raise ApiError('No credentials have been provided')
         self.__client = coreapi_client_class(auth=authentication)
         self.project_name = project_name
         self.base_uri = base_uri

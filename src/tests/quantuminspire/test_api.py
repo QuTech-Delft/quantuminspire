@@ -109,6 +109,20 @@ class TestQuantumInspireAPI(TestCase):
             api = QuantumInspireAPI(base_url, coreapi_client_class=self.coreapi_client)
             self.assertEqual(expected, api.document)
 
+    def test_no_authentication_raises_api_error(self):
+        expected_token = 'secret'
+        json.load = MagicMock()
+        json.load.return_value = {'wrong_key': expected_token}
+        os.getenv = MagicMock()
+        os.getenv.return_value = None
+        expected = 'schema/'
+        base_url = 'https://api.mock.test.com/'
+        url = ''.join([base_url, expected])
+        self.coreapi_client.getters[url] = expected
+        with patch("builtins.open", mock_open(read_data="secret_token")) as mock_file:
+            self.assertRaisesRegex(ApiError, 'No credentials have been provided', QuantumInspireAPI,
+                                   base_url, coreapi_client_class=self.coreapi_client)
+
     def test_load_schema_collects_correct_schema(self):
         expected = 'schema/'
         base_url = 'https://api.mock.test.com/'

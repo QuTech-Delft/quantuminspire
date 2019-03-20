@@ -23,7 +23,7 @@ from coreapi.auth import BasicAuthentication, TokenAuthentication
 DEFAULT_QIRC_FILE = os.path.join(os.path.expanduser("~"), '.quantuminspire', 'qirc')
 
 
-def load_token(filename: Optional[str] = None) -> Optional[str]:
+def load_token(filename: str = DEFAULT_QIRC_FILE) -> Optional[str]:
     """ Try to load the saved Quantum Inspire token from file or environment
 
     Load the token found in the system. This method looks for the token in two locations, in the following order:
@@ -37,8 +37,6 @@ def load_token(filename: Optional[str] = None) -> Optional[str]:
     Returns:
         The loaded Quantum Inspire token or None when no token is found.
     """
-    if filename is None:
-        filename = DEFAULT_QIRC_FILE
     try:
         with open(filename, 'r') as file:
             accounts = json.load(file)
@@ -48,7 +46,7 @@ def load_token(filename: Optional[str] = None) -> Optional[str]:
     return token
 
 
-def save_token(token: str, filename: Optional[str] = None) -> None:
+def save_token(token: str, filename: str = DEFAULT_QIRC_FILE) -> None:
     """ Save the token to a file with filename given, otherwise save to the default resource file.
 
     Args
@@ -57,8 +55,6 @@ def save_token(token: str, filename: Optional[str] = None) -> None:
                   in the user home directory is used (`HOME/.quantuminspire/qirc`).
     """
     accounts = {'token': token}
-    if filename is None:
-        filename = DEFAULT_QIRC_FILE
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     with open(filename, 'w') as config_file:
         json.dump(accounts, config_file, indent=2)
