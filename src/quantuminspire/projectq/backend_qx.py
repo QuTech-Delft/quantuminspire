@@ -136,7 +136,7 @@ class QIBackend(BasicEngine):  # type: ignore
             return
 
         if self._flushed:
-            raise RuntimeError("Operation after Flush.")
+            raise RuntimeError("Same instance of QIBackend used for circuit after Flush.")
 
         if gate == Allocate:
             index_to_add = cmd.qubits[0][0].id
@@ -154,6 +154,8 @@ class QIBackend(BasicEngine):  # type: ignore
                 if isinstance(t, LogicalQubitIDTag):
                     logical_id = t.logical_qubit_id
                     break
+            if self.main_engine.mapper is None:
+                logical_id = cmd.qubits[0][0].id  # no mapping
             assert logical_id is not None
             self._measured_ids += [logical_id]
         elif gate == NOT and get_control_count(cmd) == 1:
@@ -218,14 +220,16 @@ class QIBackend(BasicEngine):  # type: ignore
         Returns:
             Physical position of logical qubit with id qb_id.
         """
-        assert self.main_engine.mapper is not None
-        mapping = self.main_engine.mapper.current_mapping
-        if qb_id not in mapping:
-            raise RuntimeError("Unknown qubit id {}. Please make sure "
-                               "eng.flush() was called and that the qubit "
-                               "was eliminated during optimization."
-                               .format(qb_id))
-        return int(mapping[qb_id])
+        if self.main_engine.mapper is not None:
+            mapping = self.main_engine.mapper.current_mapping
+            if qb_id not in mapping:
+                raise RuntimeError("Unknown qubit id {}. Please make sure "
+                                   "eng.flush() was called and that the qubit "
+                                   "was eliminated during optimization."
+                                   .format(qb_id))
+            return int(mapping[qb_id])
+        else:
+            return qb_id  # no mapping
 
     def get_probabilities(self, qureg: List[Qubit]) -> Dict[str, float]:
         """

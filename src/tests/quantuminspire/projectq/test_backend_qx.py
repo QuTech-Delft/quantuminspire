@@ -44,18 +44,18 @@ class TestProjectQBackend(unittest.TestCase):
     def setUp(self):
         warnings.filterwarnings("ignore", category=PendingDeprecationWarning)
 
-    def test_init_HasCorrectValues(self):
+    def test_init_has_correct_values(self):
         api = MockApiClient()
         backend = QIBackend(quantum_inspire_api=api)
         self.assertIsInstance(backend.qasm, str)
         self.assertEqual(backend.quantum_inspire_api, api)
         self.assertIsNone(backend.backend_type)
 
-    def test_init_RaisesRuntimeError(self):
+    def test_init_raises_runtime_error(self):
         api = None
         self.assertRaises(RuntimeError, QIBackend, quantum_inspire_api=api)
 
-    def test_cqasm_ReturnsCorrectCqasmData(self):
+    def test_cqasm_returns_correct_cqasm_data(self):
         api = MockApiClient()
         backend = QIBackend(quantum_inspire_api=api)
         expected = 'fake_cqasm_data'
@@ -63,7 +63,7 @@ class TestProjectQBackend(unittest.TestCase):
         actual = backend.cqasm()
         self.assertEqual(actual, expected)
 
-    def test_is_available_VerbosePrintsData(self):
+    def test_is_available_verbose_prints_data(self):
         command = MagicMock()
         command.gate = CNOT
         api = MockApiClient()
@@ -83,7 +83,7 @@ class TestProjectQBackend(unittest.TestCase):
         actual = backend.is_available(command)
         self.assertEqual(actual, expected, msg="{} failed!".format(gate))
 
-    def test_is_available_CorrectResult(self):
+    def test_is_available_correct_result(self):
         self.__is_available_assert_equal(NOT, True, count=1)
         self.__is_available_assert_equal(NOT, False, count=3)
         self.__is_available_assert_equal(Z, True, count=1)
@@ -94,7 +94,7 @@ class TestProjectQBackend(unittest.TestCase):
                      S, Sdag, H, X, Y, Z, Rx(0.1), Ry(0.2), Rz(0.3)]:
             self.__is_available_assert_equal(gate, True)
 
-    def test_reset_isCleared(self):
+    def test_reset_is_cleared(self):
         api = MockApiClient()
         backend = QIBackend(quantum_inspire_api=api)
         backend._clear = True
@@ -121,7 +121,7 @@ class TestProjectQBackend(unittest.TestCase):
                             control_qubits=[MagicMock(id=identity - 1), MagicMock(id=identity)])
         self.assertRaises(NotImplementedError, backend._store, command)
 
-    def test_store_ReturnsCorrectQasm(self):
+    def test_store_returns_correct_qasm(self):
         angle = 0.1
         self.__store_function_assert_equal(0, NOT, "\nx q[0]")
         self.__store_function_assert_equal(1, NOT, "\nCNOT q[0], q[1]", count=1)
@@ -144,20 +144,20 @@ class TestProjectQBackend(unittest.TestCase):
         self.__store_function_assert_equal(0, T, "\nt q[0]")
         self.__store_function_assert_equal(0, Tdag, "\nTdag q[0]")
 
-    def test_store_RaisesError(self):
+    def test_store_raises_error(self):
         angle = 0.1
         self.__store_function_raises_error(Toffoli, count=0)
         self.__store_function_raises_error(Rx(angle), count=1)
         self.__store_function_raises_error(Ry(angle), count=1)
 
-    def test_store_AllocateVerboseOutput(self):
+    def test_store_allocate_verbose_output(self):
         with patch('sys.stdout', new_callable=io.StringIO) as mock_stdout:
             self.__store_function_assert_equal(0, Allocate, "", verbose=2)
             std_output = mock_stdout.getvalue()
         self.assertTrue('   _allocated_qubits' in std_output)
         self.assertTrue('_store: Allocate gate' in std_output)
 
-    def test_store_DeallocateVerboseOutput(self):
+    def test_store_deallocate_verbose_output(self):
         with patch('sys.stdout', new_callable=io.StringIO) as mock_stdout:
             self.__store_function_assert_equal(0, Deallocate, "", verbose=2)
             std_output = mock_stdout.getvalue()
@@ -165,7 +165,7 @@ class TestProjectQBackend(unittest.TestCase):
         self.assertTrue('_store: Deallocate gate' in std_output)
 
     @patch('quantuminspire.projectq.backend_qx.get_control_count')
-    def test_store_MeasureGate(self, function_mock):
+    def test_store_measure_gate_with_mapper(self, function_mock):
         mock_tag = 'mock_my_tag'
         api = MockApiClient()
         function_mock.return_value = 4
@@ -173,10 +173,24 @@ class TestProjectQBackend(unittest.TestCase):
         command = MagicMock(gate=Measure, qubits=[[MagicMock(id=0)]],
                             control_qubits=[MagicMock(id=2), MagicMock(id=3)],
                             tags=[LogicalQubitIDTag(mock_tag)])
+        backend.main_engine = MagicMock(mapper="mapper")
         backend._store(command)
         self.assertEqual(backend._measured_ids, [mock_tag])
 
-    def test_logical_to_physical_ReturnsCorrectResult(self):
+    @patch('quantuminspire.projectq.backend_qx.get_control_count')
+    def test_store_measure_gate_without_mapper(self, function_mock):
+        mock_tag = 'mock_my_tag'
+        api = MockApiClient()
+        function_mock.return_value = 4
+        backend = QIBackend(quantum_inspire_api=api)
+        command = MagicMock(gate=Measure, qubits=[[MagicMock(id=mock_tag)]],
+                            control_qubits=[MagicMock(id=2), MagicMock(id=3)],
+                            tags=[])
+        backend.main_engine = MagicMock(mapper=None)
+        backend._store(command)
+        self.assertEqual(backend._measured_ids, [mock_tag])
+
+    def test_logical_to_physical_with_mapper_returns_correct_result(self):
         qd_id = 0
         expected = 1234
         api = MockApiClient()
@@ -186,7 +200,16 @@ class TestProjectQBackend(unittest.TestCase):
         actual = backend._logical_to_physical(qd_id)
         self.assertEqual(actual, expected)
 
-    def test_logical_to_physical_RaisesRuntimeError(self):
+    def test_logical_to_physical_without_mapper_returns_correct_result(self):
+        qd_id = 1234
+        expected = qd_id
+        api = MockApiClient()
+        backend = QIBackend(quantum_inspire_api=api)
+        backend.main_engine = MagicMock(mapper=None)
+        actual = backend._logical_to_physical(qd_id)
+        self.assertEqual(actual, expected)
+
+    def test_logical_to_physical_raises_runtime_error(self):
         qd_id = 0
         expected = 1234
         api = MockApiClient()
@@ -195,13 +218,13 @@ class TestProjectQBackend(unittest.TestCase):
         backend.main_engine.mapper.current_mapping = [expected]
         self.assertRaises(RuntimeError, backend._logical_to_physical, qd_id)
 
-    def test_get_probabilities_RaisesRuntimeError(self):
+    def test_get_probabilities_raises_runtime_error(self):
         api = MockApiClient()
         backend = QIBackend(quantum_inspire_api=api)
         backend.__probabilities = 0
         self.assertRaises(RuntimeError, backend.get_probabilities, None)
 
-    def test_get_probabilities_ReturnsCorrectResult(self):
+    def test_get_probabilities_returns_correct_result(self):
         api = MockApiClient()
         backend = QIBackend(quantum_inspire_api=api)
         value_a = 0.4892578125
@@ -214,7 +237,7 @@ class TestProjectQBackend(unittest.TestCase):
         actual = backend.get_probabilities([MagicMock(id=0), MagicMock(id=1)])
         self.assertDictEqual(expected, actual)
 
-    def test_get_probabilities_reversed_measurement_order_ReturnsCorrectResult(self):
+    def test_get_probabilities_reversed_measurement_order_returns_correct_result(self):
         api = MockApiClient()
         backend = QIBackend(quantum_inspire_api=api)
         value_a = 0.4892578125
@@ -241,7 +264,7 @@ class TestProjectQBackend(unittest.TestCase):
         self.assertTrue(backend._clear)
 
     @patch('quantuminspire.projectq.backend_qx.get_control_count')
-    def test_reuse_after_flush_RaisesRuntimeError(self, function_mock):
+    def test_reuse_after_flush_raises_runtime_error(self, function_mock):
         function_mock.return_value = 1
         command = MagicMock(gate=NOT, qubits=[[MagicMock(id=0)], [MagicMock(id=1)]])
         command_list = [command, MagicMock(gate=FlushGate()), command]
@@ -249,7 +272,8 @@ class TestProjectQBackend(unittest.TestCase):
         backend = QIBackend(quantum_inspire_api=api)
         backend.main_engine = MagicMock()
         with patch('sys.stdout', new_callable=io.StringIO):
-            self.assertRaisesRegex(RuntimeError, "Operation after Flush.", backend.receive, command_list)
+            self.assertRaisesRegex(RuntimeError, "Same instance of QIBackend used for circuit after Flush.",
+                                   backend.receive, command_list)
 
     @patch('quantuminspire.projectq.backend_qx.get_control_count')
     def test_receive_multiple_flush(self, function_mock):
@@ -280,13 +304,13 @@ class TestProjectQBackend(unittest.TestCase):
         self.assertEqual(backend._number_of_qubits, 3)
         self.assertEqual(len(backend._allocated_qubits), 0)
 
-    def test_run_NoQasm(self):
+    def test_run_no_qasm(self):
         api = MockApiClient()
         backend = QIBackend(quantum_inspire_api=api)
         backend._run()
         self.assertEqual(backend.qasm, "")
 
-    def test_run_HasCorrectOutput(self):
+    def test_run_has_correct_output(self):
         api = MockApiClient()
         with patch('sys.stdout', new_callable=io.StringIO) as std_mock:
             backend = QIBackend(quantum_inspire_api=api, verbose=2)
@@ -301,7 +325,7 @@ class TestProjectQBackend(unittest.TestCase):
         self.assertEqual(api.execute_qasm(), actual)
         self.assertTrue(backend._clear)
 
-    def test_run_RaisesErrorNoResult(self):
+    def test_run_raises_error_no_result(self):
         api = MockApiClient()
         with patch('sys.stdout', new_callable=io.StringIO):
             backend = QIBackend(quantum_inspire_api=api, verbose=2)
@@ -316,7 +340,7 @@ class TestProjectQBackend(unittest.TestCase):
         api.execute_qasm.assert_called_once()
 
     @patch('quantuminspire.projectq.backend_qx.Measure')
-    def test_run_NoMeasurements(self, measure_mock):
+    def test_run_no_measurements(self, measure_mock):
         api = MockApiClient()
         with patch('sys.stdout', new_callable=io.StringIO):
             backend = QIBackend(quantum_inspire_api=api, verbose=2)

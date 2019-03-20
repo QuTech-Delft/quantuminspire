@@ -8,7 +8,6 @@ from getpass import getpass
 from coreapi.auth import BasicAuthentication
 from projectq import MainEngine
 from projectq.backends import ResourceCounter
-from projectq.cengines import ManualMapper
 from projectq.ops import CNOT, H, Measure, All
 from projectq.setups import restrictedgateset
 
@@ -34,7 +33,7 @@ if __name__ == '__main__':
     qi_api = QuantumInspireAPI(uri, authentication, project_name=name)
 
     compiler_engines = restrictedgateset.get_engine_list(one_qubit_gates="any", two_qubit_gates=(CNOT,))
-    compiler_engines.extend([ResourceCounter(), ManualMapper(lambda x: x)])
+    compiler_engines.extend([ResourceCounter()])
 
     qi_backend = QIBackend(quantum_inspire_api=qi_api)
     engine = MainEngine(backend=qi_backend, engine_list=compiler_engines)
