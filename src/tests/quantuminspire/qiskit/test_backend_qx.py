@@ -118,7 +118,7 @@ class TestQiSimulatorPy(unittest.TestCase):
             n_qubits=26,
             basis_gates=['x', 'y', 'z', 'h', 'rx', 'ry', 'rz', 's', 'cx', 'ccx', 'u1', 'u2', 'u3', 'id', 'snapshot'],
             gates=[GateConfig(name='NotUsed', parameters=['NaN'], qasm_def='NaN')],
-            conditional=False,
+            conditional=True,
             simulator=True,
             local=False,
             memory=True,
@@ -127,7 +127,7 @@ class TestQiSimulatorPy(unittest.TestCase):
         )
         self.assertDictEqual(configuration.to_dict(), expected_configuration.to_dict())
 
-    def test_run_ReturnsCorrectResult(self):
+    def test_run_returns_correct_result(self):
         api = Mock()
         api.create_project.return_value = {'id': 42}
         api.get_jobs_from_project.return_value = []
@@ -142,7 +142,7 @@ class TestQiSimulatorPy(unittest.TestCase):
         job = simulator.run(qobj)
         self.assertEqual('42', job.job_id())
 
-    def test_get_experiment_results_RaisesSimulationError_when_no_histogram(self):
+    def test_get_experiment_results_raises_simulation_error_when_no_histogram(self):
         api = Mock()
         api.get_jobs_from_project.return_value = [{'id': 42, 'results': '{}'}]
         api.get_result_from_job.return_value = {'histogram': [], 'raw_text': 'Error'}
@@ -257,7 +257,7 @@ class TestQiSimulatorPy(unittest.TestCase):
         self.assertEqual(one_shot_results['0x2'], 4003)
         self.assertEqual(one_shot_results['0x3'], 984)
 
-    def test_validate_NegativeShotCount(self):
+    def test_validate_negative_shot_count(self):
         simulator = QuantumInspireBackend(Mock(), Mock())
         job_dict = self._basic_qobj_dictionary
         job_dict['config']['shots'] = 0
@@ -265,7 +265,7 @@ class TestQiSimulatorPy(unittest.TestCase):
 
         self.assertRaises(QisKitBackendError, simulator.run, job)
 
-    def test_validate_NoClassicalQubits(self):
+    def test_validate_no_classical_qubits(self):
         simulator = QuantumInspireBackend(Mock(), Mock())
 
         job_dict = self._basic_qobj_dictionary
@@ -275,10 +275,10 @@ class TestQiSimulatorPy(unittest.TestCase):
 
         self.assertRaises(QisKitBackendError, simulator.run, job)
 
-    def test_validate_OperationAfterMeasure(self):
+    def test_validate_operation_after_measure(self):
         with patch.object(QuantumInspireBackend, "_submit_experiment", return_value=Mock()):
             simulator = QuantumInspireBackend(Mock(), Mock())
-            instructions = [{'name': 'CX', 'qubits': [0]}, {'name': 'measure', 'qubits': [0]},
+            instructions = [{'name': 'CX', 'qubits': [0, 1]}, {'name': 'measure', 'qubits': [0]},
                             {'name': 'X', 'qubits': [0]}]
             job_dict = self._basic_qobj_dictionary
             job_dict['experiments'][0]['instructions'] = instructions
@@ -294,6 +294,21 @@ class TestQiSimulatorPy(unittest.TestCase):
             job_dict['experiments'][0]['instructions'] = instructions
             job = qiskit.qobj.Qobj.from_dict(job_dict)
             self.assertRaises(QisKitBackendError, simulator.run, job)
+
+    def test_valid_qubit_operation_after_measurement_other_qubit(self):
+        api = Mock()
+        api.create_project.return_value = {'id': 42}
+        api.get_jobs_from_project.return_value = []
+        api.execute_qasm_async.return_value = 42
+        simulator = QuantumInspireBackend(api, Mock())
+        instructions = [{'name': 'h', 'params': [], 'texparams': [], 'qubits': [0]},
+                        {'name': 'measure', 'qubits': [0], 'memory': [0]},
+                        {'name': 'h', 'params': [], 'texparams': [], 'qubits': [1]}]
+        qobj_dict = self._basic_qobj_dictionary
+        qobj_dict['experiments'][0]['instructions'] = instructions
+        qobj = Qobj.from_dict(qobj_dict)
+        job = simulator.run(qobj)
+        self.assertEqual('42', job.job_id())
 
     def test_retrieve_job(self):
         api = Mock()
@@ -390,7 +405,7 @@ class TestQiSimulatorPyHistogram(unittest.TestCase):
                                  }
         return experiment_dictionary
 
-    def test_convert_histogram_NormalMeasurement(self):
+    def test_convert_histogram_normal_measurement(self):
         self.run_histogram_test(
             single_experiment=self._instructions_to_experiment(
                 [{'name': 'h', 'params': [], 'texparams': [], 'qubits': [0]},
@@ -427,7 +442,7 @@ class TestQiSimulatorPyHistogram(unittest.TestCase):
             expected_memory=['0x0'] * 100 + ['0x9'] * 200 + ['0x90'] * 300 + ['0x99'] * 400
         )
 
-    def test_convert_histogram_SwappedClassicalQubits(self):
+    def test_convert_histogram_swapped_classical_qubits(self):
         self.run_histogram_test(
             single_experiment=self._instructions_to_experiment(
                 [{'name': 'h', 'params': [], 'texparams': [], 'qubits': [0]},
@@ -444,7 +459,7 @@ class TestQiSimulatorPyHistogram(unittest.TestCase):
             expected_memory=['0x0'] * 100 + ['0x2'] * 200 + ['0x1'] * 300 + ['0x3'] * 400
         )
 
-    def test_convert_histogram_LessMeasurementsQubitOne(self):
+    def test_convert_histogram_less_measurements_qubit_one(self):
         self.run_histogram_test(
             single_experiment=self._instructions_to_experiment(
                 [{'name': 'h', 'params': [], 'texparams': [], 'qubits': [0]},
@@ -460,7 +475,7 @@ class TestQiSimulatorPyHistogram(unittest.TestCase):
             expected_memory=['0x0'] * 100 + ['0x1'] * 200 + ['0x0'] * 300 + ['0x1'] * 400
         )
 
-    def test_convert_histogram_LessMeasurementsQubitTwo(self):
+    def test_convert_histogram_less_measurements_qubit_two(self):
         self.run_histogram_test(
             single_experiment=self._instructions_to_experiment(
                 [{'name': 'h', 'params': [], 'texparams': [], 'qubits': [0]},
@@ -476,7 +491,7 @@ class TestQiSimulatorPyHistogram(unittest.TestCase):
             expected_memory=['0x0'] * 300 + ['0x2'] * 700
         )
 
-    def test_convert_histogram_ClassicalBitsMeasureSameQubits(self):
+    def test_convert_histogram_classical_bits_measure_same_qubits(self):
         self.run_histogram_test(
             single_experiment={'instructions': [{'name': 'h', 'params': [], 'texparams': [], 'qubits': [0]},
                                                 {'name': 'cx', 'params': [], 'texparams': [], 'qubits': [0, 1]},
