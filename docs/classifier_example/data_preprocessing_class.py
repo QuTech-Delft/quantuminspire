@@ -4,8 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 plt.style.use('seaborn-whitegrid')
-
-
+get_bin = lambda x, n: format(int(x), 'b').zfill(n)
 
 def preproccessdata(data, display_fig=True, axislimits=[None, None, None]):
     """Function to plot procedure of preprocessing data
@@ -172,5 +171,72 @@ class DataPlotter():
         plt.show
         plt
 
+    def load_data(self):
+        iris = load_iris()
+        features = iris.data.T
+        data = [el[0:101] for el in features][0:2]  # Select only the first two features of the dataset
+
+        half_len_data = len(data[0]) // 2
+        Iris_setosa = [el[0:half_len_data] for el in data[0:2]]
+        Iris_versicolor = [el[half_len_data:-1] for el in data[0:2]]
+
+        # Rescale the data
+        features_scaled = [preprocessing.scale(el) for el in data[0:2]]
+        Iris_setosa_scaled = [el[0:half_len_data] for el in features_scaled]
+        Iris_versicolor_scaled = [el[half_len_data:-1] for el in features_scaled]
+
+        # Normalise the data
+        def normalise_data(arr1, arr2):
+            """Normalise data to unit length
+                input: two array same length
+                output: normalised arrays
+            """
+            for idx in range(len(arr1)):
+                norm = (arr1[idx]**2 + arr2[idx]**2)**(1 / 2)
+                arr1[idx] = arr1[idx] / norm
+                arr2[idx] = arr2[idx] / norm
+            return [arr1, arr2]
+
+        Iris_setosa_normalised = normalise_data(Iris_setosa_scaled[0], Iris_setosa_scaled[1])
+        Iris_versicolor_normalised = normalise_data(Iris_versicolor_scaled[0], Iris_versicolor_scaled[1])
+        return Iris_setosa_normalised, Iris_versicolor_normalised
+
+
+    def plot_data_points(self, TestData, Datalabel0, Datalabel1, results):
+        # Scatter plot full data set,test point and data points
+        # Bar plot results (Project Q!)
+
+        plt.rcParams['figure.figsize'] = [16, 6]  # Plot size
+        #load data:
+        Iris_setosa_normalised, Iris_versicolor_normalised = self.load_data()
+
+        # Scatter plot data points:
+        plt.subplot(1, 2, 1)  # Scatter plot
+        self.plot_normalised_data(Iris_setosa_normalised, Iris_versicolor_normalised)
+        plt.scatter(TestData[0], TestData[1], s=50, c='green');  # Scatter plot data class ?
+        
+        for data_point in Datalabel0:
+            plt.scatter(data_point[0], data_point[1],  s=50, c='orange');  # Scatter plot data class 0
+        for data_point in Datalabel1:    
+            plt.scatter(data_point[0], data_point[1],  s=50, c='orange');  # Scatter plot data class 1
+        plt.legend(["Iris Setosa (label 0)", "Iris Versicolor (label 1)", "Test point", "Data points"])
+
+        # Bar plot results:
+        plt.subplot(1, 2, 2)  # Bar plot
+        size = len(list(results.keys())[0])
+        res = [get_bin(el, size) for el in range(2 ** size)]
+        prob = [0] * 2**size
+        for key, value in results.items(): 
+            prob[int(key, 2)] = value
+
+        # Set color=light grey when 2nd qubit = 1
+        # Set color=blue when 2nd qubit = 0, and last qubit = 1
+        # Set color=red when 2nd qubit = 0, and last qubit = 0
+        color_list = ['red', 'blue', 'red', 'blue', (0.1, 0.1, 0.1, 0.1), (0.1, 0.1, 0.1, 0.1), (0.1, 0.1, 0.1, 0.1), (0.1, 0.1, 0.1, 0.1)]
+        plt.bar(res, prob, color=color_list)
+        plt.ylabel('Probability')
+        plt.title('Results')
+        plt.ylim(0, .5)
+        plt.xticks(rotation='vertical')
 
 
