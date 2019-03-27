@@ -15,6 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import warnings
 import os
 import json
 from typing import Optional
@@ -23,35 +24,84 @@ from coreapi.auth import BasicAuthentication, TokenAuthentication
 DEFAULT_QIRC_FILE = os.path.join(os.path.expanduser("~"), '.quantuminspire', 'qirc')
 
 
-def load_token(filename: str = DEFAULT_QIRC_FILE) -> Optional[str]:
-    """ Try to load the saved Quantum Inspire token from file or environment
+def load_account(filename: str = DEFAULT_QIRC_FILE) -> Optional[str]:
+    """ Try to load an earlier stored Quantum Inspire token from file or environment
 
-    Load the token found in the system. This method looks for the token in two locations, in the following order:
-    1. In the file with filename given or, when not given, the default resource file in the user home directory
+    Load the token when found. This method looks for the token in two locations, in the following order:
+    1. In the environment variable ('QI_TOKEN').
+    2. In the file with filename given or, when not given, the default resource file in the user home directory
        (`HOME/.quantuminspire/qirc`).
-    2. In the environment variable ('QI_TOKEN').
 
-    Args
-        filename: full path to the resource file. If no filename is given, the default resource file is used.
+    Args:
+        filename: full path to the resource file. If no filename is given, the default resource file
+                  in the user home directory is used (`HOME/.quantuminspire/qirc`).
 
     Returns:
-        The loaded Quantum Inspire token or None when no token is found.
+        The Quantum Inspire token or None when no token is found.
+    """
+    token = os.environ.get('QI_TOKEN', None) or read_account(filename)
+    return token
+
+
+def read_account(filename: str = DEFAULT_QIRC_FILE) -> Optional[str]:
+    """ Try to read an earlier stored Quantum Inspire token from file
+
+    Read the token from file. This method looks for the token in the file with filename given or,
+    when no filename is given, the default resource file in the user home directory (`HOME/.quantuminspire/qirc`).
+
+    Args:
+        filename: full path to the resource file. If no filename is given, the default resource file
+                  in the user home directory is used (`HOME/.quantuminspire/qirc`).
+
+    Returns:
+        The Quantum Inspire token or None when no token is found.
     """
     try:
         with open(filename, 'r') as file:
             accounts = json.load(file)
             token: Optional[str] = accounts['token']
     except (OSError, KeyError, ValueError):  # file does not exist or is empty/invalid
-        token = os.getenv('QI_TOKEN', None)
-    return token
+        token = None
+    return token if (token and len(token)) else None
 
 
-def save_token(token: str, filename: str = DEFAULT_QIRC_FILE) -> None:
+def store_account(token: str, filename: str = DEFAULT_QIRC_FILE, overwrite: bool = False) -> None:
+    """
+    Store the token in a resource file. Replace an existing token only when overwrite=True.
+
+    Args:
+        token: the Quantum Inspire token to store to disk.
+        filename: full path to the resource file. If no filename is given, the default resource file
+                  in the user home directory is used (`HOME/.quantuminspire/qirc`).
+        overwrite: overwrite an existing token.
+    """
+    stored_token = read_account(filename)
+    if stored_token and stored_token != token and not overwrite:
+        warnings.warn('Token already present. Set overwrite=True to overwrite.')
+        return
+    save_account(token, filename)
+
+
+def delete_account(token: str, filename: str = DEFAULT_QIRC_FILE) -> None:
+    """ Remove the token from the resource file.
+
+    Args:
+        token: the Quantum Inspire token to remove.
+        filename: full path to the resource file. If no filename is given, the default resource file
+                  in the user home directory is used (`HOME/.quantuminspire/qirc`).
+    """
+    stored_token = read_account(filename)
+    if stored_token == token:
+        save_account('', filename)
+
+
+def save_account(token: str, filename: str = DEFAULT_QIRC_FILE) -> None:
     """ Save the token to a file with filename given, otherwise save to the default resource file.
+        An existing token is overwritten. Use store_account to prevent overwriting an existing token.
 
-    Args
+    Args:
         token: the Quantum Inspire token to save.
-        filename: full path to the target file. If not given, the default resource file
+        filename: full path to the resource file. If no filename is given, the default resource file
                   in the user home directory is used (`HOME/.quantuminspire/qirc`).
     """
     accounts = {'token': token}
@@ -60,26 +110,39 @@ def save_token(token: str, filename: str = DEFAULT_QIRC_FILE) -> None:
         json.dump(accounts, config_file, indent=2)
 
 
-def get_token_authentication(token: str) -> TokenAuthentication:
+def enable_account(token: str) -> None:
+    """ Save the token to the internal environment, that will be used by load_account for the session.
+        When a token was already loaded from the system environment it is overwritten.
+        The system environment is not effected.
+
+    Args:
+        token: the Quantum Inspire token to be used by load_account() for the session.
+    """
+    os.environ['QI_TOKEN'] = token
+
+
+def get_token_authentication(token: Optional[str] = None) -> TokenAuthentication:
     """ Set up token authentication for Quantum Inspire to be used in the API.
 
-    Args
-        token: the Quantum Inspire  token to set in TokenAuthentication.
+    Args:
+        token: the Quantum Inspire token to set in TokenAuthentication. When no token is given,
 
     Returns:
         The token authentication for Quantum Inspire.
     """
+    if not token:
+        token = load_account()
     return TokenAuthentication(token, scheme="token")
 
 
 def get_basic_authentication(email: str, password: str) -> BasicAuthentication:
     """ Set up basic authentication for Quantum Inspire to be used in the API.
 
-    Args
-        email: A valid email address.
-        password: Password for the account.
+    Args:
+        email: a valid email address.
+        password: password for the account.
 
     Returns:
-        The basic authentication for Quantunm Inspire.
+        The basic authentication for Quantum Inspire.
     """
     return BasicAuthentication(email, password)

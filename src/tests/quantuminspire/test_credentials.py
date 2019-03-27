@@ -20,7 +20,8 @@ from unittest import TestCase
 from unittest.mock import MagicMock, patch, mock_open, call
 
 from coreapi.auth import BasicAuthentication
-from quantuminspire.credentials import save_token, load_token, get_token_authentication, get_basic_authentication
+from quantuminspire.credentials import save_account, store_account, delete_account, enable_account, load_account,\
+    get_token_authentication, get_basic_authentication
 DEFAULT_QIRC_FILE = os.path.join(os.path.expanduser("~"), '.quantuminspire', 'qirc')
 
 
@@ -30,6 +31,11 @@ class TestCredentials(TestCase):
         secret_token = 'secret'
         auth = get_token_authentication(secret_token)
         # TokenAuthentication doesn't have __equal__ implemented, so check fields
+        self.assertEqual(auth.token, secret_token)
+        self.assertEqual(auth.scheme, 'token')
+        os.environ.get = MagicMock()
+        os.environ.get.return_value = secret_token
+        auth = get_token_authentication()
         self.assertEqual(auth.token, secret_token)
         self.assertEqual(auth.scheme, 'token')
 
@@ -43,42 +49,108 @@ class TestCredentials(TestCase):
     def test_save_and_load_token_default_rc(self):
         os.makedirs = MagicMock()
         json.load = MagicMock()
+        os.environ.get = MagicMock()
+        os.environ.get.return_value = None
         expected_token = 'secret'
         json.load.return_value = {'token': expected_token}
         with patch("builtins.open", mock_open()) as mock_file:
             with patch('os.makedirs', os.makedirs):
-                save_token(expected_token)
+                save_account(expected_token)
                 mock_file.assert_called_with(DEFAULT_QIRC_FILE, 'w')
                 handle = mock_file()
                 all_calls = handle.mock_calls
                 self.assertIn([call.write('{'), call.write('\n  '), call.write('"token"'), call.write(': '),
-                               call.write('"'+expected_token+'"'), call.write('\n'), call.write('}')] , all_calls)
-                token = load_token()
+                               call.write('"'+expected_token+'"'), call.write('\n'), call.write('}')], all_calls)
+                token = load_account()
                 self.assertEqual(expected_token, token)
 
     def test_save_and_load_token_filename(self):
         filename = 'path/to/open/dummyqi.rc'
         os.makedirs = MagicMock()
         json.load = MagicMock()
+        os.environ.get = MagicMock()
+        os.environ.get.return_value = None
         expected_token = 'secret'
         json.load.return_value = {'token': expected_token}
         with patch("builtins.open", mock_open()) as mock_file:
             with patch('os.makedirs', os.makedirs):
-                save_token(expected_token, filename)
+                save_account(expected_token, filename)
                 mock_file.assert_called_with(filename, 'w')
                 handle = mock_file()
                 all_calls = handle.mock_calls
                 self.assertIn([call.write('{'), call.write('\n  '), call.write('"token"'), call.write(': '),
-                               call.write('"'+expected_token+'"'), call.write('\n'), call.write('}')] , all_calls)
-                token = load_token(filename)
+                               call.write('"'+expected_token+'"'), call.write('\n'), call.write('}')], all_calls)
+                token = load_account(filename)
                 self.assertEqual(expected_token, token)
+
+    def test_store_token_filename(self):
+        filename = 'path/to/open/dummyqi.rc'
+        os.makedirs = MagicMock()
+        json.load = MagicMock()
+        os.environ.get = MagicMock()
+        os.environ.get.return_value = None
+        warnings = MagicMock()
+        existing_token = 'secret'
+        new_token = 'other'
+        json.load.return_value = {'token': existing_token}
+        with patch("builtins.open", mock_open()) as mock_file:
+            with patch('os.makedirs', os.makedirs):
+                with patch('warnings.warn', warnings):
+                    store_account(new_token, filename)           # store token, while one exists
+                    warnings.assert_called_once()                # warning printed to use overwrite=True
+                    mock_file.assert_called_once()
+                    mock_file.assert_called_with(filename, 'r')  # no token written, only read once
+                    store_account(new_token, filename, overwrite=True)
+                    warnings.assert_called_once()                # still 1, no new warning
+                    mock_file.assert_called_with(filename, 'w')  # token is written
+                    handle = mock_file()
+                    all_calls = handle.mock_calls
+                    self.assertIn([call.write('{'), call.write('\n  '), call.write('"token"'), call.write(': '),
+                                   call.write('"'+new_token+'"'), call.write('\n'), call.write('}')], all_calls)
+
+    def test_remove_token_filename(self):
+        filename = 'path/to/open/dummyqi.rc'
+        os.makedirs = MagicMock()
+        json.load = MagicMock()
+        os.environ.get = MagicMock()
+        os.environ.get.return_value = None
+        existing_token = 'secret'
+        wrong_token = 'not_secret'
+        no_token = ''
+        json.load.return_value = {'token': existing_token}
+        with patch("builtins.open", mock_open()) as mock_file:
+            with patch('os.makedirs', os.makedirs):
+                delete_account(wrong_token, filename)          # remove token, while another exists
+                mock_file.assert_called_once()
+                mock_file.assert_called_with(filename, 'r')    # file not written, only read once
+                delete_account(existing_token, filename)       # remove token, the right one
+                mock_file.assert_called_with(filename, 'w')    # file is written
+                handle = mock_file()
+                all_calls = handle.mock_calls                  # the empty token is written
+                self.assertIn([call.write('{'), call.write('\n  '), call.write('"token"'), call.write(': '),
+                               call.write('"'+no_token+'"'), call.write('\n'), call.write('}')], all_calls)
 
     def test_load_token_env(self):
         expected_token = 'secret'
         json.load = MagicMock()
-        json.load.return_value = {'faulty_key': expected_token}
-        os.getenv = MagicMock()
-        os.getenv.return_value = expected_token
+        json.load.return_value = {'faulty_key': 'faulty_token'}
+        os.environ.get = MagicMock()
+        os.environ.get.return_value = expected_token
         with patch("builtins.open", mock_open()):
-            token = load_token()
+            token = load_account()
+            self.assertEqual(expected_token, token)
+
+    def test_enable_token_env(self):
+        expected_token = 'secret'
+        json.load = MagicMock()
+        json.load.return_value = {'faulty_key': 'faulty_token'}
+        environment = MagicMock()
+        environment.get.return_value = expected_token
+        with patch("os.environ", environment):
+            enable_account(expected_token)
+            all_calls = environment.mock_calls
+            self.assertIn([call.__setitem__('QI_TOKEN', expected_token)], all_calls)
+            token = load_account()
+            all_calls = environment.mock_calls
+            self.assertIn([call.get('QI_TOKEN', None)], all_calls)
             self.assertEqual(expected_token, token)

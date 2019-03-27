@@ -25,14 +25,16 @@ import coreapi
 from coreapi.auth import TokenAuthentication
 from coreapi.exceptions import CoreAPIException, ErrorMessage
 
-from quantuminspire.credentials import load_token
+from quantuminspire.credentials import load_account
 from quantuminspire.exceptions import ApiError
 from quantuminspire.job import QuantumInspireJob
+
+QI_URL = 'https://api.quantum-inspire.com'
 
 
 class QuantumInspireAPI:
 
-    def __init__(self, base_uri: str, authentication: Optional[coreapi.auth.AuthBase] = None,
+    def __init__(self, base_uri: str = QI_URL, authentication: Optional[coreapi.auth.AuthBase] = None,
                  project_name: Optional[str] = None,
                  coreapi_client_class: Type[coreapi.Client] = coreapi.Client) -> None:
         """ Python interface to the Quantum Inspire API (Application Programmer Interface).
@@ -74,11 +76,11 @@ class QuantumInspireAPI:
                       loaded or the schema could not be loaded.
         """
         if authentication is None:
-            token = load_token()
+            token = load_account()
             if token is not None:
                 authentication = TokenAuthentication(token, scheme="token")
             else:
-                raise ApiError('No credentials have been provided')
+                raise ApiError('No credentials have been provided or found on disk')
         self.__client = coreapi_client_class(auth=authentication)
         self.project_name = project_name
         self.base_uri = base_uri

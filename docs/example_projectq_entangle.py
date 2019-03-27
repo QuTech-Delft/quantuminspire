@@ -11,7 +11,7 @@ from projectq.backends import ResourceCounter
 from projectq.ops import CNOT, H, Measure, All
 from projectq.setups import restrictedgateset
 
-from quantuminspire.credentials import load_token, get_token_authentication, get_basic_authentication
+from quantuminspire.credentials import load_account, get_token_authentication, get_basic_authentication
 from quantuminspire.api import QuantumInspireAPI
 from quantuminspire.projectq.backend_qx import QIBackend
 
@@ -21,7 +21,7 @@ QI_PASSWORD = os.getenv('QI_PASSWORD')
 
 def get_authentication():
     """ Gets the authentication for connecting to the Quantum Inspire API."""
-    token = load_token()
+    token = load_account()
     if token is not None:
         return get_token_authentication(token)
     else:
