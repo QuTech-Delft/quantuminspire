@@ -91,7 +91,7 @@ if you intend to write a new backend for an existing SDK.
 A simple example to perform entanglement between two qubits by using the
 API wrapper directly:
 
-``` python
+```python
 from getpass import getpass
 from coreapi.auth import BasicAuthentication
 from quantuminspire.api import QuantumInspireAPI
@@ -121,7 +121,43 @@ result = qi.execute_qasm(qasm, backend_type=backend_type, number_of_shots=1024)
 print(result['histogram'])
 ```
 
-## Known issues
+## Configure your token credentials for Quantum Inspire (expected soon)
+
+1. Create an Quantum Inspire account if you do not have already have one.
+2. Get an API token from the Quantum Inspire website.
+3. With your API token run: 
+```python
+from quantuminspire.credentials import save_account
+save_account('YOUR_API_TOKEN')
+```
+After calling save_account(), your credentials will be stored on disk.
+Those who do not want to save their credentials to disk should use instead:
+```python
+from quantuminspire.credentials import enable_account
+enable_account('YOUR_API_TOKEN')
+```
+and the token will only be active for the session.
+
+After calling save_account() once or enable_account() within your session, token authentication is done automatically
+when creating the Quantum Inpire API object.
+
+For Qiskit users this means:
+```python
+from quantuminspire.qiskit import QI
+QI.set_authentication()
+```
+ProjectQ users do something like:
+```python
+from quantuminspire.api import QuantumInspireAPI
+qi = QuantumInspireAPI()
+```
+To create a token authentication object yourself using the stored token you do:
+```python
+from quantuminspire.credentials import get_token_authentication
+auth = get_token_authentication()
+```
+This `auth` can then be used to initialize the Quantum Inspire API object.
+ ## Known issues
 
 * Authentication for the Quantum Inspire platform is currently password only; this
   will change to API-token based authentication in the near future;

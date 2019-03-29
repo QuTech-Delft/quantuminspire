@@ -12,7 +12,7 @@ from projectq.meta import Compute, Control, Loop, Uncompute
 from projectq.ops import CNOT, CZ, All, H, Measure, Toffoli, X, Z
 from projectq.setups import restrictedgateset
 
-from quantuminspire.credentials import load_token, get_token_authentication, get_basic_authentication
+from quantuminspire.credentials import load_account, get_token_authentication, get_basic_authentication
 from quantuminspire.api import QuantumInspireAPI
 from quantuminspire.projectq.backend_qx import QIBackend
 
@@ -91,7 +91,7 @@ def alternating_bits_oracle(eng, qubits, output):
 
 def get_authentication():
     """ Gets the authentication for connecting to the Quantum Inspire API."""
-    token = load_token()
+    token = load_account()
     if token is not None:
         return get_token_authentication(token)
     else:

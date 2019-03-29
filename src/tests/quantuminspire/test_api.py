@@ -99,8 +99,8 @@ class TestQuantumInspireAPI(TestCase):
         expected_token = 'secret'
         json.load = MagicMock()
         json.load.return_value = {'token': expected_token}
-        os.getenv = MagicMock()
-        os.getenv.return_value = expected_token
+        os.environ.get = MagicMock()
+        os.environ.get.return_value = expected_token
         expected = 'schema/'
         base_url = 'https://api.mock.test.com/'
         url = ''.join([base_url, expected])
@@ -113,8 +113,8 @@ class TestQuantumInspireAPI(TestCase):
         expected_token = 'secret'
         json.load = MagicMock()
         json.load.return_value = {'wrong_key': expected_token}
-        os.getenv = MagicMock()
-        os.getenv.return_value = None
+        os.environ.get = MagicMock()
+        os.environ.get.return_value = None
         expected = 'schema/'
         base_url = 'https://api.mock.test.com/'
         url = ''.join([base_url, expected])
