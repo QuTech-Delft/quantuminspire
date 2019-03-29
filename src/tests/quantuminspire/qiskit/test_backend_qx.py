@@ -272,8 +272,21 @@ class TestQiSimulatorPy(unittest.TestCase):
         job_dict['experiments'][0]['instructions'] = []
         job_dict['experiments'][0]['header']['memory_slots'] = 0
         job = qiskit.qobj.Qobj.from_dict(job_dict)
-
         self.assertRaises(QisKitBackendError, simulator.run, job)
+
+    def test_validate_nr_classical_qubits_less_than_nr_qubits_conditional_gate(self):
+        simulator = QuantumInspireBackend(Mock(), Mock())
+        instructions = [{'conditional': {'mask': '0xF', 'type': 'equals', 'val': '0x1'},
+                         'name': 'cx', 'params': [], 'texparams': [], 'qubits': [0, 1], 'memory': [0, 1]},
+                        {'name': 'measure', 'qubits': [0], 'memory': [1]}]
+        qobj_dict = self._basic_qobj_dictionary
+        job_dict = self._basic_qobj_dictionary
+        qobj_dict['experiments'][0]['instructions'] = instructions
+        job_dict['experiments'][0]['header']['memory_slots'] = 3
+        job = qiskit.qobj.Qobj.from_dict(job_dict)
+        self.assertRaisesRegex(QisKitBackendError, 'Number of classical bits must be less than or equal to the'
+                                                   ' number of qubits when using conditional gate operations',
+                               simulator.run, job)
 
     def test_validate_operation_after_measure(self):
         with patch.object(QuantumInspireBackend, "_submit_experiment", return_value=Mock()):

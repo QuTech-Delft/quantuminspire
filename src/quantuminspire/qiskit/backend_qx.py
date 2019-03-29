@@ -100,7 +100,7 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
         Returns:
             A job that has been submitted.
         """
-        QuantumInspireBackend.__validate(qobj)
+        self.__validate(qobj)
         number_of_shots = qobj.config.shots
 
         identifier = uuid.uuid1()
@@ -196,8 +196,7 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
             experiment_results.append(ExperimentResult(**experiment_result_dictionary))
         return experiment_results
 
-    @staticmethod
-    def __validate(job: Qobj) -> None:
+    def __validate(self, job: Qobj) -> None:
         """ Validates the number of shots, classical bits and compiled Qiskit circuits.
 
         Args:
@@ -206,7 +205,7 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
         QuantumInspireBackend.__validate_number_of_shots(job)
 
         for experiment in job.experiments:
-            QuantumInspireBackend.__validate_number_of_clbits(experiment)
+            self.__validate_number_of_clbits(experiment)
             QuantumInspireBackend.__validate_no_gates_after_measure(experiment)
 
     @staticmethod
@@ -223,8 +222,7 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
         if number_of_shots < 1:
             raise QisKitBackendError('Invalid shots (number_of_shots={})'.format(number_of_shots))
 
-    @staticmethod
-    def __validate_number_of_clbits(experiment: QobjExperiment) -> None:
+    def __validate_number_of_clbits(self, experiment: QobjExperiment) -> None:
         """ Checks whether the number of classical bits has a valid value.
 
         Args:
@@ -236,6 +234,15 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
         number_of_clbits = experiment.header.memory_slots
         if number_of_clbits < 1:
             raise QisKitBackendError("Invalid amount of classical bits ({})!".format(number_of_clbits))
+
+        if BaseBackend.configuration(self).conditional:
+            number_of_qubits = experiment.header.n_qubits
+            if number_of_clbits > number_of_qubits:
+                # no problem when there are no conditional gate operations
+                for instruction in experiment.instructions:
+                    if hasattr(instruction, 'conditional'):
+                        raise QisKitBackendError("Number of classical bits must be less than or equal to the"
+                                                 " number of qubits when using conditional gate operations")
 
     @staticmethod
     def __validate_no_gates_after_measure(experiment: QobjExperiment) -> None:

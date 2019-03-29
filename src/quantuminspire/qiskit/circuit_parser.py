@@ -27,20 +27,16 @@ class CircuitToString:
     """ Contains the translational elements to convert the Qiskit circuits to cQASM code."""
 
     @staticmethod
-    def _gate_not_supported(stream: StringIO, instruction: QobjItem, binary_control: Optional[str] = None) -> None:
+    def _gate_not_supported(_stream: StringIO, instruction: QobjItem, _binary_control: Optional[str] = None) -> None:
         """ Called when a gate is not supported with the backend. Throws an exception (ApiError)
 
         Args:
-            stream: Parameter not used.
             instruction: The Qiskit instruction to translate to cQASM.
-            binary_control: Parameter not used.
 
         Raises:
             ApiError: the gate is not supported by the circuit parser.
 
         """
-        del stream  # unused
-        del binary_control  # unused
         if hasattr(instruction, 'conditional'):
             raise ApiError('Conditional gate c-{} not supported'.format(instruction.name.lower()))
         else:
@@ -55,8 +51,7 @@ class CircuitToString:
             instruction: The Qiskit instruction to translate to cQASM.
 
         """
-        qubit_indices = tuple(instruction.qubits)
-        stream.write('CNOT q[{0}], q[{1}]\n'.format(*qubit_indices))
+        stream.write('CNOT q[{0}], q[{1}]\n'.format(*instruction.qubits))
 
     @staticmethod
     def _c_cx(stream: StringIO, instruction: QobjItem, binary_control: str) -> None:
@@ -68,9 +63,7 @@ class CircuitToString:
             binary_control: The multi-bits control string. The gate is executed when all specified classical bits are 1.
 
         """
-
-        qubit_indices = tuple(instruction.qubits)
-        stream.write('C-CNOT {0}q[{1}], q[{2}]\n'.format(binary_control, *qubit_indices))
+        stream.write('C-CNOT {0}q[{1}], q[{2}]\n'.format(binary_control, *instruction.qubits))
 
     @staticmethod
     def _ccx(stream: StringIO, instruction: QobjItem) -> None:
@@ -81,8 +74,7 @@ class CircuitToString:
             instruction: The Qiskit instruction to translate to cQASM.
 
         """
-        qubit_indices = tuple(instruction.qubits)
-        stream.write('Toffoli q[{0}], q[{1}], q[{2}]\n'.format(*qubit_indices))
+        stream.write('Toffoli q[{0}], q[{1}], q[{2}]\n'.format(*instruction.qubits))
 
     @staticmethod
     def _c_ccx(stream: StringIO, instruction: QobjItem, binary_control: str) -> None:
@@ -94,8 +86,7 @@ class CircuitToString:
             binary_control: The multi-bits control string. The gate is executed when all specified classical bits are 1.
 
         """
-        qubit_indices = tuple(instruction.qubits)
-        stream.write('C-Toffoli {0}q[{1}], q[{2}], q[{3}]\n'.format(binary_control, *qubit_indices))
+        stream.write('C-Toffoli {0}q[{1}], q[{2}], q[{3}]\n'.format(binary_control, *instruction.qubits))
 
     @staticmethod
     def _h(stream: StringIO, instruction: QobjItem) -> None:
@@ -106,8 +97,7 @@ class CircuitToString:
             instruction: The Qiskit instruction to translate to cQASM.
 
         """
-        qubit_indices = tuple(instruction.qubits)
-        stream.write('H q[{0}]\n'.format(*qubit_indices))
+        stream.write('H q[{0}]\n'.format(*instruction.qubits))
 
     @staticmethod
     def _c_h(stream: StringIO, instruction: QobjItem, binary_control: str) -> None:
@@ -119,8 +109,7 @@ class CircuitToString:
             binary_control: The multi-bits control string. The gate is executed when all specified classical bits are 1.
 
         """
-        qubit_indices = tuple(instruction.qubits)
-        stream.write('C-H {0}q[{1}]\n'.format(binary_control, *qubit_indices))
+        stream.write('C-H {0}q[{1}]\n'.format(binary_control, *instruction.qubits))
 
     @staticmethod
     def _id(stream: StringIO, instruction: QobjItem) -> None:
@@ -131,8 +120,7 @@ class CircuitToString:
             instruction: The Qiskit instruction to translate to cQASM.
 
         """
-        qubit_indices = tuple(instruction.qubits)
-        stream.write('I q[{0}]\n'.format(*qubit_indices))
+        stream.write('I q[{0}]\n'.format(*instruction.qubits))
 
     @staticmethod
     def _c_id(stream: StringIO, instruction: QobjItem, binary_control: str) -> None:
@@ -144,8 +132,7 @@ class CircuitToString:
             binary_control: The multi-bits control string. The gate is executed when all specified classical bits are 1.
 
         """
-        qubit_indices = tuple(instruction.qubits)
-        stream.write('C-I {0}q[{1}]\n'.format(binary_control, *qubit_indices))
+        stream.write('C-I {0}q[{1}]\n'.format(binary_control, *instruction.qubits))
 
     @staticmethod
     def _x(stream: StringIO, instruction: QobjItem) -> None:
@@ -156,8 +143,7 @@ class CircuitToString:
             instruction: The Qiskit instruction to translate to cQASM.
 
         """
-        qubit_indices = tuple(instruction.qubits)
-        stream.write('X q[{0}]\n'.format(*qubit_indices))
+        stream.write('X q[{0}]\n'.format(*instruction.qubits))
 
     @staticmethod
     def _c_x(stream: StringIO, instruction: QobjItem, binary_control: str) -> None:
@@ -168,8 +154,7 @@ class CircuitToString:
             instruction: The Qiskit instruction to translate to cQASM.
 
         """
-        qubit_indices = tuple(instruction.qubits)
-        stream.write('C-X {0}q[{1}]\n'.format(binary_control, *qubit_indices))
+        stream.write('C-X {0}q[{1}]\n'.format(binary_control, *instruction.qubits))
 
     @staticmethod
     def _y(stream: StringIO, instruction: QobjItem) -> None:
@@ -180,8 +165,7 @@ class CircuitToString:
             instruction: The Qiskit instruction to translate to cQASM.
 
         """
-        qubit_indices = tuple(instruction.qubits)
-        stream.write('Y q[{0}]\n'.format(*qubit_indices))
+        stream.write('Y q[{0}]\n'.format(*instruction.qubits))
 
     @staticmethod
     def _c_y(stream: StringIO, instruction: QobjItem, binary_control: str) -> None:
@@ -193,8 +177,7 @@ class CircuitToString:
             binary_control: The multi-bits control string. The gate is executed when all specified classical bits are 1.
 
         """
-        qubit_indices = tuple(instruction.qubits)
-        stream.write('C-Y {0}q[{1}]\n'.format(binary_control, *qubit_indices))
+        stream.write('C-Y {0}q[{1}]\n'.format(binary_control, *instruction.qubits))
 
     @staticmethod
     def _z(stream: StringIO, instruction: QobjItem) -> None:
@@ -205,8 +188,7 @@ class CircuitToString:
             instruction: The Qiskit instruction to translate to cQASM.
 
         """
-        qubit_indices = tuple(instruction.qubits)
-        stream.write('Z q[{0}]\n'.format(*qubit_indices))
+        stream.write('Z q[{0}]\n'.format(*instruction.qubits))
 
     @staticmethod
     def _c_z(stream: StringIO, instruction: QobjItem, binary_control: str) -> None:
@@ -218,8 +200,7 @@ class CircuitToString:
             binary_control: The multi-bits control string. The gate is executed when all specified classical bits are 1.
 
         """
-        qubit_indices = tuple(instruction.qubits)
-        stream.write('C-Z {0}q[{1}]\n'.format(binary_control, *qubit_indices))
+        stream.write('C-Z {0}q[{1}]\n'.format(binary_control, *instruction.qubits))
 
     @staticmethod
     def _r(stream: StringIO, instruction: QobjItem, axis: str) -> None:
@@ -232,8 +213,7 @@ class CircuitToString:
 
         """
         angle_q0 = instruction.params[0]
-        qubit_indices = tuple(instruction.qubits)
-        stream.write('R{0} q[{1}], {2:.6f}\n'.format(axis, *qubit_indices, angle_q0))
+        stream.write('R{0} q[{1}], {2:.6f}\n'.format(axis, *instruction.qubits, angle_q0))
 
     @staticmethod
     def _c_r(stream: StringIO, instruction: QobjItem, axis: str, binary_control: str) -> None:
@@ -247,10 +227,10 @@ class CircuitToString:
 
         """
         angle_q0 = instruction.params[0]
-        qubit_indices = tuple(instruction.qubits)
-        stream.write('C-R{0} {1}q[{2}], {3:.6f}\n'.format(axis, binary_control, *qubit_indices, angle_q0))
+        stream.write('C-R{0} {1}q[{2}], {3:.6f}\n'.format(axis, binary_control, *instruction.qubits, angle_q0))
 
-    def _rx(self, stream: StringIO, instruction: QobjItem) -> None:
+    @staticmethod
+    def _rx(stream: StringIO, instruction: QobjItem) -> None:
         """ Translates the Rx element.
 
         Args:
@@ -258,9 +238,10 @@ class CircuitToString:
             instruction: The Qiskit instruction to translate to cQASM.
 
         """
-        self._r(stream, instruction, 'x')
+        CircuitToString._r(stream, instruction, 'x')
 
-    def _c_rx(self, stream: StringIO, instruction: QobjItem, binary_control: str) -> None:
+    @staticmethod
+    def _c_rx(stream: StringIO, instruction: QobjItem, binary_control: str) -> None:
         """ Translates the binary-controlled Rx element.
 
         Args:
@@ -269,9 +250,10 @@ class CircuitToString:
             binary_control: The multi-bits control string. The gate is executed when all specified classical bits are 1.
 
         """
-        self._c_r(stream, instruction, 'x', binary_control)
+        CircuitToString._c_r(stream, instruction, 'x', binary_control)
 
-    def _ry(self, stream: StringIO, instruction: QobjItem) -> None:
+    @staticmethod
+    def _ry(stream: StringIO, instruction: QobjItem) -> None:
         """ Translates the Ry element.
 
         Args:
@@ -279,9 +261,10 @@ class CircuitToString:
             instruction: The Qiskit instruction to translate to cQASM.
 
         """
-        self._r(stream, instruction, 'y')
+        CircuitToString._r(stream, instruction, 'y')
 
-    def _c_ry(self, stream: StringIO, instruction: QobjItem, binary_control: str) -> None:
+    @staticmethod
+    def _c_ry(stream: StringIO, instruction: QobjItem, binary_control: str) -> None:
         """ Translates the binary-controlled Ry element.
 
         Args:
@@ -290,9 +273,10 @@ class CircuitToString:
             binary_control: The multi-bits control string. The gate is executed when all specified classical bits are 1.
 
         """
-        self._c_r(stream, instruction, 'y', binary_control)
+        CircuitToString._c_r(stream, instruction, 'y', binary_control)
 
-    def _rz(self, stream: StringIO, instruction: QobjItem) -> None:
+    @staticmethod
+    def _rz(stream: StringIO, instruction: QobjItem) -> None:
         """ Translates the Rz element.
 
         Args:
@@ -300,9 +284,10 @@ class CircuitToString:
             instruction: The Qiskit instruction to translate to cQASM.
 
         """
-        self._r(stream, instruction, 'z')
+        CircuitToString._r(stream, instruction, 'z')
 
-    def _c_rz(self, stream: StringIO, instruction: QobjItem, binary_control: str) -> None:
+    @staticmethod
+    def _c_rz(stream: StringIO, instruction: QobjItem, binary_control: str) -> None:
         """ Translates the binary-controlled Rz element.
 
         Args:
@@ -311,9 +296,10 @@ class CircuitToString:
             binary_control: The multi-bits control string. The gate is executed when all specified classical bits are 1.
 
         """
-        self._c_r(stream, instruction, 'z', binary_control)
+        CircuitToString._c_r(stream, instruction, 'z', binary_control)
 
-    def _u(self, stream: StringIO, instruction: QobjItem) -> None:
+    @staticmethod
+    def _u(stream: StringIO, instruction: QobjItem) -> None:
         """ Translates the U element to U3. The u element is used by qiskit for the u_base gate and when a u0-gate
             is used in the circuit but not supported as a basis gate for the backend.
 
@@ -322,9 +308,10 @@ class CircuitToString:
             instruction: The Qiskit instruction to translate to cQASM.
 
         """
-        self._u3(stream, instruction)
+        CircuitToString._u3(stream, instruction)
 
-    def _c_u(self, stream: StringIO, instruction: QobjItem, binary_control: str) -> None:
+    @staticmethod
+    def _c_u(stream: StringIO, instruction: QobjItem, binary_control: str) -> None:
         """ Translates the binary-controlled U element to binary-controlled U3.
 
         Args:
@@ -333,35 +320,10 @@ class CircuitToString:
             binary_control: The multi-bits control string. The gate is executed when all specified classical bits are 1.
 
         """
-        self._c_u3(stream, instruction, binary_control)
+        CircuitToString._c_u3(stream, instruction, binary_control)
 
     @staticmethod
-    def _u0(stream: StringIO, instruction: QobjItem) -> None:
-        """ Translates the U0 element. U0 is not added as a basis gate for this backend!
-            Qiskit translates the U0 gate to the supported U(0, 0, 0):
-            u0(gamma) = u3(0, 0, 0) = u(0, 0, 0). (does nothing but can add noise in the real device)
-            u0(1) is the identity gate
-
-        Args:
-            stream: The string-io stream to where the resulting cQASM is written.
-            instruction: The Qiskit instruction to translate to cQASM.
-
-        """
-        pass
-
-    @staticmethod
-    def _c_u0(stream: StringIO, instruction: QobjItem, binary_control: str) -> None:
-        """ Translates the binary-controlled U0 element. U0 is not added as a basis gate for this backend!
-
-        Args:
-            stream: The string-io stream to where the resulting cQASM is written.
-            instruction: The Qiskit instruction to translate to cQASM.
-            binary_control: The multi-bits control string. The gate is executed when all specified classical bits are 1.
-
-        """
-        pass
-
-    def _u1(self, stream: StringIO, instruction: QobjItem) -> None:
+    def _u1(stream: StringIO, instruction: QobjItem) -> None:
         """ Translates the U1(lambda) element to U3(0, 0, lambda). A copy of the circuit is made to prevent
             side-effects for the caller.
 
@@ -373,9 +335,10 @@ class CircuitToString:
         temp_instruction = copy.deepcopy(instruction)
         temp_instruction.params[0:0] = (0, 0)
         temp_instruction.texparams[0:0] = ('0', '0')
-        self._u3(stream, temp_instruction)
+        CircuitToString._u3(stream, temp_instruction)
 
-    def _c_u1(self, stream: StringIO, instruction: QobjItem, binary_control: str) -> None:
+    @staticmethod
+    def _c_u1(stream: StringIO, instruction: QobjItem, binary_control: str) -> None:
         """ Translates the binary-controlled U1(lambda) element to U3(0, 0, lambda). A copy of the circuit is
         made to prevent side-effects for the caller.
 
@@ -388,9 +351,10 @@ class CircuitToString:
         temp_instruction = copy.deepcopy(instruction)
         temp_instruction.params[0:0] = (0, 0)
         temp_instruction.texparams[0:0] = ('0', '0')
-        self._c_u3(stream, temp_instruction, binary_control)
+        CircuitToString._c_u3(stream, temp_instruction, binary_control)
 
-    def _u2(self, stream: StringIO, instruction: QobjItem) -> None:
+    @staticmethod
+    def _u2(stream: StringIO, instruction: QobjItem) -> None:
         """ Translates the U2(phi, lambda) element to U3(pi/2, phi, lambda). A copy of the circuit is made to prevent
             side-effects for the caller.
 
@@ -402,9 +366,10 @@ class CircuitToString:
         temp_instruction = copy.deepcopy(instruction)
         temp_instruction.params.insert(0, np.pi/2)
         temp_instruction.texparams.insert(0, '\\frac{\\pi}{2}')
-        self._u3(stream, temp_instruction)
+        CircuitToString._u3(stream, temp_instruction)
 
-    def _c_u2(self, stream: StringIO, instruction: QobjItem, binary_control: str) -> None:
+    @staticmethod
+    def _c_u2(stream: StringIO, instruction: QobjItem, binary_control: str) -> None:
         """ Translates the binary-controlled U2(phi, lambda) element to U3(pi/2, phi, lambda). A copy of the
         circuit is made to prevent side-effects for the caller.
 
@@ -417,7 +382,7 @@ class CircuitToString:
         temp_instruction = copy.deepcopy(instruction)
         temp_instruction.params.insert(0, np.pi/2)
         temp_instruction.texparams.insert(0, '\\frac{\\pi}{2}')
-        self._c_u3(stream, temp_instruction, binary_control)
+        CircuitToString._c_u3(stream, temp_instruction, binary_control)
 
     @staticmethod
     def _u3(stream: StringIO, instruction: QobjItem) -> None:
@@ -555,7 +520,6 @@ class CircuitToString:
         Args:
             stream: The string-io stream to where the resulting cQASM is written.
             instruction: The Qiskit instruction to translate to cQASM.
-
         """
         if hasattr(instruction, 'conditional'):
             self._parse_bin_ctrl_gate(stream, instruction)
