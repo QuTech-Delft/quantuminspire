@@ -13,7 +13,7 @@ pipeline {
         }
     }
     triggers {
-        cron(env.BRANCH_NAME == "feature/DEM-722/Jenkins" ? "H H(4-7) * * 1-5" : "")
+        cron(env.BRANCH_NAME == "feature/DEM-722/Jenkins" ? "H H(2-5) * * 1-5" : "")
     }
     stages {
         stage('Checkout modules') {
@@ -23,16 +23,22 @@ pipeline {
                     . ./venv/bin/activate &&
                     pwd &&
                     ls -lah &&
+                    # Installing qiskit-terra, qiskit-aer, qiskit-ibmq-provider and qiskit-ignis as separated
+                    # (development) packages doesn't work as expected. As a workaround we install the qiskit
+                    # packages from PyPI, uninstall and reinstall the development versions of qiskit packages
+                    # afterwards.
                     pip install qiskit --cache-dir /var/pip_cache &&
-                    pip uninstall -y qiskit --cache-dir /var/pip_cache &&
-                    git clone https://github.com/Qiskit/qiskit &&
-                    pip install --upgrade ./qiskit --cache-dir /var/pip_cache -r ./qiskit/requirements-dev.txt &&
+                    # pip uninstall -y qiskit --cache-dir /var/pip_cache &&
+                    # git clone https://github.com/Qiskit/qiskit &&
+                    # pip install --upgrade ./qiskit --cache-dir /var/pip_cache -r ./qiskit/requirements-dev.txt &&
                     pip uninstall -y qiskit-terra --cache-dir /var/pip_cache &&
                     git clone https://github.com/Qiskit/qiskit-terra.git &&
                     pip install cython --cache-dir /var/pip_cache &&
             		pip install --upgrade ./qiskit-terra --cache-dir /var/pip_cache &&
-                    # git clone https://github.com/Qiskit/qiskit-aer.git &&
-                    # pip install --upgrade ./qiskit-aer --cache-dir /var/pip_cache &&
+            		apt install libblas-dev &&
+            		pip uninstall -y qiskit-aer --cache-dir /var/pip_cache &&
+                    git clone https://github.com/Qiskit/qiskit-aer.git &&
+                    pip install --upgrade ./qiskit-aer --cache-dir /var/pip_cache &&
                     pip uninstall -y qiskit-ibmq-provider --cache-dir /var/pip_cache &&
 		            git clone https://github.com/Qiskit/qiskit-ibmq-provider.git &&
     		        pip install --upgrade ./qiskit-ibmq-provider --cache-dir /var/pip_cache &&
