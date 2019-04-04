@@ -13,7 +13,7 @@ pipeline {
         }
     }
     triggers {
-        cron(env.BRANCH_NAME == "feature/DEM-722/Jenkins" ? "H H(2-5) * * 1-5" : "")
+        cron(env.BRANCH_NAME == "dev" ? "H H(2-5) * * 1-5" : "")
     }
     stages {
         stage('Checkout modules') {
@@ -23,10 +23,6 @@ pipeline {
                     . ./venv/bin/activate &&
                     pwd &&
                     ls -lah &&
-                    # Installing qiskit-terra, qiskit-aer, qiskit-ibmq-provider and qiskit-ignis as separated
-                    # (development) packages doesn't work as expected. As a workaround we install the qiskit
-                    # package from PyPI, uninstall and reinstall the development versions of qiskit packages
-                    # afterwards.
                     git clone https://github.com/Qiskit/qiskit-terra.git &&
                     pip install cython --cache-dir /var/pip_cache &&
             		pip install --upgrade ./qiskit-terra --cache-dir /var/pip_cache
