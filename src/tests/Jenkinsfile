@@ -29,7 +29,7 @@ pipeline {
                     # afterwards.
                     git clone https://github.com/Qiskit/qiskit-terra.git &&
                     pip install cython --cache-dir /var/pip_cache &&
-            		pip install --upgrade ./qiskit-terra --cache-dir /var/pip_cache &&
+            		pip install --upgrade ./qiskit-terra --cache-dir /var/pip_cache
                    '''
             }
         }
