@@ -6,9 +6,14 @@ matrix:
       sudo: true
       dist: xenial
 install:
-  - pip install .[qiskit,projectq] coveralls
+  - pip install --upgrade .[qiskit,projectq] coveralls
+env:
+  - QI_URL = https://api.quantum-inspire.com
 script:
   - coverage run --source="./src/quantuminspire" -m unittest discover -s src/tests -t src -v
+  - python ./docs/example_projectq_entangle.py
+  - python ./docs/example_projectq_grover.py
+  - python ./docs/example_qiskit_entangle.py
 after_success:
   - coveralls
 deploy:
