@@ -17,6 +17,7 @@ from quantuminspire.projectq.backend_qx import QIBackend
 
 QI_EMAIL = os.getenv('QI_EMAIL')
 QI_PASSWORD = os.getenv('QI_PASSWORD')
+QI_URL = os.getenv('API_URL')
 
 
 def get_authentication():
@@ -38,8 +39,11 @@ def get_authentication():
 if __name__ == '__main__':
 
     name = 'TestProjectQ'
-    uri = r'https://api.quantum-inspire.com/'
     authentication = get_authentication()
+    if QI_URL is None:
+        uri = r'https://api.quantum-inspire.com/'
+    else:
+        uri = QI_URL
     qi_api = QuantumInspireAPI(uri, authentication, project_name=name)
 
     compiler_engines = restrictedgateset.get_engine_list(one_qubit_gates="any", two_qubit_gates=(CNOT,))

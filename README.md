@@ -139,7 +139,7 @@ enable_account('YOUR_API_TOKEN')
 and the token will only be active for the session.
 
 After calling save_account() once or enable_account() within your session, token authentication is done automatically
-when creating the Quantum Inpire API object.
+when creating the Quantum Inspire API object.
 
 For Qiskit users this means:
 ```python
