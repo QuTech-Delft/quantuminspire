@@ -135,6 +135,116 @@ class CircuitToString:
         stream.write('C-I {0}q[{1}]\n'.format(binary_control, *instruction.qubits))
 
     @staticmethod
+    def _s(stream: StringIO, instruction: QobjItem) -> None:
+        """ Translates the S element.
+
+        Args:
+            stream: The string-io stream to where the resulting cQASM is written.
+            instruction: The Qiskit instruction to translate to cQASM.
+
+        """
+        stream.write('S q[{0}]\n'.format(*instruction.qubits))
+
+    @staticmethod
+    def _c_s(stream: StringIO, instruction: QobjItem, binary_control: str) -> None:
+        """ Translates the binary-controlled S element.
+
+        Args:
+            stream: The string-io stream to where the resulting cQASM is written.
+            instruction: The Qiskit instruction to translate to cQASM.
+
+        """
+        stream.write('C-S {0}q[{1}]\n'.format(binary_control, *instruction.qubits))
+
+    @staticmethod
+    def _sdg(stream: StringIO, instruction: QobjItem) -> None:
+        """ Translates the Sdag element.
+
+        Args:
+            stream: The string-io stream to where the resulting cQASM is written.
+            instruction: The Qiskit instruction to translate to cQASM.
+
+        """
+        stream.write('Sdag q[{0}]\n'.format(*instruction.qubits))
+
+    @staticmethod
+    def _c_sdg(stream: StringIO, instruction: QobjItem, binary_control: str) -> None:
+        """ Translates the binary-controlled Sdag element.
+
+        Args:
+            stream: The string-io stream to where the resulting cQASM is written.
+            instruction: The Qiskit instruction to translate to cQASM.
+
+        """
+        stream.write('C-Sdag {0}q[{1}]\n'.format(binary_control, *instruction.qubits))
+
+    @staticmethod
+    def _swap(stream: StringIO, instruction: QobjItem) -> None:
+        """ Translates the SWAP element.
+
+        Args:
+            stream: The string-io stream to where the resulting cQASM is written.
+            instruction: The Qiskit instruction to translate to cQASM.
+
+        """
+        stream.write('SWAP q[{0}], q[{1}]\n'.format(*instruction.qubits))
+
+    @staticmethod
+    def _c_swap(stream: StringIO, instruction: QobjItem, binary_control: str) -> None:
+        """ Translates the binary-controlled SWAP element.
+
+        Args:
+            stream: The string-io stream to where the resulting cQASM is written.
+            instruction: The Qiskit instruction to translate to cQASM.
+
+        """
+        stream.write('C-SWAP {0}q[{1}], q[{2}]\n'.format(binary_control, *instruction.qubits))
+
+    @staticmethod
+    def _t(stream: StringIO, instruction: QobjItem) -> None:
+        """ Translates the T element.
+
+        Args:
+            stream: The string-io stream to where the resulting cQASM is written.
+            instruction: The Qiskit instruction to translate to cQASM.
+
+        """
+        stream.write('T q[{0}]\n'.format(*instruction.qubits))
+
+    @staticmethod
+    def _c_t(stream: StringIO, instruction: QobjItem, binary_control: str) -> None:
+        """ Translates the binary-controlled T element.
+
+        Args:
+            stream: The string-io stream to where the resulting cQASM is written.
+            instruction: The Qiskit instruction to translate to cQASM.
+
+        """
+        stream.write('C-T {0}q[{1}]\n'.format(binary_control, *instruction.qubits))
+
+    @staticmethod
+    def _tdg(stream: StringIO, instruction: QobjItem) -> None:
+        """ Translates the Tdag element.
+
+        Args:
+            stream: The string-io stream to where the resulting cQASM is written.
+            instruction: The Qiskit instruction to translate to cQASM.
+
+        """
+        stream.write('Tdag q[{0}]\n'.format(*instruction.qubits))
+
+    @staticmethod
+    def _c_tdg(stream: StringIO, instruction: QobjItem, binary_control: str) -> None:
+        """ Translates the binary-controlled Tdag element.
+
+        Args:
+            stream: The string-io stream to where the resulting cQASM is written.
+            instruction: The Qiskit instruction to translate to cQASM.
+
+        """
+        stream.write('C-Tdag {0}q[{1}]\n'.format(binary_control, *instruction.qubits))
+
+    @staticmethod
     def _x(stream: StringIO, instruction: QobjItem) -> None:
         """ Translates the X element.
 
