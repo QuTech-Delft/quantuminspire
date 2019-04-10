@@ -19,7 +19,7 @@ from quantuminspire.credentials import load_account, get_token_authentication, g
 
 from qiskit.validation.base import Obj
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.tools.compiler import execute
+from qiskit import execute
 
 from quantuminspire.qiskit import QI
 

@@ -2,7 +2,7 @@ import time
 from typing import List, Optional, Any
 
 from qiskit.providers import BaseJob, JobStatus, JobError, JobTimeoutError
-from qiskit.qobj import Qobj, QobjExperiment
+from qiskit.qobj import QasmQobj, QasmQobjExperiment
 from qiskit.result import Result
 from quantuminspire import __version__ as quantum_inspire_version
 from quantuminspire.api import QuantumInspireAPI
@@ -18,7 +18,7 @@ class QIJob(BaseJob):  # type: ignore
             result = job.result()
     """
 
-    def __init__(self, backend: Any, job_id: str, api: QuantumInspireAPI, qobj: Optional[Qobj] = None) -> None:
+    def __init__(self, backend: Any, job_id: str, api: QuantumInspireAPI, qobj: Optional[QasmQobj] = None) -> None:
         """
         Construct a new QIJob object. Not normally called directly, use a backend object to create/retrieve jobs.
 
@@ -30,9 +30,9 @@ class QIJob(BaseJob):  # type: ignore
         """
         self._api: QuantumInspireAPI = api
         super().__init__(backend, job_id)
-        self.experiments: Optional[List[QobjExperiment]] = None
-        self._status: str = JobStatus.INITIALIZING
-        self._qobj: Optional[Qobj] = qobj
+        self.experiments: Optional[List[QasmQobjExperiment]] = None
+        self._status: JobStatus = JobStatus.INITIALIZING
+        self._qobj: Optional[QasmQobj] = qobj
         if self._qobj is not None:
             self._job_id = ''  # invalidate _job_id
         else:

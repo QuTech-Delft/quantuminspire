@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import Mock
 
 from qiskit.providers import JobStatus, JobError, JobTimeoutError
-from qiskit.qobj import Qobj
+from qiskit.qobj import QasmQobj, QobjHeader, QasmQobjConfig
 from qiskit.result.models import ExperimentResult, ExperimentResultData
 from qiskit.validation.base import Obj
 
@@ -40,7 +40,7 @@ class TestQIJob(unittest.TestCase):
         api = Mock()
         job_id = '42'
         backend = 'test_backend'
-        qobj = Qobj('id', {}, None, None)
+        qobj = QasmQobj(qobj_id='id', config=QasmQobjConfig(), experiments=[], header=QobjHeader())
         job = QIJob(backend, job_id, api, qobj)
 
         self.assertIs(qobj, job._qobj)
@@ -64,7 +64,7 @@ class TestQIJob(unittest.TestCase):
         backend.run.return_value = '25'
         api = Mock()
         job_id = '42'
-        qobj = Qobj('id', {}, None, None)
+        qobj = QasmQobj(qobj_id='id', config=QasmQobjConfig(), experiments=[], header=QobjHeader())
         job = QIJob(backend, job_id, api, qobj)
 
         job.submit()

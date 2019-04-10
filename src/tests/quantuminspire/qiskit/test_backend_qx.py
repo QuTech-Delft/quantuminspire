@@ -24,9 +24,10 @@ from unittest.mock import Mock, patch
 
 import qiskit
 from coreapi.exceptions import ErrorMessage
+from qiskit.validation import ModelValidationError
 from qiskit.providers.models import BackendConfiguration
 from qiskit.providers.models.backendconfiguration import GateConfig
-from qiskit.qobj import QobjExperiment, Qobj
+from qiskit.qobj import QasmQobjExperiment, QasmQobj
 
 from quantuminspire.api import QuantumInspireAPI
 from quantuminspire.exceptions import QisKitBackendError
@@ -85,7 +86,7 @@ class TestQiSimulatorPy(unittest.TestCase):
                            'config': {'coupling_map': 'all-to-all',
                                       'basis_gates': 'x,y,z,h,rx,ry,rz,s,cx,ccx,u1,u2,u3,id,snapshot',
                                       'n_qubits': 2}}
-        experiment = qiskit.qobj.QobjExperiment.from_dict(experiment_dict)
+        experiment = qiskit.qobj.QasmQobjExperiment.from_dict(experiment_dict)
         return experiment
 
     def test__collect_measurements(self):
@@ -138,7 +139,7 @@ class TestQiSimulatorPy(unittest.TestCase):
                         {'name': 'measure', 'qubits': [0], 'memory': [1]}]
         qobj_dict = self._basic_qobj_dictionary
         qobj_dict['experiments'][0]['instructions'] = instructions
-        qobj = Qobj.from_dict(qobj_dict)
+        qobj = QasmQobj.from_dict(qobj_dict)
 
         job = simulator.run(qobj)
         self.assertEqual('42', job.job_id())
@@ -258,13 +259,22 @@ class TestQiSimulatorPy(unittest.TestCase):
         self.assertEqual(one_shot_results['0x2'], 4003)
         self.assertEqual(one_shot_results['0x3'], 984)
 
-    def test_validate_negative_shot_count(self):
+    def test_validate_shot_count_zero(self):
         simulator = QuantumInspireBackend(Mock(), Mock())
         job_dict = self._basic_qobj_dictionary
-        job_dict['config']['shots'] = 0
-        job = qiskit.qobj.Qobj.from_dict(job_dict)
+        job_dict['config']['shots'] = 1
+        job = qiskit.qobj.QasmQobj.from_dict(job_dict)
+        job.config.shots = 0
+        self.assertRaisesRegex(QisKitBackendError, "Invalid shots \(number_of_shots=0\)", simulator.run, job)
 
-        self.assertRaises(QisKitBackendError, simulator.run, job)
+    def test_model_validate_shot_count_zero(self):
+        job_dict = self._basic_qobj_dictionary
+        job_dict['config']['shots'] = 0
+
+        with self.assertRaises(ModelValidationError) as error:
+            job = qiskit.qobj.QasmQobj.from_dict(job_dict)
+        message = error.exception.args[0]['config']['shots'][0]
+        self.assertEqual("Must be at least 1.", message)
 
     def test_validate_no_classical_qubits(self):
         simulator = QuantumInspireBackend(Mock(), Mock())
@@ -320,7 +330,7 @@ class TestQiSimulatorPy(unittest.TestCase):
                         {'name': 'h', 'params': [], 'texparams': [], 'qubits': [1]}]
         qobj_dict = self._basic_qobj_dictionary
         qobj_dict['experiments'][0]['instructions'] = instructions
-        qobj = Qobj.from_dict(qobj_dict)
+        qobj = QasmQobj.from_dict(qobj_dict)
         job = simulator.run(qobj)
         self.assertEqual('42', job.job_id())
 
@@ -390,7 +400,7 @@ class TestQiSimulatorPyHistogram(unittest.TestCase):
                            expected_histogram_prob, expected_memory):
         self.mock_api.set(mock_result1, mock_result2)
         jobs = self._basic_job_dictionary
-        measurements = QuantumInspireBackend._collect_measurements(QobjExperiment.from_dict(single_experiment))
+        measurements = QuantumInspireBackend._collect_measurements(QasmQobjExperiment.from_dict(single_experiment))
         user_data = {'name': 'name', 'memory_slots': 2,
                      'creg_sizes': [['c1', 2]], 'measurements': measurements}
         jobs['user_data'] = json.dumps(user_data)

@@ -19,7 +19,7 @@ import copy
 import numpy as np
 from io import StringIO
 from typing import Optional
-from qiskit.qobj import QobjItem
+from qiskit.qobj import QasmQobjInstruction
 from quantuminspire.exceptions import ApiError
 
 
@@ -27,7 +27,8 @@ class CircuitToString:
     """ Contains the translational elements to convert the Qiskit circuits to cQASM code."""
 
     @staticmethod
-    def _gate_not_supported(_stream: StringIO, instruction: QobjItem, _binary_control: Optional[str] = None) -> None:
+    def _gate_not_supported(_stream: StringIO, instruction: QasmQobjInstruction, _binary_control: Optional[str] = None)\
+            -> None:
         """ Called when a gate is not supported with the backend. Throws an exception (ApiError)
 
         Args:
@@ -43,7 +44,7 @@ class CircuitToString:
             raise ApiError('Gate {} not supported'.format(instruction.name.lower()))
 
     @staticmethod
-    def _cx(stream: StringIO, instruction: QobjItem) -> None:
+    def _cx(stream: StringIO, instruction: QasmQobjInstruction) -> None:
         """ Translates the controlled X element.
 
         Args:
@@ -54,7 +55,7 @@ class CircuitToString:
         stream.write('CNOT q[{0}], q[{1}]\n'.format(*instruction.qubits))
 
     @staticmethod
-    def _c_cx(stream: StringIO, instruction: QobjItem, binary_control: str) -> None:
+    def _c_cx(stream: StringIO, instruction: QasmQobjInstruction, binary_control: str) -> None:
         """ Translates the binary-controlled controlled X element.
 
         Args:
@@ -66,7 +67,7 @@ class CircuitToString:
         stream.write('C-CNOT {0}q[{1}], q[{2}]\n'.format(binary_control, *instruction.qubits))
 
     @staticmethod
-    def _ccx(stream: StringIO, instruction: QobjItem) -> None:
+    def _ccx(stream: StringIO, instruction: QasmQobjInstruction) -> None:
         """ Translates the Toffoli element.
 
         Args:
@@ -77,7 +78,7 @@ class CircuitToString:
         stream.write('Toffoli q[{0}], q[{1}], q[{2}]\n'.format(*instruction.qubits))
 
     @staticmethod
-    def _c_ccx(stream: StringIO, instruction: QobjItem, binary_control: str) -> None:
+    def _c_ccx(stream: StringIO, instruction: QasmQobjInstruction, binary_control: str) -> None:
         """ Translates the binary controlled Toffoli element.
 
         Args:
@@ -89,7 +90,7 @@ class CircuitToString:
         stream.write('C-Toffoli {0}q[{1}], q[{2}], q[{3}]\n'.format(binary_control, *instruction.qubits))
 
     @staticmethod
-    def _h(stream: StringIO, instruction: QobjItem) -> None:
+    def _h(stream: StringIO, instruction: QasmQobjInstruction) -> None:
         """ Translates the H element.
 
         Args:
@@ -100,7 +101,7 @@ class CircuitToString:
         stream.write('H q[{0}]\n'.format(*instruction.qubits))
 
     @staticmethod
-    def _c_h(stream: StringIO, instruction: QobjItem, binary_control: str) -> None:
+    def _c_h(stream: StringIO, instruction: QasmQobjInstruction, binary_control: str) -> None:
         """ Translates the binary-controlled H element.
 
         Args:
@@ -112,7 +113,7 @@ class CircuitToString:
         stream.write('C-H {0}q[{1}]\n'.format(binary_control, *instruction.qubits))
 
     @staticmethod
-    def _id(stream: StringIO, instruction: QobjItem) -> None:
+    def _id(stream: StringIO, instruction: QasmQobjInstruction) -> None:
         """ Translates the ID element.
 
         Args:
@@ -123,7 +124,7 @@ class CircuitToString:
         stream.write('I q[{0}]\n'.format(*instruction.qubits))
 
     @staticmethod
-    def _c_id(stream: StringIO, instruction: QobjItem, binary_control: str) -> None:
+    def _c_id(stream: StringIO, instruction: QasmQobjInstruction, binary_control: str) -> None:
         """ Translates the binary-controlled ID element.
 
         Args:
@@ -135,7 +136,7 @@ class CircuitToString:
         stream.write('C-I {0}q[{1}]\n'.format(binary_control, *instruction.qubits))
 
     @staticmethod
-    def _s(stream: StringIO, instruction: QobjItem) -> None:
+    def _s(stream: StringIO, instruction: QasmQobjInstruction) -> None:
         """ Translates the S element.
 
         Args:
@@ -146,7 +147,7 @@ class CircuitToString:
         stream.write('S q[{0}]\n'.format(*instruction.qubits))
 
     @staticmethod
-    def _c_s(stream: StringIO, instruction: QobjItem, binary_control: str) -> None:
+    def _c_s(stream: StringIO, instruction: QasmQobjInstruction, binary_control: str) -> None:
         """ Translates the binary-controlled S element.
 
         Args:
@@ -157,7 +158,7 @@ class CircuitToString:
         stream.write('C-S {0}q[{1}]\n'.format(binary_control, *instruction.qubits))
 
     @staticmethod
-    def _sdg(stream: StringIO, instruction: QobjItem) -> None:
+    def _sdg(stream: StringIO, instruction: QasmQobjInstruction) -> None:
         """ Translates the Sdag element.
 
         Args:
@@ -168,7 +169,7 @@ class CircuitToString:
         stream.write('Sdag q[{0}]\n'.format(*instruction.qubits))
 
     @staticmethod
-    def _c_sdg(stream: StringIO, instruction: QobjItem, binary_control: str) -> None:
+    def _c_sdg(stream: StringIO, instruction: QasmQobjInstruction, binary_control: str) -> None:
         """ Translates the binary-controlled Sdag element.
 
         Args:
@@ -179,7 +180,7 @@ class CircuitToString:
         stream.write('C-Sdag {0}q[{1}]\n'.format(binary_control, *instruction.qubits))
 
     @staticmethod
-    def _swap(stream: StringIO, instruction: QobjItem) -> None:
+    def _swap(stream: StringIO, instruction: QasmQobjInstruction) -> None:
         """ Translates the SWAP element.
 
         Args:
@@ -190,7 +191,7 @@ class CircuitToString:
         stream.write('SWAP q[{0}], q[{1}]\n'.format(*instruction.qubits))
 
     @staticmethod
-    def _c_swap(stream: StringIO, instruction: QobjItem, binary_control: str) -> None:
+    def _c_swap(stream: StringIO, instruction: QasmQobjInstruction, binary_control: str) -> None:
         """ Translates the binary-controlled SWAP element.
 
         Args:
@@ -201,7 +202,7 @@ class CircuitToString:
         stream.write('C-SWAP {0}q[{1}], q[{2}]\n'.format(binary_control, *instruction.qubits))
 
     @staticmethod
-    def _t(stream: StringIO, instruction: QobjItem) -> None:
+    def _t(stream: StringIO, instruction: QasmQobjInstruction) -> None:
         """ Translates the T element.
 
         Args:
@@ -212,7 +213,7 @@ class CircuitToString:
         stream.write('T q[{0}]\n'.format(*instruction.qubits))
 
     @staticmethod
-    def _c_t(stream: StringIO, instruction: QobjItem, binary_control: str) -> None:
+    def _c_t(stream: StringIO, instruction: QasmQobjInstruction, binary_control: str) -> None:
         """ Translates the binary-controlled T element.
 
         Args:
@@ -223,7 +224,7 @@ class CircuitToString:
         stream.write('C-T {0}q[{1}]\n'.format(binary_control, *instruction.qubits))
 
     @staticmethod
-    def _tdg(stream: StringIO, instruction: QobjItem) -> None:
+    def _tdg(stream: StringIO, instruction: QasmQobjInstruction) -> None:
         """ Translates the Tdag element.
 
         Args:
@@ -234,7 +235,7 @@ class CircuitToString:
         stream.write('Tdag q[{0}]\n'.format(*instruction.qubits))
 
     @staticmethod
-    def _c_tdg(stream: StringIO, instruction: QobjItem, binary_control: str) -> None:
+    def _c_tdg(stream: StringIO, instruction: QasmQobjInstruction, binary_control: str) -> None:
         """ Translates the binary-controlled Tdag element.
 
         Args:
@@ -245,7 +246,7 @@ class CircuitToString:
         stream.write('C-Tdag {0}q[{1}]\n'.format(binary_control, *instruction.qubits))
 
     @staticmethod
-    def _x(stream: StringIO, instruction: QobjItem) -> None:
+    def _x(stream: StringIO, instruction: QasmQobjInstruction) -> None:
         """ Translates the X element.
 
         Args:
@@ -256,7 +257,7 @@ class CircuitToString:
         stream.write('X q[{0}]\n'.format(*instruction.qubits))
 
     @staticmethod
-    def _c_x(stream: StringIO, instruction: QobjItem, binary_control: str) -> None:
+    def _c_x(stream: StringIO, instruction: QasmQobjInstruction, binary_control: str) -> None:
         """ Translates the binary-controlled X element.
 
         Args:
@@ -267,7 +268,7 @@ class CircuitToString:
         stream.write('C-X {0}q[{1}]\n'.format(binary_control, *instruction.qubits))
 
     @staticmethod
-    def _y(stream: StringIO, instruction: QobjItem) -> None:
+    def _y(stream: StringIO, instruction: QasmQobjInstruction) -> None:
         """ Translates the Y element.
 
         Args:
@@ -278,7 +279,7 @@ class CircuitToString:
         stream.write('Y q[{0}]\n'.format(*instruction.qubits))
 
     @staticmethod
-    def _c_y(stream: StringIO, instruction: QobjItem, binary_control: str) -> None:
+    def _c_y(stream: StringIO, instruction: QasmQobjInstruction, binary_control: str) -> None:
         """ Translates the binary-controlled Y element.
 
         Args:
@@ -290,7 +291,7 @@ class CircuitToString:
         stream.write('C-Y {0}q[{1}]\n'.format(binary_control, *instruction.qubits))
 
     @staticmethod
-    def _z(stream: StringIO, instruction: QobjItem) -> None:
+    def _z(stream: StringIO, instruction: QasmQobjInstruction) -> None:
         """ Translates the Z element.
 
         Args:
@@ -301,7 +302,7 @@ class CircuitToString:
         stream.write('Z q[{0}]\n'.format(*instruction.qubits))
 
     @staticmethod
-    def _c_z(stream: StringIO, instruction: QobjItem, binary_control: str) -> None:
+    def _c_z(stream: StringIO, instruction: QasmQobjInstruction, binary_control: str) -> None:
         """ Translates the binary-controlled Z element.
 
         Args:
@@ -313,7 +314,7 @@ class CircuitToString:
         stream.write('C-Z {0}q[{1}]\n'.format(binary_control, *instruction.qubits))
 
     @staticmethod
-    def _r(stream: StringIO, instruction: QobjItem, axis: str) -> None:
+    def _r(stream: StringIO, instruction: QasmQobjInstruction, axis: str) -> None:
         """ Translates the Rotation element for an axis (x,y,z).
 
         Args:
@@ -326,7 +327,7 @@ class CircuitToString:
         stream.write('R{0} q[{1}], {2:.6f}\n'.format(axis, *instruction.qubits, angle_q0))
 
     @staticmethod
-    def _c_r(stream: StringIO, instruction: QobjItem, axis: str, binary_control: str) -> None:
+    def _c_r(stream: StringIO, instruction: QasmQobjInstruction, axis: str, binary_control: str) -> None:
         """ Translates the binary-controlled Rotation element for an axis (x,y,z).
 
         Args:
@@ -340,7 +341,7 @@ class CircuitToString:
         stream.write('C-R{0} {1}q[{2}], {3:.6f}\n'.format(axis, binary_control, *instruction.qubits, angle_q0))
 
     @staticmethod
-    def _rx(stream: StringIO, instruction: QobjItem) -> None:
+    def _rx(stream: StringIO, instruction: QasmQobjInstruction) -> None:
         """ Translates the Rx element.
 
         Args:
@@ -351,7 +352,7 @@ class CircuitToString:
         CircuitToString._r(stream, instruction, 'x')
 
     @staticmethod
-    def _c_rx(stream: StringIO, instruction: QobjItem, binary_control: str) -> None:
+    def _c_rx(stream: StringIO, instruction: QasmQobjInstruction, binary_control: str) -> None:
         """ Translates the binary-controlled Rx element.
 
         Args:
@@ -363,7 +364,7 @@ class CircuitToString:
         CircuitToString._c_r(stream, instruction, 'x', binary_control)
 
     @staticmethod
-    def _ry(stream: StringIO, instruction: QobjItem) -> None:
+    def _ry(stream: StringIO, instruction: QasmQobjInstruction) -> None:
         """ Translates the Ry element.
 
         Args:
@@ -374,7 +375,7 @@ class CircuitToString:
         CircuitToString._r(stream, instruction, 'y')
 
     @staticmethod
-    def _c_ry(stream: StringIO, instruction: QobjItem, binary_control: str) -> None:
+    def _c_ry(stream: StringIO, instruction: QasmQobjInstruction, binary_control: str) -> None:
         """ Translates the binary-controlled Ry element.
 
         Args:
@@ -386,7 +387,7 @@ class CircuitToString:
         CircuitToString._c_r(stream, instruction, 'y', binary_control)
 
     @staticmethod
-    def _rz(stream: StringIO, instruction: QobjItem) -> None:
+    def _rz(stream: StringIO, instruction: QasmQobjInstruction) -> None:
         """ Translates the Rz element.
 
         Args:
@@ -397,7 +398,7 @@ class CircuitToString:
         CircuitToString._r(stream, instruction, 'z')
 
     @staticmethod
-    def _c_rz(stream: StringIO, instruction: QobjItem, binary_control: str) -> None:
+    def _c_rz(stream: StringIO, instruction: QasmQobjInstruction, binary_control: str) -> None:
         """ Translates the binary-controlled Rz element.
 
         Args:
@@ -409,7 +410,7 @@ class CircuitToString:
         CircuitToString._c_r(stream, instruction, 'z', binary_control)
 
     @staticmethod
-    def _u(stream: StringIO, instruction: QobjItem) -> None:
+    def _u(stream: StringIO, instruction: QasmQobjInstruction) -> None:
         """ Translates the U element to U3. The u element is used by qiskit for the u_base gate and when a u0-gate
             is used in the circuit but not supported as a basis gate for the backend.
 
@@ -421,7 +422,7 @@ class CircuitToString:
         CircuitToString._u3(stream, instruction)
 
     @staticmethod
-    def _c_u(stream: StringIO, instruction: QobjItem, binary_control: str) -> None:
+    def _c_u(stream: StringIO, instruction: QasmQobjInstruction, binary_control: str) -> None:
         """ Translates the binary-controlled U element to binary-controlled U3.
 
         Args:
@@ -433,7 +434,7 @@ class CircuitToString:
         CircuitToString._c_u3(stream, instruction, binary_control)
 
     @staticmethod
-    def _u1(stream: StringIO, instruction: QobjItem) -> None:
+    def _u1(stream: StringIO, instruction: QasmQobjInstruction) -> None:
         """ Translates the U1(lambda) element to U3(0, 0, lambda). A copy of the circuit is made to prevent
             side-effects for the caller.
 
@@ -448,7 +449,7 @@ class CircuitToString:
         CircuitToString._u3(stream, temp_instruction)
 
     @staticmethod
-    def _c_u1(stream: StringIO, instruction: QobjItem, binary_control: str) -> None:
+    def _c_u1(stream: StringIO, instruction: QasmQobjInstruction, binary_control: str) -> None:
         """ Translates the binary-controlled U1(lambda) element to U3(0, 0, lambda). A copy of the circuit is
         made to prevent side-effects for the caller.
 
@@ -464,7 +465,7 @@ class CircuitToString:
         CircuitToString._c_u3(stream, temp_instruction, binary_control)
 
     @staticmethod
-    def _u2(stream: StringIO, instruction: QobjItem) -> None:
+    def _u2(stream: StringIO, instruction: QasmQobjInstruction) -> None:
         """ Translates the U2(phi, lambda) element to U3(pi/2, phi, lambda). A copy of the circuit is made to prevent
             side-effects for the caller.
 
@@ -479,7 +480,7 @@ class CircuitToString:
         CircuitToString._u3(stream, temp_instruction)
 
     @staticmethod
-    def _c_u2(stream: StringIO, instruction: QobjItem, binary_control: str) -> None:
+    def _c_u2(stream: StringIO, instruction: QasmQobjInstruction, binary_control: str) -> None:
         """ Translates the binary-controlled U2(phi, lambda) element to U3(pi/2, phi, lambda). A copy of the
         circuit is made to prevent side-effects for the caller.
 
@@ -495,7 +496,7 @@ class CircuitToString:
         CircuitToString._c_u3(stream, temp_instruction, binary_control)
 
     @staticmethod
-    def _u3(stream: StringIO, instruction: QobjItem) -> None:
+    def _u3(stream: StringIO, instruction: QasmQobjInstruction) -> None:
         """ Translates the U3(theta, phi, lambda) element to 3 rotation gates.
             Any single qubit operation (a 2x2 unitary matrix) can be written as the product of rotations.
             As an example, a unitary single-qubit gate can be expressed as a combination of
@@ -518,7 +519,7 @@ class CircuitToString:
                 stream.write('{0} q[{1}], {2:.6f}\n'.format(*triplet))
 
     @staticmethod
-    def _c_u3(stream: StringIO, instruction: QobjItem, binary_control: str) -> None:
+    def _c_u3(stream: StringIO, instruction: QasmQobjInstruction, binary_control: str) -> None:
         """ Translates the binary-controlled U3(theta, phi, lambda) element to 3 rotation gates.
             See gate _u3 for more information.
 
@@ -537,7 +538,7 @@ class CircuitToString:
                 stream.write('{0} {1}q[{2}], {3:.6f}\n'.format(*quadruplets))
 
     @staticmethod
-    def _barrier(stream: StringIO, instruction: QobjItem) -> None:
+    def _barrier(stream: StringIO, instruction: QasmQobjInstruction) -> None:
         """ Translates the | element. No cQASM is added for this gate.
 
         Args:
@@ -548,7 +549,7 @@ class CircuitToString:
         pass
 
     @staticmethod
-    def _c_barrier(stream: StringIO, instruction: QobjItem, binary_control: str) -> None:
+    def _c_barrier(stream: StringIO, instruction: QasmQobjInstruction, binary_control: str) -> None:
         """ Translates the binary-controlled | element. No cQASM is added for this gate.
 
         Args:
@@ -560,7 +561,7 @@ class CircuitToString:
         pass
 
     @staticmethod
-    def _measure(stream: StringIO, instruction: QobjItem) -> None:
+    def _measure(stream: StringIO, instruction: QasmQobjInstruction) -> None:
         """ Translates the measure element. No cQASM is added for this gate.
 
         Args:
@@ -570,7 +571,7 @@ class CircuitToString:
         """
         pass
 
-    def _parse_bin_ctrl_gate(self, stream: StringIO, instruction: QobjItem) -> None:
+    def _parse_bin_ctrl_gate(self, stream: StringIO, instruction: QasmQobjInstruction) -> None:
         """ Parses a binary controlled gate. A binary controlled gate name is preceded by 'c-'.
             The gate is executed when a specific measurement is true. Multiple measurement outcomes are used
             to control the quantum operation. This measurement is a combination of classical bits being 1 and others
@@ -621,7 +622,7 @@ class CircuitToString:
                 # reverse the measurement registers that had to be 0
                 stream.write(negate_zeroes_line)
 
-    def parse(self, stream: StringIO, instruction: QobjItem) -> None:
+    def parse(self, stream: StringIO, instruction: QasmQobjInstruction) -> None:
         """ Parses a gate. For each type of gate a separate (private) parsing method is defined and called.
             The resulting cQASM code is written to the stream. When the gate is a binary controlled
             gate, the parsing is forwarded to method _parse_bin_ctrl_gate. When a gate is not supported

@@ -26,7 +26,7 @@ from coreapi.exceptions import ErrorMessage
 from qiskit.providers import BaseBackend
 from qiskit.providers.models import BackendConfiguration
 from qiskit.providers.models.backendconfiguration import GateConfig
-from qiskit.qobj import Qobj, QobjExperiment
+from qiskit.qobj import QasmQobj, QasmQobjExperiment
 from qiskit.result.models import ExperimentResult, ExperimentResultData
 from qiskit.validation.base import Obj
 
@@ -92,7 +92,7 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
     def backend_name(self) -> str:
         return self.name()  # type: ignore
 
-    def run(self, qobj: Qobj) -> QIJob:
+    def run(self, qobj: QasmQobj) -> QIJob:
         """ Submits a quantum job to the Quantum Inspire platform.
 
         Args:
@@ -132,7 +132,7 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
         return QIJob(self, job_id, self.__api)
 
     @staticmethod
-    def _generate_cqasm(experiment: QobjExperiment) -> str:
+    def _generate_cqasm(experiment: QasmQobjExperiment) -> str:
         """ Generates the cQASM from the Qiskit experiment.
 
         Args:
@@ -152,7 +152,7 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
                 parser.parse(stream, instruction)
             return stream.getvalue()
 
-    def _submit_experiment(self, experiment: QobjExperiment, number_of_shots: int,
+    def _submit_experiment(self, experiment: QasmQobjExperiment, number_of_shots: int,
                            project: Optional[Dict[str, Any]] = None) -> QuantumInspireJob:
         compiled_qasm = self._generate_cqasm(experiment)
         measurements = self._collect_measurements(experiment)
@@ -197,7 +197,7 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
             experiment_results.append(ExperimentResult(**experiment_result_dictionary))
         return experiment_results
 
-    def __validate(self, job: Qobj) -> None:
+    def __validate(self, job: QasmQobj) -> None:
         """ Validates the number of shots, classical bits and compiled Qiskit circuits.
 
         Args:
@@ -210,7 +210,7 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
             QuantumInspireBackend.__validate_no_gates_after_measure(experiment)
 
     @staticmethod
-    def __validate_number_of_shots(job: Qobj) -> None:
+    def __validate_number_of_shots(job: QasmQobj) -> None:
         """ Checks whether the number of shots has a valid value.
 
         Args:
@@ -223,7 +223,7 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
         if number_of_shots < 1:
             raise QisKitBackendError('Invalid shots (number_of_shots={})'.format(number_of_shots))
 
-    def __validate_number_of_clbits(self, experiment: QobjExperiment) -> None:
+    def __validate_number_of_clbits(self, experiment: QasmQobjExperiment) -> None:
         """ Checks whether the number of classical bits has a valid value.
 
         Args:
@@ -246,7 +246,7 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
                                                  " number of qubits when using conditional gate operations")
 
     @staticmethod
-    def __validate_no_gates_after_measure(experiment: QobjExperiment) -> None:
+    def __validate_no_gates_after_measure(experiment: QasmQobjExperiment) -> None:
         """ Checks whether the number of classical bits has a valid value.
 
         Args:
@@ -264,7 +264,7 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
                     raise QisKitBackendError('Operation on qubit {} after measurement'.format(qubit))
 
     @staticmethod
-    def _collect_measurements(experiment: QobjExperiment) -> Dict[str, Any]:
+    def _collect_measurements(experiment: QasmQobjExperiment) -> Dict[str, Any]:
         """ Determines the measured qubits and classical bits. The full-state measured
             qubits is returned when no measurements are present in the compiled circuit.
 
@@ -333,8 +333,8 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
                                                                                  number_of_qubits)
             output_histogram_probabilities[classical_state_hex] += probability
 
-        sorted_histogram_probabilities: List[Tuple[Any, Any]] = sorted(output_histogram_probabilities.items(),
-                                                                       key=lambda kv: int(kv[0], 16))
+        sorted_histogram_probabilities: List[Tuple[str, float]] = sorted(output_histogram_probabilities.items(),
+                                                                         key=lambda kv: int(kv[0], 16))
         full_state_histogram_obj = OrderedDict(sorted_histogram_probabilities)
         return Obj.from_dict(full_state_histogram_obj)
 
@@ -388,6 +388,6 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
                     histogram_data[classical_state_hex] = 1
                     break
 
-        sorted_histogram_data: List[Tuple[Any, Any]] = sorted(histogram_data.items(), key=lambda kv: int(kv[0], 16))
+        sorted_histogram_data: List[Tuple[str, int]] = sorted(histogram_data.items(), key=lambda kv: int(kv[0], 16))
         histogram_obj = OrderedDict(sorted_histogram_data)
         return Obj.from_dict(histogram_obj), memory_data
