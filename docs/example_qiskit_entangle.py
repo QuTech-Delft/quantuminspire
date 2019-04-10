@@ -25,7 +25,7 @@ from quantuminspire.qiskit import QI
 
 QI_EMAIL = os.getenv('QI_EMAIL')
 QI_PASSWORD = os.getenv('QI_PASSWORD')
-QI_URL = os.getenv('API_URL')
+QI_URL = os.getenv('API_URL', 'https://api.quantum-inspire.com/')
 
 
 def get_authentication():
@@ -47,11 +47,7 @@ def get_authentication():
 if __name__ == '__main__':
 
     authentication = get_authentication()
-    if QI_URL is None:
-        uri = r'https://api.quantum-inspire.com/'
-    else:
-        uri = QI_URL
-    QI.set_authentication(authentication, uri)
+    QI.set_authentication(authentication, QI_URL)
     qi_backend = QI.get_backend('QX single-node simulator')
 
     q = QuantumRegister(2)

@@ -18,7 +18,7 @@ from quantuminspire.projectq.backend_qx import QIBackend
 
 QI_EMAIL = os.getenv('QI_EMAIL')
 QI_PASSWORD = os.getenv('QI_PASSWORD')
-QI_URL = os.getenv('API_URL')
+QI_URL = os.getenv('API_URL', 'https://api.quantum-inspire.com/')
 
 
 def run_grover(eng, n, oracle):
@@ -110,11 +110,7 @@ if __name__ == '__main__':
 
     # Remote Quantum-Inspire backend #
     authentication = get_authentication()
-    if QI_URL is None:
-        uri = r'https://api.quantum-inspire.com/'
-    else:
-        uri = QI_URL
-    qi = QuantumInspireAPI(uri, authentication)
+    qi = QuantumInspireAPI(QI_URL, authentication)
 
     compiler_engines = restrictedgateset.get_engine_list(one_qubit_gates="any", two_qubit_gates=(CNOT, CZ, Toffoli))
     compiler_engines.extend([ResourceCounter()])
