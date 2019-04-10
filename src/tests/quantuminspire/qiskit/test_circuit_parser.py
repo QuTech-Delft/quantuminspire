@@ -105,6 +105,57 @@ class TestQiCircuitToString(unittest.TestCase):
         result = self._generate_cqasm_from_instructions(instructions, 2)
         self.assertTrue('not b[0,4,5,6,7]\nC-I b[0:7], q[0]\nnot b[0,4,5,6,7]\n' in result)
 
+    def test_generate_cqasm_correct_output_gate_s(self):
+        instructions = [{'name': 's', 'qubits': [1]}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('S q[1]\n' in result)
+
+    def test_generate_cqasm_correct_output_conditional_gate_s(self):
+        instructions = [{'conditional': {'mask': '0x1FF', 'type': 'equals', 'val': '0xB'}, 'name': 's', 'qubits': [2]}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('not b[2,4,5,6,7,8]\nC-S b[0:8], q[2]\nnot b[2,4,5,6,7,8]\n' in result)
+
+    def test_generate_cqasm_correct_output_gate_sdag(self):
+        instructions = [{'name': 'sdg', 'qubits': [2]}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('Sdag q[2]\n' in result)
+
+    def test_generate_cqasm_correct_output_conditional_gate_sdag(self):
+        instructions = [{'conditional': {'mask': '0xF', 'type': 'equals', 'val': '0xE'}, 'name': 'sdg', 'qubits': [0]}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('not b[0]\nC-Sdag b[0:3], q[0]\nnot b[0]\n' in result)
+
+    def test_generate_cqasm_correct_output_gate_swap(self):
+        instructions = [{'name': 'swap', 'qubits': [2, 3]}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('SWAP q[2], q[3]\n' in result)
+
+    def test_generate_cqasm_correct_output_conditional_gate_swap(self):
+        instructions = [{'conditional': {'mask': '0xF', 'type': 'equals', 'val': '0xE'}, 'name': 'swap',
+                         'qubits': [0, 1]}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('not b[0]\nC-SWAP b[0:3], q[0], q[1]\nnot b[0]\n' in result)
+
+    def test_generate_cqasm_correct_output_gate_t(self):
+        instructions = [{'name': 't', 'qubits': [2]}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('T q[2]\n' in result)
+
+    def test_generate_cqasm_correct_output_conditional_gate_t(self):
+        instructions = [{'conditional': {'mask': '0x1FF', 'type': 'equals', 'val': '0xB'}, 'name': 't', 'qubits': [1]}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('not b[2,4,5,6,7,8]\nC-T b[0:8], q[1]\nnot b[2,4,5,6,7,8]\n' in result)
+
+    def test_generate_cqasm_correct_output_gate_tdag(self):
+        instructions = [{'name': 'tdg', 'qubits': [2]}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('Tdag q[2]\n' in result)
+
+    def test_generate_cqasm_correct_output_conditional_gate_tdag(self):
+        instructions = [{'conditional': {'mask': '0xF', 'type': 'equals', 'val': '0xE'}, 'name': 'tdg', 'qubits': [0]}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('not b[0]\nC-Tdag b[0:3], q[0]\nnot b[0]\n' in result)
+
     def test_generate_cqasm_correct_output_gate_x(self):
         instructions = [{'name': 'x', 'qubits': [0]}]
         result = self._generate_cqasm_from_instructions(instructions, 2)
