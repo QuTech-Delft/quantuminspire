@@ -1,0 +1,12 @@
+name: quantuminspire
+channels:
+  - conda-forge
+dependencies:
+  - numpy
+  - pytest
+  - matplotlib>=2.1
+  - pip:
+    - coreapi
+    - quantuminspire
+    - qiskit
+    - projectq

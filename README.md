@@ -81,6 +81,11 @@ cd docs
 python example_projectq_grover.py
 ```
 
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/QuTech-Delft/quantuminspire.git/master?filepath=%2Fdocs)
+
+Another way to browse and run the available notebooks is by clicking the 'launch binder' button above.
+If you are experiencing delays, please check the 'Binder' system status. The service may be down.
+
 It is also possible to use the API through the QuantumInspireAPI object
 directly. This is for advanced users that really know what they are
 doing. The intention of the QuantumInspireAPI class is that it is used
