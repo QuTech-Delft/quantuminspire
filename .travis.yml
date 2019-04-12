@@ -6,22 +6,23 @@ matrix:
       sudo: true
       dist: xenial
 install:
-  - pip install jupyter
-  - pip install matplotlib>=2.1
+  - pip install --upgrade mypy
   - pip install --upgrade .[qiskit,projectq] coveralls
 env:
   - API_URL=https://staging.quantum-inspire.com
 script:
   - echo "running unit tests"
   - coverage run --source="./src/quantuminspire" -m unittest discover -s src/tests -t src -v
+  - echo "running mypy"
+  - MYPYPATH=./src mypy --strict --ignore-missing-imports -p quantuminspire
   - echo "running examples"
   - python ./docs/example_projectq_entangle.py
   - python ./docs/example_projectq_grover.py
   - python ./docs/example_qiskit_entangle.py
   - echo "running notebooks"
-  - jupyter nbconvert --to notebook --execute docs/example_projectq.ipynb
-  - jupyter nbconvert --to notebook --execute docs/grover_algorithm_qi.ipynb
-  - jupyter nbconvert --to notebook --execute docs/qi-performance-test.ipynb
+  - jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=300 docs/example_projectq.ipynb
+  - jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=300 docs/grover_algorithm_qi.ipynb
+  - jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=300 docs/qi-performance-test.ipynb
 after_success:
   - coveralls
 deploy:
