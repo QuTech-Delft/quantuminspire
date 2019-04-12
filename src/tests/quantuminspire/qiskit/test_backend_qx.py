@@ -262,9 +262,9 @@ class TestQiSimulatorPy(unittest.TestCase):
     def test_validate_shot_count_zero(self):
         simulator = QuantumInspireBackend(Mock(), Mock())
         job_dict = self._basic_qobj_dictionary
-        job_dict['config']['shots'] = 1
-        job = qiskit.qobj.QasmQobj.from_dict(job_dict)
-        job.config.shots = 0
+        job_dict['config']['shots'] = 1                 # first set shots to 1 to satisfy qiskit model validation
+        job = qiskit.qobj.QasmQobj.from_dict(job_dict)  # qiskit validation is satisfied
+        job.config.shots = 0                            # now set the number of shots to 0 to trigger our validation
         self.assertRaisesRegex(QisKitBackendError, "Invalid shots \(number_of_shots=0\)", simulator.run, job)
 
     def test_model_validate_shot_count_zero(self):
