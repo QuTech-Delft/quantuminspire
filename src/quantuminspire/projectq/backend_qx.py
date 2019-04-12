@@ -91,7 +91,7 @@ class QIBackend(BasicEngine):  # type: ignore
             return True
         if count != 0:
             return False
-        if g in (T, Tdag, S, Sdag, H, X, Y, Z):
+        if g in (T, Tdag, S, Sdag, Swap, H, X, Y, Z):
             return True
         elif isinstance(g, (Rx, Ry, Rz)):
             return True
@@ -162,7 +162,7 @@ class QIBackend(BasicEngine):  # type: ignore
             # this case also covers the CX controlled gate
             ctrl_pos = cmd.control_qubits[0].id
             qb_pos = cmd.qubits[0][0].id
-            self.qasm += "\nCNOT q[{}], q[{}]".format(ctrl_pos, qb_pos)
+            self.qasm += "\ncnot q[{}], q[{}]".format(ctrl_pos, qb_pos)
         elif gate == Swap:
             q0 = cmd.qubits[0][0].id
             q1 = cmd.qubits[1][0].id
@@ -171,11 +171,11 @@ class QIBackend(BasicEngine):  # type: ignore
             ctrl_pos1 = cmd.control_qubits[0].id
             ctrl_pos2 = cmd.control_qubits[1].id
             qb_pos = cmd.qubits[0][0].id
-            self.qasm += "\nToffoli q[{}], q[{}], q[{}]".format(ctrl_pos1, ctrl_pos2, qb_pos)
+            self.qasm += "\ntoffoli q[{}], q[{}], q[{}]".format(ctrl_pos1, ctrl_pos2, qb_pos)
         elif gate == Z and get_control_count(cmd) == 1:
             ctrl_pos = cmd.control_qubits[0].id
             qb_pos = cmd.qubits[0][0].id
-            self.qasm += "\nCZ q[{}], q[{}]".format(ctrl_pos, qb_pos)
+            self.qasm += "\ncz q[{}], q[{}]".format(ctrl_pos, qb_pos)
         elif gate == Barrier:
             qb_pos = [qb.id for qr in cmd.qubits for qb in qr]
             self.qasm += "\n# barrier gate "
@@ -186,25 +186,24 @@ class QIBackend(BasicEngine):  # type: ignore
         elif isinstance(gate, Rz) and get_control_count(cmd) == 1:
             ctrl_pos = cmd.control_qubits[0].id
             qb_pos = cmd.qubits[0][0].id
-            gate_name = 'CR'
+            gate_name = 'cr'
             self.qasm += "\n{} q[{}],q[{}],{:.12f}".format(gate_name, ctrl_pos, qb_pos, gate.angle)
         elif isinstance(gate, (Rx, Ry)) and get_control_count(cmd) == 1:
             raise NotImplementedError('controlled Rx or Ry gate not implemented')
         elif isinstance(gate, (Rx, Ry, Rz)):
             assert get_control_count(cmd) == 0
             qb_pos = cmd.qubits[0][0].id
-            gate_name = str(gate)[0:2]
+            gate_name = str(gate)[0:2].lower()
             self.qasm += "\n{} q[{}],{:.12g}".format(gate_name, qb_pos, gate.angle)
         elif gate == Tdag and get_control_count(cmd) == 0:
             qb_pos = cmd.qubits[0][0].id
-            self.qasm += "\nTdag q[{}]".format(qb_pos)
-        elif isinstance(gate, tuple(type(gate) for gate in (X, Y, Z, H, S, Sdag, T, Tdag))):
+            self.qasm += "\ntdag q[{}]".format(qb_pos)
+        elif gate == Sdag and get_control_count(cmd) == 0:
+            qb_pos = cmd.qubits[0][0].id
+            self.qasm += "\nsdag q[{}]".format(qb_pos)
+        elif isinstance(gate, tuple(type(gate) for gate in (X, Y, Z, H, S, T))):
             assert get_control_count(cmd) == 0
-            if str(gate) in self._gate_names:
-                gate_str = self._gate_names[str(gate)]
-            else:
-                gate_str = str(gate).lower()
-
+            gate_str = str(gate).lower()
             qb_pos = cmd.qubits[0][0].id
             self.qasm += "\n{} q[{}]".format(gate_str, qb_pos)
         else:
@@ -429,6 +428,3 @@ class QIBackend(BasicEngine):  # type: ignore
         for _ in range(qubits_counts):
             q = qubits_reference.pop()
             Measure | q
-
-    """ Mapping of gate names from our gate objects to the cQASM representation. """
-    _gate_names = {str(Tdag): "Tdag", str(Sdag): "Sdag"}
