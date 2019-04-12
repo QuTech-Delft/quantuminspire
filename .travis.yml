@@ -6,7 +6,7 @@ matrix:
       sudo: true
       dist: xenial
 install:
-  - pip install mypy
+  - pip install --upgrade mypy
   - pip install --upgrade .[qiskit,projectq] coveralls
 env:
   - API_URL=https://staging.quantum-inspire.com
