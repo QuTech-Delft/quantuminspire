@@ -91,7 +91,7 @@ class TestProjectQBackend(unittest.TestCase):
         self.__is_available_assert_equal(Ph(0.4), False)
         self.__is_available_assert_equal(Toffoli, False)
         for gate in [Measure, Allocate, Deallocate, Barrier, T, Tdag,
-                     S, Sdag, H, X, Y, Z, Rx(0.1), Ry(0.2), Rz(0.3)]:
+                     S, Sdag, Swap, H, X, Y, Z, Rx(0.1), Ry(0.2), Rz(0.3)]:
             self.__is_available_assert_equal(gate, True)
 
     def test_reset_is_cleared(self):
@@ -124,25 +124,24 @@ class TestProjectQBackend(unittest.TestCase):
     def test_store_returns_correct_qasm(self):
         angle = 0.1
         self.__store_function_assert_equal(0, NOT, "\nx q[0]")
-        self.__store_function_assert_equal(1, NOT, "\nCNOT q[0], q[1]", count=1)
+        self.__store_function_assert_equal(1, NOT, "\ncnot q[0], q[1]", count=1)
         self.__store_function_assert_equal(0, Swap, "\nswap q[0], q[1]")
-        self.__store_function_assert_equal(1, X, "\nToffoli q[0], q[1], q[1]", count=2)
-        self.__store_function_assert_equal(1, Z, "\nCZ q[0], q[1]", count=1)
+        self.__store_function_assert_equal(1, X, "\ntoffoli q[0], q[1], q[1]", count=2)
+        self.__store_function_assert_equal(1, Z, "\ncz q[0], q[1]", count=1)
         self.__store_function_assert_equal(0, Barrier, "\n# barrier gate q[0], q[1];")
-        self.__store_function_assert_equal(1, Rz(angle), "\nCR q[0],q[1],{0:.12f}".format(angle), count=1)
-        self.__store_function_assert_equal(1, Rz(angle), "\nCR q[0],q[1],{0:.12f}".format(angle), count=1)
-        self.__store_function_assert_equal(1, Rx(angle), "\nRx q[1],{0}".format(angle))
-        self.__store_function_assert_equal(1, Ry(angle), "\nRy q[1],{0}".format(angle))
-        self.__store_function_assert_equal(1, Rz(angle), "\nRz q[1],{0}".format(angle))
-        self.__store_function_assert_equal(0, Tdag, "\nTdag q[0]")
+        self.__store_function_assert_equal(1, Rz(angle), "\ncr q[0],q[1],{0:.12f}".format(angle), count=1)
+        self.__store_function_assert_equal(1, Rz(angle), "\ncr q[0],q[1],{0:.12f}".format(angle), count=1)
+        self.__store_function_assert_equal(1, Rx(angle), "\nrx q[1],{0}".format(angle))
+        self.__store_function_assert_equal(1, Ry(angle), "\nry q[1],{0}".format(angle))
+        self.__store_function_assert_equal(1, Rz(angle), "\nrz q[1],{0}".format(angle))
         self.__store_function_assert_equal(0, X, "\nx q[0]")
         self.__store_function_assert_equal(0, Y, "\ny q[0]")
         self.__store_function_assert_equal(0, Z, "\nz q[0]")
         self.__store_function_assert_equal(0, H, "\nh q[0]")
         self.__store_function_assert_equal(0, S, "\ns q[0]")
-        self.__store_function_assert_equal(0, Sdag, "\nSdag q[0]")
+        self.__store_function_assert_equal(0, Sdag, "\nsdag q[0]")
         self.__store_function_assert_equal(0, T, "\nt q[0]")
-        self.__store_function_assert_equal(0, Tdag, "\nTdag q[0]")
+        self.__store_function_assert_equal(0, Tdag, "\ntdag q[0]")
 
     def test_store_raises_error(self):
         angle = 0.1
