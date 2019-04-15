@@ -30,7 +30,7 @@ from projectq.ops import (CNOT, CX, CZ, NOT, QFT, All, Allocate, Barrier,
                           Ph, Rx, Ry, Rz, S, Sdag, Swap, T, Tdag, Toffoli, X,
                           Y, Z)
 
-from quantuminspire.exceptions import ProjectQBackendError, ApiError
+from quantuminspire.exceptions import ProjectQBackendError, AuthenticationError
 from quantuminspire.projectq.backend_qx import QIBackend
 
 
@@ -63,13 +63,13 @@ class TestProjectQBackend(unittest.TestCase):
         self.assertNotEqual(backend.quantum_inspire_api, None)
         self.assertIsNone(backend.backend_type)
 
-    def test_init_raises_no_account_api_error(self):
+    def test_init_raises_no_account_authentication_error(self):
         json.load = MagicMock()
         json.load.return_value = {'faulty_key': 'faulty_token'}
         os.environ.get = MagicMock()
         os.environ.get.return_value = None
-        self.assertRaisesRegex(ApiError, 'Make sure you have saved your token credentials on disk \(see README\.md\) '
-                                         'or provide a QuantumInspireAPI instance as parameter to QIBackend',
+        self.assertRaisesRegex(AuthenticationError, 'Make sure you have saved your token credentials on disk '
+                                                    'or provide a QuantumInspireAPI instance as parameter to QIBackend',
                                QIBackend)
 
     def test_cqasm_returns_correct_cqasm_data(self):

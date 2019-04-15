@@ -30,7 +30,7 @@ from projectq.ops import (NOT, Allocate, Barrier, Deallocate, FlushGate, H,
                           Measure, Ph, Rx, Ry, Rz, S, Sdag, Swap, T, Tdag, X,
                           Y, Z, Command)
 from projectq.types import Qubit
-from quantuminspire.exceptions import ApiError
+from quantuminspire.exceptions import AuthenticationError
 from quantuminspire.api import QuantumInspireAPI
 from quantuminspire.exceptions import ProjectQBackendError
 
@@ -67,9 +67,9 @@ class QIBackend(BasicEngine):  # type: ignore
         if quantum_inspire_api is None:
             try:
                 quantum_inspire_api = QuantumInspireAPI()
-            except ApiError as ex:
-                raise ApiError('Make sure you have saved your token credentials on disk (see README.md) or '
-                               'provide a QuantumInspireAPI instance as parameter to QIBackend') from ex
+            except AuthenticationError as ex:
+                raise AuthenticationError('Make sure you have saved your token credentials on disk or '
+                                          'provide a QuantumInspireAPI instance as parameter to QIBackend') from ex
         self.quantum_inspire_api: QuantumInspireAPI = quantum_inspire_api
         self.backend_type: Optional[Union[Dict[str, Any], int, str]] = backend_type
 
