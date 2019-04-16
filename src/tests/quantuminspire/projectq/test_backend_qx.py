@@ -18,6 +18,9 @@ limitations under the License.
 import io
 import unittest
 import warnings
+import json
+import os
+import coreapi
 from collections import OrderedDict
 from unittest.mock import MagicMock, patch
 
@@ -27,7 +30,7 @@ from projectq.ops import (CNOT, CX, CZ, NOT, QFT, All, Allocate, Barrier,
                           Ph, Rx, Ry, Rz, S, Sdag, Swap, T, Tdag, Toffoli, X,
                           Y, Z)
 
-from quantuminspire.exceptions import ProjectQBackendError
+from quantuminspire.exceptions import ProjectQBackendError, AuthenticationError
 from quantuminspire.projectq.backend_qx import QIBackend
 
 
@@ -51,9 +54,23 @@ class TestProjectQBackend(unittest.TestCase):
         self.assertEqual(backend.quantum_inspire_api, api)
         self.assertIsNone(backend.backend_type)
 
-    def test_init_raises_runtime_error(self):
-        api = None
-        self.assertRaises(RuntimeError, QIBackend, quantum_inspire_api=api)
+    def test_init_without_api_has_correct_values(self):
+        os.environ.get = MagicMock()
+        os.environ.get.return_value = 'token'
+        coreapi.Client.get = MagicMock()
+        backend = QIBackend()
+        self.assertIsInstance(backend.qasm, str)
+        self.assertNotEqual(backend.quantum_inspire_api, None)
+        self.assertIsNone(backend.backend_type)
+
+    def test_init_raises_no_account_authentication_error(self):
+        json.load = MagicMock()
+        json.load.return_value = {'faulty_key': 'faulty_token'}
+        os.environ.get = MagicMock()
+        os.environ.get.return_value = None
+        self.assertRaisesRegex(AuthenticationError, 'Make sure you have saved your token credentials on disk '
+                                                    'or provide a QuantumInspireAPI instance as parameter to QIBackend',
+                               QIBackend)
 
     def test_cqasm_returns_correct_cqasm_data(self):
         api = MockApiClient()

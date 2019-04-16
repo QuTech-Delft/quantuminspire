@@ -30,6 +30,7 @@ from projectq.ops import (NOT, Allocate, Barrier, Deallocate, FlushGate, H,
                           Measure, Ph, Rx, Ry, Rz, S, Sdag, Swap, T, Tdag, X,
                           Y, Z, Command)
 from projectq.types import Qubit
+from quantuminspire.exceptions import AuthenticationError
 from quantuminspire.api import QuantumInspireAPI
 from quantuminspire.exceptions import ProjectQBackendError
 
@@ -47,7 +48,7 @@ class QIBackend(BasicEngine):  # type: ignore
         Args:
             num_runs: Number of runs to collect statistics (default is 1024).
             verbose: Verbosity level, defaults to 0, which produces no extra output.
-            quantum_inspire_api: Connection to QI platform, required parameter.
+            quantum_inspire_api: Connection to QI platform, optional parameter.
             backend_type: Backend to use for execution. When no backend_type is provided, the default backend will be
                           used.
         """
@@ -63,8 +64,12 @@ class QIBackend(BasicEngine):  # type: ignore
         self._measured_ids: List[int] = []
         self._allocated_qubits: Set[int] = set()
         self._max_qubit_id: int = -1
-        if not quantum_inspire_api:
-            raise RuntimeError("Api is required")
+        if quantum_inspire_api is None:
+            try:
+                quantum_inspire_api = QuantumInspireAPI()
+            except AuthenticationError as ex:
+                raise AuthenticationError('Make sure you have saved your token credentials on disk or '
+                                          'provide a QuantumInspireAPI instance as parameter to QIBackend') from ex
         self.quantum_inspire_api: QuantumInspireAPI = quantum_inspire_api
         self.backend_type: Optional[Union[Dict[str, Any], int, str]] = backend_type
 

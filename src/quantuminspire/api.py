@@ -26,7 +26,7 @@ from coreapi.auth import TokenAuthentication
 from coreapi.exceptions import CoreAPIException, ErrorMessage
 
 from quantuminspire.credentials import load_account
-from quantuminspire.exceptions import ApiError
+from quantuminspire.exceptions import ApiError, AuthenticationError
 from quantuminspire.job import QuantumInspireJob
 
 QI_URL = 'https://api.quantum-inspire.com'
@@ -61,7 +61,7 @@ class QuantumInspireAPI:
             authentication: The authentication, can be one of the following coreapi authentications:
                             BasicAuthentication(email, password), HTTP authentication with valid email/password.
                             TokenAuthentication(token, scheme="token"), token authentication with a valid API-token.
-                            When authentication is None, a token is read from the default resource.
+                            When authentication is None, a token is read from the default location.
             project_name: The project used for executing the jobs.
             coreapi_client_class: Coreapi client to interact with the API through a schema.
                                   Default set to coreapi.Client.
@@ -72,15 +72,16 @@ class QuantumInspireAPI:
               project name is supplied here.
 
         Raises:
-            ApiError: An ApiError exception is raised when no authentication is given and the token could not be
-                      loaded or the schema could not be loaded.
+            AuthenticationError: An AuthenticationError exception is raised when no authentication is given
+                                 and the token could not be loaded from the default location.
+            ApiError: An ApiError exception is raised when the schema could not be loaded.
         """
         if authentication is None:
             token = load_account()
             if token is not None:
                 authentication = TokenAuthentication(token, scheme="token")
             else:
-                raise ApiError('No credentials have been provided or found on disk')
+                raise AuthenticationError('No credentials have been provided or found on disk')
         self.__client = coreapi_client_class(auth=authentication)
         self.project_name = project_name
         self.base_uri = base_uri
