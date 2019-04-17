@@ -12,12 +12,13 @@ from projectq.meta import Compute, Control, Loop, Uncompute
 from projectq.ops import CNOT, CZ, All, H, Measure, Toffoli, X, Z
 from projectq.setups import restrictedgateset
 
-from quantuminspire.credentials import load_token, get_token_authentication, get_basic_authentication
+from quantuminspire.credentials import load_account, get_token_authentication, get_basic_authentication
 from quantuminspire.api import QuantumInspireAPI
 from quantuminspire.projectq.backend_qx import QIBackend
 
 QI_EMAIL = os.getenv('QI_EMAIL')
 QI_PASSWORD = os.getenv('QI_PASSWORD')
+QI_URL = os.getenv('API_URL', 'https://api.quantum-inspire.com/')
 
 
 def run_grover(eng, n, oracle):
@@ -91,7 +92,7 @@ def alternating_bits_oracle(eng, qubits, output):
 
 def get_authentication():
     """ Gets the authentication for connecting to the Quantum Inspire API."""
-    token = load_token()
+    token = load_account()
     if token is not None:
         return get_token_authentication(token)
     else:
@@ -109,7 +110,7 @@ if __name__ == '__main__':
 
     # Remote Quantum-Inspire backend #
     authentication = get_authentication()
-    qi = QuantumInspireAPI(r'https://api.quantum-inspire.com/', authentication)
+    qi = QuantumInspireAPI(QI_URL, authentication)
 
     compiler_engines = restrictedgateset.get_engine_list(one_qubit_gates="any", two_qubit_gates=(CNOT, CZ, Toffoli))
     compiler_engines.extend([ResourceCounter()])

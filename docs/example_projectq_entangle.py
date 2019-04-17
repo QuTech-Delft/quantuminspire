@@ -11,17 +11,18 @@ from projectq.backends import ResourceCounter
 from projectq.ops import CNOT, H, Measure, All
 from projectq.setups import restrictedgateset
 
-from quantuminspire.credentials import load_token, get_token_authentication, get_basic_authentication
+from quantuminspire.credentials import load_account, get_token_authentication, get_basic_authentication
 from quantuminspire.api import QuantumInspireAPI
 from quantuminspire.projectq.backend_qx import QIBackend
 
 QI_EMAIL = os.getenv('QI_EMAIL')
 QI_PASSWORD = os.getenv('QI_PASSWORD')
+QI_URL = os.getenv('API_URL', 'https://api.quantum-inspire.com/')
 
 
 def get_authentication():
     """ Gets the authentication for connecting to the Quantum Inspire API."""
-    token = load_token()
+    token = load_account()
     if token is not None:
         return get_token_authentication(token)
     else:
@@ -38,9 +39,8 @@ def get_authentication():
 if __name__ == '__main__':
 
     name = 'TestProjectQ'
-    uri = r'https://api.quantum-inspire.com/'
     authentication = get_authentication()
-    qi_api = QuantumInspireAPI(uri, authentication, project_name=name)
+    qi_api = QuantumInspireAPI(QI_URL, authentication, project_name=name)
 
     compiler_engines = restrictedgateset.get_engine_list(one_qubit_gates="any", two_qubit_gates=(CNOT,))
     compiler_engines.extend([ResourceCounter()])

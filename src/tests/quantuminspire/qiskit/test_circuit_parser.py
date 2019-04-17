@@ -4,13 +4,13 @@ from unittest.mock import Mock
 import numpy as np
 import qiskit
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-
 from quantuminspire.qiskit.backend_qx import QuantumInspireBackend
+from quantuminspire.exceptions import ApiError
 
 
 class TestQiCircuitToString(unittest.TestCase):
 
-    def test_generate_cqasm_WithEntangleAlgorithm(self):
+    def test_generate_cqasm_with_entangle_algorithm(self):
         q = QuantumRegister(2)
         b = ClassicalRegister(2)
         circuit = QuantumCircuit(q, b)
@@ -45,53 +45,148 @@ class TestQiCircuitToString(unittest.TestCase):
         result = simulator._generate_cqasm(experiment)
         return result
 
-    def test_generate_cqasm_CorrectOutputControlledNot(self):
+    def test_generate_cqasm_correct_output_controlled_not(self):
         instructions = [{'name': 'cx', 'qubits': [0, 1]}]
         result = self._generate_cqasm_from_instructions(instructions, 2)
         self.assertTrue('CNOT q[0], q[1]\n' in result)
 
-    def test_generate_cqasm_CorrectOutputToffoli(self):
+    def test_generate_cqasm_correct_output_conditional_controlled_not(self):
+        instructions = [{'conditional': {'mask': '0xF', 'type': 'equals', 'val': '0xE'}, 'name': 'cx',
+                         'qubits': [0, 1]}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('not b[0]\nC-CNOT b[0:3], q[0], q[1]\nnot b[0]\n' in result)
+
+    def test_generate_cqasm_correct_output_toffoli(self):
         instructions = [{'name': 'ccx', 'qubits': [0, 1, 2]}]
         result = self._generate_cqasm_from_instructions(instructions, number_of_qubits=3)
         self.assertTrue('Toffoli q[0], q[1], q[2]\n' in result)
 
-    def test_generate_cqasm_CorrectOutputMeasure(self):
+    def test_generate_cqasm_correct_output_conditional_toffoli(self):
+        instructions = [{'conditional': {'mask': '0xFF', 'type': 'equals', 'val': '0xE'}, 'name': 'ccx',
+                         'qubits': [0, 1, 2]}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('not b[0,4,5,6,7]\nC-Toffoli b[0:7], q[0], q[1], q[2]\nnot b[0,4,5,6,7]\n' in result)
+
+    def test_generate_cqasm_correct_output_measure(self):
         instructions = [{'name': 'measure', 'qubits': [0]}]
         result = self._generate_cqasm_from_instructions(instructions, 3)
         measure_line = '.measurement\n   measure q[0]\n   measure q[1]\n   measure q[2]\n'
         self.assertTrue(measure_line not in result)
 
-    def test_generate_cqasm_CorrectOutputHadamard(self):
+    def test_generate_cqasm_correct_output_hadamard(self):
         instructions = [{'name': 'h', 'qubits': [0]}]
         result = self._generate_cqasm_from_instructions(instructions, 2)
         self.assertTrue('H q[0]\n' in result)
 
-    def test_generate_cqasm_CorrectOutputBarrier(self):
+    def test_generate_cqasm_correct_output_conditional_hadamard(self):
+        instructions = [{'conditional': {'mask': '0xFF', 'type': 'equals', 'val': '0xE'}, 'name': 'h',
+                         'qubits': [0]}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('not b[0,4,5,6,7]\nC-H b[0:7], q[0]\nnot b[0,4,5,6,7]\n' in result)
+
+    def test_generate_cqasm_correct_output_barrier(self):
         instructions = [{'name': 'barrier', 'qubits': [0]}]
         result = self._generate_cqasm_from_instructions(instructions, 2)
         self.assertFalse('barrier' in result)
 
-    def test_generate_cqasm_CorrectOutputIdentity(self):
+    def test_generate_cqasm_correct_output_conditional_barrier(self):
+        instructions = [{'conditional': {'mask': '0xF', 'type': 'equals', 'val': '0xE'}, 'name': 'barrier',
+                         'qubits': [0]}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertFalse('barrier' in result)
+
+    def test_generate_cqasm_correct_output_identity(self):
         instructions = [{'name': 'id', 'qubits': [0]}]
         result = self._generate_cqasm_from_instructions(instructions, 2)
-        self.assertFalse('id' in result)
+        self.assertTrue('I q[0]\n' in result)
 
-    def test_generate_cqasm_CorrectOutputGateX(self):
+    def test_generate_cqasm_correct_output_conditional_identity(self):
+        instructions = [{'conditional': {'mask': '0xFF', 'type': 'equals', 'val': '0xE'}, 'name': 'id', 'qubits': [0]}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('not b[0,4,5,6,7]\nC-I b[0:7], q[0]\nnot b[0,4,5,6,7]\n' in result)
+
+    def test_generate_cqasm_correct_output_gate_s(self):
+        instructions = [{'name': 's', 'qubits': [1]}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('S q[1]\n' in result)
+
+    def test_generate_cqasm_correct_output_conditional_gate_s(self):
+        instructions = [{'conditional': {'mask': '0x1FF', 'type': 'equals', 'val': '0xB'}, 'name': 's', 'qubits': [2]}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('not b[2,4,5,6,7,8]\nC-S b[0:8], q[2]\nnot b[2,4,5,6,7,8]\n' in result)
+
+    def test_generate_cqasm_correct_output_gate_sdag(self):
+        instructions = [{'name': 'sdg', 'qubits': [2]}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('Sdag q[2]\n' in result)
+
+    def test_generate_cqasm_correct_output_conditional_gate_sdag(self):
+        instructions = [{'conditional': {'mask': '0xF', 'type': 'equals', 'val': '0xE'}, 'name': 'sdg', 'qubits': [0]}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('not b[0]\nC-Sdag b[0:3], q[0]\nnot b[0]\n' in result)
+
+    def test_generate_cqasm_correct_output_gate_swap(self):
+        instructions = [{'name': 'swap', 'qubits': [2, 3]}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('SWAP q[2], q[3]\n' in result)
+
+    def test_generate_cqasm_correct_output_conditional_gate_swap(self):
+        instructions = [{'conditional': {'mask': '0xF', 'type': 'equals', 'val': '0xE'}, 'name': 'swap',
+                         'qubits': [0, 1]}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('not b[0]\nC-SWAP b[0:3], q[0], q[1]\nnot b[0]\n' in result)
+
+    def test_generate_cqasm_correct_output_gate_t(self):
+        instructions = [{'name': 't', 'qubits': [2]}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('T q[2]\n' in result)
+
+    def test_generate_cqasm_correct_output_conditional_gate_t(self):
+        instructions = [{'conditional': {'mask': '0x1FF', 'type': 'equals', 'val': '0xB'}, 'name': 't', 'qubits': [1]}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('not b[2,4,5,6,7,8]\nC-T b[0:8], q[1]\nnot b[2,4,5,6,7,8]\n' in result)
+
+    def test_generate_cqasm_correct_output_gate_tdag(self):
+        instructions = [{'name': 'tdg', 'qubits': [2]}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('Tdag q[2]\n' in result)
+
+    def test_generate_cqasm_correct_output_conditional_gate_tdag(self):
+        instructions = [{'conditional': {'mask': '0xF', 'type': 'equals', 'val': '0xE'}, 'name': 'tdg', 'qubits': [0]}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('not b[0]\nC-Tdag b[0:3], q[0]\nnot b[0]\n' in result)
+
+    def test_generate_cqasm_correct_output_gate_x(self):
         instructions = [{'name': 'x', 'qubits': [0]}]
         result = self._generate_cqasm_from_instructions(instructions, 2)
         self.assertTrue('X q[0]\n' in result)
 
-    def test_generate_cqasm_CorrectOutputGateY(self):
+    def test_generate_cqasm_correct_output_conditional_gate_x(self):
+        instructions = [{'conditional': {'mask': '0xF', 'type': 'equals', 'val': '0xE'}, 'name': 'x', 'qubits': [0]}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('not b[0]\nC-X b[0:3], q[0]\nnot b[0]\n' in result)
+
+    def test_generate_cqasm_correct_output_gate_y(self):
         instructions = [{'name': 'y', 'qubits': [0]}]
         result = self._generate_cqasm_from_instructions(instructions, 2)
         self.assertTrue('Y q[0]\n' in result)
 
-    def test_generate_cqasm_CorrectOutputGateZ(self):
+    def test_generate_cqasm_correct_output_conditional_gate_y(self):
+        instructions = [{'conditional': {'mask': '0xF', 'type': 'equals', 'val': '0x1'}, 'name': 'y', 'qubits': [0]}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('not b[1,2,3]\nC-Y b[0:3], q[0]\nnot b[1,2,3]\n' in result)
+
+    def test_generate_cqasm_correct_output_gate_z(self):
         instructions = [{'name': 'z', 'qubits': [0]}]
         result = self._generate_cqasm_from_instructions(instructions, 2)
         self.assertTrue('Z q[0]\n' in result)
 
-    def test_generate_cqasm_CorrectOutputGateU(self):
+    def test_generate_cqasm_correct_output_conditional_gate_z(self):
+        instructions = [{'conditional': {'mask': '0xF', 'type': 'equals', 'val': '0x3'}, 'name': 'z', 'qubits': [0]}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('not b[2,3]\nC-Z b[0:3], q[0]\nnot b[2,3]\n' in result)
+
+    def test_generate_cqasm_correct_output_gate_u(self):
         instructions = [{'name': 'u', 'qubits': [0], 'params': [0, 0, np.pi / 2],
                          'texparams': ['0', '0', '\\frac{\\pi}{2}']}]
         result = self._generate_cqasm_from_instructions(instructions, 2)
@@ -112,12 +207,31 @@ class TestQiCircuitToString(unittest.TestCase):
         result = self._generate_cqasm_from_instructions(instructions, 2)
         self.assertTrue('Rz q[1], -0.333333\nRy q[1], 0.123456\nRz q[1], 0.654321\n' in result)
 
-    def test_generate_cqasm_CorrectOutputGateU0(self):
-        instructions = [{'name': 'u0', 'qubits': [0]}]
+    def test_generate_cqasm_correct_output_conditional_gate_u(self):
+        instructions = [{'conditional': {'mask': '0xF', 'type': 'equals', 'val': '0x3'}, 'name': 'u', 'qubits': [0],
+                         'params': [0, 0, np.pi / 2], 'texparams': ['0', '0', '\\frac{\\pi}{2}']}]
         result = self._generate_cqasm_from_instructions(instructions, 2)
-        self.assertFalse('U0' in result)
+        self.assertTrue('not b[2,3]\nC-Rz b[0:3], q[0], 1.570796\nnot b[2,3]\n' in result)
 
-    def test_generate_cqasm_CorrectOutputGateU1(self):
+        instructions = [{'conditional': {'mask': '0xF', 'type': 'equals', 'val': '0x3'}, 'name': 'u', 'qubits': [0],
+                         'params': [-np.pi / 2, 0, 0], 'texparams': ['-\\frac{\\pi}{2}', '0', '0']}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('not b[2,3]\nC-Ry b[0:3], q[0], -1.570796\nnot b[2,3]' in result)
+
+        instructions = [{'conditional': {'mask': '0xF', 'type': 'equals', 'val': '0x3'}, 'name': 'u', 'qubits': [0],
+                         'params': [np.pi / 4, np.pi / 2, -np.pi / 2],
+                         'texparams': ['\\frac{\\pi}{4}', '\\frac{\\pi}{2}', '-\\frac{\\pi}{2}']}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('not b[2,3]\nC-Rz b[0:3], q[0], -1.570796\nC-Ry b[0:3], q[0], 0.785398\nC-Rz b[0:3],'
+                        ' q[0], 1.570796\nnot b[2,3]\n' in result)
+
+        instructions = [{'conditional': {'mask': '0xF', 'type': 'equals', 'val': '0x3'}, 'name': 'u', 'qubits': [1],
+                         'params': [0.123456, 0.654321, -0.333333], 'texparams': ['0.123456', '0.654321', '-0.333333']}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('not b[2,3]\nC-Rz b[0:3], q[1], -0.333333\nC-Ry b[0:3], q[1], 0.123456\nC-Rz b[0:3],'
+                        ' q[1], 0.654321\nnot b[2,3]\n' in result)
+
+    def test_generate_cqasm_correct_output_gate_u1(self):
         instructions = [{'name': 'u1', 'qubits': [0], 'params': [np.pi / 2], 'texparams': ['\\frac{\\pi}{2}']}]
         result = self._generate_cqasm_from_instructions(instructions, 2)
         self.assertTrue('Rz q[0], 1.570796\n' in result)
@@ -138,7 +252,33 @@ class TestQiCircuitToString(unittest.TestCase):
         result = self._generate_cqasm_from_instructions(instructions, 2)
         self.assertFalse('q[0]' in result)
 
-    def test_generate_cqasm_CorrectOutputGateU2(self):
+    def test_generate_cqasm_correct_output_conditional_gate_u1(self):
+        instructions = [{'conditional': {'mask': '0xF', 'type': 'equals', 'val': '0x3'}, 'name': 'u1', 'qubits': [0],
+                         'params': [np.pi / 2], 'texparams': ['\\frac{\\pi}{2}']}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('not b[2,3]\nC-Rz b[0:3], q[0], 1.570796\nnot b[2,3]\n' in result)
+
+        instructions = [{'conditional': {'mask': '0xF', 'type': 'equals', 'val': '0x3'}, 'name': 'u1', 'qubits': [1],
+                         'params': [np.pi / 4], 'texparams': ['\\frac{\\pi}{4}']}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('not b[2,3]\nC-Rz b[0:3], q[1], 0.785398\nnot b[2,3]\n' in result)
+
+        instructions = [{'conditional': {'mask': '0xF', 'type': 'equals', 'val': '0x3'}, 'name': 'u1', 'qubits': [2],
+                         'params': [-np.pi / 4], 'texparams': ['-\\frac{\\pi}{4}']}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('not b[2,3]\nC-Rz b[0:3], q[2], -0.785398\nnot b[2,3]\n' in result)
+
+        instructions = [{'conditional': {'mask': '0xF', 'type': 'equals', 'val': '0x3'}, 'name': 'u1', 'qubits': [2],
+                         'params': [0.123456], 'texparams': ['0.123456']}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('not b[2,3]\nC-Rz b[0:3], q[2], 0.123456\nnot b[2,3]\n' in result)
+
+        instructions = [{'conditional': {'mask': '0xF', 'type': 'equals', 'val': '0x3'}, 'name': 'u1', 'qubits': [0],
+                         'params': [0], 'texparams': ['0']}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertFalse('q[0]' in result)
+
+    def test_generate_cqasm_correct_output_gate_u2(self):
         instructions = [{'name': 'u2', 'qubits': [0], 'params': [np.pi, np.pi / 2],
                          'texparams': ['\\pi', '\\frac{\\pi}{2}']}]
         result = self._generate_cqasm_from_instructions(instructions, 2)
@@ -157,7 +297,30 @@ class TestQiCircuitToString(unittest.TestCase):
         result = self._generate_cqasm_from_instructions(instructions, 2)
         self.assertTrue('Ry q[0], 1.570796\n' in result)
 
-    def test_generate_cqasm_CorrectOutputU3(self):
+    def test_generate_cqasm_correct_output_conditional_gate_u2(self):
+        instructions = [{'conditional': {'mask': '0xF', 'type': 'equals', 'val': '0x3'}, 'name': 'u2', 'qubits': [0],
+                         'params': [np.pi, np.pi / 2], 'texparams': ['\\pi', '\\frac{\\pi}{2}']}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('not b[2,3]\nC-Rz b[0:3], q[0], 1.570796\nC-Ry b[0:3], q[0], 1.570796\nC-Rz b[0:3], q[0],'
+                        ' 3.141593\nnot b[2,3]\n' in result)
+
+        instructions = [{'conditional': {'mask': '0xF', 'type': 'equals', 'val': '0x3'}, 'name': 'u2', 'qubits': [1],
+                         'params': [0, np.pi], 'texparams': ['0', '\\pi']}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('not b[2,3]\nC-Rz b[0:3], q[1], 3.141593\nC-Ry b[0:3], q[1], 1.570796\nnot b[2,3]\n' in result)
+
+        instructions = [{'conditional': {'mask': '0xF', 'type': 'equals', 'val': '0x3'}, 'name': 'u2', 'qubits': [2],
+                         'params': [0.123456, -0.654321], 'texparams': ['0.123456', '-0.654321']}]
+        result = self._generate_cqasm_from_instructions(instructions, 3)
+        self.assertTrue('not b[2,3]\nC-Rz b[0:3], q[2], -0.654321\nC-Ry b[0:3], q[2], 1.570796\nC-Rz b[0:3], q[2],'
+                        ' 0.123456\nnot b[2,3]\n' in result)
+
+        instructions = [{'conditional': {'mask': '0xF', 'type': 'equals', 'val': '0x3'}, 'name': 'u2', 'qubits': [0],
+                         'params': [0, 0], 'texparams': ['0', '0']}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('not b[2,3]\nC-Ry b[0:3], q[0], 1.570796\nnot b[2,3]\n' in result)
+
+    def test_generate_cqasm_correct_output_gate_u3(self):
         instructions = [{'name': 'u3', 'qubits': [0], 'params': [1, 2, 3], 'texparams': ['1', '2', '3']}]
         result = self._generate_cqasm_from_instructions(instructions, 2)
         self.assertTrue('Rz q[0], 3.000000\nRy q[0], 1.000000\nRz q[0], 2.000000\n' in result)
@@ -179,7 +342,35 @@ class TestQiCircuitToString(unittest.TestCase):
         result = self._generate_cqasm_from_instructions(instructions, 2)
         self.assertFalse('q[0]' in result)
 
-    def test_generate_cqasm_CorrectOutputRotationX(self):
+    def test_generate_cqasm_correct_output_conditional_gate_u3(self):
+        instructions = [{'conditional': {'mask': '0xF', 'type': 'equals', 'val': '0x3'}, 'name': 'u3', 'qubits': [0],
+                         'params': [1, 2, 3], 'texparams': ['1', '2', '3']}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('not b[2,3]\nC-Rz b[0:3], q[0], 3.000000\nC-Ry b[0:3], q[0], 1.000000\nC-Rz b[0:3], q[0],'
+                        ' 2.000000\nnot b[2,3]\n' in result)
+
+        instructions = [{'conditional': {'mask': '0xF', 'type': 'equals', 'val': '0x3'}, 'name': 'u3', 'qubits': [1],
+                         'params': [0.123456, 0.654321, -0.333333], 'texparams': ['0.123456', '0.654321', '-0.333333']}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('not b[2,3]\nC-Rz b[0:3], q[1], -0.333333\nC-Ry b[0:3], q[1], 0.123456\nC-Rz b[0:3], q[1],'
+                        ' 0.654321\nnot b[2,3]\n' in result)
+
+        instructions = [{'conditional': {'mask': '0xF', 'type': 'equals', 'val': '0x3'}, 'name': 'u3', 'qubits': [1],
+                         'params': [0, 0.654321, 0], 'texparams': ['0', '0.654321', '0']}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('not b[2,3]\nC-Rz b[0:3], q[1], 0.654321\nnot b[2,3]\n' in result)
+
+        instructions = [{'conditional': {'mask': '0xF', 'type': 'equals', 'val': '0x3'}, 'name': 'u3', 'qubits': [2],
+                         'params': [0.654321, 0, 0], 'texparams': ['0.654321', '0', '0']}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('not b[2,3]\nC-Ry b[0:3], q[2], 0.654321\nnot b[2,3]\n' in result)
+
+        instructions = [{'conditional': {'mask': '0xF', 'type': 'equals', 'val': '0x1'}, 'name': 'u3', 'qubits': [0],
+                         'params': [0, 0, 0], 'texparams': ['0', '0', '0']}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertFalse('q[0]' in result)
+
+    def test_generate_cqasm_correct_output_rotation_x(self):
         instructions = [{'name': 'rx', 'qubits': [0], 'params': [np.pi / 2]}]
         result = self._generate_cqasm_from_instructions(instructions, 2)
         self.assertTrue('Rx q[0], 1.570796\n' in result)
@@ -188,7 +379,18 @@ class TestQiCircuitToString(unittest.TestCase):
         result = self._generate_cqasm_from_instructions(instructions, 2)
         self.assertTrue('Rx q[1], 0.123456\n' in result)
 
-    def test_generate_cqasm_CorrectOutputRotationY(self):
+    def test_generate_cqasm_correct_output_conditional_rotation_x(self):
+        instructions = [{'conditional': {'mask': '0xFF', 'type': 'equals', 'val': '0xE'}, 'name': 'rx', 'qubits': [0],
+                         'params': [np.pi / 2]}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('not b[0,4,5,6,7]\nC-Rx b[0:7], q[0], 1.570796\nnot b[0,4,5,6,7]\n' in result)
+
+        instructions = [{'conditional': {'mask': '0xFF', 'type': 'equals', 'val': '0xE'}, 'name': 'rx', 'qubits': [1],
+                         'params': [0.123456]}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('not b[0,4,5,6,7]\nC-Rx b[0:7], q[1], 0.123456\nnot b[0,4,5,6,7]\n' in result)
+
+    def test_generate_cqasm_correct_output_rotation_y(self):
         instructions = [{'name': 'ry', 'qubits': [0], 'params': [np.pi / 2]}]
         result = self._generate_cqasm_from_instructions(instructions, 2)
         self.assertTrue('Ry q[0], 1.570796\n' in result)
@@ -197,7 +399,18 @@ class TestQiCircuitToString(unittest.TestCase):
         result = self._generate_cqasm_from_instructions(instructions, 2)
         self.assertTrue('Ry q[1], 0.654321\n' in result)
 
-    def test_generate_cqasm_CorrectOutputRotationZ(self):
+    def test_generate_cqasm_correct_output_conditional_rotation_y(self):
+        instructions = [{'conditional': {'mask': '0xF', 'type': 'equals', 'val': '0x3'}, 'name': 'ry', 'qubits': [0],
+                         'params': [np.pi / 2]}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('not b[2,3]\nC-Ry b[0:3], q[0], 1.570796\nnot b[2,3]\n' in result)
+
+        instructions = [{'conditional': {'mask': '0xF', 'type': 'equals', 'val': '0x3'}, 'name': 'ry', 'qubits': [1],
+                         'params': [0.654321]}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('not b[2,3]\nC-Ry b[0:3], q[1], 0.654321\nnot b[2,3]\n' in result)
+
+    def test_generate_cqasm_correct_output_rotation_z(self):
         instructions = [{'name': 'rz', 'qubits': [0], 'params': [np.pi / 2]}]
         result = self._generate_cqasm_from_instructions(instructions, 2)
         self.assertTrue('Rz q[0], 1.570796\n' in result)
@@ -205,3 +418,45 @@ class TestQiCircuitToString(unittest.TestCase):
         instructions = [{'name': 'rz', 'qubits': [1], 'params': [-np.pi / 2]}]
         result = self._generate_cqasm_from_instructions(instructions, 2)
         self.assertTrue('Rz q[1], -1.570796\n' in result)
+
+    def test_generate_cqasm_correct_output_conditional_rotation_z(self):
+        instructions = [{'conditional': {'mask': '0xF', 'type': 'equals', 'val': '0x1'}, 'name': 'rz', 'qubits': [0],
+                         'params': [np.pi / 2]}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('not b[1,2,3]\nC-Rz b[0:3], q[0], 1.570796\nnot b[1,2,3]\n' in result)
+
+        instructions = [{'conditional': {'mask': '0xF', 'type': 'equals', 'val': '0x1'}, 'name': 'rz', 'qubits': [1],
+                         'params': [-np.pi / 2]}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('not b[1,2,3]\nC-Rz b[0:3], q[1], -1.570796\nnot b[1,2,3]\n' in result)
+
+    def test_generate_cqasm_correct_output_unknown_gate(self):
+        instructions = [{'name': 'bla', 'qubits': [1], 'params': [-np.pi / 2]}]
+        self.assertRaisesRegex(ApiError, 'Gate bla not supported', self._generate_cqasm_from_instructions,
+                               instructions, 2)
+
+    def test_generate_cqasm_correct_output_unknown_controlled_gate(self):
+        instructions = [{'conditional': {'mask': '0xF', 'type': 'equals', 'val': '0x1'}, 'name': 'bla', 'qubits': [1],
+                         'params': [-np.pi / 2]}]
+        self.assertRaisesRegex(ApiError, 'Conditional gate c-bla not supported',
+                               self._generate_cqasm_from_instructions, instructions, 2)
+
+    def test_generate_cqasm_correct_output_no_bit_negation(self):
+        instructions = [{'conditional': {'mask': '0xF', 'type': 'equals', 'val': '0xF'}, 'name': 'rx', 'qubits': [1],
+                         'params': [-np.pi / 2]}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('C-Rx b[0:3], q[1], -1.570796\n' in result)
+        self.assertFalse('not\n' in result)
+
+    def test_generate_cqasm_correct_output_unknown_type(self):
+        instructions = [{'conditional': {'mask': '0xF', 'type': 'unequals', 'val': '0x1'}, 'name': 'rx', 'qubits': [1],
+                         'params': [-np.pi / 2]}]
+        self.assertRaisesRegex(ApiError, 'Conditional statement with type unequals not supported',
+                               self._generate_cqasm_from_instructions, instructions, 2)
+
+    def test_generate_cqasm_correct_output_no_mask(self):
+        instructions = [{'conditional': {'mask': '0x0', 'type': 'equals', 'val': '0x1'}, 'name': 'rx', 'qubits': [1],
+                         'params': [-np.pi / 2]}]
+        self.assertRaisesRegex(ApiError, 'Conditional statement rx without a mask',
+                               self._generate_cqasm_from_instructions, instructions, 2)
+

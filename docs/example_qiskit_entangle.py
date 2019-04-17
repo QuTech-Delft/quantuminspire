@@ -15,7 +15,7 @@ Copyright 2018-19 QuTech Delft. Licensed under the Apache License, Version 2.0.
 """
 import os
 from getpass import getpass
-from quantuminspire.credentials import load_token, get_token_authentication, get_basic_authentication
+from quantuminspire.credentials import load_account, get_token_authentication, get_basic_authentication
 
 from qiskit.validation.base import Obj
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
@@ -25,11 +25,12 @@ from quantuminspire.qiskit import QI
 
 QI_EMAIL = os.getenv('QI_EMAIL')
 QI_PASSWORD = os.getenv('QI_PASSWORD')
+QI_URL = os.getenv('API_URL', 'https://api.quantum-inspire.com/')
 
 
 def get_authentication():
     """ Gets the authentication for connecting to the Quantum Inspire API."""
-    token = load_token()
+    token = load_account()
     if token is not None:
         return get_token_authentication(token)
     else:
@@ -46,7 +47,7 @@ def get_authentication():
 if __name__ == '__main__':
 
     authentication = get_authentication()
-    QI.set_authentication(authentication)
+    QI.set_authentication(authentication, QI_URL)
     qi_backend = QI.get_backend('QX single-node simulator')
 
     q = QuantumRegister(2)
