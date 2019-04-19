@@ -1,0 +1,83 @@
+properties([
+  buildDiscarder(
+    logRotator(
+      artifactDaysToKeepStr: '',
+      artifactNumToKeepStr: '',
+      daysToKeepStr: '',
+      numToKeepStr: '10'
+    )
+  )
+])
+
+pipeline {
+  agent {
+    kubernetes {
+      label 'sdk'
+      yaml '''
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    test: sdk
+spec:
+  containers:
+  - name: python
+    image: python:3.6
+    command:
+    - cat
+    tty: true
+    resources:
+      requests:
+        memory: "1Gi"
+      limits:
+        memory: "1Gi"
+  - name: jnlp
+    resources:
+      requests:
+        memory: "256Mi"
+      limits:
+        memory: "256Mi"
+      '''
+    }
+  }
+  triggers {
+    cron(env.BRANCH_NAME == "dev" ? "H H(2-5) * * 1-5" : "")
+  }
+  stages {
+    stage('Workspace') {
+      steps {
+        container('python') {
+          sh '''
+            git clone https://github.com/Qiskit/qiskit-terra.git
+          '''
+        }
+      }
+    }
+    stage('Build') {
+      steps {
+        container('python') {
+          sh '''
+            python3 -m venv env &&
+            . ./env/bin/activate &&
+            pip install cython --upgrade &&
+            pip install ./qiskit-terra --upgrade &&
+            pip install . -r ./src/tests/requirements.txt --upgrade
+          '''
+        }
+      }
+    }
+    stage('Tests') {
+      steps {
+        container('python') {
+          withCredentials([usernamePassword(credentialsId: API_CREDENTIALS_ID,
+            usernameVariable: 'QI_EMAIL', passwordVariable: 'QI_PASSWORD')]) {
+              sh '''
+                . ./env/bin/activate &&
+                python ./docs/example_qiskit_entangle.py
+              '''
+          }
+        }
+      }
+    }
+  }
+}
