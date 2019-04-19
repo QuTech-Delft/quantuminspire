@@ -1,5 +1,4 @@
 properties([
-  pipelineTriggers([[$class: 'PeriodicFolderTrigger', interval: '1d']]),
   parameters([
     string(name: 'API_URL', defaultValue: 'https://api.quantum-inspire.com/', description: 'Quantum Inspire API url'),
     string(name: 'API_CREDENTIALS_ID', defaultValue: 'api.quantum-inspire.com', description: 'Jenkins credentials ID'),
@@ -44,9 +43,6 @@ spec:
         memory: "256Mi"
       '''
     }
-  }
-  triggers {
-    cron(env.BRANCH_NAME == "dev" ? "H H(2-5) * * 1-5" : "")
   }
   stages {
     stage('Workspace') {
