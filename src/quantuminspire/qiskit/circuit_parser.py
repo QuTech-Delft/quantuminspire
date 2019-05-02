@@ -18,13 +18,16 @@ limitations under the License.
 import copy
 import numpy as np
 from io import StringIO
-from typing import Optional
+from typing import Optional, Tuple, List
 from qiskit.qobj import QasmQobjInstruction
 from quantuminspire.exceptions import ApiError
 
 
 class CircuitToString:
     """ Contains the translational elements to convert the Qiskit circuits to cQASM code."""
+
+    def __init__(self) -> None:
+        self.bfunc_instructions: List[QasmQobjInstruction] = []
 
     @staticmethod
     def _gate_not_supported(_stream: StringIO, instruction: QasmQobjInstruction, _binary_control: Optional[str] = None)\
@@ -571,6 +574,30 @@ class CircuitToString:
         """
         pass
 
+    @staticmethod
+    def _get_mask_data(mask: int) -> Tuple[int, int]:
+        """ A mask is a continuous set of 1-bits with a certain length. This method returns the lowest bit of
+            the mask and the length of the mask.
+            Examples:
+            76543210: bit_nr
+            00111000, lowest mask bit = 3, mask_length = 3
+            00000001, lowest mask bit = 0, mask_length = 1
+            11111111, lowest mask bit = 0, mask_length = 8
+            10000000, lowest mask bit = 7, mask_length = 1
+        """
+        # Precondition: mask != 0
+        mask_length = 0
+        bit_value = 1
+        bit_nr = 0
+        while not mask & bit_value:
+            bit_value <<= 1
+            bit_nr += 1
+        lowest_mask_bit = bit_nr
+        while mask & bit_value:
+            mask_length += 1
+            bit_value <<= 1
+        return lowest_mask_bit, mask_length
+
     def _parse_bin_ctrl_gate(self, stream: StringIO, instruction: QasmQobjInstruction) -> None:
         """ Parses a binary controlled gate. A binary controlled gate name is preceded by 'c-'.
             The gate is executed when a specific measurement is true. Multiple measurement outcomes are used
@@ -578,9 +605,11 @@ class CircuitToString:
             being 0. Because cQASM only supports measurement outcomes of 1, any other bits in the
             masked bit pattern first have to be inverted with the not-operator. The same inversion also has to
             take place after the binary controlled quantum operation.
+            The mask can be one or more bits and start at any bit depending on the instruction and the declaration
+            of classical bits.
             The resulting stream will be expanded with something like:
-            not b[the 0-bits changed to 1]
-            c-gate [classical bits], other arguments
+            not b[the 0-bits in the value relative to the mask changed to 1]
+            c-gate [classical bits in the mask], other arguments
             not b[the 0-bits reset to 0 again]
             When the c-gate results in an empty string (e.g. binary controlled u(0, 0, 0) or barrier gate),
             nothing is added to the stream.
@@ -590,24 +619,34 @@ class CircuitToString:
             instruction: The Qiskit instruction to translate to cQASM.
 
         """
-        conditional_type = instruction.conditional.type
-        if conditional_type != 'equals':
-            raise ApiError('Conditional statement with type {} not supported'.format(conditional_type))
-        mask = int(instruction.conditional.mask, 16)
+        conditional_reg_idx = instruction.conditional
+        conditional = next((x for x in self.bfunc_instructions if x.register == conditional_reg_idx), None)
+        if conditional is None:
+            raise ApiError('Conditional not found: reg_idx = {}'.format(conditional_reg_idx))
+        self.bfunc_instructions.remove(conditional)
+
+        conditional_type = conditional.relation
+        if conditional_type != '==':
+            raise ApiError('Conditional statement with relation {} not supported'.format(conditional_type))
+        mask = int(conditional.mask, 16)
         if mask == 0:
             raise ApiError('Conditional statement {} without a mask'.format(instruction.name.lower()))
-        nr_of_classical_bits = int(np.log2(mask + 1))
-        val = int(instruction.conditional.val, 16)
+        lowest_mask_bit, mask_length = self._get_mask_data(mask)
+        val = int(conditional.val, 16)
         masked_val = mask & val
 
-        # form the negation to the 0-values of the measurement registers, when mask == val no bits are negated
+        # form the negation to the 0-values of the measurement registers, when value == mask no bits are negated
         negate_zeroes_line = ''
         if masked_val != mask:
             negate_zeroes_line = 'not b[' + ','.join(
-                str(i) for i in range(nr_of_classical_bits) if not (masked_val & (1 << i))) + ']\n'
+                str(i) for i in range(lowest_mask_bit, lowest_mask_bit + mask_length)
+                if not (masked_val & (1 << i))) + ']\n'
 
-        # form multi bits control - qasm-single-gate-multiple-qubits
-        binary_control = 'b[0:{}], '.format(nr_of_classical_bits - 1)
+        if mask_length == 1:
+            binary_control = 'b[{}], '.format(lowest_mask_bit)
+        else:
+            # form multi bits control - qasm-single-gate-multiple-qubits
+            binary_control = 'b[{}:{}], '.format(lowest_mask_bit, lowest_mask_bit + mask_length - 1)
 
         with StringIO() as gate_stream:
             # add the gate
@@ -625,14 +664,19 @@ class CircuitToString:
     def parse(self, stream: StringIO, instruction: QasmQobjInstruction) -> None:
         """ Parses a gate. For each type of gate a separate (private) parsing method is defined and called.
             The resulting cQASM code is written to the stream. When the gate is a binary controlled
-            gate, the parsing is forwarded to method _parse_bin_ctrl_gate. When a gate is not supported
-            _gate_not_supported is called which raises an exception.
+            gate, Qiskit uses two instructions to handle it. The first instruction is a so-called bfunc with the
+            conditional information (mask, value to check etc.) which is stored for later use.
+            The next instruction is the actual gate which must be executed conditionally. The parsing is
+            forwarded to method _parse_bin_ctrl_gate which reads the earlier stored bfunc.
+            When a gate is not supported _gate_not_supported is called which raises an exception.
 
         Args:
             stream: The string-io stream to where the resulting cQASM is written.
             instruction: The Qiskit instruction to translate to cQASM.
         """
-        if hasattr(instruction, 'conditional'):
+        if instruction.name == 'bfunc':
+            self.bfunc_instructions.append(instruction)
+        elif hasattr(instruction, 'conditional'):
             self._parse_bin_ctrl_gate(stream, instruction)
         else:
             gate_name = '_%s' % instruction.name.lower()

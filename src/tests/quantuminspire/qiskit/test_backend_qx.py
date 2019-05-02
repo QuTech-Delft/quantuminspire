@@ -25,7 +25,7 @@ from unittest.mock import Mock, patch
 import qiskit
 from coreapi.exceptions import ErrorMessage
 from qiskit.validation import ModelValidationError
-from qiskit.providers.models import BackendConfiguration
+from qiskit.providers.models import QasmBackendConfiguration
 from qiskit.providers.models.backendconfiguration import GateConfig
 from qiskit.qobj import QasmQobjExperiment, QasmQobj
 
@@ -113,7 +113,7 @@ class TestQiSimulatorPy(unittest.TestCase):
     def test_backend_default_configuration(self):
         simulator = QuantumInspireBackend(Mock(), Mock())
         configuration = simulator.configuration()
-        expected_configuration = BackendConfiguration(
+        expected_configuration = QasmBackendConfiguration(
             backend_name='qi_simulator',
             backend_version=quantum_inspire_version,
             n_qubits=26,

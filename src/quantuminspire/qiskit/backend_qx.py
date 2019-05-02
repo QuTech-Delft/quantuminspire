@@ -24,7 +24,7 @@ from collections import defaultdict, OrderedDict, Counter
 
 from coreapi.exceptions import ErrorMessage
 from qiskit.providers import BaseBackend
-from qiskit.providers.models import BackendConfiguration
+from qiskit.providers.models import QasmBackendConfiguration
 from qiskit.providers.models.backendconfiguration import GateConfig
 from qiskit.qobj import QasmQobj, QasmQobjExperiment
 from qiskit.result.models import ExperimentResult, ExperimentResultData
@@ -39,7 +39,7 @@ from quantuminspire.version import __version__ as quantum_inspire_version
 
 
 class QuantumInspireBackend(BaseBackend):  # type: ignore
-    DEFAULT_CONFIGURATION = BackendConfiguration(
+    DEFAULT_CONFIGURATION = QasmBackendConfiguration(
         backend_name='qi_simulator',
         backend_version=quantum_inspire_version,
         n_qubits=26,
@@ -55,7 +55,7 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
     )
 
     def __init__(self, api: QuantumInspireAPI, provider: Any,
-                 configuration: Optional[BackendConfiguration] = None) -> None:
+                 configuration: Optional[QasmBackendConfiguration] = None) -> None:
         """ Python implementation of a quantum simulator using Quantum Inspire API.
 
         Args:
@@ -257,11 +257,12 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
         """
         measured_qubits = []
         for instruction in experiment.instructions:
-            for qubit in instruction.qubits:
-                if instruction.name == 'measure':
-                    measured_qubits.append(qubit)
-                elif qubit in measured_qubits:
-                    raise QisKitBackendError('Operation on qubit {} after measurement'.format(qubit))
+            if hasattr(instruction, 'qubits'):
+                for qubit in instruction.qubits:
+                    if instruction.name == 'measure':
+                        measured_qubits.append(qubit)
+                    elif qubit in measured_qubits:
+                        raise QisKitBackendError('Operation on qubit {} after measurement'.format(qubit))
 
     @staticmethod
     def _collect_measurements(experiment: QasmQobjExperiment) -> Dict[str, Any]:
