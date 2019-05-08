@@ -2,11 +2,11 @@ name: quantuminspire
 channels:
   - conda-forge
 dependencies:
-  - numpy
-  - pytest
+  - numpy==1.16.3
+  - pytest==4.4.1
   - matplotlib>=2.1
   - pip:
-    - coreapi
-    - quantuminspire
-    - qiskit
-    - projectq
+    - coreapi==2.3.3
+    - quantuminspire==0.7.0
+    - qiskit==0.8.1
+    - projectq==0.4.2
