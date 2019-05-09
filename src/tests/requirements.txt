@@ -1,1 +1,4 @@
 mypy>=0.670
+qiskit==0.8.1
+projectq==0.4.2
+
