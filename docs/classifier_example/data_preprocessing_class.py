@@ -2,37 +2,40 @@ from sklearn.datasets import load_iris
 from sklearn import preprocessing
 import matplotlib.pyplot as plt
 import numpy as np
-from random import sample, randint
+from random import sample
 
 plt.style.use('seaborn-whitegrid')
 
 
-def get_bin(x, n): return format(int(x), 'b').zfill(n)
+def get_bin(x, n):
+    return format(int(x), 'b').zfill(n)
 
 
-def preproccessdata(data, display_fig=True, axislimits=[None, None, None]):
-    """Function to plot procedure of preprocessing data
+def pre_process_data(data, display_fig=True, axis_limits=None):
+    """Function to plot procedure of pre_processing data
 
     Arguments:
         data {list} -- data of class 1 and -1 appended:
              [data_feature1, data_feature2, name_feature1, name_feature2]
 
     Keyword Arguments:
-        axislimits {list} -- Optional axis limits (default: {[None, None, None]})
-        Example input: axislimits = [[(-1, 8), (-1, 5)], [(-2.5, 2.5), (-2.5, 2.5)], [(-2.5, 2.5), (-2.5, 2.5)]]
+        display_fig {bool} -- show the plot (True) or not (False)
+        axis_limits {list} -- Optional axis limits (default: {[None, None, None]})
+        Example input: axis_limits = [[(-1, 8), (-1, 5)], [(-2.5, 2.5), (-2.5, 2.5)], [(-2.5, 2.5), (-2.5, 2.5)]]
 
     Returns:
-        list -- list of normalised data class 1 and data class -1
-        fig  -- figure of preprocessed data
+        plt  -- figure of preprocessed data
+        zipped_data1 -- list of normalised data class 1
+        zipped_data2 -- list of normalised data class -1
     """
     half_len_data = len(data[0]) // 2
     data1 = [el[0:half_len_data] for el in data[0:2]]
     data2 = [el[half_len_data:] for el in data[0:2]]
 
     # Circle
-    unitcircle1 = plt.Circle((0, 0), 1, color='grey', alpha=0.2, fill=False)
-    unitcircle2 = plt.Circle((0, 0), 1, color='grey', alpha=0.2, fill=False)
-    unitcircle3 = plt.Circle((0, 0), 1, color='grey', alpha=0.2, fill=False)
+    unit_circle1 = plt.Circle((0, 0), 1, color='grey', alpha=0.2, fill=False)
+    unit_circle2 = plt.Circle((0, 0), 1, color='grey', alpha=0.2, fill=False)
+    unit_circle3 = plt.Circle((0, 0), 1, color='grey', alpha=0.2, fill=False)
 
     # Plot original data:
     plt.subplot(1, 3, 1)
@@ -41,14 +44,14 @@ def preproccessdata(data, display_fig=True, axislimits=[None, None, None]):
     plt.scatter(data2[0], data2[1], alpha=0.8, s=10,
                 c='blue')  # Scatter plot data class 2
     plt.xlabel(data[2])  # x-label
-    plt.ylabel(data[3])  # y-lable
-    if axislimits[0] is not None:
-        plt.xlim(axislimits[0][0])  # x-range
-        plt.ylim(axislimits[0][1])  # y-range
+    plt.ylabel(data[3])  # y-label
+    if axis_limits[0] is not None:
+        plt.xlim(axis_limits[0][0])  # x-range
+        plt.ylim(axis_limits[0][1])  # y-range
 
     fig = plt.gcf()  # unit circle plotting
     ax = fig.gca()
-    ax.add_artist(unitcircle1)
+    ax.add_artist(unit_circle1)
 
     # Rescale whole data-set to have zero mean and unit variance
     features_scaled = [preprocessing.scale(el) for el in data[0:2]]
@@ -62,18 +65,18 @@ def preproccessdata(data, display_fig=True, axislimits=[None, None, None]):
                 s=10, c='blue')  # Scatter plot data class 2
     plt.xlabel(data[2])  # x-label
     plt.ylabel(data[3])  # y-label
-    if axislimits[0] is not None:
-        plt.xlim(axislimits[1][0])  # x-range
-        plt.ylim(axislimits[1][1])  # y-range
+    if axis_limits[0] is not None:
+        plt.xlim(axis_limits[1][0])  # x-range
+        plt.ylim(axis_limits[1][1])  # y-range
 
     fig = plt.gcf()  # unit circle plotting
     ax = fig.gca()
-    ax.add_artist(unitcircle2)
+    ax.add_artist(unit_circle2)
 
     # Normalisation to the unit circle
 
     def normalise_data(arr1, arr2):
-        """Normalise data to unit length
+        """ Normalise data to unit length
             input: two array same length
             output: normalised arrays
         """
@@ -96,22 +99,22 @@ def preproccessdata(data, display_fig=True, axislimits=[None, None, None]):
                 data2_normalised[1], alpha=0.8, s=10, c='blue')
     plt.xlabel(data[2])  # x-label
     plt.ylabel(data[3])  # y-label
-    if axislimits[2] is not None:
-        plt.xlim(axislimits[2][0])  # x-range
-        plt.ylim(axislimits[2][1])  # y-range
+    if axis_limits[2] is not None:
+        plt.xlim(axis_limits[2][0])  # x-range
+        plt.ylim(axis_limits[2][1])  # y-range
 
     fig = plt.gcf()  # unit circle plotting
     ax = fig.gca()
-    ax.add_artist(unitcircle3)
+    ax.add_artist(unit_circle3)
 
     # Display final plot
     if display_fig:
         plt.show()
 
-    zippeddata1 = list(zip(data1_normalised[0], data1_normalised[1]))
-    zippeddata2 = list(zip(data2_normalised[0], data2_normalised[1]))
+    zipped_data1 = list(zip(data1_normalised[0], data1_normalised[1]))
+    zipped_data2 = list(zip(data2_normalised[0], data2_normalised[1]))
 
-    return plt, zippeddata1, zippeddata2
+    return plt, zipped_data1, zipped_data2
 
 
 if __name__ == "__main__":
@@ -124,16 +127,17 @@ if __name__ == "__main__":
     data.append("Sepal Length (cm)")
     data.append("Sepal width (cm)")
 
-    print("Example for the Iris test data based on first two features:")
-    class1, class2 = preproccessdata(data, display_fig=True, axislimits=[
-                                     [(-1, 8), (-1, 5)], [(-2.5, 2.5), (-2.5, 2.5)], [(-2.5, 2.5), (-2.5, 2.5)]])
+    print("Example for the iris test data based on first two features:")
+    plt, class1, class2 = pre_process_data(data, display_fig=True, axis_limits=[
+                                           [(-1, 8), (-1, 5)], [(-2.5, 2.5), (-2.5, 2.5)], [(-2.5, 2.5), (-2.5, 2.5)]])
 
 
-class DataPlotter():
+class DataPlotter:
     def __init__(self):
         pass
 
-    def plot_original_data(self, data1, data2):
+    @staticmethod
+    def plot_original_data(data1, data2):
         # Plot original data:
         plt.rcParams['figure.figsize'] = [8, 6]
         plt.scatter(data1[0], data1[1], alpha=0.8, s=10,
@@ -141,66 +145,68 @@ class DataPlotter():
         plt.scatter(data2[0], data2[1], alpha=0.8, s=10,
                     c='blue')  # Scatter plot data class 2
         plt.xlabel("Sepal length (cm)")  # x-label
-        plt.ylabel("Sepal width (cm)")  # y-lable
+        plt.ylabel("Sepal width (cm)")   # y-label
         plt.xlim(-1, 8)  # x-range
         plt.ylim(-1, 5)  # y-range
         plt.legend(["Iris Setosa", "Iris Versicolor"])
         fig = plt
         return fig
 
-    def plot_standarised_data(self, data1, data2):
+    @staticmethod
+    def plot_standardised_data(data1, data2):
         plt.rcParams['figure.figsize'] = [8, 6]  # Plot size
-        unitcircle = plt.Circle((0, 0), 1, color='grey',
-                                alpha=0.2, fill=False)  # Circle
+        unit_circle = plt.Circle((0, 0), 1, color='grey',
+                                 alpha=0.2, fill=False)  # Circle
 
         plt.scatter(data1[0], data1[1], alpha=0.8, s=10,
                     c='red')  # Scatter plot data class 1
         plt.scatter(data2[0], data2[1], alpha=0.8, s=10,
                     c='blue')  # Scatter plot data class 2
         plt.xlabel("Sepal length (cm)")  # x-label
-        plt.ylabel("Sepal width (cm)")  # y-lable
+        plt.ylabel("Sepal width (cm)")   # y-label
         plt.xlim(-2.5, 2.5)  # x-range
         plt.ylim(-2.5, 2.5)  # y-range
         fig = plt.gcf()  # unit circle plotting
         ax = fig.gca()
-        ax.add_artist(unitcircle)
+        ax.add_artist(unit_circle)
         plt.legend(["Iris Setosa", "Iris Versicolor"])
-        plt.show
+        plt.show()
 
-    def plot_normalised_data(self, data1, data2):
+    @staticmethod
+    def plot_normalised_data(data1, data2):
         # Scatter plot normalised data
         plt.rcParams['figure.figsize'] = [8, 6]  # Plot size
-        unitcircle = plt.Circle((0, 0), 1, color='grey',
-                                alpha=0.2, fill=False)  # Circle
+        unit_circle = plt.Circle((0, 0), 1, color='grey',
+                                 alpha=0.2, fill=False)  # Circle
 
         plt.scatter(data1[0], data1[1], alpha=0.8, s=10,
                     c='red')  # Scatter plot data class 1
         plt.scatter(data2[0], data2[1], alpha=0.8, s=10,
                     c='blue')  # Scatter plot data class 2
         plt.xlabel("Sepal length (cm)")  # x-label
-        plt.ylabel("Sepal width (cm)")  # y-lable
+        plt.ylabel("Sepal width (cm)")   # y-label
         plt.xlim(-2.5, 2.5)  # x-range
         plt.ylim(-2.5, 2.5)  # y-range
 
         fig = plt.gcf()  # unit circle plotting
         ax = fig.gca()
-        ax.add_artist(unitcircle)
+        ax.add_artist(unit_circle)
         plt.legend(["Iris Setosa", "Iris Versicolor"])
-        plt.show
-        plt
+        plt.show()
 
-    def load_data(self, max_features=2):
+    @staticmethod
+    def load_data(max_features=2):
         iris = load_iris()
         features = iris.data.T
         if max_features > 4:
             print("Error, maximum is 4 features in Iris data set")
-        # Default: only the first two features of the dataset
+        # Default: only the first two features of the data set
         data = [el[0:100] for el in features][0:max_features]
         half_len_data = len(data[0]) // 2
         # Rescale the data
         features_scaled = [preprocessing.scale(el) for el in data]
-        Iris_setosa_scaled = [el[0:half_len_data] for el in features_scaled]
-        Iris_versicolor_scaled = [el[half_len_data:] for el in features_scaled]
+        iris_setosa_scaled = [el[0:half_len_data] for el in features_scaled]
+        iris_versicolor_scaled = [el[half_len_data:] for el in features_scaled]
 
         # Normalise the data
         def normalise_data(*args):
@@ -217,29 +223,29 @@ class DataPlotter():
                     arg[idx] /= norm
             return args
 
-        Iris_setosa_normalised = normalise_data(*Iris_setosa_scaled)
-        Iris_versicolor_normalised = normalise_data(*Iris_versicolor_scaled)
-        return Iris_setosa_normalised, Iris_versicolor_normalised
+        iris_setosa_normalised = normalise_data(*iris_setosa_scaled)
+        iris_versicolor_normalised = normalise_data(*iris_versicolor_scaled)
+        return iris_setosa_normalised, iris_versicolor_normalised
 
-    def plot_data_points(self, TestData, Datalabel0, Datalabel1, results):
+    @staticmethod
+    def plot_data_points(test_data, data_label0, data_label1, results):
         # Scatter plot full data set,test point and data points
         # Bar plot results (Project Q! ordering)
 
         plt.rcParams['figure.figsize'] = [16, 6]  # Plot size
         # load data:
-        Iris_setosa_normalised, Iris_versicolor_normalised = self.load_data()
+        iris_setosa_normalised, iris_versicolor_normalised = DataPlotter.load_data()
 
         # Scatter plot data points:
         plt.subplot(1, 2, 1)  # Scatter plot
-        self.plot_normalised_data(
-            Iris_setosa_normalised, Iris_versicolor_normalised)
+        DataPlotter.plot_normalised_data(iris_setosa_normalised, iris_versicolor_normalised)
         # Scatter plot data class ?
-        plt.scatter(TestData[0], TestData[1], s=50, c='green')
+        plt.scatter(test_data[0], test_data[1], s=50, c='green')
 
-        for data_point in Datalabel0:
+        for data_point in data_label0:
             # Scatter plot data class 0
             plt.scatter(data_point[0], data_point[1],  s=50, c='orange')
-        for data_point in Datalabel1:
+        for data_point in data_label1:
             # Scatter plot data class 1
             plt.scatter(data_point[0], data_point[1],  s=50, c='orange')
         plt.legend(["Iris Setosa (label 0)",
@@ -265,7 +271,8 @@ class DataPlotter():
         plt.xticks(rotation='vertical')
         return prob
 
-    def grab_random_data(self, size=4, features=2):
+    @staticmethod
+    def grab_random_data(size=4, features=2):
         """Grabs random points from Iris set of which:
         size/2 points of label 0
         size/2 points of label 1
@@ -275,207 +282,198 @@ class DataPlotter():
             return "Size must be an even number"
 
         # load data:
-        Iris_setosa_normalised, Iris_versicolor_normalised = self.load_data(
+        iris_setosa_normalised, iris_versicolor_normalised = DataPlotter.load_data(
             max_features=features)
 
+        random_label = 0
+        data_label0 = []  # iris_setosa_normalised  # Label 0
+        data_label1 = []  # iris_versicolor_normalised  # Label 1
         # Not strictly necessary but for educational purposed we don't want coinciding data points
         coinciding_data = True
         while coinciding_data:
             coinciding_data = False
             # Find index values
             random_label = sample([1, 0], 1)[0]
-            len_lable0 = int(size / 2 + 1 - random_label)
+            len_label0 = int(size / 2 + 1 - random_label)
             len_label1 = int(size / 2 + random_label)
 
-            index_label0 = sample(range(50), len_lable0)
+            index_label0 = sample(range(50), len_label0)
             index_label1 = sample(range(50), len_label1)
 
             # Find data points
-            Datalabel0 = []  # Iris_setosa_normalised  # Label 0
-            Datalabel1 = []  # Iris_versicolor_normalised  # Label 1
+            data_label0 = []  # iris_setosa_normalised  # Label 0
+            data_label1 = []  # iris_versicolor_normalised  # Label 1
 
-            for datapoint in index_label0:
-                Datalabel0.append([feature[datapoint]
-                                   for feature in Iris_setosa_normalised])
-            for datapoint in index_label1:
-                Datalabel1.append([feature[datapoint]
-                                   for feature in Iris_versicolor_normalised])
+            for data_point in index_label0:
+                data_label0.append([feature[data_point] for feature in iris_setosa_normalised])
+            for data_point in index_label1:
+                data_label1.append([feature[data_point] for feature in iris_versicolor_normalised])
 
-            for i in range(len(Datalabel0)):
-                for j in range(i + 1, len(Datalabel0)):
-                    if Datalabel0[i] == Datalabel0[j]:
+            for i in range(len(data_label0)):
+                for j in range(i + 1, len(data_label0)):
+                    if data_label0[i] == data_label0[j]:
                         print("Coinciding data point found, restart")
                         coinciding_data = True
 
-            for i in range(len(Datalabel1)):
-                for j in range(i + 1, len(Datalabel1)):
-                    if Datalabel1[i] == Datalabel1[j]:
+            for i in range(len(data_label1)):
+                for j in range(i + 1, len(data_label1)):
+                    if data_label1[i] == data_label1[j]:
                         print("Coinciding data point found, restart")
                         coinciding_data = True
 
         if random_label:
-            TestData = Datalabel1.pop()
+            test_data = data_label1.pop()
         else:
-            TestData = Datalabel0.pop()
+            test_data = data_label0.pop()
 
-        return Datalabel0, Datalabel1, TestData, random_label
+        return data_label0, data_label1, test_data, random_label
 
-    def plot_data_points_multiple_features(self, Datalabel0, Datalabel1, TestData, random_label, results):
+    @staticmethod
+    def plot_data_points_multiple_features(data_label0, data_label1, test_data, random_label, results):
         # Scatter plot full data set, test point and data points for all combinations of features
         # Bar plot results (Project Q! ordering)
         
         # For now only 2 data points, 4 features
 
         # Load data:
-        Iris_setosa_normalised, Iris_versicolor_normalised = self.load_data(
+        iris_setosa_normalised, iris_versicolor_normalised = DataPlotter.load_data(
             max_features=4)
 
         # Find index of data points:
         def find_idx(needle, hay):
             for idx in range(len(hay[0])):
-                if hay[0][idx] == needle[0] and hay[1][idx] == needle[1] and hay[2][idx] == needle[2] and hay[3][idx] == needle[3]:
+                if hay[0][idx] == needle[0] and hay[1][idx] == needle[1] and hay[2][idx] == needle[2]\
+                        and hay[3][idx] == needle[3]:
                     return idx
             return "Data not found"
 
-        idxDatalabel0 = find_idx(Datalabel0[0], Iris_setosa_normalised)
-        idxDatalabel1 = find_idx(Datalabel1[0], Iris_versicolor_normalised)
+        idx_data_label0 = find_idx(data_label0[0], iris_setosa_normalised)
+        idx_data_label1 = find_idx(data_label1[0], iris_versicolor_normalised)
         if random_label == 0:
-            hay_TestData = Iris_setosa_normalised
+            hay_test_data = iris_setosa_normalised
         else:
-            hay_TestData = Iris_versicolor_normalised
-        idxTestData = find_idx(TestData, hay_TestData)
+            hay_test_data = iris_versicolor_normalised
+        idx_test_data = find_idx(test_data, hay_test_data)
 
         plt.rcParams['figure.figsize'] = [16, 6]  # Plot size
 
-        ax1 = plt.subplot2grid((2, 6), (0, 0))
+        plt.subplot2grid((2, 6), (0, 0))
         # load data:
-        Iris_setosa_normalised, Iris_versicolor_normalised = self.load_data_selected_features(
-            0, 1)
+        iris_setosa_normalised, iris_versicolor_normalised = DataPlotter.load_data_selected_features(0, 1)
         # Scatter plot data points:
-        self.plot_normalised_data(
-            Iris_setosa_normalised, Iris_versicolor_normalised)
+        DataPlotter.plot_normalised_data(iris_setosa_normalised, iris_versicolor_normalised)
 
         # Scatter plot data
         if random_label == 0:
-            testdata = Iris_setosa_normalised
+            test_data = iris_setosa_normalised
         else:
-            testdata = Iris_versicolor_normalised
-        plt.scatter(testdata[0][idxTestData], testdata[1]
-                    [idxTestData], s=50, c='green')
-        plt.scatter(Iris_setosa_normalised[0][idxDatalabel0],
-                    Iris_setosa_normalised[1][idxDatalabel0],  s=50, c='orange')
-        plt.scatter(Iris_versicolor_normalised[0][idxDatalabel1],
-                    Iris_versicolor_normalised[1][idxDatalabel1],  s=50, c='orange')
+            test_data = iris_versicolor_normalised
+        plt.scatter(test_data[0][idx_test_data], test_data[1]
+                    [idx_test_data], s=50, c='green')
+        plt.scatter(iris_setosa_normalised[0][idx_data_label0],
+                    iris_setosa_normalised[1][idx_data_label0],  s=50, c='orange')
+        plt.scatter(iris_versicolor_normalised[0][idx_data_label1],
+                    iris_versicolor_normalised[1][idx_data_label1],  s=50, c='orange')
         plt.xlabel("Sepal length (cm)")  # x-label
-        plt.ylabel("Sepal width (cm)")  # y-lable
+        plt.ylabel("Sepal width (cm)")   # y-label
 
-        ax2 = plt.subplot2grid((2, 6), (0, 1))
+        plt.subplot2grid((2, 6), (0, 1))
         # load data:
-        Iris_setosa_normalised, Iris_versicolor_normalised = self.load_data_selected_features(
-            0, 2)
+        iris_setosa_normalised, iris_versicolor_normalised = DataPlotter.load_data_selected_features(0, 2)
         # Scatter plot data points:
-        self.plot_normalised_data(
-            Iris_setosa_normalised, Iris_versicolor_normalised)
+        DataPlotter.plot_normalised_data(iris_setosa_normalised, iris_versicolor_normalised)
         # Scatter plot data
         if random_label == 0:
-            testdata = Iris_setosa_normalised
+            test_data = iris_setosa_normalised
         else:
-            testdata = Iris_versicolor_normalised
-        plt.scatter(testdata[0][idxTestData], testdata[1]
-                    [idxTestData], s=50, c='green')
-        plt.scatter(Iris_setosa_normalised[0][idxDatalabel0],
-                    Iris_setosa_normalised[1][idxDatalabel0],  s=50, c='orange')
-        plt.scatter(Iris_versicolor_normalised[0][idxDatalabel1],
-                    Iris_versicolor_normalised[1][idxDatalabel1],  s=50, c='orange')
+            test_data = iris_versicolor_normalised
+        plt.scatter(test_data[0][idx_test_data], test_data[1]
+                    [idx_test_data], s=50, c='green')
+        plt.scatter(iris_setosa_normalised[0][idx_data_label0],
+                    iris_setosa_normalised[1][idx_data_label0],  s=50, c='orange')
+        plt.scatter(iris_versicolor_normalised[0][idx_data_label1],
+                    iris_versicolor_normalised[1][idx_data_label1],  s=50, c='orange')
         plt.xlabel("Sepal length (cm)")  # x-label
-        plt.ylabel("Petal length (cm)")  # y-lable
+        plt.ylabel("Petal length (cm)")  # y-label
 
-        ax3 = plt.subplot2grid((2, 6), (0, 2))
+        plt.subplot2grid((2, 6), (0, 2))
         # load data:
-        Iris_setosa_normalised, Iris_versicolor_normalised = self.load_data_selected_features(
-            0, 3)
+        iris_setosa_normalised, iris_versicolor_normalised = DataPlotter.load_data_selected_features(0, 3)
         # Scatter plot data points:
-        self.plot_normalised_data(
-            Iris_setosa_normalised, Iris_versicolor_normalised)
+        DataPlotter.plot_normalised_data(iris_setosa_normalised, iris_versicolor_normalised)
         # Scatter plot data
         if random_label == 0:
-            testdata = Iris_setosa_normalised
+            test_data = iris_setosa_normalised
         else:
-            testdata = Iris_versicolor_normalised
-        plt.scatter(testdata[0][idxTestData], testdata[1]
-                    [idxTestData], s=50, c='green')
-        plt.scatter(Iris_setosa_normalised[0][idxDatalabel0],
-                    Iris_setosa_normalised[1][idxDatalabel0],  s=50, c='orange')
-        plt.scatter(Iris_versicolor_normalised[0][idxDatalabel1],
-                    Iris_versicolor_normalised[1][idxDatalabel1],  s=50, c='orange')
+            test_data = iris_versicolor_normalised
+        plt.scatter(test_data[0][idx_test_data], test_data[1]
+                    [idx_test_data], s=50, c='green')
+        plt.scatter(iris_setosa_normalised[0][idx_data_label0],
+                    iris_setosa_normalised[1][idx_data_label0],  s=50, c='orange')
+        plt.scatter(iris_versicolor_normalised[0][idx_data_label1],
+                    iris_versicolor_normalised[1][idx_data_label1],  s=50, c='orange')
         plt.xlabel("Sepal length (cm)")  # x-label
-        plt.ylabel("Petal width (cm)")  # y-lable
+        plt.ylabel("Petal width (cm)")   # y-label
 
-        ax4 = plt.subplot2grid((2, 6), (1, 0))
+        plt.subplot2grid((2, 6), (1, 0))
         # load data:
-        Iris_setosa_normalised, Iris_versicolor_normalised = self.load_data_selected_features(
-            1, 2)
+        iris_setosa_normalised, iris_versicolor_normalised = DataPlotter.load_data_selected_features(1, 2)
         # Scatter plot data points:
-        self.plot_normalised_data(
-            Iris_setosa_normalised, Iris_versicolor_normalised)
+        DataPlotter.plot_normalised_data(iris_setosa_normalised, iris_versicolor_normalised)
         # Scatter plot data
         if random_label == 0:
-            testdata = Iris_setosa_normalised
+            test_data = iris_setosa_normalised
         else:
-            testdata = Iris_versicolor_normalised
-        plt.scatter(testdata[0][idxTestData], testdata[1]
-                    [idxTestData], s=50, c='green')
-        plt.scatter(Iris_setosa_normalised[0][idxDatalabel0],
-                    Iris_setosa_normalised[1][idxDatalabel0],  s=50, c='orange')
-        plt.scatter(Iris_versicolor_normalised[0][idxDatalabel1],
-                    Iris_versicolor_normalised[1][idxDatalabel1],  s=50, c='orange')
-        plt.xlabel("Sepal width (cm)")  # y-lable
-        plt.ylabel("Petal length (cm)")  # y-lable
+            test_data = iris_versicolor_normalised
+        plt.scatter(test_data[0][idx_test_data], test_data[1]
+                    [idx_test_data], s=50, c='green')
+        plt.scatter(iris_setosa_normalised[0][idx_data_label0],
+                    iris_setosa_normalised[1][idx_data_label0],  s=50, c='orange')
+        plt.scatter(iris_versicolor_normalised[0][idx_data_label1],
+                    iris_versicolor_normalised[1][idx_data_label1],  s=50, c='orange')
+        plt.xlabel("Sepal width (cm)")   # x-label
+        plt.ylabel("Petal length (cm)")  # y-label
 
-        ax5 = plt.subplot2grid((2, 6), (1, 1))
+        plt.subplot2grid((2, 6), (1, 1))
         # load data:
-        Iris_setosa_normalised, Iris_versicolor_normalised = self.load_data_selected_features(
-            1, 3)
+        iris_setosa_normalised, iris_versicolor_normalised = DataPlotter.load_data_selected_features(1, 3)
         # Scatter plot data points:
-        self.plot_normalised_data(
-            Iris_setosa_normalised, Iris_versicolor_normalised)
+        DataPlotter.plot_normalised_data(iris_setosa_normalised, iris_versicolor_normalised)
         # Scatter plot data
         if random_label == 0:
-            testdata = Iris_setosa_normalised
+            test_data = iris_setosa_normalised
         else:
-            testdata = Iris_versicolor_normalised
-        plt.scatter(testdata[0][idxTestData], testdata[1]
-                    [idxTestData], s=50, c='green')
-        plt.scatter(Iris_setosa_normalised[0][idxDatalabel0],
-                    Iris_setosa_normalised[1][idxDatalabel0],  s=50, c='orange')
-        plt.scatter(Iris_versicolor_normalised[0][idxDatalabel1],
-                    Iris_versicolor_normalised[1][idxDatalabel1],  s=50, c='orange')
-        plt.xlabel("Sepal width (cm)")  # y-lable
-        plt.ylabel("Petal width (cm)")  # y-lable
+            test_data = iris_versicolor_normalised
+        plt.scatter(test_data[0][idx_test_data], test_data[1]
+                    [idx_test_data], s=50, c='green')
+        plt.scatter(iris_setosa_normalised[0][idx_data_label0],
+                    iris_setosa_normalised[1][idx_data_label0],  s=50, c='orange')
+        plt.scatter(iris_versicolor_normalised[0][idx_data_label1],
+                    iris_versicolor_normalised[1][idx_data_label1],  s=50, c='orange')
+        plt.xlabel("Sepal width (cm)")  # x-label
+        plt.ylabel("Petal width (cm)")  # y-label
 
-        ax6 = plt.subplot2grid((2, 6), (1, 2))
+        plt.subplot2grid((2, 6), (1, 2))
         # load data:
-        Iris_setosa_normalised, Iris_versicolor_normalised = self.load_data_selected_features(
-            2, 3)
+        iris_setosa_normalised, iris_versicolor_normalised = DataPlotter.load_data_selected_features(2, 3)
         # Scatter plot data points:
-        self.plot_normalised_data(
-            Iris_setosa_normalised, Iris_versicolor_normalised)
+        DataPlotter.plot_normalised_data(iris_setosa_normalised, iris_versicolor_normalised)
         # Scatter plot data
         if random_label == 0:
-            testdata = Iris_setosa_normalised
+            test_data = iris_setosa_normalised
         else:
-            testdata = Iris_versicolor_normalised
-        plt.scatter(testdata[0][idxTestData], testdata[1]
-                    [idxTestData], s=50, c='green')
-        plt.scatter(Iris_setosa_normalised[0][idxDatalabel0],
-                    Iris_setosa_normalised[1][idxDatalabel0],  s=50, c='orange')
-        plt.scatter(Iris_versicolor_normalised[0][idxDatalabel1],
-                    Iris_versicolor_normalised[1][idxDatalabel1],  s=50, c='orange')
+            test_data = iris_versicolor_normalised
+        plt.scatter(test_data[0][idx_test_data], test_data[1]
+                    [idx_test_data], s=50, c='green')
+        plt.scatter(iris_setosa_normalised[0][idx_data_label0],
+                    iris_setosa_normalised[1][idx_data_label0],  s=50, c='orange')
+        plt.scatter(iris_versicolor_normalised[0][idx_data_label1],
+                    iris_versicolor_normalised[1][idx_data_label1],  s=50, c='orange')
         plt.xlabel("Petal length (cm)")  # x-label
-        plt.ylabel("Petal width (cm)")  # y-lable
+        plt.ylabel("Petal width (cm)")   # y-label
 
         # Bar plot results:
-        ax7 = plt.subplot2grid((2, 6), (0, 3), colspan=2, rowspan=3)
+        plt.subplot2grid((2, 6), (0, 3), colspan=2, rowspan=3)
         size = len(list(results.keys())[0])
         res = [get_bin(el, size) for el in range(2 ** size)]
         prob = [0] * 2**size
@@ -495,7 +493,8 @@ class DataPlotter():
         plt.xticks(rotation='vertical')
         return plt.show()
 
-    def load_data_selected_features(self, feature1, feature2):
+    @staticmethod
+    def load_data_selected_features(feature1, feature2):
         iris = load_iris()
         features = iris.data.T
         data = [el[0:100] for el in features][0:4]
@@ -503,8 +502,8 @@ class DataPlotter():
         half_len_data = len(data[0]) // 2
         # Rescale the data
         features_scaled = [preprocessing.scale(el) for el in data]
-        Iris_setosa_scaled = [el[0:half_len_data] for el in features_scaled]
-        Iris_versicolor_scaled = [el[half_len_data:] for el in features_scaled]
+        iris_setosa_scaled = [el[0:half_len_data] for el in features_scaled]
+        iris_versicolor_scaled = [el[half_len_data:] for el in features_scaled]
 
         # Normalise the data
         def normalise_data(*args):
@@ -521,30 +520,32 @@ class DataPlotter():
                     arg[idx] /= norm
             return args
 
-        Iris_setosa_normalised = normalise_data(*Iris_setosa_scaled)
-        Iris_versicolor_normalised = normalise_data(*Iris_versicolor_scaled)
-        return Iris_setosa_normalised, Iris_versicolor_normalised
+        iris_setosa_normalised = normalise_data(*iris_setosa_scaled)
+        iris_versicolor_normalised = normalise_data(*iris_versicolor_scaled)
+        return iris_setosa_normalised, iris_versicolor_normalised
 
-
-    def true_classifier(self, Datalabel0, Datalabel1, TestData):
+    @staticmethod
+    def true_classifier(data_label0, data_label1, test_data):
         label0 = 0
         label1 = 0
-        for element in Datalabel0:
-            label0 += np.linalg.norm(np.array(element) - np.array(TestData))
-        for element in Datalabel1:
-            label1 += np.linalg.norm(np.array(element) - np.array(TestData))
+        for element in data_label0:
+            label0 += np.linalg.norm(np.array(element) - np.array(test_data))
+        for element in data_label1:
+            label1 += np.linalg.norm(np.array(element) - np.array(test_data))
         if label0 > label1:
             return 1
         return 0
 
-    def quality_classifier(self, input_size, input_features, sample_size):
+    @staticmethod
+    def quality_classifier(input_size, input_features, sample_size):
         correct = 0
         wrong = 0
         for idx in range(sample_size):
-            Datalabel0, Datalabel1, TestData, random_label = self.grab_random_data(size=input_size, features=input_features)
-            prediction = self.true_classifier(Datalabel0, Datalabel1, TestData)
+            data_label0, data_label1, test_data, random_label = DataPlotter.grab_random_data(size=input_size,
+                                                                                             features=input_features)
+            prediction = DataPlotter.true_classifier(data_label0, data_label1, test_data)
             if prediction == random_label:
-                correct +=1
+                correct += 1
             else:
                 wrong += 1
         return correct/sample_size, wrong/sample_size
