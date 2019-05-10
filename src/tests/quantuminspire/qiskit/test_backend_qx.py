@@ -334,6 +334,58 @@ class TestQiSimulatorPy(unittest.TestCase):
         job = simulator.run(qobj)
         self.assertEqual('42', job.job_id())
 
+    def test_validate_conditional_operation_after_measurement_classical_bits(self):
+        with patch.object(QuantumInspireBackend, "_submit_experiment", return_value=Mock()):
+            simulator = QuantumInspireBackend(Mock(), Mock())
+            instructions = [{'name': 'h', 'params': [], 'texparams': [], 'qubits': [0]},
+                            {'name': 'h', 'params': [], 'texparams': [], 'qubits': [2]},
+                            {'memory': [0], 'name': 'measure', 'qubits': [0]},
+                            {'memory': [2], 'name': 'measure', 'qubits': [2]},
+                            {'mask': '0x4', 'name': 'bfunc', 'register': 7, 'relation': '==', 'val': '0x4'},
+                            {'conditional': 7, 'name': 'h', 'params': [], 'texparams': [], 'qubits': [1]}]
+            job_dict = self._basic_qobj_dictionary
+            job_dict['experiments'][0]['instructions'] = instructions
+            job = qiskit.qobj.Qobj.from_dict(job_dict)
+            self.assertRaisesRegex(QisKitBackendError, 'Usage of binary controlled gates where the condition consists '
+                                                       'of earlier measured binary registers is currently '
+                                                       'not supported',
+                                   simulator.run, job)
+
+    def test_validate_conditional_operation_after_measurement_classical_reg(self):
+        with patch.object(QuantumInspireBackend, "_submit_experiment", return_value=Mock()):
+            simulator = QuantumInspireBackend(Mock(), Mock())
+            instructions = [{'name': 'h', 'qubits': [0]},
+                            {'memory': [0], 'name': 'measure', 'qubits': [0]},
+                            {'memory': [1], 'name': 'measure', 'qubits': [0]},
+                            {'memory': [2], 'name': 'measure', 'qubits': [0]},
+                            {'mask': '0x7', 'name': 'bfunc', 'register': 3, 'relation': '==', 'val': '0x1'},
+                            {'conditional': 3, 'name': 'h', 'qubits': [1]}]
+            job_dict = self._basic_qobj_dictionary
+            job_dict['experiments'][0]['instructions'] = instructions
+            job = qiskit.qobj.Qobj.from_dict(job_dict)
+            self.assertRaisesRegex(QisKitBackendError, 'Usage of binary controlled gates where the condition consists '
+                                                       'of earlier measured binary registers is currently '
+                                                       'not supported',
+                                   simulator.run, job)
+
+    def test_valid_conditional_operation_after_measurement_other_qubit(self):
+        api = Mock()
+        api.create_project.return_value = {'id': 42}
+        api.get_jobs_from_project.return_value = []
+        api.execute_qasm_async.return_value = 42
+        simulator = QuantumInspireBackend(api, Mock())
+        instructions = [{'name': 'h', 'params': [], 'texparams': [], 'qubits': [0]},
+                        {'name': 'h', 'params': [], 'texparams': [], 'qubits': [2]},
+                        {'memory': [0], 'name': 'measure', 'qubits': [0]},
+                        {'memory': [2], 'name': 'measure', 'qubits': [2]},
+                        {'mask': '0x2', 'name': 'bfunc', 'register': 7, 'relation': '==', 'val': '0x2'},
+                        {'conditional': 7, 'name': 'h', 'params': [], 'texparams': [], 'qubits': [1]}]
+        qobj_dict = self._basic_qobj_dictionary
+        qobj_dict['experiments'][0]['instructions'] = instructions
+        qobj = QasmQobj.from_dict(qobj_dict)
+        job = simulator.run(qobj)
+        self.assertEqual('42', job.job_id())
+
     def test_retrieve_job(self):
         api = Mock()
         api.get_jobs_from_project.return_value = []

@@ -207,7 +207,7 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
 
         for experiment in job.experiments:
             self.__validate_number_of_clbits(experiment)
-            QuantumInspireBackend.__validate_no_gates_after_measure(experiment)
+            QuantumInspireBackend.__validate_no_usage_after_measure(experiment)
 
     @staticmethod
     def __validate_number_of_shots(job: QasmQobj) -> None:
@@ -246,14 +246,20 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
                                                  " number of qubits when using conditional gate operations")
 
     @staticmethod
-    def __validate_no_gates_after_measure(experiment: QasmQobjExperiment) -> None:
-        """ Checks whether the number of classical bits has a valid value.
+    def __validate_no_usage_after_measure(experiment: QasmQobjExperiment) -> None:
+        """ When using FSP (full state projection) certain instructions cannot be handled correctly because
+            intermediate measurements are not taking place in FSP. The measurements are postponed until the end of the
+            program.
+            Therefore some constructions are currently not supported:
+            1. When qubits are used again after being measured.
+            2. When conditional gate operations (binary controlled gates) are done based on previously measured
+               classical bits
 
         Args:
             experiment: The experiment with gate operations and header.
 
         Raises:
-            QisKitBackendError: When the value is not correct.
+            QisKitBackendError: When a construction is used that is not supported.
         """
         measured_qubits = []
         for instruction in experiment.instructions:
@@ -263,6 +269,19 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
                         measured_qubits.append(qubit)
                     elif qubit in measured_qubits:
                         raise QisKitBackendError('Operation on qubit {} after measurement'.format(qubit))
+
+        memory_bits = []
+        for instruction in experiment.instructions:
+            if instruction.name == 'measure':
+                for qubit in instruction.memory:
+                    memory_bits.append(qubit)
+            elif instruction.name == 'bfunc':
+                lowest_mask_bit, mask_length = CircuitToString.get_mask_data(int(instruction.mask, 16))
+                for bit in range(mask_length):
+                    mask_bit = bit + lowest_mask_bit
+                    if mask_bit in memory_bits:
+                        raise QisKitBackendError('Usage of binary controlled gates where the condition consists of '
+                                                 'earlier measured binary registers is currently not supported')
 
     @staticmethod
     def _collect_measurements(experiment: QasmQobjExperiment) -> Dict[str, Any]:

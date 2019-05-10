@@ -7,6 +7,7 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.compiler import assemble, transpile
 from qiskit.assembler.run_config import RunConfig
 from qiskit.qobj import QobjHeader
+from quantuminspire.qiskit.circuit_parser import CircuitToString
 from quantuminspire.qiskit.backend_qx import QuantumInspireBackend
 from quantuminspire.exceptions import ApiError
 
@@ -558,3 +559,39 @@ class TestQiCircuitToString(unittest.TestCase):
                          'params': [-np.pi / 2]}]
         self.assertRaisesRegex(ApiError, 'Conditional not found: reg_idx = 2',
                                self._generate_cqasm_from_instructions, instructions, 2)
+
+    def test_get_mask_data(self):
+        mask = 0
+        lowest_mask_bit, mask_length = CircuitToString.get_mask_data(mask)
+        self.assertEqual(lowest_mask_bit, -1)
+        self.assertEqual(mask_length, 0)
+
+        mask = 56
+        lowest_mask_bit, mask_length = CircuitToString.get_mask_data(mask)
+        self.assertEqual(lowest_mask_bit, 3)
+        self.assertEqual(mask_length, 3)
+
+        mask = 1
+        lowest_mask_bit, mask_length = CircuitToString.get_mask_data(mask)
+        self.assertEqual(lowest_mask_bit, 0)
+        self.assertEqual(mask_length, 1)
+
+        mask = 255
+        lowest_mask_bit, mask_length = CircuitToString.get_mask_data(mask)
+        self.assertEqual(lowest_mask_bit, 0)
+        self.assertEqual(mask_length, 8)
+
+        mask = 510
+        lowest_mask_bit, mask_length = CircuitToString.get_mask_data(mask)
+        self.assertEqual(lowest_mask_bit, 1)
+        self.assertEqual(mask_length, 8)
+
+        mask = 128
+        lowest_mask_bit, mask_length = CircuitToString.get_mask_data(mask)
+        self.assertEqual(lowest_mask_bit, 7)
+        self.assertEqual(mask_length, 1)
+
+        mask = 192
+        lowest_mask_bit, mask_length = CircuitToString.get_mask_data(mask)
+        self.assertEqual(lowest_mask_bit, 6)
+        self.assertEqual(mask_length, 2)
