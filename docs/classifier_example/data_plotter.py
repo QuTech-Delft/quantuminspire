@@ -39,10 +39,8 @@ def pre_process_data(data, display_fig=True, axis_limits=None):
 
     # Plot original data:
     plt.subplot(1, 3, 1)
-    plt.scatter(data1[0], data1[1], alpha=0.8, s=10,
-                c='red')  # Scatter plot data class 1
-    plt.scatter(data2[0], data2[1], alpha=0.8, s=10,
-                c='blue')  # Scatter plot data class 2
+    plt.scatter(data1[0], data1[1], alpha=0.8, s=10, c='red')  # Scatter plot data class 1
+    plt.scatter(data2[0], data2[1], alpha=0.8, s=10, c='blue')  # Scatter plot data class 2
     plt.xlabel(data[2])  # x-label
     plt.ylabel(data[3])  # y-label
     if axis_limits[0] is not None:
@@ -61,8 +59,7 @@ def pre_process_data(data, display_fig=True, axis_limits=None):
     plt.subplot(1, 3, 2)
     # Scatter plot data class 1
     plt.scatter(data1_scaled[0], data1_scaled[1], alpha=0.8, s=10, c='red')
-    plt.scatter(data2_scaled[0], data2_scaled[1], alpha=0.8,
-                s=10, c='blue')  # Scatter plot data class 2
+    plt.scatter(data2_scaled[0], data2_scaled[1], alpha=0.8, s=10, c='blue')  # Scatter plot data class 2
     plt.xlabel(data[2])  # x-label
     plt.ylabel(data[3])  # y-label
     if axis_limits[0] is not None:
@@ -133,17 +130,13 @@ if __name__ == "__main__":
 
 
 class DataPlotter:
-    def __init__(self):
-        pass
 
     @staticmethod
     def plot_original_data(data1, data2):
         # Plot original data:
         plt.rcParams['figure.figsize'] = [8, 6]
-        plt.scatter(data1[0], data1[1], alpha=0.8, s=10,
-                    c='red')  # Scatter plot data class 1
-        plt.scatter(data2[0], data2[1], alpha=0.8, s=10,
-                    c='blue')  # Scatter plot data class 2
+        plt.scatter(data1[0], data1[1], alpha=0.8, s=10, c='red')  # Scatter plot data class 1
+        plt.scatter(data2[0], data2[1], alpha=0.8, s=10, c='blue')  # Scatter plot data class 2
         plt.xlabel("Sepal length (cm)")  # x-label
         plt.ylabel("Sepal width (cm)")   # y-label
         plt.xlim(-1, 8)  # x-range
@@ -155,13 +148,10 @@ class DataPlotter:
     @staticmethod
     def plot_standardised_data(data1, data2):
         plt.rcParams['figure.figsize'] = [8, 6]  # Plot size
-        unit_circle = plt.Circle((0, 0), 1, color='grey',
-                                 alpha=0.2, fill=False)  # Circle
+        unit_circle = plt.Circle((0, 0), 1, color='grey', alpha=0.2, fill=False)  # Circle
 
-        plt.scatter(data1[0], data1[1], alpha=0.8, s=10,
-                    c='red')  # Scatter plot data class 1
-        plt.scatter(data2[0], data2[1], alpha=0.8, s=10,
-                    c='blue')  # Scatter plot data class 2
+        plt.scatter(data1[0], data1[1], alpha=0.8, s=10, c='red')  # Scatter plot data class 1
+        plt.scatter(data2[0], data2[1], alpha=0.8, s=10, c='blue')  # Scatter plot data class 2
         plt.xlabel("Sepal length (cm)")  # x-label
         plt.ylabel("Sepal width (cm)")   # y-label
         plt.xlim(-2.5, 2.5)  # x-range
@@ -176,13 +166,10 @@ class DataPlotter:
     def plot_normalised_data(data1, data2):
         # Scatter plot normalised data
         plt.rcParams['figure.figsize'] = [8, 6]  # Plot size
-        unit_circle = plt.Circle((0, 0), 1, color='grey',
-                                 alpha=0.2, fill=False)  # Circle
+        unit_circle = plt.Circle((0, 0), 1, color='grey', alpha=0.2, fill=False)  # Circle
 
-        plt.scatter(data1[0], data1[1], alpha=0.8, s=10,
-                    c='red')  # Scatter plot data class 1
-        plt.scatter(data2[0], data2[1], alpha=0.8, s=10,
-                    c='blue')  # Scatter plot data class 2
+        plt.scatter(data1[0], data1[1], alpha=0.8, s=10, c='red')  # Scatter plot data class 1
+        plt.scatter(data2[0], data2[1], alpha=0.8, s=10, c='blue')  # Scatter plot data class 2
         plt.xlabel("Sepal length (cm)")  # x-label
         plt.ylabel("Sepal width (cm)")   # y-label
         plt.xlim(-2.5, 2.5)  # x-range
@@ -244,10 +231,10 @@ class DataPlotter:
 
         for data_point in data_label0:
             # Scatter plot data class 0
-            plt.scatter(data_point[0], data_point[1],  s=50, c='orange')
+            plt.scatter(data_point[0], data_point[1], s=50, c='orange')
         for data_point in data_label1:
             # Scatter plot data class 1
-            plt.scatter(data_point[0], data_point[1],  s=50, c='orange')
+            plt.scatter(data_point[0], data_point[1], s=50, c='orange')
         plt.legend(["Iris Setosa (label 0)",
                     "Iris Versicolor (label 1)", "Test point", "Data points"])
 
@@ -262,8 +249,8 @@ class DataPlotter:
         # Set color=light grey when 2nd qubit = 1
         # Set color=blue when 2nd qubit = 0, and last qubit = 1
         # Set color=red when 2nd qubit = 0, and last qubit = 0
-        color_list = ['red', 'blue', 'red', 'blue', (0.1, 0.1, 0.1, 0.1), (
-            0.1, 0.1, 0.1, 0.1), (0.1, 0.1, 0.1, 0.1), (0.1, 0.1, 0.1, 0.1)]
+        color_list = ['red', 'blue', 'red', 'blue', (0.1, 0.1, 0.1, 0.1), (0.1, 0.1, 0.1, 0.1),
+                                                    (0.1, 0.1, 0.1, 0.1), (0.1, 0.1, 0.1, 0.1)]
         plt.bar(res, prob, color=color_list)
         plt.ylabel('Probability')
         plt.title('Results')
@@ -282,8 +269,7 @@ class DataPlotter:
             return "Size must be an even number"
 
         # load data:
-        iris_setosa_normalised, iris_versicolor_normalised = DataPlotter.load_data(
-            max_features=features)
+        iris_setosa_normalised, iris_versicolor_normalised = DataPlotter.load_data(max_features=features)
 
         random_label = 0
         data_label0 = []  # iris_setosa_normalised  # Label 0
@@ -368,12 +354,11 @@ class DataPlotter:
             test_data = iris_setosa_normalised
         else:
             test_data = iris_versicolor_normalised
-        plt.scatter(test_data[0][idx_test_data], test_data[1]
-                    [idx_test_data], s=50, c='green')
+        plt.scatter(test_data[0][idx_test_data], test_data[1][idx_test_data], s=50, c='green')
         plt.scatter(iris_setosa_normalised[0][idx_data_label0],
-                    iris_setosa_normalised[1][idx_data_label0],  s=50, c='orange')
+                    iris_setosa_normalised[1][idx_data_label0], s=50, c='orange')
         plt.scatter(iris_versicolor_normalised[0][idx_data_label1],
-                    iris_versicolor_normalised[1][idx_data_label1],  s=50, c='orange')
+                    iris_versicolor_normalised[1][idx_data_label1], s=50, c='orange')
         plt.xlabel("Sepal length (cm)")  # x-label
         plt.ylabel("Sepal width (cm)")   # y-label
 
@@ -387,12 +372,11 @@ class DataPlotter:
             test_data = iris_setosa_normalised
         else:
             test_data = iris_versicolor_normalised
-        plt.scatter(test_data[0][idx_test_data], test_data[1]
-                    [idx_test_data], s=50, c='green')
+        plt.scatter(test_data[0][idx_test_data], test_data[1][idx_test_data], s=50, c='green')
         plt.scatter(iris_setosa_normalised[0][idx_data_label0],
-                    iris_setosa_normalised[1][idx_data_label0],  s=50, c='orange')
+                    iris_setosa_normalised[1][idx_data_label0], s=50, c='orange')
         plt.scatter(iris_versicolor_normalised[0][idx_data_label1],
-                    iris_versicolor_normalised[1][idx_data_label1],  s=50, c='orange')
+                    iris_versicolor_normalised[1][idx_data_label1], s=50, c='orange')
         plt.xlabel("Sepal length (cm)")  # x-label
         plt.ylabel("Petal length (cm)")  # y-label
 
@@ -406,12 +390,11 @@ class DataPlotter:
             test_data = iris_setosa_normalised
         else:
             test_data = iris_versicolor_normalised
-        plt.scatter(test_data[0][idx_test_data], test_data[1]
-                    [idx_test_data], s=50, c='green')
+        plt.scatter(test_data[0][idx_test_data], test_data[1][idx_test_data], s=50, c='green')
         plt.scatter(iris_setosa_normalised[0][idx_data_label0],
-                    iris_setosa_normalised[1][idx_data_label0],  s=50, c='orange')
+                    iris_setosa_normalised[1][idx_data_label0], s=50, c='orange')
         plt.scatter(iris_versicolor_normalised[0][idx_data_label1],
-                    iris_versicolor_normalised[1][idx_data_label1],  s=50, c='orange')
+                    iris_versicolor_normalised[1][idx_data_label1], s=50, c='orange')
         plt.xlabel("Sepal length (cm)")  # x-label
         plt.ylabel("Petal width (cm)")   # y-label
 
@@ -425,12 +408,11 @@ class DataPlotter:
             test_data = iris_setosa_normalised
         else:
             test_data = iris_versicolor_normalised
-        plt.scatter(test_data[0][idx_test_data], test_data[1]
-                    [idx_test_data], s=50, c='green')
+        plt.scatter(test_data[0][idx_test_data], test_data[1][idx_test_data], s=50, c='green')
         plt.scatter(iris_setosa_normalised[0][idx_data_label0],
-                    iris_setosa_normalised[1][idx_data_label0],  s=50, c='orange')
+                    iris_setosa_normalised[1][idx_data_label0], s=50, c='orange')
         plt.scatter(iris_versicolor_normalised[0][idx_data_label1],
-                    iris_versicolor_normalised[1][idx_data_label1],  s=50, c='orange')
+                    iris_versicolor_normalised[1][idx_data_label1], s=50, c='orange')
         plt.xlabel("Sepal width (cm)")   # x-label
         plt.ylabel("Petal length (cm)")  # y-label
 
@@ -444,12 +426,11 @@ class DataPlotter:
             test_data = iris_setosa_normalised
         else:
             test_data = iris_versicolor_normalised
-        plt.scatter(test_data[0][idx_test_data], test_data[1]
-                    [idx_test_data], s=50, c='green')
+        plt.scatter(test_data[0][idx_test_data], test_data[1][idx_test_data], s=50, c='green')
         plt.scatter(iris_setosa_normalised[0][idx_data_label0],
-                    iris_setosa_normalised[1][idx_data_label0],  s=50, c='orange')
+                    iris_setosa_normalised[1][idx_data_label0], s=50, c='orange')
         plt.scatter(iris_versicolor_normalised[0][idx_data_label1],
-                    iris_versicolor_normalised[1][idx_data_label1],  s=50, c='orange')
+                    iris_versicolor_normalised[1][idx_data_label1], s=50, c='orange')
         plt.xlabel("Sepal width (cm)")  # x-label
         plt.ylabel("Petal width (cm)")  # y-label
 
@@ -463,12 +444,11 @@ class DataPlotter:
             test_data = iris_setosa_normalised
         else:
             test_data = iris_versicolor_normalised
-        plt.scatter(test_data[0][idx_test_data], test_data[1]
-                    [idx_test_data], s=50, c='green')
+        plt.scatter(test_data[0][idx_test_data], test_data[1][idx_test_data], s=50, c='green')
         plt.scatter(iris_setosa_normalised[0][idx_data_label0],
-                    iris_setosa_normalised[1][idx_data_label0],  s=50, c='orange')
+                    iris_setosa_normalised[1][idx_data_label0], s=50, c='orange')
         plt.scatter(iris_versicolor_normalised[0][idx_data_label1],
-                    iris_versicolor_normalised[1][idx_data_label1],  s=50, c='orange')
+                    iris_versicolor_normalised[1][idx_data_label1], s=50, c='orange')
         plt.xlabel("Petal length (cm)")  # x-label
         plt.ylabel("Petal width (cm)")   # y-label
 
@@ -483,9 +463,9 @@ class DataPlotter:
         # Set color=light grey when 2nd qubit = 1
         # Set color=blue when 2nd qubit = 0, and last qubit = 1
         # Set color=red when 2nd qubit = 0, and last qubit = 0
-        color_list = ['red', 'blue', 'red', 'blue', 'red', 'blue', 'red', 'blue', (0.1, 0.1, 0.1, 0.1), (
-            0.1, 0.1, 0.1, 0.1), (0.1, 0.1, 0.1, 0.1), (0.1, 0.1, 0.1, 0.1), (0.1, 0.1, 0.1, 0.1), (
-            0.1, 0.1, 0.1, 0.1), (0.1, 0.1, 0.1, 0.1), (0.1, 0.1, 0.1, 0.1)]
+        color_list = ['red', 'blue', 'red', 'blue', 'red', 'blue', 'red', 'blue',
+                      (0.1, 0.1, 0.1, 0.1), (0.1, 0.1, 0.1, 0.1), (0.1, 0.1, 0.1, 0.1), (0.1, 0.1, 0.1, 0.1),
+                      (0.1, 0.1, 0.1, 0.1), (0.1, 0.1, 0.1, 0.1), (0.1, 0.1, 0.1, 0.1), (0.1, 0.1, 0.1, 0.1)]
         plt.bar(res, prob, color=color_list)
         plt.ylabel('Probability')
         plt.title('Results')
