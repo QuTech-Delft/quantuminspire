@@ -575,7 +575,7 @@ class CircuitToString:
         pass
 
     @staticmethod
-    def _get_mask_data(mask: int) -> Tuple[int, int]:
+    def get_mask_data(mask: int) -> Tuple[int, int]:
         """ A mask is a continuous set of 1-bits with a certain length. This method returns the lowest bit of
             the mask and the length of the mask.
             Examples:
@@ -586,6 +586,8 @@ class CircuitToString:
             10000000, lowest mask bit = 7, mask_length = 1
         """
         # Precondition: mask != 0
+        if mask == 0:
+            return -1, 0
         mask_length = 0
         bit_value = 1
         bit_nr = 0
@@ -631,7 +633,7 @@ class CircuitToString:
         mask = int(conditional.mask, 16)
         if mask == 0:
             raise ApiError('Conditional statement {} without a mask'.format(instruction.name.lower()))
-        lowest_mask_bit, mask_length = self._get_mask_data(mask)
+        lowest_mask_bit, mask_length = self.get_mask_data(mask)
         val = int(conditional.val, 16)
         masked_val = mask & val
 
