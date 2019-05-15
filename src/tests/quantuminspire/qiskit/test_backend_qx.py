@@ -302,7 +302,8 @@ class TestQiSimulatorPy(unittest.TestCase):
     def test_validate_operation_after_measure(self):
         with patch.object(QuantumInspireBackend, "_submit_experiment", return_value=Mock()):
             simulator = QuantumInspireBackend(Mock(), Mock())
-            instructions = [{'name': 'CX', 'qubits': [0, 1]}, {'name': 'measure', 'qubits': [0]},
+            instructions = [{'name': 'CX', 'qubits': [0, 1]},
+                            {'memory': [0], 'name': 'measure', 'qubits': [0]},
                             {'name': 'X', 'qubits': [0]}]
             job_dict = self._basic_qobj_dictionary
             job_dict['experiments'][0]['instructions'] = instructions
@@ -312,7 +313,8 @@ class TestQiSimulatorPy(unittest.TestCase):
     def test_no_operation_after_measure_cx_gate(self):
         with patch.object(QuantumInspireBackend, "_submit_experiment", return_value=Mock()):
             simulator = QuantumInspireBackend(Mock(), Mock())
-            instructions = [{'name': 'X', 'qubits': [1]}, {'name': 'measure', 'qubits': [0]},
+            instructions = [{'name': 'X', 'qubits': [1]},
+                            {'memory': [0], 'name': 'measure', 'qubits': [0]},
                             {'name': 'CX', 'qubits': [0, 1]}]
             job_dict = self._basic_qobj_dictionary
             job_dict['experiments'][0]['instructions'] = instructions
@@ -326,7 +328,7 @@ class TestQiSimulatorPy(unittest.TestCase):
         api.execute_qasm_async.return_value = 42
         simulator = QuantumInspireBackend(api, Mock())
         instructions = [{'name': 'h', 'params': [], 'texparams': [], 'qubits': [0]},
-                        {'name': 'measure', 'qubits': [0], 'memory': [0]},
+                        {'memory': [0], 'name': 'measure', 'qubits': [0]},
                         {'name': 'h', 'params': [], 'texparams': [], 'qubits': [1]}]
         qobj_dict = self._basic_qobj_dictionary
         qobj_dict['experiments'][0]['instructions'] = instructions

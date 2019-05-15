@@ -262,26 +262,25 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
             QisKitBackendError: When a construction is used that is not supported.
         """
         measured_qubits = []
-        for instruction in experiment.instructions:
-            if hasattr(instruction, 'qubits'):
-                for qubit in instruction.qubits:
-                    if instruction.name == 'measure':
-                        measured_qubits.append(qubit)
-                    elif qubit in measured_qubits:
-                        raise QisKitBackendError('Operation on qubit {} after measurement'.format(qubit))
-
         memory_bits = []
         for instruction in experiment.instructions:
             if instruction.name == 'measure':
+                for qubit in instruction.qubits:
+                    measured_qubits.append(qubit)
                 for qubit in instruction.memory:
                     memory_bits.append(qubit)
-            elif instruction.name == 'bfunc':
-                lowest_mask_bit, mask_length = CircuitToString.get_mask_data(int(instruction.mask, 16))
-                for bit in range(mask_length):
-                    mask_bit = bit + lowest_mask_bit
-                    if mask_bit in memory_bits:
-                        raise QisKitBackendError('Usage of binary controlled gates where the condition consists of '
-                                                 'earlier measured binary registers is currently not supported')
+            else:
+                if hasattr(instruction, 'qubits'):
+                    for qubit in instruction.qubits:
+                        if qubit in measured_qubits:
+                            raise QisKitBackendError('Operation on qubit {} after measurement'.format(qubit))
+                if instruction.name == 'bfunc':
+                    lowest_mask_bit, mask_length = CircuitToString.get_mask_data(int(instruction.mask, 16))
+                    for bit in range(mask_length):
+                        mask_bit = bit + lowest_mask_bit
+                        if mask_bit in memory_bits:
+                            raise QisKitBackendError('Usage of binary controlled gates where the condition consists of '
+                                                     'earlier measured binary registers is currently not supported')
 
     @staticmethod
     def _collect_measurements(experiment: QasmQobjExperiment) -> Dict[str, Any]:
