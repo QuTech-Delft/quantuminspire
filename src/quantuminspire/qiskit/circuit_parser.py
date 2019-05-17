@@ -448,7 +448,6 @@ class CircuitToString:
         """
         temp_instruction = copy.deepcopy(instruction)
         temp_instruction.params[0:0] = (0, 0)
-        temp_instruction.texparams[0:0] = ('0', '0')
         CircuitToString._u3(stream, temp_instruction)
 
     @staticmethod
@@ -464,7 +463,6 @@ class CircuitToString:
         """
         temp_instruction = copy.deepcopy(instruction)
         temp_instruction.params[0:0] = (0, 0)
-        temp_instruction.texparams[0:0] = ('0', '0')
         CircuitToString._c_u3(stream, temp_instruction, binary_control)
 
     @staticmethod
@@ -479,7 +477,6 @@ class CircuitToString:
         """
         temp_instruction = copy.deepcopy(instruction)
         temp_instruction.params.insert(0, np.pi/2)
-        temp_instruction.texparams.insert(0, '\\frac{\\pi}{2}')
         CircuitToString._u3(stream, temp_instruction)
 
     @staticmethod
@@ -495,7 +492,6 @@ class CircuitToString:
         """
         temp_instruction = copy.deepcopy(instruction)
         temp_instruction.params.insert(0, np.pi/2)
-        temp_instruction.texparams.insert(0, '\\frac{\\pi}{2}')
         CircuitToString._c_u3(stream, temp_instruction, binary_control)
 
     @staticmethod

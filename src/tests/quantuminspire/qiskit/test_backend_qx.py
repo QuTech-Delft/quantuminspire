@@ -125,7 +125,8 @@ class TestQiSimulatorPy(unittest.TestCase):
             local=False,
             memory=True,
             open_pulse=False,
-            max_shots=1024
+            max_shots=1024,
+            max_experiments=1
         )
         self.assertDictEqual(configuration.to_dict(), expected_configuration.to_dict())
 

@@ -51,7 +51,8 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
         conditional=True,
         open_pulse=False,
         memory=True,
-        max_shots=1024
+        max_shots=1024,
+        max_experiments=1
     )
 
     def __init__(self, api: QuantumInspireAPI, provider: Any,
@@ -81,6 +82,7 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
                 | open_pulse (bool)       | Backend supports open pulse. False.
                 | memory (bool)           | Backend supports memory. True.
                 | max_shots (int)         | Maximum number of shots supported.
+                | max_experiments (int)   | Optional: Maximum number of experiments (circuits) per job.
         """
         super().__init__(configuration=(configuration or
                                         QuantumInspireBackend.DEFAULT_CONFIGURATION),
