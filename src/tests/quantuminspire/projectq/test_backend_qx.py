@@ -242,6 +242,7 @@ class TestProjectQBackend(unittest.TestCase):
         backend.main_engine = MagicMock(mapper="mapper")
         backend._store(command)
         self.assertEqual(backend._measured_ids, [mock_tag])
+        self.assertEqual(backend.qasm, "\nmeasure q[0]")
 
     @patch('quantuminspire.projectq.backend_qx.get_control_count')
     def test_store_measure_gate_without_mapper(self, function_mock):

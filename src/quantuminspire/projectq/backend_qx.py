@@ -168,7 +168,7 @@ class QIBackend(BasicEngine):  # type: ignore
             assert logical_id is not None
             self._measured_ids += [logical_id]
             if not self._full_state_projection:
-                self.qasm += "\nmeasure q[{}]".format(logical_id)
+                self.qasm += "\nmeasure q[{}]".format(cmd.qubits[0][0].id)
             return
 
         if gate == NOT and get_control_count(cmd) == 1:
