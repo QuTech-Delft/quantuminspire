@@ -41,7 +41,7 @@ class TestQiCircuitToString(unittest.TestCase):
         self.assertEqual(result, expected)
 
     @staticmethod
-    def _generate_cqasm_from_instructions(instructions, number_of_qubits=2):
+    def _generate_cqasm_from_instructions(instructions, number_of_qubits=2, full_state_projection=True):
         experiment_dict = {'instructions': instructions,
                            'header': {'n_qubits': number_of_qubits,
                                       'number_of_clbits': number_of_qubits,
@@ -51,7 +51,7 @@ class TestQiCircuitToString(unittest.TestCase):
                                       'n_qubits': number_of_qubits}}
         experiment = qiskit.qobj.QasmQobjExperiment.from_dict(experiment_dict)
         simulator = QuantumInspireBackend(Mock(), Mock())
-        result = simulator._generate_cqasm(experiment)
+        result = simulator._generate_cqasm(experiment, full_state_projection)
         return result
 
     def test_generate_cqasm_correct_output_controlled_not(self):
@@ -77,10 +77,22 @@ class TestQiCircuitToString(unittest.TestCase):
         self.assertTrue('not b[0,4,5,6,7]\nC-Toffoli b[0:7], q[0], q[1], q[2]\nnot b[0,4,5,6,7]\n' in result)
 
     def test_generate_cqasm_correct_output_measure(self):
-        instructions = [{'name': 'measure', 'qubits': [0]}]
+        instructions = [{'memory': [0], 'name': 'measure', 'qubits': [0]}]
         result = self._generate_cqasm_from_instructions(instructions, 3)
-        measure_line = '.measurement\n   measure q[0]\n   measure q[1]\n   measure q[2]\n'
+        measure_line = 'measure q[0]\n'
         self.assertTrue(measure_line not in result)
+
+    def test_generate_cqasm_correct_output_measure_q0_non_fsp(self):
+        instructions = [{'memory': [0], 'name': 'measure', 'qubits': [0]}]
+        result = self._generate_cqasm_from_instructions(instructions, 3, False)
+        measure_line = 'measure q[0]\n'
+        self.assertTrue(measure_line in result)
+
+    def test_generate_cqasm_correct_output_measure_q1_non_fsp(self):
+        instructions = [{'memory': [0], 'name': 'measure', 'qubits': [1]}]
+        result = self._generate_cqasm_from_instructions(instructions, 3, False)
+        measure_line = 'measure q[1]\n'
+        self.assertTrue(measure_line in result)
 
     def test_generate_cqasm_correct_output_hadamard(self):
         instructions = [{'name': 'h', 'qubits': [0]}]

@@ -16,6 +16,7 @@ limitations under the License.
 """
 
 import os
+import warnings
 import json
 import io
 from coreapi.exceptions import CoreAPIException, ErrorMessage
@@ -486,7 +487,7 @@ class TestQuantumInspireAPI(TestCase):
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
         self.assertRaises(ApiError, api.delete_job, identity)
 
-    def __test_create_job_has_correct_input_and_output(self, full_state_projection):
+    def test_create_job_has_correct_input_and_output_without_fsp(self):
         name = 'TestJob'
         asset = {'url': 'https://api.quantum-inspire.com/assets/1/'}
         project = {'backend_type': 'https://api.quantum-inspire.com/backendtypes/1/'}
@@ -497,20 +498,50 @@ class TestQuantumInspireAPI(TestCase):
             'input': asset['url'],
             'backend_type': project['backend_type'],
             'number_of_shots': number_of_shots,
-            'full_state_projection': full_state_projection,
+            'full_state_projection': False,
             'user_data': ''
         }
         expected = self.__mock_job_handler({}, 'create', None, None, ['test', 'create'], {})
         self.coreapi_client.handlers['jobs'] = partial(self.__mock_job_handler, expected_payload, 'create')
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
-        actual = api._create_job(name, asset, project, number_of_shots, full_state_projection=full_state_projection)
-        self.assertDictEqual(expected, actual)
+        with warnings.catch_warnings(record=True) as w:
+            # Cause all warnings to always be triggered.
+            warnings.simplefilter("always")
+            actual = api._create_job(name, asset, project, number_of_shots, full_state_projection=False)
+            self.assertDictEqual(expected, actual)
+            # Verify warnings
+            self.assertTrue(len(w) == 1)
+            self.assertTrue(issubclass(w[-1].category, UserWarning))
+            self.assertTrue("Your experiment can not be optimized and may take longer to execute" in str(w[-1].message))
 
-    def test_create_job_has_correct_input_and_output_without_fsp(self):
-        self.__test_create_job_has_correct_input_and_output(False)
+        api.show_fsp_warning(enable=False)  # Suppress warning about non fsp
+        with warnings.catch_warnings(record=True) as w:
+            # Cause all warnings to always be triggered.
+            warnings.simplefilter("always")
+            actual = api._create_job(name, asset, project, number_of_shots, full_state_projection=False)
+            self.assertDictEqual(expected, actual)
+            # Verify warnings
+            self.assertTrue(len(w) == 0)
 
     def test_create_job_has_correct_input_and_output_with_fsp(self):
-        self.__test_create_job_has_correct_input_and_output(True)
+        name = 'TestJob'
+        asset = {'url': 'https://api.quantum-inspire.com/assets/1/'}
+        project = {'backend_type': 'https://api.quantum-inspire.com/backendtypes/1/'}
+        number_of_shots = 1
+        expected_payload = {
+            'status': 'NEW',
+            'name': name,
+            'input': asset['url'],
+            'backend_type': project['backend_type'],
+            'number_of_shots': number_of_shots,
+            'full_state_projection': True,
+            'user_data': ''
+        }
+        expected = self.__mock_job_handler({}, 'create', None, None, ['test', 'create'], {})
+        self.coreapi_client.handlers['jobs'] = partial(self.__mock_job_handler, expected_payload, 'create')
+        api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
+        actual = api._create_job(name, asset, project, number_of_shots, full_state_projection=True)
+        self.assertDictEqual(expected, actual)
 
     def __mock_list_results_handler(self, mock_api, document, keys, params=None, validate=None,
                                     overrides=None, action=None, encoding=None, transform=None):
