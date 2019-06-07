@@ -114,6 +114,13 @@ class QuantumInspireAPI:
         return self.__client.get(uri_path)
 
     def show_fsp_warning(self, enable: bool = True) -> None:
+        """ The warning that is printed when a non-FSP (full state projection) job is about to run can be controlled,
+        i.e. enabled or disabled via this method.
+
+        Args:
+            enable: when True the fsp-warning is shown, otherwise not.
+
+        """
         self.enable_fsp_warning = enable
 
     def _action(self, action: List[str], params: Optional[Dict[str, Any]] = None) -> Any:
