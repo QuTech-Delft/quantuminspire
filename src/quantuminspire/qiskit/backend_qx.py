@@ -16,6 +16,7 @@ limitations under the License.
 
 """
 import io
+import logging
 import json
 import uuid
 import numpy as np
@@ -36,6 +37,7 @@ from quantuminspire.api import QuantumInspireAPI
 from quantuminspire.exceptions import QisKitBackendError
 from quantuminspire.job import QuantumInspireJob
 from quantuminspire.version import __version__ as quantum_inspire_version
+logger = logging.getLogger(__name__)
 
 
 class QuantumInspireBackend(BaseBackend):  # type: ignore
@@ -113,11 +115,10 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
         job = QIJob(self, str(project['id']), self.__api)
         for experiment in experiments:
             self.__validate_number_of_clbits(experiment)
-            full_state_projection = self.__validate_full_state_projection(experiment)
-            if not full_state_projection:
-                QuantumInspireBackend.__validate_non_fsp_measurements(experiment)
+            self.__validate_has_measurements(experiment)
+            self.__validate_unsupported_measurements(experiment)
             self._submit_experiment(experiment, number_of_shots, project=project,
-                                    full_state_projection=full_state_projection)
+                                    full_state_projection=False)
 
         job.experiments = experiments
         return job
@@ -169,6 +170,7 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
         measurements = self._collect_measurements(experiment)
         user_data = {'name': experiment.header.name, 'memory_slots': experiment.header.memory_slots,
                      'creg_sizes': experiment.header.creg_sizes, 'measurements': measurements}
+        self.__api.show_fsp_warning(False)
         job_id = self.__api.execute_qasm_async(compiled_qasm, backend_type=self.__backend,
                                                number_of_shots=number_of_shots, project=project,
                                                job_name=experiment.header.name, user_data=json.dumps(user_data),
@@ -257,24 +259,18 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
                                                  " number of qubits when using conditional gate operations")
 
     @staticmethod
-    def __validate_full_state_projection(experiment: QasmQobjExperiment) -> bool:
-        """ When using FSP (full state projection) measurment instructions cannot be handled correctly.
-            Therefore FSP is not supported when measurements are found.
+    def __validate_has_measurements(experiment: QasmQobjExperiment):
+        """ When no measurements are found a warning is printed. All classical registers will be zero.
 
         Args:
             experiment: The experiment with gate operations and header.
 
-        Returns
-            True: When the experiment supports FSP.
-            False: When the experiment doesn't supports FSP.
         """
-        for instruction in experiment.instructions:
-            if instruction.name == 'measure':
-                return False
-        return True
+        if 'measure' not in [instruction.name for instruction in experiment.instructions]:
+            logger.warning("No measurements in the circuit, classical registers in the result will remain all zeros.")
 
     @staticmethod
-    def __validate_non_fsp_measurements(experiment: QasmQobjExperiment):
+    def __validate_unsupported_measurements(experiment: QasmQobjExperiment):
         """ When using non-FSP (not full state projection) certain measurements cannot be handled correctly because
             cQASM isn't as flexible as Qiskit in measuring to specific classical bits.
             Therefore some Qiskit constructions are not supported in QI:

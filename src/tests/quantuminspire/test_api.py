@@ -16,7 +16,8 @@ limitations under the License.
 """
 
 import os
-import warnings
+import sys
+import logging
 import json
 import io
 from coreapi.exceptions import CoreAPIException, ErrorMessage
@@ -504,24 +505,25 @@ class TestQuantumInspireAPI(TestCase):
         expected = self.__mock_job_handler({}, 'create', None, None, ['test', 'create'], {})
         self.coreapi_client.handlers['jobs'] = partial(self.__mock_job_handler, expected_payload, 'create')
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
-        with warnings.catch_warnings(record=True) as w:
-            # Cause all warnings to always be triggered.
-            warnings.simplefilter("always")
-            actual = api._create_job(name, asset, project, number_of_shots, full_state_projection=False)
-            self.assertDictEqual(expected, actual)
-            # Verify warnings
-            self.assertTrue(len(w) == 1)
-            self.assertTrue(issubclass(w[-1].category, UserWarning))
-            self.assertTrue("Your experiment can not be optimized and may take longer to execute" in str(w[-1].message))
+        with patch('sys.stdout', new_callable=io.StringIO) as mock_stdout:
+            stream_handler = logging.StreamHandler(sys.stdout)
+            logging.getLogger().addHandler(stream_handler)
 
-        api.show_fsp_warning(enable=False)  # Suppress warning about non fsp
-        with warnings.catch_warnings(record=True) as w:
-            # Cause all warnings to always be triggered.
-            warnings.simplefilter("always")
+            api.show_fsp_warning(enable=False)  # Suppress warning about non fsp
             actual = api._create_job(name, asset, project, number_of_shots, full_state_projection=False)
             self.assertDictEqual(expected, actual)
-            # Verify warnings
-            self.assertTrue(len(w) == 0)
+            # Verify that no warning was printed
+            print_string = mock_stdout.getvalue()
+            self.assertTrue(len(print_string) == 0)
+
+            api.show_fsp_warning(enable=True)  # Enable warning about non fsp
+            actual = api._create_job(name, asset, project, number_of_shots, full_state_projection=False)
+            self.assertDictEqual(expected, actual)
+            # Verify warning
+            print_string = mock_stdout.getvalue()
+            self.assertIn('Your experiment can not be optimized and may take longer to execute', print_string)
+
+            logging.getLogger().removeHandler(stream_handler)
 
     def test_create_job_has_correct_input_and_output_with_fsp(self):
         name = 'TestJob'
