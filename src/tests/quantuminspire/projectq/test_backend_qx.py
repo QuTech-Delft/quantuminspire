@@ -172,7 +172,16 @@ class TestProjectQBackend(unittest.TestCase):
                             control_qubits=[MagicMock(id=identity - 1), MagicMock(id=identity)])
         backend._store(command)
 
-    def test_store_returns_correct_qasm_program(self):
+    def test_store_returns_correct_qasm_fsp_program_1(self):
+        api = MockApiClient()
+        backend = QIBackend(quantum_inspire_api=api)
+        backend.main_engine = MagicMock(mapper=None)
+        angle = 0.1
+        self.__store_function(backend, 0, H)
+        self.__store_function(backend, 1, NOT, count=1)
+        self.assertEqual(backend.qasm, "\nh q[0]\ncnot q[0], q[1]")
+
+    def test_store_returns_correct_qasm_fsp_program_2(self):
         api = MockApiClient()
         backend = QIBackend(quantum_inspire_api=api)
         backend.main_engine = MagicMock(mapper=None)
@@ -180,7 +189,30 @@ class TestProjectQBackend(unittest.TestCase):
         self.__store_function(backend, 0, H)
         self.__store_function(backend, 1, NOT, count=1)
         self.__store_function(backend, 0, Measure)
-        self.assertEqual(backend.qasm, "\nh q[0]\ncnot q[0], q[1]\nmeasure q[0]")
+        self.__store_function(backend, 1, Measure)
+        self.assertEqual(backend.qasm, "\nh q[0]\ncnot q[0], q[1]")
+
+    def test_store_returns_correct_qasm_non_fsp_program_1(self):
+        api = MockApiClient()
+        backend = QIBackend(quantum_inspire_api=api)
+        backend.main_engine = MagicMock(mapper=None)
+        angle = 0.1
+        self.__store_function(backend, 0, Measure)
+        self.__store_function(backend, 1, Measure)
+        self.__store_function(backend, 0, H)
+        self.__store_function(backend, 1, NOT, count=1)
+        self.assertEqual(backend.qasm, "\nmeasure q[0]\nmeasure q[1]\nh q[0]\ncnot q[0], q[1]")
+
+    def test_store_returns_correct_qasm_non_fsp_program_2(self):
+        api = MockApiClient()
+        backend = QIBackend(quantum_inspire_api=api)
+        backend.main_engine = MagicMock(mapper=None)
+        angle = 0.1
+        self.__store_function(backend, 0, H)
+        self.__store_function(backend, 0, Measure)
+        self.__store_function(backend, 1, NOT, count=1)
+        self.__store_function(backend, 1, Measure)
+        self.assertEqual(backend.qasm, "\nh q[0]\nmeasure q[0]\ncnot q[0], q[1]\nmeasure q[1]")
 
     def test_store_raises_error(self):
         angle = 0.1
@@ -212,6 +244,8 @@ class TestProjectQBackend(unittest.TestCase):
                             control_qubits=[MagicMock(id=2), MagicMock(id=3)],
                             tags=[])
         backend.main_engine = MagicMock(mapper=None)
+        backend._clear = False
+        backend._full_state_projection = False
         backend._store(command)
         self.assertEqual(backend.qasm, "\nmeasure q[0]")
 
@@ -240,6 +274,8 @@ class TestProjectQBackend(unittest.TestCase):
                             control_qubits=[MagicMock(id=2), MagicMock(id=3)],
                             tags=[LogicalQubitIDTag(mock_tag)])
         backend.main_engine = MagicMock(mapper="mapper")
+        backend._clear = False
+        backend._full_state_projection = False
         backend._store(command)
         self.assertEqual(backend._measured_ids, [mock_tag])
         self.assertEqual(backend.qasm, "\nmeasure q[0]")
@@ -254,6 +290,8 @@ class TestProjectQBackend(unittest.TestCase):
                             control_qubits=[MagicMock(id=2), MagicMock(id=3)],
                             tags=[])
         backend.main_engine = MagicMock(mapper=None)
+        backend._clear = False
+        backend._full_state_projection = False
         backend._store(command)
         self.assertEqual(backend._measured_ids, [mock_tag])
 

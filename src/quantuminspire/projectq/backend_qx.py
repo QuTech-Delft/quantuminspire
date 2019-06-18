@@ -66,7 +66,7 @@ class QIBackend(BasicEngine):  # type: ignore
         self._measured_ids: List[int] = []
         self._allocated_qubits: Set[int] = set()
         self._max_qubit_id: int = -1
-        self._full_state_projection = False
+        self._full_state_projection = True
         if quantum_inspire_api is None:
             try:
                 quantum_inspire_api = QuantumInspireAPI()
@@ -132,7 +132,7 @@ class QIBackend(BasicEngine):  # type: ignore
             self.qasm = ""
             self._measured_states = {}
             self._measured_ids = []
-            self._full_state_projection = False
+            self._full_state_projection = True
 
         gate = cmd.gate
 
@@ -170,6 +170,14 @@ class QIBackend(BasicEngine):  # type: ignore
             if not self._full_state_projection:
                 self.qasm += "\nmeasure q[{}]".format(cmd.qubits[0][0].id)
             return
+
+        # when we find a gate after measurements we don't have fsp
+        # add any delayed measurement statements
+        if self._full_state_projection and (len(self._measured_ids) != 0):
+            for logical_qubit_id in self._measured_ids:
+                physical_qubit_id = self._logical_to_physical(logical_qubit_id)
+                self.qasm += "\nmeasure q[{}]".format(physical_qubit_id)
+            self._full_state_projection = False
 
         if gate == NOT and get_control_count(cmd) == 1:
             # this case also covers the CX controlled gate
@@ -317,7 +325,7 @@ class QIBackend(BasicEngine):  # type: ignore
         # Finally: add measurement commands for all measured qubits if no measurements are given.
         # Only measurements after all gate operations will perform properly in FSP.
         if not self._measured_ids:
-            self._full_state_projection = True
+            assert self._full_state_projection
             self.__add_measure_all_qubits()
 
         self._finalize_qasm()
