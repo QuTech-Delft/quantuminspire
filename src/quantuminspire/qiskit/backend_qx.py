@@ -16,7 +16,6 @@ limitations under the License.
 
 """
 import io
-import logging
 import json
 import uuid
 import numpy as np
@@ -37,7 +36,6 @@ from quantuminspire.api import QuantumInspireAPI
 from quantuminspire.exceptions import QisKitBackendError
 from quantuminspire.job import QuantumInspireJob
 from quantuminspire.version import __version__ as quantum_inspire_version
-logger = logging.getLogger(__name__)
 
 
 class QuantumInspireBackend(BaseBackend):  # type: ignore
