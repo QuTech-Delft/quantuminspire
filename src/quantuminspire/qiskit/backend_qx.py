@@ -278,7 +278,7 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
         return fsp
 
     @staticmethod
-    def __validate_unsupported_measurements(experiment: QasmQobjExperiment):
+    def __validate_unsupported_measurements(experiment: QasmQobjExperiment) -> None:
         """ When using non-FSP (not full state projection) certain measurements cannot be handled correctly because
             cQASM isn't as flexible as Qiskit in measuring to specific classical bits.
             Therefore some Qiskit constructions are not supported in QI:
@@ -291,7 +291,7 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
         Raises:
             QisKitBackendError: When the circuit contains an invalid non-FSP measurement
         """
-        measurements = []
+        measurements: List[List[int]] = []
         for instruction in experiment.instructions:
             if instruction.name == 'measure':
                 for q, m in measurements:
