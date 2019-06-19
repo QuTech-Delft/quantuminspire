@@ -344,6 +344,26 @@ class TestQiSimulatorPy(unittest.TestCase):
             api.get_jobs_from_project.return_value = []
             api.execute_qasm_async.return_value = 42
             simulator = QuantumInspireBackend(api, Mock())
+            instructions = [{'memory': [0], 'name': 'measure', 'qubits': [0]},
+                            {'name': 'cx', 'qubits': [0, 1]},
+                            {'name': 'x', 'qubits': [0]},
+                            {'memory': [1], 'name': 'measure', 'qubits': [1]}]
+            experiment = self._basic_experiment_dictionary
+            experiment['instructions'] = instructions
+            qjob_dict = self._basic_qobj_dictionary
+            qjob_dict['experiments'][0] = experiment
+            qobj = QasmQobj.from_dict(qjob_dict)
+            experiment = qobj.experiments[0]
+            simulator.run(qobj)
+        result_experiment.assert_called_once_with(experiment, 25, project=project, full_state_projection=False)
+
+        with patch.object(QuantumInspireBackend, "_submit_experiment", return_value=Mock()) as result_experiment:
+            api = Mock()
+            project = {'id': 42}
+            api.create_project.return_value = project
+            api.get_jobs_from_project.return_value = []
+            api.execute_qasm_async.return_value = 42
+            simulator = QuantumInspireBackend(api, Mock())
             instructions = [{'name': 'cx', 'qubits': [0, 1]},
                             {'name': 'x', 'qubits': [0]},
                             {'memory': [0], 'name': 'measure', 'qubits': [1]}]
@@ -354,7 +374,7 @@ class TestQiSimulatorPy(unittest.TestCase):
             qobj = QasmQobj.from_dict(qjob_dict)
             experiment = qobj.experiments[0]
             simulator.run(qobj)
-        result_experiment.assert_called_once_with(experiment, 25, project=project, full_state_projection=False)
+        result_experiment.assert_called_once_with(experiment, 25, project=project, full_state_projection=True)
 
         with patch.object(QuantumInspireBackend, "_submit_experiment", return_value=Mock()) as result_experiment:
             api = Mock()

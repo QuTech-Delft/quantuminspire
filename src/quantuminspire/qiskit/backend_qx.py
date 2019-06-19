@@ -115,10 +115,11 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
         job = QIJob(self, str(project['id']), self.__api)
         for experiment in experiments:
             self.__validate_number_of_clbits(experiment)
-            self.__validate_has_measurements(experiment)
-            self.__validate_unsupported_measurements(experiment)
+            full_state_projection = self.__validate_full_state_projection(experiment)
+            if not full_state_projection:
+                QuantumInspireBackend.__validate_unsupported_measurements(experiment)
             self._submit_experiment(experiment, number_of_shots, project=project,
-                                    full_state_projection=False)
+                                    full_state_projection=full_state_projection)
 
         job.experiments = experiments
         return job
@@ -170,7 +171,6 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
         measurements = self._collect_measurements(experiment)
         user_data = {'name': experiment.header.name, 'memory_slots': experiment.header.memory_slots,
                      'creg_sizes': experiment.header.creg_sizes, 'measurements': measurements}
-        self.__api.show_fsp_warning(False)
         job_id = self.__api.execute_qasm_async(compiled_qasm, backend_type=self.__backend,
                                                number_of_shots=number_of_shots, project=project,
                                                job_name=experiment.header.name, user_data=json.dumps(user_data),
@@ -259,15 +259,25 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
                                                  " number of qubits when using conditional gate operations")
 
     @staticmethod
-    def __validate_has_measurements(experiment: QasmQobjExperiment):
-        """ When no measurements are found a warning is printed. All classical registers will be zero.
+    def __validate_full_state_projection(experiment: QasmQobjExperiment) -> bool:
+        """ FSP (Full State Projection) can be used when no measurements are found in the circuit or when no
+            other gates are found after measurements.
 
         Args:
             experiment: The experiment with gate operations and header.
 
+        Returns:
+            True when FSP can be used, otherwise False.
         """
-        if 'measure' not in [instruction.name for instruction in experiment.instructions]:
-            logger.warning("No measurements in the circuit, classical registers in the result will remain all zeros.")
+        fsp = True
+        measurement_found = False
+        for instruction in experiment.instructions:
+            if instruction.name == 'measure':
+                measurement_found = True
+            else:
+                if measurement_found:
+                    fsp = False
+        return fsp
 
     @staticmethod
     def __validate_unsupported_measurements(experiment: QasmQobjExperiment):
