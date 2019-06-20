@@ -63,6 +63,11 @@ class TestProjectQBackend(unittest.TestCase):
         self.assertNotEqual(backend.quantum_inspire_api, None)
         self.assertIsNone(backend.backend_type)
 
+    def test_init_raises_error_no_runs(self):
+        num_runs = 0
+        self.assertRaisesRegex(ProjectQBackendError, 'Invalid number of runs \(num_runs=0\)',
+                               QIBackend, num_runs)
+
     def test_init_raises_no_account_authentication_error(self):
         json.load = MagicMock()
         json.load.return_value = {'faulty_key': 'faulty_token'}
@@ -123,9 +128,9 @@ class TestProjectQBackend(unittest.TestCase):
         api = MockApiClient()
         function_mock.return_value = count
         backend = QIBackend(quantum_inspire_api=api, verbose=verbose)
-        command = MagicMock(gate=gate, qubits=[[MagicMock(id=identity)], [MagicMock(id=identity + 1)]],
-                            control_qubits=[MagicMock(id=identity - 1), MagicMock(id=identity)])
-        backend._store(command)
+        command = [MagicMock(gate=gate, qubits=[[MagicMock(id=identity)], [MagicMock(id=identity + 1)]],
+                             control_qubits=[MagicMock(id=identity - 1), MagicMock(id=identity)])]
+        backend.receive(command)
         self.assertEqual(backend.qasm, qasm)
 
     @patch('quantuminspire.projectq.backend_qx.get_control_count')
@@ -134,9 +139,9 @@ class TestProjectQBackend(unittest.TestCase):
         api = MockApiClient()
         function_mock.return_value = count
         backend = QIBackend(quantum_inspire_api=api)
-        command = MagicMock(gate=gate, qubits=[[MagicMock(id=identity)], [MagicMock(id=identity + 1)]],
-                            control_qubits=[MagicMock(id=identity - 1), MagicMock(id=identity)])
-        self.assertRaises(NotImplementedError, backend._store, command)
+        command = [MagicMock(gate=gate, qubits=[[MagicMock(id=identity)], [MagicMock(id=identity + 1)]],
+                             control_qubits=[MagicMock(id=identity - 1), MagicMock(id=identity)])]
+        self.assertRaises(NotImplementedError, backend.receive, command)
 
     def test_store_returns_correct_qasm(self):
         angle = 0.1
@@ -159,6 +164,51 @@ class TestProjectQBackend(unittest.TestCase):
         self.__store_function_assert_equal(0, Sdag, "\nsdag q[0]")
         self.__store_function_assert_equal(0, T, "\nt q[0]")
         self.__store_function_assert_equal(0, Tdag, "\ntdag q[0]")
+
+    @patch('quantuminspire.projectq.backend_qx.get_control_count')
+    def __store_function(self, backend, identity, gate, function_mock, count=0):
+        function_mock.return_value = count
+        command = [MagicMock(gate=gate, qubits=[[MagicMock(id=identity)]],
+                             control_qubits=[MagicMock(id=identity - 1), MagicMock(id=identity)])]
+        backend.receive(command)
+
+    def test_store_returns_correct_qasm_fsp_program_1(self):
+        api = MockApiClient()
+        backend = QIBackend(quantum_inspire_api=api)
+        backend.main_engine = MagicMock(mapper=None)
+        self.__store_function(backend, 0, H)
+        self.__store_function(backend, 1, NOT, count=1)
+        self.assertEqual(backend.qasm, "\nh q[0]\ncnot q[0], q[1]")
+
+    def test_store_returns_correct_qasm_fsp_program_2(self):
+        api = MockApiClient()
+        backend = QIBackend(quantum_inspire_api=api)
+        backend.main_engine = MagicMock(mapper=None)
+        self.__store_function(backend, 0, H)
+        self.__store_function(backend, 1, NOT, count=1)
+        self.__store_function(backend, 0, Measure)
+        self.__store_function(backend, 1, Measure)
+        self.assertEqual(backend.qasm, "\nh q[0]\ncnot q[0], q[1]")
+
+    def test_store_returns_correct_qasm_non_fsp_program_1(self):
+        api = MockApiClient()
+        backend = QIBackend(quantum_inspire_api=api)
+        backend.main_engine = MagicMock(mapper=None)
+        self.__store_function(backend, 0, Measure)
+        self.__store_function(backend, 1, Measure)
+        self.__store_function(backend, 0, H)
+        self.__store_function(backend, 1, NOT, count=1)
+        self.assertEqual(backend.qasm, "\nmeasure q[0]\nmeasure q[1]\nh q[0]\ncnot q[0], q[1]")
+
+    def test_store_returns_correct_qasm_non_fsp_program_2(self):
+        api = MockApiClient()
+        backend = QIBackend(quantum_inspire_api=api)
+        backend.main_engine = MagicMock(mapper=None)
+        self.__store_function(backend, 0, H)
+        self.__store_function(backend, 0, Measure)
+        self.__store_function(backend, 1, NOT, count=1)
+        self.__store_function(backend, 1, Measure)
+        self.assertEqual(backend.qasm, "\nh q[0]\nmeasure q[0]\ncnot q[0], q[1]\nmeasure q[1]")
 
     def test_store_raises_error(self):
         angle = 0.1
@@ -186,12 +236,15 @@ class TestProjectQBackend(unittest.TestCase):
         api = MockApiClient()
         function_mock.return_value = 4
         backend = QIBackend(quantum_inspire_api=api)
-        command = MagicMock(gate=Measure, qubits=[[MagicMock(id=0)]],
-                            control_qubits=[MagicMock(id=2), MagicMock(id=3)],
-                            tags=[LogicalQubitIDTag(mock_tag)])
-        backend.main_engine = MagicMock(mapper="mapper")
-        backend._store(command)
+        mapper = MagicMock(current_mapping={mock_tag: 0})
+        backend.main_engine = MagicMock(mapper=mapper)
+        command = [MagicMock(gate=Measure, qubits=[[MagicMock(id=0)]],
+                             control_qubits=[MagicMock(id=2), MagicMock(id=3)],
+                             tags=[LogicalQubitIDTag(mock_tag)])]
+        backend.receive(command)
+        self.__store_function(backend, 0, H)
         self.assertEqual(backend._measured_ids, [mock_tag])
+        self.assertEqual(backend.qasm, "\nmeasure q[0]\nh q[0]")
 
     @patch('quantuminspire.projectq.backend_qx.get_control_count')
     def test_store_measure_gate_without_mapper(self, function_mock):
@@ -199,12 +252,13 @@ class TestProjectQBackend(unittest.TestCase):
         api = MockApiClient()
         function_mock.return_value = 4
         backend = QIBackend(quantum_inspire_api=api)
-        command = MagicMock(gate=Measure, qubits=[[MagicMock(id=mock_tag)]],
-                            control_qubits=[MagicMock(id=2), MagicMock(id=3)],
-                            tags=[])
         backend.main_engine = MagicMock(mapper=None)
-        backend._store(command)
-        self.assertEqual(backend._measured_ids, [mock_tag])
+        command = [MagicMock(gate=Measure, qubits=[[MagicMock(id=mock_tag)]],
+                             control_qubits=[MagicMock(id=2), MagicMock(id=3)],
+                             tags=[])]
+        backend.receive(command)
+        self.__store_function(backend, 0, H)
+        self.assertEqual(backend.qasm, "\nmeasure q[mock_my_tag]\nh q[0]")
 
     def test_logical_to_physical_with_mapper_returns_correct_result(self):
         qd_id = 0
