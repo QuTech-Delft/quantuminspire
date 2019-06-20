@@ -4,7 +4,7 @@ from typing import List, Optional, Any
 from qiskit.providers import BaseJob, JobStatus, JobError, JobTimeoutError
 from qiskit.qobj import QasmQobj, QasmQobjExperiment
 from qiskit.result import Result
-from quantuminspire import __version__ as quantum_inspire_version
+from quantuminspire.version import __version__ as quantum_inspire_version
 from quantuminspire.api import QuantumInspireAPI
 
 
