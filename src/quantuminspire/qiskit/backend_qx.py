@@ -225,9 +225,10 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
 
     def __validate_number_of_clbits(self, experiment: QasmQobjExperiment) -> None:
         """ Checks whether the number of classical bits has a value cQASM can support.
+
             1. When number of classical bits is less than 1 an error is raised.
-            2. When binary controlled gates are used and the number of classical registers >
-            number of classical registers an error is raised.
+            2. When binary controlled gates are used and the number of classical registers > number of classical
+            registers an error is raised.
                 When using binary controlled gates in Qiskit, we can have something like:
                 q = QuantumRegister(2)
                 c = ClassicalRegister(4)
@@ -272,9 +273,8 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
         for instruction in experiment.instructions:
             if instruction.name == 'measure':
                 measurement_found = True
-            else:
-                if measurement_found:
-                    fsp = False
+            elif measurement_found:
+                fsp = False
         return fsp
 
     @staticmethod
@@ -282,6 +282,7 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
         """ When using non-FSP (not full state projection) certain measurements cannot be handled correctly because
             cQASM isn't as flexible as Qiskit in measuring to specific classical bits.
             Therefore some Qiskit constructions are not supported in QI:
+
             1. When a quantum register is measured to different classical registers
             2. When a classical register is used for the measurement of more than one quantum register
 

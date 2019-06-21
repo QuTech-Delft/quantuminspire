@@ -473,7 +473,7 @@ class QuantumInspireAPI:
         }
         if not full_state_projection and self.enable_fsp_warning:
             logger.warning("Your experiment can not be optimized and may take longer to execute, "
-                          "see https://www.quantum-inspire.com/kbase/optimization-of-simulations/ for details.")
+                           "see https://www.quantum-inspire.com/kbase/optimization-of-simulations/ for details.")
         return OrderedDict(self._action(['jobs', 'create'], params=payload))
 
     #  results  #

@@ -317,7 +317,7 @@ class TestQiSimulatorPy(unittest.TestCase):
                                                    ' number of qubits when using conditional gate operations',
                                simulator.run, job)
 
-    def test_for_full_state_projection(self):
+    def test_for_non_fsp_gate_after_measurement(self):
         with patch.object(QuantumInspireBackend, "_submit_experiment", return_value=Mock()) as result_experiment:
             api = Mock()
             project = {'id': 42}
@@ -337,6 +337,7 @@ class TestQiSimulatorPy(unittest.TestCase):
             simulator.run(qobj)
         result_experiment.assert_called_once_with(experiment, 25, project=project, full_state_projection=False)
 
+    def test_for_non_fsp_measurements_at_begin_and_end(self):
         with patch.object(QuantumInspireBackend, "_submit_experiment", return_value=Mock()) as result_experiment:
             api = Mock()
             project = {'id': 42}
@@ -357,6 +358,7 @@ class TestQiSimulatorPy(unittest.TestCase):
             simulator.run(qobj)
         result_experiment.assert_called_once_with(experiment, 25, project=project, full_state_projection=False)
 
+    def test_for_fsp_measurements_at_end_only(self):
         with patch.object(QuantumInspireBackend, "_submit_experiment", return_value=Mock()) as result_experiment:
             api = Mock()
             project = {'id': 42}
@@ -376,6 +378,7 @@ class TestQiSimulatorPy(unittest.TestCase):
             simulator.run(qobj)
         result_experiment.assert_called_once_with(experiment, 25, project=project, full_state_projection=True)
 
+    def test_for_fsp_no_measurements(self):
         with patch.object(QuantumInspireBackend, "_submit_experiment", return_value=Mock()) as result_experiment:
             api = Mock()
             project = {'id': 42}
