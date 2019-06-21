@@ -16,6 +16,8 @@ limitations under the License.
 """
 
 import os
+import sys
+import logging
 import json
 import io
 from coreapi.exceptions import CoreAPIException, ErrorMessage
@@ -486,7 +488,7 @@ class TestQuantumInspireAPI(TestCase):
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
         self.assertRaises(ApiError, api.delete_job, identity)
 
-    def __test_create_job_has_correct_input_and_output(self, full_state_projection):
+    def test_create_job_has_correct_input_and_output_without_fsp(self):
         name = 'TestJob'
         asset = {'url': 'https://api.quantum-inspire.com/assets/1/'}
         project = {'backend_type': 'https://api.quantum-inspire.com/backendtypes/1/'}
@@ -497,20 +499,51 @@ class TestQuantumInspireAPI(TestCase):
             'input': asset['url'],
             'backend_type': project['backend_type'],
             'number_of_shots': number_of_shots,
-            'full_state_projection': full_state_projection,
+            'full_state_projection': False,
             'user_data': ''
         }
         expected = self.__mock_job_handler({}, 'create', None, None, ['test', 'create'], {})
         self.coreapi_client.handlers['jobs'] = partial(self.__mock_job_handler, expected_payload, 'create')
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
-        actual = api._create_job(name, asset, project, number_of_shots, full_state_projection=full_state_projection)
-        self.assertDictEqual(expected, actual)
+        with patch('sys.stdout', new_callable=io.StringIO) as mock_stdout:
+            stream_handler = logging.StreamHandler(sys.stdout)
+            logging.getLogger().addHandler(stream_handler)
 
-    def test_create_job_has_correct_input_and_output_without_fsp(self):
-        self.__test_create_job_has_correct_input_and_output(False)
+            api.show_fsp_warning(enable=False)  # Suppress warning about non fsp
+            actual = api._create_job(name, asset, project, number_of_shots, full_state_projection=False)
+            self.assertDictEqual(expected, actual)
+            # Verify that no warning was printed
+            print_string = mock_stdout.getvalue()
+            self.assertTrue(len(print_string) == 0)
+
+            api.show_fsp_warning(enable=True)  # Enable warning about non fsp
+            actual = api._create_job(name, asset, project, number_of_shots, full_state_projection=False)
+            self.assertDictEqual(expected, actual)
+            # Verify warning
+            print_string = mock_stdout.getvalue()
+            self.assertIn('Your experiment can not be optimized and may take longer to execute', print_string)
+
+            logging.getLogger().removeHandler(stream_handler)
 
     def test_create_job_has_correct_input_and_output_with_fsp(self):
-        self.__test_create_job_has_correct_input_and_output(True)
+        name = 'TestJob'
+        asset = {'url': 'https://api.quantum-inspire.com/assets/1/'}
+        project = {'backend_type': 'https://api.quantum-inspire.com/backendtypes/1/'}
+        number_of_shots = 1
+        expected_payload = {
+            'status': 'NEW',
+            'name': name,
+            'input': asset['url'],
+            'backend_type': project['backend_type'],
+            'number_of_shots': number_of_shots,
+            'full_state_projection': True,
+            'user_data': ''
+        }
+        expected = self.__mock_job_handler({}, 'create', None, None, ['test', 'create'], {})
+        self.coreapi_client.handlers['jobs'] = partial(self.__mock_job_handler, expected_payload, 'create')
+        api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
+        actual = api._create_job(name, asset, project, number_of_shots, full_state_projection=True)
+        self.assertDictEqual(expected, actual)
 
     def __mock_list_results_handler(self, mock_api, document, keys, params=None, validate=None,
                                     overrides=None, action=None, encoding=None, transform=None):

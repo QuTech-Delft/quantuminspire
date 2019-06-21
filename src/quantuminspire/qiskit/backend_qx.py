@@ -103,7 +103,7 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
         Returns:
             A job that has been submitted.
         """
-        self.__validate(qobj)
+        self.__validate_number_of_shots(qobj)
         number_of_shots = qobj.config.shots
 
         identifier = uuid.uuid1()
@@ -111,7 +111,14 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
         project = self.__api.create_project(project_name, number_of_shots, self.__backend)
         experiments = qobj.experiments
         job = QIJob(self, str(project['id']), self.__api)
-        [self._submit_experiment(experiment, number_of_shots, project=project) for experiment in experiments]
+        for experiment in experiments:
+            self.__validate_number_of_clbits(experiment)
+            full_state_projection = self.__validate_full_state_projection(experiment)
+            if not full_state_projection:
+                QuantumInspireBackend.__validate_unsupported_measurements(experiment)
+            self._submit_experiment(experiment, number_of_shots, project=project,
+                                    full_state_projection=full_state_projection)
+
         job.experiments = experiments
         return job
 
@@ -134,16 +141,17 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
         return QIJob(self, job_id, self.__api)
 
     @staticmethod
-    def _generate_cqasm(experiment: QasmQobjExperiment) -> str:
+    def _generate_cqasm(experiment: QasmQobjExperiment, full_state_projection: bool = True) -> str:
         """ Generates the cQASM from the Qiskit experiment.
 
         Args:
             experiment: The experiment that contains instructions to be converted to cQASM.
+            full_state_projection: When False, the experiment is not suitable for full state projection
 
         Returns:
             The cQASM code that can be sent to the Quantum Inspire API.
         """
-        parser = CircuitToString()
+        parser = CircuitToString(full_state_projection)
         number_of_qubits = experiment.header.n_qubits
         instructions = experiment.instructions
         with io.StringIO() as stream:
@@ -155,14 +163,16 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
             return stream.getvalue()
 
     def _submit_experiment(self, experiment: QasmQobjExperiment, number_of_shots: int,
-                           project: Optional[Dict[str, Any]] = None) -> QuantumInspireJob:
-        compiled_qasm = self._generate_cqasm(experiment)
+                           project: Optional[Dict[str, Any]] = None,
+                           full_state_projection: bool = True) -> QuantumInspireJob:
+        compiled_qasm = self._generate_cqasm(experiment, full_state_projection=full_state_projection)
         measurements = self._collect_measurements(experiment)
         user_data = {'name': experiment.header.name, 'memory_slots': experiment.header.memory_slots,
                      'creg_sizes': experiment.header.creg_sizes, 'measurements': measurements}
         job_id = self.__api.execute_qasm_async(compiled_qasm, backend_type=self.__backend,
                                                number_of_shots=number_of_shots, project=project,
-                                               job_name=experiment.header.name, user_data=json.dumps(user_data))
+                                               job_name=experiment.header.name, user_data=json.dumps(user_data),
+                                               full_state_projection=full_state_projection)
         return job_id
 
     def get_experiment_results(self, qi_job: QIJob) -> List[ExperimentResult]:
@@ -199,18 +209,6 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
             experiment_results.append(ExperimentResult(**experiment_result_dictionary))
         return experiment_results
 
-    def __validate(self, job: QasmQobj) -> None:
-        """ Validates the number of shots, classical bits and compiled Qiskit circuits.
-
-        Args:
-            job: The quantum job with the Qiskit algorithm and quantum inspire backend.
-        """
-        QuantumInspireBackend.__validate_number_of_shots(job)
-
-        for experiment in job.experiments:
-            self.__validate_number_of_clbits(experiment)
-            QuantumInspireBackend.__validate_no_usage_after_measure(experiment)
-
     @staticmethod
     def __validate_number_of_shots(job: QasmQobj) -> None:
         """ Checks whether the number of shots has a valid value.
@@ -226,7 +224,19 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
             raise QisKitBackendError('Invalid shots (number_of_shots={})'.format(number_of_shots))
 
     def __validate_number_of_clbits(self, experiment: QasmQobjExperiment) -> None:
-        """ Checks whether the number of classical bits has a valid value.
+        """ Checks whether the number of classical bits has a value cQASM can support.
+
+            1. When number of classical bits is less than 1 an error is raised.
+            2. When binary controlled gates are used and the number of classical registers > number of classical
+            registers an error is raised.
+                When using binary controlled gates in Qiskit, we can have something like:
+                q = QuantumRegister(2)
+                c = ClassicalRegister(4)
+                circuit = QuantumCircuit(q, c)
+                circuit.h(q[0]).c_if(c, 15)
+
+                Because cQASM has the same number of classical registers as qubits (2 in this case),
+                this circuit cannot be translated to valid cQASM.
 
         Args:
             experiment: The experiment with gate operations and header.
@@ -248,41 +258,51 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
                                                  " number of qubits when using conditional gate operations")
 
     @staticmethod
-    def __validate_no_usage_after_measure(experiment: QasmQobjExperiment) -> None:
-        """ When using FSP (full state projection) certain instructions cannot be handled correctly because
-            intermediate measurements are not taking place in FSP. The measurements are postponed until the end of the
-            program.
-            Therefore some constructions are currently not supported:
-            1. When qubits are used again after being measured.
-            2. When conditional gate operations (binary controlled gates) are done based on previously measured
-               classical bits
+    def __validate_full_state_projection(experiment: QasmQobjExperiment) -> bool:
+        """ FSP (Full State Projection) can be used when no measurements are found in the circuit or when no
+            other gates are found after measurements.
+
+        Args:
+            experiment: The experiment with gate operations and header.
+
+        Returns:
+            True when FSP can be used, otherwise False.
+        """
+        fsp = True
+        measurement_found = False
+        for instruction in experiment.instructions:
+            if instruction.name == 'measure':
+                measurement_found = True
+            elif measurement_found:
+                fsp = False
+        return fsp
+
+    @staticmethod
+    def __validate_unsupported_measurements(experiment: QasmQobjExperiment) -> None:
+        """ When using non-FSP (not full state projection) certain measurements cannot be handled correctly because
+            cQASM isn't as flexible as Qiskit in measuring to specific classical bits.
+            Therefore some Qiskit constructions are not supported in QI:
+
+            1. When a quantum register is measured to different classical registers
+            2. When a classical register is used for the measurement of more than one quantum register
 
         Args:
             experiment: The experiment with gate operations and header.
 
         Raises:
-            QisKitBackendError: When a construction is used that is not supported.
+            QisKitBackendError: When the circuit contains an invalid non-FSP measurement
         """
-        measured_qubits = []
-        memory_bits = []
+        measurements: List[List[int]] = []
         for instruction in experiment.instructions:
             if instruction.name == 'measure':
-                for qubit in instruction.qubits:
-                    measured_qubits.append(qubit)
-                for qubit in instruction.memory:
-                    memory_bits.append(qubit)
-            else:
-                if hasattr(instruction, 'qubits'):
-                    for qubit in instruction.qubits:
-                        if qubit in measured_qubits:
-                            raise QisKitBackendError('Operation on qubit {} after measurement'.format(qubit))
-                if instruction.name == 'bfunc':
-                    lowest_mask_bit, mask_length = CircuitToString.get_mask_data(int(instruction.mask, 16))
-                    for bit in range(mask_length):
-                        mask_bit = bit + lowest_mask_bit
-                        if mask_bit in memory_bits:
-                            raise QisKitBackendError('Usage of binary controlled gates where the condition consists of '
-                                                     'earlier measured binary registers is currently not supported')
+                for q, m in measurements:
+                    if q == instruction.qubits[0] and m != instruction.memory[0]:
+                        raise QisKitBackendError('Measurement of qubit {} to different classical registers '
+                                                 'is not supported'.format(q))
+                    if q != instruction.qubits[0] and m == instruction.memory[0]:
+                        raise QisKitBackendError('Measurement of different qubits to the same classical register {0} '
+                                                 'is not supported'.format(m))
+                measurements.append([instruction.qubits[0], instruction.memory[0]])
 
     @staticmethod
     def _collect_measurements(experiment: QasmQobjExperiment) -> Dict[str, Any]:

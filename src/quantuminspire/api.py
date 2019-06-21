@@ -16,6 +16,7 @@ limitations under the License.
 """
 
 import itertools
+import logging
 import time
 import uuid
 from typing import Type, List, Dict, Union, Optional, Any
@@ -30,6 +31,7 @@ from quantuminspire.exceptions import ApiError, AuthenticationError
 from quantuminspire.job import QuantumInspireJob
 
 QI_URL = 'https://api.quantum-inspire.com'
+logger = logging.getLogger(__name__)
 
 
 class QuantumInspireAPI:
@@ -85,6 +87,7 @@ class QuantumInspireAPI:
         self.__client = coreapi_client_class(auth=authentication)
         self.project_name = project_name
         self.base_uri = base_uri
+        self.enable_fsp_warning = True
         try:
             self._load_schema()
         except (CoreAPIException, TypeError) as ex:
@@ -110,6 +113,16 @@ class QuantumInspireAPI:
             The resulting data from the get-request. The structure of the data depends on the request.
         """
         return self.__client.get(uri_path)
+
+    def show_fsp_warning(self, enable: bool = True) -> None:
+        """ The warning that is printed when a non-FSP (full state projection) job is about to run can be controlled,
+            i.e. enabled or disabled via this method.
+
+        Args:
+            enable: when True the fsp-warning is shown, otherwise not.
+
+        """
+        self.enable_fsp_warning = enable
 
     def _action(self, action: List[str], params: Optional[Dict[str, Any]] = None) -> Any:
         """ Adapter for performing an action on an object via the Quantum Inspire API.
@@ -458,6 +471,9 @@ class QuantumInspireAPI:
             'full_state_projection': full_state_projection,
             'user_data': user_data
         }
+        if not full_state_projection and self.enable_fsp_warning:
+            logger.warning("Your experiment can not be optimized and may take longer to execute, "
+                           "see https://www.quantum-inspire.com/kbase/optimization-of-simulations/ for details.")
         return OrderedDict(self._action(['jobs', 'create'], params=payload))
 
     #  results  #

@@ -26,8 +26,9 @@ from quantuminspire.exceptions import ApiError
 class CircuitToString:
     """ Contains the translational elements to convert the Qiskit circuits to cQASM code."""
 
-    def __init__(self) -> None:
+    def __init__(self, full_state_projection: bool = True) -> None:
         self.bfunc_instructions: List[QasmQobjInstruction] = []
+        self.full_state_projection = full_state_projection
 
     @staticmethod
     def _gate_not_supported(_stream: StringIO, instruction: QasmQobjInstruction, _binary_control: Optional[str] = None)\
@@ -559,16 +560,16 @@ class CircuitToString:
         """
         pass
 
-    @staticmethod
-    def _measure(stream: StringIO, instruction: QasmQobjInstruction) -> None:
-        """ Translates the measure element. No cQASM is added for this gate.
+    def _measure(self, stream: StringIO, instruction: QasmQobjInstruction) -> None:
+        """ Translates the measure element. No cQASM is added for this gate when FSP is used.
 
         Args:
             stream: The string-io stream to where the resulting cQASM is written.
             instruction: The Qiskit instruction to translate to cQASM.
 
         """
-        pass
+        if not self.full_state_projection:
+            stream.write('measure q[{0}]\n'.format(*instruction.qubits))
 
     @staticmethod
     def get_mask_data(mask: int) -> Tuple[int, int]:
