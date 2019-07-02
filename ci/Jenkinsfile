@@ -44,6 +44,9 @@ spec:
       '''
     }
   }
+  triggers {
+    cron(env.BRANCH_NAME == "dev" ? "H H(2-5) * * 1-5" : "")
+  }
   stages {
     stage('Workspace') {
       steps {
