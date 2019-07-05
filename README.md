@@ -125,7 +125,7 @@ result = qi.execute_qasm(qasm, backend_type=backend_type, number_of_shots=1024)
 print(result['histogram'])
 ```
 
-## Configure your token credentials for Quantum Inspire (expected soon)
+## Configure your token credentials for Quantum Inspire
 
 1. Create an Quantum Inspire account if you do not have already have one.
 2. Get an API token from the Quantum Inspire website.
@@ -163,10 +163,6 @@ auth = get_token_authentication()
 This `auth` can then be used to initialize the Quantum Inspire API object.
  ## Known issues
 
-* Authentication for the Quantum Inspire platform is currently password only; this
-  will change to API-token based authentication in the near future;
-* It is not possible to simulate algorithms that do not use full state
-  projection through Qiskit / ProjectQ
 * Some test-cases call protected methods
 * Known issues and common questions regarding the Quantum Inspire platform
   can be found in the [FAQ](https://www.quantum-inspire.com/faq/).
