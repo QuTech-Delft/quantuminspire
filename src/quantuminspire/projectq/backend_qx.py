@@ -22,7 +22,7 @@ limitations under the License.
 import random
 from collections import defaultdict
 from functools import reduce
-from typing import List, Dict, Iterator, Union, Optional, Any, Set
+from typing import List, Dict, Iterator, Union, Optional, Tuple
 
 from projectq.cengines import BasicEngine
 from projectq.meta import LogicalQubitIDTag, get_control_count
@@ -41,7 +41,7 @@ class QIBackend(BasicEngine):  # type: ignore
     """
 
     def __init__(self, num_runs: int = 1024, verbose: int = 0, quantum_inspire_api: Optional[QuantumInspireAPI] = None,
-                 backend_type: Optional[Union[Dict[str, Any], int, str]] = None) -> None:
+                 backend_type: Optional[Union[int, str]] = None) -> None:
         """
         Initialize the Backend object.
 
@@ -64,7 +64,7 @@ class QIBackend(BasicEngine):  # type: ignore
         self._cqasm: str = str()
         self._measured_states: Dict[int, float] = {}
         self._measured_ids: List[int] = []
-        self._allocated_qubits: Set[int] = set()
+        self._allocation_map: List[Tuple[int, int]] = []
         self._max_qubit_id: int = -1
         self._full_state_projection = True
         if quantum_inspire_api is None:
@@ -74,7 +74,10 @@ class QIBackend(BasicEngine):  # type: ignore
                 raise AuthenticationError('Make sure you have saved your token credentials on disk or '
                                           'provide a QuantumInspireAPI instance as parameter to QIBackend') from ex
         self.quantum_inspire_api: QuantumInspireAPI = quantum_inspire_api
-        self.backend_type: Optional[Union[Dict[str, Any], int, str]] = backend_type
+        self.backend_type: Optional[Union[int, str]] = backend_type
+        backend = self.quantum_inspire_api.get_backend_type(backend_type)
+        self.is_simulation_backend = not backend["is_hardware_backend"]
+        self.max_number_of_qubits = backend["number_of_qubits"]
 
     def cqasm(self) -> str:
         """ Return cqasm code that is generated last. """
@@ -82,14 +85,17 @@ class QIBackend(BasicEngine):  # type: ignore
 
     def is_available(self, cmd: Command) -> bool:
         """
-        Return true if the command can be executed.
+        Via this method the ProjectQ framework determines which commands (gates) are available in the backend.
 
         Args:
-            cmd: Command for which to check availability.
+            cmd: Command with a gate for which to check availability.
+
+        Returns:
+            True when the gate in the command is available on the Quantum Inspire backend.
         """
         count = get_control_count(cmd)
         g = cmd.gate
-        if self._verbose:
+        if self._verbose >= 3:
             print('call to is_available with cmd %s (gate %s)' % (cmd, g))
         if g == NOT and count <= 2:
             return True
@@ -114,6 +120,139 @@ class QIBackend(BasicEngine):  # type: ignore
         self._clear = True
         self.qasm = ""
 
+    def _allocate_qubit(self, index_to_add: int) -> None:
+        """ On a simulation backend it is possible to reuse qubits. The advantage of reusing qubits is that less
+        qubits are needed in total for the algorithm.
+        A source of reusing qubits is when qubits are used as ancilla bits. Ancilla bits are used to downgrade
+        complicated quantum gates into simple gates by placing controls on ancilla bits or when doing quantum error
+        correction. In projectQ, a qubit can be re-used when it is de-allocated after usage. ProjectQ sends an
+        Allocate-gate for a qubit that is going to be used and a Deallocate gate for qubits that are not used anymore.
+
+        _allocation_map is the store in which the administration is done for assigning physical qubits that are used
+        with in ProjectQ to the simulation qubits, this is as they appear in the cqasm.
+        _allocation_map stores the assignments as tuples (simulation_bit, physical_bit) where 'physical_bit' is
+        requested by ProjectQ and simulation_bit is the assignment to a bit in the simulator.
+        A de-allocated physical bit is registered as -1, which means the corresponding simulation bit can be re-used.
+
+        We strive for x-to-x allocation for qubits, which means we want to allocate a physical qubit to its
+        corresponding simulation qubit. We do this to respect as much as possible the qubits of the original algorithm
+        in the generated cqasm for readability.
+
+        Only when the requested physical bit is higher than the max number of bits supported by the backend, we try
+        to search for an de-allocatd ancilla bit to re-use. When an ancilla is re-used, we have to reset the qubit
+        which means we have to switch to non-full state projection.
+
+        Example: When physical bit 0..4 are allocated in reversed order we would still get:
+        (0, 0), (1, 1), (2, 2), (3, 3), (4, 4)
+        and not:
+        (0, 4), (1, 3), (2, 2), (3, 1), (4, 0)
+
+        When bit 6 is allocated next we get:
+        (0, 0), (1, 1), (2, 2), (3, 3), (4, 4), (6, 6)
+        and when bit 6 is de-allocated again we get:
+        (0, 0), (1, 1), (2, 2), (3, 3), (4, 4), (6, -1)
+
+        At this point, when bit 5 is allocated we get:
+        (0, 0), (1, 1), (2, 2), (3, 3), (4, 4), (5, 5), (6, -1)
+        When a bit is allocated with an index higher than the maximum number of qubits in the simulator we try to
+        allocate an earlier de-allocated bit
+        When the maximum number of qubits in the simulator is 7 [0..6], allocation of bit 7 will be on position 6
+        (0, 0), (1, 1), (2, 2), (3, 3), (4, 4), (5, 5), (6, 7)
+        When bit 8 is allocated next, we cannot reuse another bit, so we add it as the next in line (bit 7)
+        (0, 0), (1, 1), (2, 2), (3, 3), (4, 4), (5, 5), (6, 7), (7, 8)
+        """
+        if self.is_simulation_backend:
+            # physical bit to add cannot be allocated already
+            if next(iter(x for x in self._allocation_map if x[1] == index_to_add), None) is not None:
+                raise RuntimeError("Bit {0} is already allocated.".format(index_to_add))
+
+            # check if the corresponding simulation bit is in the _allocation_map already,
+            # we strive for x-to-x allocation, so when (x, -1) we should reuse this bit
+            i = next(iter(x for x in self._allocation_map if x[0] == index_to_add), None)
+            # also take into account the maximum number of bits we may use on the backend.
+            if i is None and (index_to_add < self.max_number_of_qubits):
+                # map the bit to the corresponding simulation bit
+                self._allocation_map.append((index_to_add, index_to_add))
+            else:
+                # check if the corresponding simulation bit was de-allocated (we strive for a x-to-x allocation)
+                if i is None or i[1] != -1:
+                    # The corresponding simulation bit is not found or this is a bit in the ancilla range
+                    # We look for a free spot, a previously de-allocated bit (-1)
+                    i = next(iter(x for x in self._allocation_map if x[1] == -1), None)
+
+                if i is None:
+                    # no free spot, add a new simulation qubit
+                    self._allocation_map.append((max(self._allocation_map)[0] + 1, index_to_add))
+                else:
+                    # we are reusing a de-allocated simulation bit, this situation turns the circuit into non-FSP
+                    if self._full_state_projection:
+                        self._switch_fsp_to_nonfsp()
+
+                    # to reuse a de-allocated bit we do a prep_z first, which is better implemented as a
+                    # measurement and binary controlled x-gate
+                    self.qasm += "\nmeasure q[{}]".format(i[0])
+                    self.qasm += "\nc-x b[{}], q[{}]".format(i[0], i[0])
+                    index = self._allocation_map.index(i)
+                    self._allocation_map[index] = (i[0], index_to_add)
+
+            # keep track of the maximum qubit id on simulation backend
+            self._max_qubit_id = max(self._allocation_map)[0]
+        else:
+            # keep track of the maximum qubit id on hardware backend
+            self._max_qubit_id = max(self._max_qubit_id, index_to_add)
+
+        if self._verbose >= 1:
+            print('_store: Allocate gate {0}'.format((index_to_add,)))
+            print('   _allocation_map {0}'.format(self._allocation_map))
+
+    def _deallocate_qubit(self, index_to_remove: int) -> None:
+        """ On a simulation backend it is possible to reuse qubits.
+        When a qubit is de-allocated we register -1 as physical bit id in the _allocation_map.
+        """
+        if self.is_simulation_backend:
+            # determine the qubits that are not de-allocated
+            i = next(iter(x for x in self._allocation_map if x[1] == index_to_remove), None)
+            if i is None:
+                raise RuntimeError("De-allocated bit {0} was not allocated.".format(index_to_remove))
+            else:
+                # deallocate the corresponding simulation bit
+                index = self._allocation_map.index(i)
+                self._allocation_map[index] = (i[0], -1)
+
+        if self._verbose >= 1:
+            print('_store: Deallocate gate {0}'.format((index_to_remove,)))
+            print('   _allocation_map {0}'.format(self._allocation_map))
+
+    def _physical_to_simulated(self, pqb_id: int) -> int:
+        """
+        Return the allocated location on the simulated backend of the qubit with the given physical id.
+
+        Args:
+            pqb_id: ID of the physical qubit whose position should be returned.
+
+        Returns:
+            Allocated simulation bit position of physical qubit with id pqb_id.
+        """
+        if self.is_simulation_backend:
+            i = next(iter(x for x in self._allocation_map if x[1] == pqb_id), None)
+            if i is None:
+                raise RuntimeError("Bit position in simulation backend not found for physical bit {0}.".format(pqb_id))
+            else:
+                return i[0]
+        else:
+            return pqb_id
+
+    def _switch_fsp_to_nonfsp(self) -> None:
+        """ We have determined that the algorithm is non-deterministic and cannot use fsp.
+        At this point, measured_ids is the collection of measurement statements in the algorithm for which no
+        measurement statement has been added to the qasm yet. For every measured_id a measurement statement is added.
+        """
+        for logical_qubit_id in self._measured_ids:
+            physical_qubit_id = self._logical_to_physical(logical_qubit_id)
+            sim_qubit_id = self._physical_to_simulated(physical_qubit_id)
+            self.qasm += "\nmeasure q[{}]".format(sim_qubit_id)
+        self._full_state_projection = False
+
     def _store(self, cmd: Command) -> None:
         """
         Temporarily store the command cmd.
@@ -123,9 +262,8 @@ class QIBackend(BasicEngine):  # type: ignore
         Args:
             cmd: Command to store.
         """
-        if self._verbose >= 2:
+        if self._verbose >= 3:
             print('_store {0}: cmd {1}'.format(id(self), cmd))
-            print('   _allocated_qubits {0}'.format(self._allocated_qubits))
 
         if self._clear:
             self._clear = False
@@ -138,10 +276,7 @@ class QIBackend(BasicEngine):  # type: ignore
 
         if gate == Deallocate:
             index_to_remove = cmd.qubits[0][0].id
-            self._allocated_qubits.discard(index_to_remove)
-            if self._verbose >= 2:
-                print('_store: Deallocate gate {0}'.format((index_to_remove,)))
-                print('   _allocated_qubits {0}'.format(self._allocated_qubits))
+            self._deallocate_qubit(index_to_remove)
             return
 
         if self._flushed:
@@ -149,15 +284,12 @@ class QIBackend(BasicEngine):  # type: ignore
 
         if gate == Allocate:
             index_to_add = cmd.qubits[0][0].id
-            self._allocated_qubits.add(index_to_add)
-            self._max_qubit_id = max(self._max_qubit_id, index_to_add)
-            if self._verbose >= 2:
-                print('_store: Allocate gate {0}'.format((index_to_add,)))
-                print('   _allocated_qubits {0}'.format(self._allocated_qubits))
+            self._allocate_qubit(index_to_add)
             return
 
         if gate == Measure:
             assert len(cmd.qubits) == 1 and len(cmd.qubits[0]) == 1
+            sim_qubit_id = self._physical_to_simulated(cmd.qubits[0][0].id)
             logical_id = None
             for t in cmd.tags:
                 if isinstance(t, LogicalQubitIDTag):
@@ -167,65 +299,63 @@ class QIBackend(BasicEngine):  # type: ignore
                 logical_id = cmd.qubits[0][0].id  # no mapping
             assert logical_id is not None
             self._measured_ids += [logical_id]
+            # do not add the measurement statement when fsp is possible
             if not self._full_state_projection:
-                self.qasm += "\nmeasure q[{}]".format(cmd.qubits[0][0].id)
+                self.qasm += "\nmeasure q[{}]".format(sim_qubit_id)
             return
 
         # when we find a gate after measurements we don't have fsp
         # add any delayed measurement statements
-        if self._full_state_projection and (len(self._measured_ids) != 0):
-            for logical_qubit_id in self._measured_ids:
-                physical_qubit_id = self._logical_to_physical(logical_qubit_id)
-                self.qasm += "\nmeasure q[{}]".format(physical_qubit_id)
-            self._full_state_projection = False
+        if self._full_state_projection and len(self._measured_ids) != 0:
+            self._switch_fsp_to_nonfsp()
 
         if gate == NOT and get_control_count(cmd) == 1:
             # this case also covers the CX controlled gate
-            ctrl_pos = cmd.control_qubits[0].id
-            qb_pos = cmd.qubits[0][0].id
+            ctrl_pos = self._physical_to_simulated(cmd.control_qubits[0].id)
+            qb_pos = self._physical_to_simulated(cmd.qubits[0][0].id)
             self.qasm += "\ncnot q[{}], q[{}]".format(ctrl_pos, qb_pos)
         elif gate == Swap:
-            q0 = cmd.qubits[0][0].id
-            q1 = cmd.qubits[1][0].id
+            q0 = self._physical_to_simulated(cmd.qubits[0][0].id)
+            q1 = self._physical_to_simulated(cmd.qubits[1][0].id)
             self.qasm += "\nswap q[{}], q[{}]".format(q0, q1)
         elif gate == X and get_control_count(cmd) == 2:
-            ctrl_pos1 = cmd.control_qubits[0].id
-            ctrl_pos2 = cmd.control_qubits[1].id
-            qb_pos = cmd.qubits[0][0].id
+            ctrl_pos1 = self._physical_to_simulated(cmd.control_qubits[0].id)
+            ctrl_pos2 = self._physical_to_simulated(cmd.control_qubits[1].id)
+            qb_pos = self._physical_to_simulated(cmd.qubits[0][0].id)
             self.qasm += "\ntoffoli q[{}], q[{}], q[{}]".format(ctrl_pos1, ctrl_pos2, qb_pos)
         elif gate == Z and get_control_count(cmd) == 1:
-            ctrl_pos = cmd.control_qubits[0].id
-            qb_pos = cmd.qubits[0][0].id
+            ctrl_pos = self._physical_to_simulated(cmd.control_qubits[0].id)
+            qb_pos = self._physical_to_simulated(cmd.qubits[0][0].id)
             self.qasm += "\ncz q[{}], q[{}]".format(ctrl_pos, qb_pos)
         elif gate == Barrier:
-            qb_pos = [qb.id for qr in cmd.qubits for qb in qr]
+            qb_pos_list = [qb.id for qr in cmd.qubits for qb in qr]
             self.qasm += "\n# barrier gate "
             qb_str = ""
-            for pos in qb_pos:
-                qb_str += "q[{}], ".format(pos)
+            for pos in qb_pos_list:
+                qb_str += "q[{}], ".format(self._physical_to_simulated(pos))
             self.qasm += qb_str[:-2] + ";"
         elif isinstance(gate, Rz) and get_control_count(cmd) == 1:
-            ctrl_pos = cmd.control_qubits[0].id
-            qb_pos = cmd.qubits[0][0].id
+            ctrl_pos = self._physical_to_simulated(cmd.control_qubits[0].id)
+            qb_pos = self._physical_to_simulated(cmd.qubits[0][0].id)
             gate_name = 'cr'
             self.qasm += "\n{} q[{}],q[{}],{:.12f}".format(gate_name, ctrl_pos, qb_pos, gate.angle)
         elif isinstance(gate, (Rx, Ry)) and get_control_count(cmd) == 1:
             raise NotImplementedError('controlled Rx or Ry gate not implemented')
         elif isinstance(gate, (Rx, Ry, Rz)):
             assert get_control_count(cmd) == 0
-            qb_pos = cmd.qubits[0][0].id
+            qb_pos = self._physical_to_simulated(cmd.qubits[0][0].id)
             gate_name = str(gate)[0:2].lower()
             self.qasm += "\n{} q[{}],{:.12g}".format(gate_name, qb_pos, gate.angle)
         elif gate == Tdag and get_control_count(cmd) == 0:
-            qb_pos = cmd.qubits[0][0].id
+            qb_pos = self._physical_to_simulated(cmd.qubits[0][0].id)
             self.qasm += "\ntdag q[{}]".format(qb_pos)
         elif gate == Sdag and get_control_count(cmd) == 0:
-            qb_pos = cmd.qubits[0][0].id
+            qb_pos = self._physical_to_simulated(cmd.qubits[0][0].id)
             self.qasm += "\nsdag q[{}]".format(qb_pos)
         elif isinstance(gate, tuple(type(gate) for gate in (X, Y, Z, H, S, T))):
             assert get_control_count(cmd) == 0
             gate_str = str(gate).lower()
-            qb_pos = cmd.qubits[0][0].id
+            qb_pos = self._physical_to_simulated(cmd.qubits[0][0].id)
             self.qasm += "\n{} q[{}]".format(gate_str, qb_pos)
         else:
             raise NotImplementedError('cmd {0} not implemented'.format((cmd,)))
@@ -275,8 +405,7 @@ class QIBackend(BasicEngine):  # type: ignore
         """
         if len(self._measured_states) == 0:
             raise RuntimeError("Please, run the circuit first!")
-
-        mask_bits = map(lambda qubit: self._logical_to_physical(qubit.id), qureg)
+        mask_bits = map(lambda qubit: self._physical_to_simulated(self._logical_to_physical(qubit.id)), qureg)
 
         filtered_states = QIBackend._filter_histogram(self._measured_states, mask_bits)
 
@@ -305,8 +434,9 @@ class QIBackend(BasicEngine):  # type: ignore
 
         for i in range(len(qureg)):
             logical_id = qureg[i].id
-            physical_id = self._logical_to_physical(logical_id)
-            if int(state) & (1 << physical_id):
+            physical_qubit_id = self._logical_to_physical(logical_id)
+            sim_qubit_id = self._physical_to_simulated(physical_qubit_id)
+            if int(state) & (1 << sim_qubit_id):
                 mapped_state += '1'
             else:
                 mapped_state += '0'
@@ -325,7 +455,6 @@ class QIBackend(BasicEngine):  # type: ignore
         # Finally: add measurement commands for all measured qubits if no measurements are given.
         # Only measurements after all gate operations will perform properly in FSP.
         if not self._measured_ids:
-            assert self._full_state_projection
             self.__add_measure_all_qubits()
 
         self._finalize_qasm()
@@ -340,6 +469,8 @@ class QIBackend(BasicEngine):  # type: ignore
             self.__class__, self._number_of_qubits)
         qasm += self.qasm
 
+        if self._verbose >= 2:
+            print(qasm)
         self._cqasm = qasm
 
     def _execute_cqasm(self) -> None:
@@ -368,7 +499,7 @@ class QIBackend(BasicEngine):  # type: ignore
         Populates self._measured_states by filtering self._quantum_inspire_result['histogram'] based on
         self._measured_ids (which are supposed to be logical qubit id's).
         """
-        mask_bits = map(lambda bit: self._logical_to_physical(bit), self._measured_ids)
+        mask_bits = map(lambda bit: self._physical_to_simulated(self._logical_to_physical(bit)), self._measured_ids)
         histogram: Dict[int, float] = {int(k): v for k, v in self._quantum_inspire_result['histogram'].items()}
         self._measured_states = QIBackend._filter_histogram(histogram, mask_bits)
 
@@ -413,8 +544,8 @@ class QIBackend(BasicEngine):  # type: ignore
 
         for logical_qubit_id in self._measured_ids:
             physical_qubit_id = self._logical_to_physical(logical_qubit_id)
-
-            result = bool(random_measurement & (1 << physical_qubit_id))
+            sim_qubit_id = self._physical_to_simulated(physical_qubit_id)
+            result = bool(random_measurement & (1 << sim_qubit_id))
 
             self.main_engine.set_measurement_result(QB(logical_qubit_id), result)
 
