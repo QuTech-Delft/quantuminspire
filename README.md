@@ -177,7 +177,7 @@ Please submit bug-reports [on the github issue tracker](https://github.com/QuTec
 
 ## Testing
 
-Run all unittests and collect the code coverage using:
+Run all unit tests and collect the code coverage using:
 
 ```
 coverage run --source="./src/quantuminspire" -m unittest discover -s src/tests -t src -v
