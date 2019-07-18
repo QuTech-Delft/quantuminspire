@@ -236,7 +236,8 @@ class QIBackend(BasicEngine):  # type: ignore
         if self._is_simulation_backend:
             allocation_entry = next(iter(x for x in self._allocation_map if x[1] == physical_qubit_id), None)
             if allocation_entry is None:
-                raise RuntimeError("Bit position in simulation backend not found for physical bit {0}.".format(physical_qubit_id))
+                raise RuntimeError("Bit position in simulation backend not found for physical bit {0}."
+                                   .format(physical_qubit_id))
             else:
                 return allocation_entry[0]
         else:
