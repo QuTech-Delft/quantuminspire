@@ -73,11 +73,11 @@ class QIBackend(BasicEngine):  # type: ignore
             except AuthenticationError as ex:
                 raise AuthenticationError('Make sure you have saved your token credentials on disk or '
                                           'provide a QuantumInspireAPI instance as parameter to QIBackend') from ex
-        self.quantum_inspire_api: QuantumInspireAPI = quantum_inspire_api
-        self.backend_type: Optional[Union[int, str]] = backend_type
-        backend = self.quantum_inspire_api.get_backend_type(backend_type)
-        self.is_simulation_backend = not backend["is_hardware_backend"]
-        self.max_number_of_qubits = backend["number_of_qubits"]
+        self._quantum_inspire_api: QuantumInspireAPI = quantum_inspire_api
+        self._backend_type: Optional[Union[int, str]] = backend_type
+        backend = self._quantum_inspire_api.get_backend_type(backend_type)
+        self._is_simulation_backend = not backend["is_hardware_backend"]
+        self._max_number_of_qubits = backend["number_of_qubits"]
 
     def cqasm(self) -> str:
         """ Return cqasm code that is generated last. """
@@ -161,26 +161,26 @@ class QIBackend(BasicEngine):  # type: ignore
         When bit 8 is allocated next, we cannot reuse another bit, so we add it as the next in line (bit 7)
         (0, 0), (1, 1), (2, 2), (3, 3), (4, 4), (5, 5), (6, 7), (7, 8)
         """
-        if self.is_simulation_backend:
+        if self._is_simulation_backend:
             # physical bit to add cannot be allocated already
             if next(iter(x for x in self._allocation_map if x[1] == index_to_add), None) is not None:
                 raise RuntimeError("Bit {0} is already allocated.".format(index_to_add))
 
             # check if the corresponding simulation bit is in the _allocation_map already,
             # we strive for x-to-x allocation, so when (x, -1) we should reuse this bit
-            i = next(iter(x for x in self._allocation_map if x[0] == index_to_add), None)
+            allocation_entry = next(iter(x for x in self._allocation_map if x[0] == index_to_add), None)
             # also take into account the maximum number of bits we may use on the backend.
-            if i is None and (index_to_add < self.max_number_of_qubits):
+            if allocation_entry is None and (index_to_add < self._max_number_of_qubits):
                 # map the bit to the corresponding simulation bit
                 self._allocation_map.append((index_to_add, index_to_add))
             else:
                 # check if the corresponding simulation bit was de-allocated (we strive for a x-to-x allocation)
-                if i is None or i[1] != -1:
+                if allocation_entry is None or allocation_entry[1] != -1:
                     # The corresponding simulation bit is not found or this is a bit in the ancilla range
                     # We look for a free spot, a previously de-allocated bit (-1)
-                    i = next(iter(x for x in self._allocation_map if x[1] == -1), None)
+                    allocation_entry = next(iter(x for x in self._allocation_map if x[1] == -1), None)
 
-                if i is None:
+                if allocation_entry is None:
                     # no free spot, add a new simulation qubit
                     self._allocation_map.append((max(self._allocation_map)[0] + 1, index_to_add))
                 else:
@@ -190,10 +190,10 @@ class QIBackend(BasicEngine):  # type: ignore
 
                     # to reuse a de-allocated bit we do a prep_z first, which is better implemented as a
                     # measurement and binary controlled x-gate
-                    self.qasm += "\nmeasure q[{}]".format(i[0])
-                    self.qasm += "\nc-x b[{}], q[{}]".format(i[0], i[0])
-                    index = self._allocation_map.index(i)
-                    self._allocation_map[index] = (i[0], index_to_add)
+                    self.qasm += "\nmeasure q[{}]".format(allocation_entry[0])
+                    self.qasm += "\nc-x b[{}], q[{}]".format(allocation_entry[0], allocation_entry[0])
+                    index = self._allocation_map.index(allocation_entry)
+                    self._allocation_map[index] = (allocation_entry[0], index_to_add)
 
             # keep track of the maximum qubit id on simulation backend
             self._max_qubit_id = max(self._allocation_map)[0]
@@ -209,38 +209,38 @@ class QIBackend(BasicEngine):  # type: ignore
         """ On a simulation backend it is possible to reuse qubits.
         When a qubit is de-allocated we register -1 as physical bit id in the _allocation_map.
         """
-        if self.is_simulation_backend:
+        if self._is_simulation_backend:
             # determine the qubits that are not de-allocated
-            i = next(iter(x for x in self._allocation_map if x[1] == index_to_remove), None)
-            if i is None:
+            allocation_entry = next(iter(x for x in self._allocation_map if x[1] == index_to_remove), None)
+            if allocation_entry is None:
                 raise RuntimeError("De-allocated bit {0} was not allocated.".format(index_to_remove))
             else:
                 # deallocate the corresponding simulation bit
-                index = self._allocation_map.index(i)
-                self._allocation_map[index] = (i[0], -1)
+                index = self._allocation_map.index(allocation_entry)
+                self._allocation_map[index] = (allocation_entry[0], -1)
 
         if self._verbose >= 1:
             print('_store: Deallocate gate {0}'.format((index_to_remove,)))
             print('   _allocation_map {0}'.format(self._allocation_map))
 
-    def _physical_to_simulated(self, pqb_id: int) -> int:
+    def _physical_to_simulated(self, physical_qubit_id: int) -> int:
         """
-        Return the allocated location on the simulated backend of the qubit with the given physical id.
+        Return the allocated location on the simulated backend of the qubit with the given physical qubit id.
 
         Args:
-            pqb_id: ID of the physical qubit whose position should be returned.
+            physical_qubit_id: ID of the physical qubit whose position should be returned.
 
         Returns:
             Allocated simulation bit position of physical qubit with id pqb_id.
         """
-        if self.is_simulation_backend:
-            i = next(iter(x for x in self._allocation_map if x[1] == pqb_id), None)
-            if i is None:
-                raise RuntimeError("Bit position in simulation backend not found for physical bit {0}.".format(pqb_id))
+        if self._is_simulation_backend:
+            allocation_entry = next(iter(x for x in self._allocation_map if x[1] == physical_qubit_id), None)
+            if allocation_entry is None:
+                raise RuntimeError("Bit position in simulation backend not found for physical bit {0}.".format(physical_qubit_id))
             else:
-                return i[0]
+                return allocation_entry[0]
         else:
-            return pqb_id
+            return physical_qubit_id
 
     def _switch_fsp_to_nonfsp(self) -> None:
         """ We have determined that the algorithm is non-deterministic and cannot use fsp.
@@ -329,11 +329,8 @@ class QIBackend(BasicEngine):  # type: ignore
             self.qasm += "\ncz q[{}], q[{}]".format(ctrl_pos, qb_pos)
         elif gate == Barrier:
             qb_pos_list = [qb.id for qr in cmd.qubits for qb in qr]
-            self.qasm += "\n# barrier gate "
-            qb_str = ""
-            for pos in qb_pos_list:
-                qb_str += "q[{}], ".format(self._physical_to_simulated(pos))
-            self.qasm += qb_str[:-2] + ";"
+            qb_str = ', '.join([f'q[{self._physical_to_simulated(x)}]' for x in qb_pos_list])
+            self.qasm += f"\n# barrier gate {qb_str};"
         elif isinstance(gate, Rz) and get_control_count(cmd) == 1:
             ctrl_pos = self._physical_to_simulated(cmd.control_qubits[0].id)
             qb_pos = self._physical_to_simulated(cmd.qubits[0][0].id)
@@ -360,26 +357,26 @@ class QIBackend(BasicEngine):  # type: ignore
         else:
             raise NotImplementedError('cmd {0} not implemented'.format((cmd,)))
 
-    def _logical_to_physical(self, qb_id: int) -> int:
+    def _logical_to_physical(self, logical_qubit_id: int) -> int:
         """
         Return the physical location of the qubit with the given logical id.
 
         Args:
-            qb_id: ID of the logical qubit whose position should be returned.
+            logical_qubit_id: ID of the logical qubit whose position should be returned.
 
         Returns:
             Physical position of logical qubit with id qb_id.
         """
         if self.main_engine.mapper is not None:
             mapping = self.main_engine.mapper.current_mapping
-            if qb_id not in mapping:
+            if logical_qubit_id not in mapping:
                 raise RuntimeError("Unknown qubit id {}. Please make sure "
                                    "eng.flush() was called and that the qubit "
                                    "was eliminated during optimization."
-                                   .format(qb_id))
-            return int(mapping[qb_id])
+                                   .format(logical_qubit_id))
+            return int(mapping[logical_qubit_id])
         else:
-            return qb_id  # no mapping
+            return logical_qubit_id  # no mapping
 
     def get_probabilities(self, qureg: List[Qubit]) -> Dict[str, float]:
         """
@@ -432,8 +429,8 @@ class QIBackend(BasicEngine):  # type: ignore
         """
         mapped_state = ''
 
-        for i in range(len(qureg)):
-            logical_id = qureg[i].id
+        for qubit in qureg:
+            logical_id = qubit.id
             physical_qubit_id = self._logical_to_physical(logical_id)
             sim_qubit_id = self._physical_to_simulated(physical_qubit_id)
             if int(state) & (1 << sim_qubit_id):
@@ -481,10 +478,10 @@ class QIBackend(BasicEngine):  # type: ignore
         Raises:
             ProjectQBackendError: when raw_text in result from API is not empty (indicating a backend error).
         """
-        self._quantum_inspire_result = self.quantum_inspire_api.execute_qasm(
+        self._quantum_inspire_result = self._quantum_inspire_api.execute_qasm(
             self._cqasm,
             number_of_shots=self._num_runs,
-            backend_type=self.backend_type,
+            backend_type=self._backend_type,
             full_state_projection=self._full_state_projection
         )
 
