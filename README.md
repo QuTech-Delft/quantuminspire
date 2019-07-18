@@ -10,7 +10,7 @@ The software development kit (SDK) for the Quantum Inspire platform consists of:
 * An API for the [Quantum Inspire](https://www.quantum-inspire.com/) platform (the QuantumInspireAPI class);
 * Backends for:
   * the [ProjectQ SDK](https://github.com/ProjectQ-Framework/ProjectQ);
-  * the [QisKit SDK](https://qiskit.org/).
+  * the [Qiskit SDK](https://qiskit.org/).
 
 For more information on Quantum Inspire see
 [https://www.quantum-inspire.com/](https://www.quantum-inspire.com/). Detailed information
@@ -44,7 +44,7 @@ $ cd quantuminspire
 $ pip install .
 ```
 
-This does not install ProjectQ or QisKit, but will install the Quantum Inspire backends for
+This does not install ProjectQ or Qiskit, but will install the Quantum Inspire backends for
 those projects.
 
 If you want to include a specific SDK as a dependency, install with
@@ -54,7 +54,7 @@ If you want to include a specific SDK as a dependency, install with
 $ pip install .[projectq]
 ```
 
-To install both ProjectQ as well as QisKit as a dependency:
+To install both ProjectQ as well as Qiskit as a dependency:
 
 ```
 $ pip install .[qiskit,projectq]
@@ -125,9 +125,9 @@ result = qi.execute_qasm(qasm, backend_type=backend_type, number_of_shots=1024)
 print(result['histogram'])
 ```
 
-## Configure your token credentials for Quantum Inspire (expected soon)
+## Configure your token credentials for Quantum Inspire
 
-1. Create an Quantum Inspire account if you do not have already have one.
+1. Create a Quantum Inspire account if you do not already have one.
 2. Get an API token from the Quantum Inspire website.
 3. With your API token run: 
 ```python
@@ -163,10 +163,6 @@ auth = get_token_authentication()
 This `auth` can then be used to initialize the Quantum Inspire API object.
  ## Known issues
 
-* Authentication for the Quantum Inspire platform is currently password only; this
-  will change to API-token based authentication in the near future;
-* It is not possible to simulate algorithms that do not use full state
-  projection through Qiskit / ProjectQ
 * Some test-cases call protected methods
 * Known issues and common questions regarding the Quantum Inspire platform
   can be found in the [FAQ](https://www.quantum-inspire.com/faq/).
