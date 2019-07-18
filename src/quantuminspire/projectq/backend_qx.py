@@ -56,6 +56,7 @@ class QIBackend(BasicEngine):  # type: ignore
         self._flushed: bool = False
         """ Because engines are meant to be 'single use' by the way ProjectQ is designed,
         any additional gates received after a FlushGate triggers an exception. """
+        self._clear: bool = True
         self._reset()
         self._num_runs: int = num_runs
         if num_runs < 1:

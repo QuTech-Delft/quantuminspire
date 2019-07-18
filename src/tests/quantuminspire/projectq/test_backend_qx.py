@@ -24,9 +24,9 @@ import coreapi
 from collections import OrderedDict
 from unittest.mock import MagicMock, patch
 
-from projectq.meta import LogicalQubitIDTag, get_control_count
-from projectq.ops import (CNOT, CX, CZ, NOT, QFT, All, Allocate, Barrier,
-                          BasicPhaseGate, C, Deallocate, FlushGate, H, Measure,
+from projectq.meta import LogicalQubitIDTag
+from projectq.ops import (CNOT, NOT, Allocate, Barrier,
+                          Deallocate, FlushGate, H, Measure,
                           Ph, Rx, Ry, Rz, S, Sdag, Swap, T, Tdag, Toffoli, X,
                           Y, Z)
 
@@ -43,7 +43,7 @@ class MockApiClient:
                                                                     "number_of_qubits": 26}))
 
 
-class QIBackend_non_protected(QIBackend):
+class QIBackendNonProtected(QIBackend):
 
     @property
     def quantum_inspire_api(self):
@@ -109,10 +109,6 @@ class QIBackend_non_protected(QIBackend):
     def number_of_qubits(self):
         return self._number_of_qubits
 
-    @number_of_qubits.setter
-    def number_of_qubits(self, x):
-        self._number_of_qubits = x
-
     @property
     def max_number_of_qubits(self):
         return self._max_number_of_qubits
@@ -137,11 +133,11 @@ class TestProjectQBackend(unittest.TestCase):
         warnings.filterwarnings("ignore", category=PendingDeprecationWarning)
 
         self.api = MockApiClient()
-        self.qi_backend = QIBackend_non_protected(quantum_inspire_api = self.api)
-        self.qi_verbose_backend = QIBackend_non_protected(quantum_inspire_api=self.api, verbose=2)
+        self.qi_backend = QIBackendNonProtected(quantum_inspire_api=self.api)
+        self.qi_verbose_backend = QIBackendNonProtected(quantum_inspire_api=self.api, verbose=2)
         self.api.get_backend_type = MagicMock(return_value=OrderedDict({"is_hardware_backend": True,
                                                                         "number_of_qubits": 26}))
-        self.qi_hw_backend = QIBackend_non_protected(quantum_inspire_api = self.api)
+        self.qi_hw_backend = QIBackendNonProtected(quantum_inspire_api=self.api)
 
     def test_init_has_correct_values(self):
         self.assertIsInstance(self.qi_backend.qasm, str)
@@ -154,7 +150,7 @@ class TestProjectQBackend(unittest.TestCase):
         coreapi.Client.get = MagicMock()
         result = {"is_hardware_backend": False, "number_of_qubits": 26}
         coreapi.Client.action = MagicMock(return_value=result)
-        self.qi_backend_no_api = QIBackend_non_protected()
+        self.qi_backend_no_api = QIBackendNonProtected()
         self.assertIsInstance(self.qi_backend_no_api.qasm, str)
         self.assertNotEqual(self.qi_backend_no_api.quantum_inspire_api, None)
         self.assertIsNone(self.qi_backend_no_api.backend_type)
