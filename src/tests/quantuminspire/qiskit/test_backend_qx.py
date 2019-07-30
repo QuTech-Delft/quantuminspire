@@ -18,6 +18,8 @@ limitations under the License.
 
 import json
 import unittest
+from itertools import combinations
+
 import numpy as np
 from collections import OrderedDict
 from unittest.mock import Mock, patch
@@ -135,7 +137,8 @@ class TestQiSimulatorPy(unittest.TestCase):
             memory=True,
             open_pulse=False,
             max_shots=1024,
-            max_experiments=1
+            max_experiments=1,
+            coupling_map=[list(coupling) for coupling in combinations(range(26), 2)]
         )
         self.assertDictEqual(configuration.to_dict(), expected_configuration.to_dict())
 
