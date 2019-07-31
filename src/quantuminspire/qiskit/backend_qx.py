@@ -18,10 +18,11 @@ limitations under the License.
 import io
 import json
 import uuid
-import numpy as np
-from typing import Dict, List, Tuple, Optional, Any
 from collections import defaultdict, OrderedDict, Counter
+from itertools import combinations
+from typing import Dict, List, Tuple, Optional, Any
 
+import numpy as np
 from coreapi.exceptions import ErrorMessage
 from qiskit.providers import BaseBackend
 from qiskit.providers.models import QasmBackendConfiguration
@@ -30,11 +31,11 @@ from qiskit.qobj import QasmQobj, QasmQobjExperiment
 from qiskit.result.models import ExperimentResult, ExperimentResultData
 from qiskit.validation.base import Obj
 
-from quantuminspire.qiskit.circuit_parser import CircuitToString
-from quantuminspire.qiskit.qi_job import QIJob
 from quantuminspire.api import QuantumInspireAPI
 from quantuminspire.exceptions import QisKitBackendError
 from quantuminspire.job import QuantumInspireJob
+from quantuminspire.qiskit.circuit_parser import CircuitToString
+from quantuminspire.qiskit.qi_job import QIJob
 from quantuminspire.version import __version__ as quantum_inspire_version
 
 
@@ -52,7 +53,8 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
         open_pulse=False,
         memory=True,
         max_shots=1024,
-        max_experiments=1
+        max_experiments=1,
+        coupling_map=None
     )
 
     def __init__(self, api: QuantumInspireAPI, provider: Any,
