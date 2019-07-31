@@ -138,7 +138,7 @@ class TestQiSimulatorPy(unittest.TestCase):
             open_pulse=False,
             max_shots=1024,
             max_experiments=1,
-            coupling_map=[list(coupling) for coupling in combinations(range(26), 2)]
+            coupling_map=None
         )
         self.assertDictEqual(configuration.to_dict(), expected_configuration.to_dict())
 

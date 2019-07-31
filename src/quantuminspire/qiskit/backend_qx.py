@@ -54,7 +54,7 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
         memory=True,
         max_shots=1024,
         max_experiments=1,
-        coupling_map=[list(coupling) for coupling in combinations(range(26), 2)]
+        coupling_map=None
     )
 
     def __init__(self, api: QuantumInspireAPI, provider: Any,
