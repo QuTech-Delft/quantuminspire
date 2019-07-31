@@ -18,25 +18,23 @@ limitations under the License.
 
 import json
 import unittest
-from itertools import combinations
-
-import numpy as np
 from collections import OrderedDict
 from unittest.mock import Mock, patch
 
+import numpy as np
 import qiskit
 from coreapi.exceptions import ErrorMessage
-from qiskit.validation import ModelValidationError
 from qiskit.providers.models import QasmBackendConfiguration
 from qiskit.providers.models.backendconfiguration import GateConfig
 from qiskit.qobj import QasmQobjExperiment, QasmQobj
+from qiskit.validation import ModelValidationError
 
 from quantuminspire.api import QuantumInspireAPI
 from quantuminspire.exceptions import QisKitBackendError
-from quantuminspire.qiskit.qi_job import QIJob
-from quantuminspire.version import __version__ as quantum_inspire_version
 from quantuminspire.qiskit.backend_qx import QuantumInspireBackend
+from quantuminspire.qiskit.qi_job import QIJob
 from quantuminspire.qiskit.quantum_inspire_provider import QuantumInspireProvider
+from quantuminspire.version import __version__ as quantum_inspire_version
 
 
 def first_item(iterable):
