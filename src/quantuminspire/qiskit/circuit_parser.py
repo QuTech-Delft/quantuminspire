@@ -327,7 +327,7 @@ class CircuitToString:
             axis: The axis for which the Rotation operator is parsed ('x', 'y' or 'z').
 
         """
-        angle_q0 = instruction.params[0]
+        angle_q0 = float(instruction.params[0])
         stream.write('R{0} q[{1}], {2:.6f}\n'.format(axis, *instruction.qubits, angle_q0))
 
     @staticmethod
@@ -341,7 +341,7 @@ class CircuitToString:
             binary_control: The multi-bits control string. The gate is executed when all specified classical bits are 1.
 
         """
-        angle_q0 = instruction.params[0]
+        angle_q0 = float(instruction.params[0])
         stream.write('C-R{0} {1}q[{2}], {3:.6f}\n'.format(axis, binary_control, *instruction.qubits, angle_q0))
 
     @staticmethod
@@ -512,7 +512,7 @@ class CircuitToString:
 
         """
         gates = ['Rz', 'Ry', 'Rz']
-        angles = list(instruction.params[i] for i in [2, 0, 1])
+        angles = list(float(instruction.params[i]) for i in [2, 0, 1])
         index_q0 = [instruction.qubits[0]] * 3
         for triplet in zip(gates, index_q0, angles):
             if triplet[2] != 0:
@@ -531,7 +531,7 @@ class CircuitToString:
         """
         gates = ['C-Rz', 'C-Ry', 'C-Rz']
         binary_controls = [binary_control] * 3
-        angles = list(instruction.params[i] for i in [2, 0, 1])
+        angles = list(float(instruction.params[i]) for i in [2, 0, 1])
         index_q0 = [instruction.qubits[0]] * 3
         for quadruplets in zip(gates, binary_controls, index_q0, angles):
             if quadruplets[3] != 0:
