@@ -1,35 +1,36 @@
 language: python
 matrix:
   include:
-    - python: 3.6
-    - python: 3.7
-      sudo: true
-      dist: xenial
+  - python: 3.6
+  - python: 3.7
+    sudo: true
+    dist: xenial
 install:
-  - pip install --upgrade mypy
-  - pip install --upgrade .[qiskit,projectq] coveralls
+- pip install --upgrade mypy
+- pip install --upgrade .[qiskit,projectq] coveralls
 env:
-  - API_URL=https://staging.quantum-inspire.com
+- API_URL=https://staging.quantum-inspire.com
 script:
-  - echo "running unit tests"
-  - coverage run --source="./src/quantuminspire" -m unittest discover -s src/tests -t src -v
-  - echo "running mypy"
-  - MYPYPATH=./src mypy --strict --ignore-missing-imports -p quantuminspire
-  - echo "running examples"
-  - python ./docs/example_projectq_entangle.py
-  - python ./docs/example_projectq_grover.py
-  - python ./docs/example_qiskit_entangle.py
-  - echo "running notebooks"
-  - jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=300 docs/example_projectq.ipynb
-  - jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=300 docs/grover_algorithm_qi.ipynb
-  - jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=300 docs/qi-performance-test.ipynb
+- echo "running unit tests"
+- coverage run --source="./src/quantuminspire" -m unittest discover -s src/tests -t
+  src -v
+- echo "running mypy"
+- MYPYPATH=./src mypy --strict --ignore-missing-imports -p quantuminspire
+- echo "running examples"
+- python ./docs/example_projectq_entangle.py
+- python ./docs/example_projectq_grover.py
+- python ./docs/example_qiskit_entangle.py
+- echo "running notebooks"
+- jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=300 docs/example_projectq.ipynb
+- jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=300 docs/grover_algorithm_qi.ipynb
+- jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=300 docs/qi-performance-test.ipynb
 after_success:
-  - coveralls
+- coveralls
 deploy:
   provider: pypi
   user: qinspire
   password:
-    secure: ayJgYx7awWMgCWr/Y8ep7RpE/Rn0WpPCkIYMeN+wjJ2Y5GmsOmANHCTrA1WQ8+zol8ceyqjPdA/d4lC0nRLxnV+4iSScABsMKoLn3mdRmi+QncLUYDfUBoYe8HdQFO5OfADSH0XuPgNnCf39OE8VRF7pTL3DNnsXEd+DsIsDww8sR1UM/8AUUfRD4W2+yXKLHqg72Qhmky5a80Q4RBhDNvoOYo2nXHpdgHdPXtUYu/LH1/a4lk6cdCqQHzjAiWL2+9IXtgjJmcp2N8JHTmLkt8OA8Lz8ymNg00lr1oKv7fSrAdGz8Y/1EmccVxeId7bybL6vrTIhZfy9LIwRqwURp0pBmfoON+KXv1lSNrVRntek0vx6WTDohIc7L8LT9S+RIpcL9Vj5LD0z6gFQwBBQBomPlB/q7ZJ7wGMtNv8eJe0T0NYY61eMGhhmRA2b6xguunSq/ko0+VMlv4cxkRtmcVxw2olKL4YWwg7EwcU1OvT+K8StBOU2MNwmQCMsw1KWR3pQYa/N3Fsml82nnZysmP2qzJWrgN1IIOBsOEtm6zztywY+wnE3oBIiQIIPv+zKJ0D49od5qDHiBJQTp1QhOtjUSZsBajN3TB1/UvOxR4VNAYxsnd5qTfTHsXJik/jdg+iDuIsOxfNiOE/xBJSiVfAsj4IG0txpiaxEgPoDQdM=
+    secure: Y4tj7rKrf+ExjlD6RNdAVYraTMelAVaSe9abhn4HFQLgvy5CqXGDcWl+df/MkHZVzYfjEe61Sb5dbxwEUd+7lmQBIKfJ0nC1a46qtQ2pqH/HnFm6bvyCRepfCWE01l7ZWnl3bcYK6gjaDST65NoxyTBTTQYsB48p16/zBh5CGxKq9fcsI3v2gBRxccyKk1a78tn4uWyQnGGDKIc6NW4TZpGAS6Kfj4CxWmiP5iiKBYm7O1nlvy66/lfpqNlFnw99ZVt/hvaKPzEFt1doZcit2Jdn/cjUoxKJLaq9IABsmOnXzW0VhNi9ro2GDciarUCL8xWyNXbqKxPWu4dyTeWzqk3WxkEJJeGh1pJUipyu+LSpDYseYFZVvY4VV/1ngjzCpbzR/2Bcf8m8bFOzB02u6UWbAv/+rqcwwMunzSi3Bze57gvx0pzPxwr2rGNYLpS+d4wbY9VRDeDAvd7VFFlEOFVDxE3t7mDr04YDaWMVaWBvHnmjYRfBHY70Vzr8R/yA63ODVjfvj5IsdlNrjSJRyAGrHAbabeXnuCCmcFXD6FkwzPtdl6Pd2r4NeBac8v+L3DiXwuD4Ll68pRUJ1O68ZwLIxwddPDYswTh/bixi4aaiDScH4qkvlieynyj/sf0tWBPhjSr568n7BqBL0TORIgWtvXwtXfiUiP1+QC1/7No=
   on:
     tags: true
     branch: master
