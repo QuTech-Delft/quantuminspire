@@ -747,14 +747,15 @@ class QuantumInspireAPI:
     #  other  #
 
     @staticmethod
-    def _wait_for_completed_job(quantum_inspire_job: QuantumInspireJob, collect_max_tries: Optional[int],
+    def _wait_for_completed_job(quantum_inspire_job: QuantumInspireJob, collect_max_tries: Optional[int] = None,
                                 sec_retry_delay: float = 0.5) -> bool:
-        """ Holds the process and requests the job status until completed or when
-            the maximum number of tries has been reached.
+        """ Delays the process and requests the job status. The waiting loop is broken when the job status is
+            completed or cancelled, or when the maximum number of tries is set and has been reached.
 
         Args:
             quantum_inspire_job: A job object.
-            collect_max_tries: The maximum number of request tries.
+            collect_max_tries: The maximum number of times the job status is checked. When set, the value should be > 0.
+                               When not set, the method waits until the job status is either completed or cancelled.
             sec_retry_delay: The time delay in between job status checks in seconds.
 
         Returns:
@@ -763,8 +764,11 @@ class QuantumInspireAPI:
         attempts = itertools.count() if collect_max_tries is None else range(collect_max_tries)
         for _ in attempts:
             time.sleep(sec_retry_delay)
-            if quantum_inspire_job.check_status() == 'COMPLETE':
+            status = quantum_inspire_job.check_status()
+            if status == 'COMPLETE':
                 return True
+            if status == 'CANCELLED':
+                return False
         return False
 
     def execute_qasm(self, qasm: str, backend_type: Optional[Union[Dict[str, Any], int, str]] = None,
@@ -783,7 +787,8 @@ class QuantumInspireAPI:
             Depending on how busy the backend is, it takes some time to execute the job and
             returning the result. This method waits for the job to finish. The parameter collect_tries defines the
             maximum waiting time (collect_tries x 0.5 seconds). When the job takes longer to finish no results
-            are returned.
+            are returned. When set, the value of collect_tries must be > 0. When collect_tries is not set,
+            the waiting time for completion is not limited.
 
         Args:
             qasm: The cQASM code as string object.

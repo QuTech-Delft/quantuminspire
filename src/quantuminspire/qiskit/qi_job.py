@@ -1,7 +1,8 @@
 import time
 from typing import List, Optional, Any
 
-from qiskit.providers import BaseJob, JobStatus, JobError, JobTimeoutError
+from qiskit.providers import BaseJob, JobError, JobTimeoutError
+from qiskit.providers.jobstatus import JobStatus, JOB_FINAL_STATES
 from qiskit.qobj import QasmQobj, QasmQobjExperiment
 from qiskit.result import Result
 from quantuminspire.version import __version__ as quantum_inspire_version
@@ -64,7 +65,7 @@ class QIJob(BaseJob):  # type: ignore
             QisKitBackendError: If an error occurs during simulation.
         """
         start_time = time.time()
-        while self.status() != JobStatus.DONE:
+        while self.status() not in JOB_FINAL_STATES:
             elapsed_time = time.time() - start_time
             if timeout is not None and elapsed_time > timeout:
                 raise JobTimeoutError('Failed getting result: timeout reached.')
