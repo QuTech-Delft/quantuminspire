@@ -990,8 +990,9 @@ class TestQuantumInspireAPI(TestCase):
                                                        status='COMPLETE')
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
         quantum_inspire_job = QuantumInspireJob(api, job_id)
-        is_completed = api._wait_for_completed_job(quantum_inspire_job, collect_max_tries, sec_retry_delay=0.0)
+        is_completed, message = api._wait_for_completed_job(quantum_inspire_job, collect_max_tries, sec_retry_delay=0.0)
         self.assertTrue(is_completed)
+        self.assertEqual(message, 'Job completed.')
 
     def test_wait_for_completed_job_returns_false(self):
         job_id = 509
@@ -1001,8 +1002,9 @@ class TestQuantumInspireAPI(TestCase):
                                                        status='RUNNING')
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
         quantum_inspire_job = QuantumInspireJob(api, job_id)
-        is_completed = api._wait_for_completed_job(quantum_inspire_job, collect_max_tries, sec_retry_delay=0.0)
+        is_completed, message = api._wait_for_completed_job(quantum_inspire_job, collect_max_tries, sec_retry_delay=0.0)
         self.assertFalse(is_completed)
+        self.assertEqual(message, 'Failed getting result: timeout reached.')
 
     def test_wait_for_cancelled_job_returns_false(self):
         job_id = 509
@@ -1011,8 +1013,9 @@ class TestQuantumInspireAPI(TestCase):
                                                        status='CANCELLED')
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
         quantum_inspire_job = QuantumInspireJob(api, job_id)
-        is_completed = api._wait_for_completed_job(quantum_inspire_job)
+        is_completed, message = api._wait_for_completed_job(quantum_inspire_job)
         self.assertFalse(is_completed)
+        self.assertEqual(message, 'Failed getting result: job cancelled.')
 
     def __fake_backendtype_handler(self, mock_api, document, keys, params=None, validate=None,
                                    overrides=None, action=None, encoding=None, transform=None, call_mock=None):
@@ -1148,7 +1151,8 @@ class TestQuantumInspireAPI(TestCase):
         qasm = 'version 1.0...'
         number_of_shots = 1024
         results = api.execute_qasm(qasm, number_of_shots=number_of_shots, backend_type=1)
-        self.assertEqual(results, OrderedDict())
+        self.assertEqual(results['histogram'], {})
+        self.assertEqual(results['raw_text'], 'Failed getting result: job cancelled.')
 
     def test_execute_qasm_different_backend(self):
         mocks = self.__mocks_for_api_execution()

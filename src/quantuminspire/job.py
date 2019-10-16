@@ -40,7 +40,6 @@ class QuantumInspireJob:
 
         Returns:
             The status of the job. Can be: 'NEW', 'RUNNING', 'COMPLETE', 'CANCELLED'
-            (status values defined in:api-router/apirouter/jobs/constants.py)
         """
         job = self.__api.get_job(self.__job_identifier)
         return str(job['status'])

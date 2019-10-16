@@ -122,7 +122,11 @@ display
 backend_type = qi.get_backend_type_by_name('QX single-node simulator')
 result = qi.execute_qasm(qasm, backend_type=backend_type, number_of_shots=1024)
 
-print(result['histogram'])
+if result.get('histogram', {}):
+    print(result['histogram'])
+else:
+    reason = result.get('raw_text', 'No reason in result structure.')
+    print(f'Result structure does not contain proper histogram data. {reason}')
 ```
 
 ## Configure your token credentials for Quantum Inspire
