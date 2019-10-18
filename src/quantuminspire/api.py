@@ -19,7 +19,7 @@ import itertools
 import logging
 import time
 import uuid
-from typing import Type, List, Dict, Union, Optional, Any
+from typing import Type, List, Dict, Union, Optional, Any, Tuple
 from collections import OrderedDict
 from urllib.parse import urljoin
 import coreapi
@@ -515,6 +515,7 @@ class QuantumInspireAPI:
                 | measurement_mask (int)            | (deprecated, unused) The measurement mask.
                 | quantum_states_url (str)          | Url to get a list of quantum states.
                 | measurement_register_url (str)    | Url to get a list of measurement register.
+                | calibration                       | Calibration information.
         """
         try:
             result = self._action(['results', 'read'], params={'id': result_id})
@@ -747,25 +748,46 @@ class QuantumInspireAPI:
     #  other  #
 
     @staticmethod
-    def _wait_for_completed_job(quantum_inspire_job: QuantumInspireJob, collect_max_tries: Optional[int],
-                                sec_retry_delay: float = 0.5) -> bool:
-        """ Holds the process and requests the job status until completed or when
-            the maximum number of tries has been reached.
+    def _wait_for_completed_job(quantum_inspire_job: QuantumInspireJob, collect_max_tries: Optional[int] = None,
+                                sec_retry_delay: float = 0.5) -> Tuple[bool, str]:
+        """ Delays the process and requests the job status. The waiting loop is broken when the job status is
+            completed or cancelled, or when the maximum number of tries is set and has been reached.
 
         Args:
             quantum_inspire_job: A job object.
-            collect_max_tries: The maximum number of request tries.
+            collect_max_tries: The maximum number of times the job status is checked. When set, the value should be > 0.
+                               When not set, the method waits until the job status is either completed or cancelled.
             sec_retry_delay: The time delay in between job status checks in seconds.
 
         Returns:
-            True if the job result could be collected else False.
+            True if the job result could be collected else False in hte first part of the tuple.
+            The latter part of the tuple contains an (error)message.
         """
         attempts = itertools.count() if collect_max_tries is None else range(collect_max_tries)
         for _ in attempts:
             time.sleep(sec_retry_delay)
-            if quantum_inspire_job.check_status() == 'COMPLETE':
-                return True
-        return False
+            status = quantum_inspire_job.check_status()
+            if status == 'COMPLETE':
+                return True, 'Job completed.'
+            if status == 'CANCELLED':
+                return False, 'Failed getting result: job cancelled.'
+        return False, 'Failed getting result: timeout reached.'
+
+    @staticmethod
+    def _generate_error_result(message: str) -> Dict[str, Any]:
+        """Generate an error result object
+
+        Args:
+            message: Reason for the failed job
+
+        Returns:
+            Result object containing an empty histogram and an error message
+        """
+        result_obj = {
+            'histogram': {},
+            'raw_text': message
+        }
+        return result_obj
 
     def execute_qasm(self, qasm: str, backend_type: Optional[Union[Dict[str, Any], int, str]] = None,
                      number_of_shots: int = 256, collect_tries: Optional[int] = None,
@@ -783,7 +805,8 @@ class QuantumInspireAPI:
             Depending on how busy the backend is, it takes some time to execute the job and
             returning the result. This method waits for the job to finish. The parameter collect_tries defines the
             maximum waiting time (collect_tries x 0.5 seconds). When the job takes longer to finish no results
-            are returned.
+            are returned. When set, the value of collect_tries must be > 0. When collect_tries is not set,
+            the waiting time for completion is not limited.
 
         Args:
             qasm: The cQASM code as string object.
@@ -795,8 +818,8 @@ class QuantumInspireAPI:
             full_state_projection: Do not use full state projection when set to False (default is True).
 
         Returns:
-            The results of the executed cQASM if successful else an empty dictionary if
-            the results could not be collected within the given number of tries.
+            The results of the executed cQASM if successful else an error result if
+            the results could not be collected within the given number of tries or the job failed.
             See `get_result` for a description of the result properties.
         """
         delete_project_afterwards = self.project_name is None
@@ -808,8 +831,9 @@ class QuantumInspireAPI:
                                                           identifier=identifier,
                                                           full_state_projection=full_state_projection)
 
-            has_results = self._wait_for_completed_job(quantum_inspire_job, collect_tries)
-            return OrderedDict(quantum_inspire_job.retrieve_results()) if has_results else OrderedDict()
+            has_results, message = self._wait_for_completed_job(quantum_inspire_job, collect_tries)
+            return OrderedDict(quantum_inspire_job.retrieve_results()) if has_results else \
+                OrderedDict(self._generate_error_result(message))
         finally:
             if delete_project_afterwards and quantum_inspire_job is not None:
                 project_identifier = quantum_inspire_job.get_project_identifier()

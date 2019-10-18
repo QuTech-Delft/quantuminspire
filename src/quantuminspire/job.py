@@ -39,7 +39,7 @@ class QuantumInspireJob:
         """ Checks the execution status of the job.
 
         Returns:
-            The status of the job.
+            The status of the job. Can be: 'NEW', 'RUNNING', 'COMPLETE', 'CANCELLED'
         """
         job = self.__api.get_job(self.__job_identifier)
         return str(job['status'])

@@ -990,8 +990,9 @@ class TestQuantumInspireAPI(TestCase):
                                                        status='COMPLETE')
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
         quantum_inspire_job = QuantumInspireJob(api, job_id)
-        is_completed = api._wait_for_completed_job(quantum_inspire_job, collect_max_tries, sec_retry_delay=0.0)
+        is_completed, message = api._wait_for_completed_job(quantum_inspire_job, collect_max_tries, sec_retry_delay=0.0)
         self.assertTrue(is_completed)
+        self.assertEqual(message, 'Job completed.')
 
     def test_wait_for_completed_job_returns_false(self):
         job_id = 509
@@ -1001,8 +1002,20 @@ class TestQuantumInspireAPI(TestCase):
                                                        status='RUNNING')
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
         quantum_inspire_job = QuantumInspireJob(api, job_id)
-        is_completed = api._wait_for_completed_job(quantum_inspire_job, collect_max_tries, sec_retry_delay=0.0)
+        is_completed, message = api._wait_for_completed_job(quantum_inspire_job, collect_max_tries, sec_retry_delay=0.0)
         self.assertFalse(is_completed)
+        self.assertEqual(message, 'Failed getting result: timeout reached.')
+
+    def test_wait_for_cancelled_job_returns_false(self):
+        job_id = 509
+        expected_payload = {'id': job_id}
+        self.coreapi_client.handlers['jobs'] = partial(self.__mock_job_handler, expected_payload, 'read',
+                                                       status='CANCELLED')
+        api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
+        quantum_inspire_job = QuantumInspireJob(api, job_id)
+        is_completed, message = api._wait_for_completed_job(quantum_inspire_job)
+        self.assertFalse(is_completed)
+        self.assertEqual(message, 'Failed getting result: job cancelled.')
 
     def __fake_backendtype_handler(self, mock_api, document, keys, params=None, validate=None,
                                    overrides=None, action=None, encoding=None, transform=None, call_mock=None):
@@ -1101,7 +1114,7 @@ class TestQuantumInspireAPI(TestCase):
         return OrderedDict([('url', 'https//api.quantum-inspire.com/jobs/509/'),
                             ('name', 'qi-sdk-job-7e37c8fa-a76b-11e8-b5a0-a44cc848f1f2'),
                             ('id', 509),
-                            ('status', 'FAILED'),
+                            ('status', 'CANCELLED'),
                             ('input', 'https//api.quantum-inspire.com/assets/607/'),
                             ('backend', 'https//api.quantum-inspire.com/backends/1/'),
                             ('backend_type', 'https//api.quantum-inspire.com/backendtypes/1/'),
@@ -1109,14 +1122,20 @@ class TestQuantumInspireAPI(TestCase):
                             ('queued_at', '2018-08-24T07:01:21:257557Z'),
                             ('number_of_shots', 1)])
 
-    def __mocks_for_api_execution(self):
-        expected_job_result = self.__fake_job_handler({}, 'read', None, None, ['test', 'read'], {})
+    def __mocks_for_api_execution(self, fake_no_results=False):
+        if fake_no_results:
+            expected_job_result = self.__fake_no_results_job_handler({}, 'read', None, None, ['test', 'read'], {})
+        else:
+            expected_job_result = self.__fake_job_handler({}, 'read', None, None, ['test', 'read'], {})
         self.coreapi_client.getters['mocked_job'] = expected_job_result
         expected_asset = self.__fake_asset_handler({}, 'create', None, None, ['test', 'create'], {})
         self.coreapi_client.getters['171'] = expected_asset
 
         job_mock = Mock()
-        self.coreapi_client.handlers['jobs'] = partial(self.__fake_job_handler, call_mock=job_mock)
+        if fake_no_results:
+            self.coreapi_client.handlers['jobs'] = partial(self.__fake_no_results_job_handler, call_mock=job_mock)
+        else:
+            self.coreapi_client.handlers['jobs'] = partial(self.__fake_job_handler, call_mock=job_mock)
         asset_mock = Mock()
         self.coreapi_client.handlers['assets'] = partial(self.__fake_asset_handler, call_mock=asset_mock)
         backend_mock = Mock()
@@ -1125,6 +1144,15 @@ class TestQuantumInspireAPI(TestCase):
         self.coreapi_client.handlers['projects'] = partial(self.__fake_project_handler_params, call_mock=project_mock)
 
         return expected_job_result, job_mock, asset_mock, backend_mock, project_mock
+
+    def test_execute_qasm_cancelled_job(self):
+        mocks = self.__mocks_for_api_execution(fake_no_results=True)
+        api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
+        qasm = 'version 1.0...'
+        number_of_shots = 1024
+        results = api.execute_qasm(qasm, number_of_shots=number_of_shots, backend_type=1)
+        self.assertEqual(results['histogram'], {})
+        self.assertEqual(results['raw_text'], 'Failed getting result: job cancelled.')
 
     def test_execute_qasm_different_backend(self):
         mocks = self.__mocks_for_api_execution()

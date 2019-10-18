@@ -13,16 +13,22 @@ class TestQIJob(unittest.TestCase):
     def setUp(self):
         experiment_result_data = ExperimentResultData.from_dict({'counts': {'0x0': 42}})
         experiment_result_data_2 = ExperimentResultData.from_dict({'counts': {'0x1': 42}})
+        experiment_result_data_3 = ExperimentResultData.from_dict({})
         header_1 = Obj.from_dict({'name': 'Test1'})
         header_2 = Obj.from_dict({'name': 'Test2'})
+        header_3 = Obj.from_dict({'name': 'Test3'})
         self.experiment_result_dictionary_1 = {'name': 'Test1', 'shots': 42, 'data': experiment_result_data,
                                                'status': 'DONE', 'success': True, 'time_taken': 0.42,
                                                'header': header_1}
         self.experiment_result_dictionary_2 = {'name': 'Test2', 'shots': 23, 'data': experiment_result_data_2,
                                                'status': 'DONE', 'success': True, 'time_taken': 0.12,
                                                'header': header_2}
+        self.experiment_result_dictionary_3 = {'name': 'Test3', 'shots': 23, 'data': experiment_result_data_3,
+                                               'status': 'CANCELLED', 'success': False, 'time_taken': 0.12,
+                                               'header': header_3}
         self.experiment_result_1 = ExperimentResult(**self.experiment_result_dictionary_1)
         self.experiment_result_2 = ExperimentResult(**self.experiment_result_dictionary_2)
+        self.experiment_result_3 = ExperimentResult(**self.experiment_result_dictionary_3)
 
     def test_constructor(self):
         api = Mock()
@@ -99,6 +105,18 @@ class TestQIJob(unittest.TestCase):
         job = QIJob(backend, job_id, api)
         with self.assertRaises(JobTimeoutError):
             job.result(timeout=1e-2, wait=0)
+
+    def test_result_cancelled(self):
+        api = Mock()
+        api.get_jobs_from_project.return_value = [{'name': 'Test3', 'status': 'CANCELLED'}]
+        job_id = '42'
+        backend = Mock()
+        backend.get_experiment_results.return_value = [self.experiment_result_3]
+        backend.backend_name = 'some backend'
+        job = QIJob(backend, job_id, api)
+        results = job.result(timeout=None).results[0]
+        self.assertFalse(results.success)
+        self.assertEqual(results.status, 'CANCELLED')
 
     def test_cancel(self):
         api = Mock()

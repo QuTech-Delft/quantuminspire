@@ -19,7 +19,6 @@ import io
 import json
 import uuid
 from collections import defaultdict, OrderedDict, Counter
-from itertools import combinations
 from typing import Dict, List, Tuple, Optional, Any
 
 import numpy as np
