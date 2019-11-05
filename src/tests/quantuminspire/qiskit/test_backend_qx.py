@@ -285,7 +285,7 @@ class TestQiSimulatorPy(unittest.TestCase):
         with self.assertRaises(ModelValidationError) as error:
             qiskit.qobj.QasmQobj.from_dict(job_dict)
         message = error.exception.args[0]['config']['shots'][0]
-        self.assertEqual("Must be at least 1.", message)
+        self.assertEqual("Must be greater than or equal to 1.", message)
 
     def test_validate_no_classical_qubits(self):
         api = Mock()
