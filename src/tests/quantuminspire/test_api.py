@@ -1081,7 +1081,7 @@ class TestQuantumInspireAPI(TestCase):
     def __fake_asset_handler(self, mock_api, document, keys, params=None, validate=None,
                              overrides=None, action=None, encoding=None, transform=None, call_mock=None):
         if call_mock:
-            call_mock(keys[1])
+            call_mock(keys[1], params=params)
         return OrderedDict([('url', 'https//api.quantum-inspire.com/assets/1/'),
                             ('id', 171),
                             ('name', 'Grover algorithm - 2018-07-18 13,32'),
@@ -1207,7 +1207,6 @@ class TestQuantumInspireAPI(TestCase):
         self.assertIsNone(api.project_name)
 
         qasm = 'version 1.0...'
-        number_of_shots = 256
         default_number_of_shots = 256
         actual_job_result = api.execute_qasm(qasm, collect_tries=1)
         self.assertEqual(expected_job_result, actual_job_result)
@@ -1215,10 +1214,10 @@ class TestQuantumInspireAPI(TestCase):
         job_mock.assert_called_with('read', {'id': 509})
         job_call_items = job_mock.call_args_list[0][0][1]
         self.assertEqual('NEW', job_call_items['status'])
-        self.assertEqual(256, job_call_items['number_of_shots'])
+        self.assertEqual(default_number_of_shots, job_call_items['number_of_shots'])
         self.assertTrue(job_call_items['full_state_projection'])
 
-        asset_mock.assert_any_call('create')
+        asset_mock.assert_any_call('create', params=mock.ANY)
         backend_mock.assert_called_with('default')
         project_mock.assert_has_calls([call('create', params=mock.ANY), call('delete', params={'id': 1})])
 
@@ -1243,8 +1242,20 @@ class TestQuantumInspireAPI(TestCase):
         self.assertEqual(1024, job_call_items['number_of_shots'])
         self.assertTrue(job_call_items['full_state_projection'])
 
-        asset_mock.assert_called_with('create')
+        asset_mock.assert_called_with('create', params=mock.ANY)
         backend_mock.assert_called_with('default')
 
         project_mock.assert_called_with('create', params=mock.ANY)
         self.assertTrue(call('delete') not in project_mock.call_args_list)
+
+    def test_execute_qasm_qasm_stripped(self):
+        _, _, asset_mock, _, _ = self.__mocks_for_api_execution()
+
+        api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
+        self.assertIsNone(api.project_name)
+
+        qasm = '  \n version 1.0   \n        qubits 10\n h q[0] \n   measure_z q[0]  \n       \n         \n'
+        api.execute_qasm(qasm, collect_tries=1)
+
+        asset_call_items = asset_mock.call_args_list[0][1]
+        self.assertEqual('version 1.0\nqubits 10\nh q[0]\nmeasure_z q[0]', asset_call_items['params']['content'])
