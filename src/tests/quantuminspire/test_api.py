@@ -1254,8 +1254,8 @@ class TestQuantumInspireAPI(TestCase):
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
         self.assertIsNone(api.project_name)
 
-        qasm = '  \n version 1.0   \n        qubits 10\n h q[0] \n   measure_z q[0]  \n       \n         \n'
+        qasm = '  \n version 1.0  \n	 	qubits 10\n \n	h q[0] \n 	 measure_z q[0]  \n       \n         \n'
         api.execute_qasm(qasm, collect_tries=1)
 
         asset_call_items = asset_mock.call_args_list[0][1]
-        self.assertEqual('version 1.0\nqubits 10\nh q[0]\nmeasure_z q[0]', asset_call_items['params']['content'])
+        self.assertEqual('version 1.0\nqubits 10\n\nh q[0]\nmeasure_z q[0]\n\n\n', asset_call_items['params']['content'])
