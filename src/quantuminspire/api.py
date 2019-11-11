@@ -14,7 +14,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-
+import re
 import itertools
 import logging
 import time
@@ -918,6 +918,8 @@ class QuantumInspireAPI:
             project_name = self.project_name if self.project_name else 'qi-sdk-project-{}'.format(identifier)
             project = self.create_project(project_name, default_number_of_shots, backend_type)
 
+        qasm = qasm.lstrip()
+        qasm = re.sub(r'[ \t]*\n[ \t]*', r'\n', qasm)
         asset_name = 'qi-sdk-asset-{}'.format(identifier)
         asset = self._create_asset(asset_name, project, qasm)
 
