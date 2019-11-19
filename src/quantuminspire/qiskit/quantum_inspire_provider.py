@@ -76,6 +76,7 @@ class QuantumInspireProvider(BaseProvider):  # type: ignore
             qi_url: URL that points to quantum-inspire api. Default value: 'https://api.quantum-inspire.com'.
 
         """
+        del qi_url
         self.set_basic_authentication(email, password)
 
     def set_basic_authentication(self, email: str, password: str, qi_url: str = QI_URL) -> None:
