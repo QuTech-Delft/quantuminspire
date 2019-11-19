@@ -1215,7 +1215,7 @@ class TestQuantumInspireAPI(TestCase):
         job_call_items = job_mock.call_args_list[0][0][1]
         self.assertEqual('NEW', job_call_items['status'])
         self.assertEqual(default_number_of_shots, job_call_items['number_of_shots'])
-        self.assertTrue(job_call_items['full_state_projection'])
+        self.assertFalse(job_call_items['full_state_projection'])
 
         asset_mock.assert_any_call('create', params=mock.ANY)
         backend_mock.assert_called_with('default')
@@ -1232,7 +1232,7 @@ class TestQuantumInspireAPI(TestCase):
         self.assertEqual(api.project_name, project_name)
 
         qasm = 'version 1.0...'
-        actual_job_result = api.execute_qasm(qasm, number_of_shots=1024, collect_tries=1)
+        actual_job_result = api.execute_qasm(qasm, number_of_shots=1024, collect_tries=1, full_state_projection=True)
         self.assertEqual(expected_job_result, actual_job_result)
 
         job_mock.assert_any_call('read', {'id': 509})
