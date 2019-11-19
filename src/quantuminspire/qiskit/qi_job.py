@@ -21,8 +21,8 @@ from qiskit.providers import BaseJob, JobError, JobTimeoutError
 from qiskit.providers.jobstatus import JobStatus, JOB_FINAL_STATES
 from qiskit.qobj import QasmQobj, QasmQobjExperiment
 from qiskit.result import Result
-from quantuminspire.version import __version__ as quantum_inspire_version
 from quantuminspire.api import QuantumInspireAPI
+from quantuminspire.version import __version__ as quantum_inspire_version
 
 
 class QIJob(BaseJob):  # type: ignore

@@ -20,10 +20,10 @@ from typing import List, Optional, Any
 import coreapi
 from qiskit.providers import BaseProvider
 
-from quantuminspire.credentials import get_token_authentication, get_basic_authentication
-from quantuminspire.qiskit.backend_qx import QuantumInspireBackend
 from quantuminspire.api import QuantumInspireAPI
+from quantuminspire.credentials import get_token_authentication, get_basic_authentication
 from quantuminspire.exceptions import ApiError
+from quantuminspire.qiskit.backend_qx import QuantumInspireBackend
 
 QI_URL = 'https://api.quantum-inspire.com'
 
