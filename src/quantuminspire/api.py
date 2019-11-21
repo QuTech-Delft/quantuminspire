@@ -364,7 +364,8 @@ class QuantumInspireAPI:
                 | queued_at (str)               | The date-time the job is queued at.
                 |                               | The format is 'yyyy-MM-ddTHH:mm:ss.SSSSSSZ' Zulu Time.
                 | number_of_shots (int)         | Number of executions for this job.
-                | full_state_projection (bool)  | Indicates if the backend has full state projection.
+                | full_state_projection (bool)  | Indicates if the backend uses full state projection to determine
+                |                               | the quantum state.
                 |                               | Used for optimizing simulations. For more information see:
                 |                               | https://www.quantum-inspire.com/kbase/optimization-of-simulations/
                 | user_data (str)               | The user configuration data.
@@ -445,7 +446,7 @@ class QuantumInspireAPI:
             raise ApiError('Job with id {} does not exist!'.format(job_id)) from err_msg
 
     def _create_job(self, name: str, asset: Dict[str, Any], project: Dict[str, Any], number_of_shots: int,
-                    full_state_projection: bool = True, user_data: str = '') -> Dict[str, Any]:
+                    full_state_projection: bool = False, user_data: str = '') -> Dict[str, Any]:
         """ Creates a new job for executing cQASM code. This method is used by execute_qasm_async and indirectly
             by execute_qasm.
 
@@ -792,7 +793,7 @@ class QuantumInspireAPI:
     def execute_qasm(self, qasm: str, backend_type: Optional[Union[Dict[str, Any], int, str]] = None,
                      number_of_shots: int = 256, collect_tries: Optional[int] = None,
                      default_number_of_shots: int = 256, identifier: Optional[str] = None,
-                     full_state_projection: bool = True) -> Dict[str, Any]:
+                     full_state_projection: bool = False) -> Dict[str, Any]:
         """ With this method a cQASM program is executed, and the result is returned when the job is completed.
 
             The method 'execute_qasm_async' is called which returns a QuantumInspireJob directly without waiting
@@ -815,7 +816,7 @@ class QuantumInspireAPI:
             collect_tries: The number of times the status of the job is check for completion before returning.
             default_number_of_shots: The default used number of shots for the project.
             identifier: The identifier to generate names for the project, asset and job when necessary.
-            full_state_projection: Do not use full state projection when set to False (default is True).
+            full_state_projection: Do not use full state projection with simulations when set to False (default).
 
         Returns:
             The results of the executed cQASM if successful else an error result if
@@ -841,7 +842,7 @@ class QuantumInspireAPI:
 
     def execute_qasm_async(self, qasm: str, backend_type: Optional[Union[Dict[str, Any], int, str]] = None,
                            number_of_shots: int = 256, default_number_of_shots: int = 256,
-                           identifier: Optional[str] = None, full_state_projection: bool = True,
+                           identifier: Optional[str] = None, full_state_projection: bool = False,
                            project: Optional[Dict[str, Any]] = None, job_name: Optional[str] = None,
                            user_data: str = '') -> QuantumInspireJob:
         """ With this method a cQASM program (job) is scheduled to be executed asynchronously. The method returns
@@ -876,9 +877,10 @@ class QuantumInspireAPI:
             The job that is created for running the program (contained in the asset) is linked to the project and will
             be executed number_of_shots times (as given by the parameter) before the results can be collected.
             The jobs' user_data is filled with the user data given as a parameter. This user data can be fetched and
-            used later in the process. The job full_state_projection defaults to True because Quantum Inspire uses
-            full_state_projection. When set to False, the job does not use full state projection.
-
+            used later in the process. The default value of job parameter full_state_projection is set to False which
+            means that the algorithm is treated as non-deterministic. As a result a deterministic algorithm may take
+            longer to execute than strictly needed. When full_state_projection is set to True, a non-deterministic
+            algorithm may give wrong results. Parameter full_state_projection is only used for simulations.
             Once the job is created, the method returns directly without waiting for the job to complete.
             The job is returned as a QuantumInspireJob. This class encapsulates the job and contains methods the get
             the status of the job and retrieve the execution results when the job is completed.
@@ -889,7 +891,7 @@ class QuantumInspireAPI:
             number_of_shots: Execution times of the algorithm before the results can be collected.
             default_number_of_shots: The default used number of shots for the project.
             identifier: The identifier used for generating names for the project, asset and job.
-            full_state_projection: Do not use full state projection when set to False (default is True).
+            full_state_projection: Do not use full state projection when set to False (default).
             project: The properties of an existing project, the asset and job are linked to. Only used
                      when the project_name member of the api is empty.
             job_name: Name for the job that is to be executed, when None a job name is generated (see identifier)

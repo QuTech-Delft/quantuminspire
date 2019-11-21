@@ -1,13 +1,29 @@
+""" Quantum Inspire SDK
+
+Copyright 2018 QuTech Delft
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
 from copy import copy
 from typing import List, Optional, Any
 
 import coreapi
 from qiskit.providers import BaseProvider
 
-from quantuminspire.credentials import get_token_authentication, get_basic_authentication
-from quantuminspire.qiskit.backend_qx import QuantumInspireBackend
 from quantuminspire.api import QuantumInspireAPI
+from quantuminspire.credentials import get_token_authentication, get_basic_authentication
 from quantuminspire.exceptions import ApiError
+from quantuminspire.qiskit.backend_qx import QuantumInspireBackend
 
 QI_URL = 'https://api.quantum-inspire.com'
 
@@ -60,7 +76,7 @@ class QuantumInspireProvider(BaseProvider):  # type: ignore
             qi_url: URL that points to quantum-inspire api. Default value: 'https://api.quantum-inspire.com'.
 
         """
-        self.set_basic_authentication(email, password)
+        self.set_basic_authentication(email, password, qi_url)
 
     def set_basic_authentication(self, email: str, password: str, qi_url: str = QI_URL) -> None:
         """

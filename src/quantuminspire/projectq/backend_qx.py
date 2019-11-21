@@ -30,8 +30,8 @@ from projectq.ops import (NOT, Allocate, Barrier, Deallocate, FlushGate, H,
                           Measure, Ph, Rx, Ry, Rz, S, Sdag, Swap, T, Tdag, X,
                           Y, Z, Command)
 from projectq.types import Qubit
-from quantuminspire.exceptions import AuthenticationError
 from quantuminspire.api import QuantumInspireAPI
+from quantuminspire.exceptions import AuthenticationError
 from quantuminspire.exceptions import ProjectQBackendError
 
 
