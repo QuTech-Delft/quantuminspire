@@ -475,7 +475,10 @@ class QuantumInspireAPI:
         if not full_state_projection and self.enable_fsp_warning:
             logger.warning("Your experiment can not be optimized and may take longer to execute, "
                            "see https://www.quantum-inspire.com/kbase/optimization-of-simulations/ for details.")
-        return OrderedDict(self._action(['jobs', 'create'], params=payload))
+        try:
+            return OrderedDict(self._action(['jobs', 'create'], params=payload))
+        except (CoreAPIException, TypeError, ValueError) as err_msg:
+            raise ApiError('Job with name {} not created: {}'.format(name, err_msg)) from err_msg
 
     #  results  #
 
@@ -835,6 +838,9 @@ class QuantumInspireAPI:
             has_results, message = self._wait_for_completed_job(quantum_inspire_job, collect_tries)
             return OrderedDict(quantum_inspire_job.retrieve_results()) if has_results else \
                 OrderedDict(self._generate_error_result(message))
+        except (CoreAPIException, TypeError, ValueError, ApiError) as err_msg:
+            message = 'Error raised while executing qasm: {}'.format(err_msg)
+            return OrderedDict(self._generate_error_result(message))
         finally:
             if delete_project_afterwards and quantum_inspire_job is not None:
                 project_identifier = quantum_inspire_job.get_project_identifier()
