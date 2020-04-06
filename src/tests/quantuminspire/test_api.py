@@ -20,6 +20,7 @@ import sys
 import logging
 import json
 import io
+import re
 from coreapi.exceptions import CoreAPIException, ErrorMessage
 from collections import OrderedDict
 from functools import partial
@@ -369,6 +370,9 @@ class TestQuantumInspireAPI(TestCase):
         if input_key == 'read' or input_key == 'delete' or input_key == 'jobs':
             if params['id'] != 509:
                 raise ErrorMessage('Not found')
+        if input_key == 'create':
+            if params['name'] == 'CreateJobFail':
+                raise ErrorMessage('Not created')
         return OrderedDict([('url', 'https,//api.quantum-inspire.com/jobs/509/'),
                             ('name', 'qi-sdk-job-7e37c8fa-a76b-11e8-b5a0-a44cc848f1f2'),
                             ('id', 509),
@@ -502,7 +506,7 @@ class TestQuantumInspireAPI(TestCase):
             'full_state_projection': False,
             'user_data': ''
         }
-        expected = self.__mock_job_handler({}, 'create', None, None, ['test', 'create'], {})
+        expected = self.__mock_job_handler(expected_payload, 'create', None, None, ['test', 'create'], expected_payload)
         self.coreapi_client.handlers['jobs'] = partial(self.__mock_job_handler, expected_payload, 'create')
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
         with patch('sys.stdout', new_callable=io.StringIO) as mock_stdout:
@@ -539,11 +543,29 @@ class TestQuantumInspireAPI(TestCase):
             'full_state_projection': True,
             'user_data': ''
         }
-        expected = self.__mock_job_handler({}, 'create', None, None, ['test', 'create'], {})
+        expected = self.__mock_job_handler(expected_payload, 'create', None, None, ['test', 'create'], expected_payload)
         self.coreapi_client.handlers['jobs'] = partial(self.__mock_job_handler, expected_payload, 'create')
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
         actual = api._create_job(name, asset, project, number_of_shots, full_state_projection=True)
         self.assertDictEqual(expected, actual)
+
+    def test_create_job_raises_api_error(self):
+        name = 'CreateJobFail'
+        asset = {'url': 'https://api.quantum-inspire.com/assets/1/'}
+        project = {'backend_type': 'https://api.quantum-inspire.com/backendtypes/1/'}
+        number_of_shots = 1
+        payload = {
+            'status': 'NEW',
+            'name': name,
+            'input': asset['url'],
+            'backend_type': project['backend_type'],
+            'number_of_shots': number_of_shots,
+            'full_state_projection': True,
+            'user_data': ''
+        }
+        self.coreapi_client.handlers['jobs'] = partial(self.__mock_job_handler, payload, 'create')
+        api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
+        self.assertRaises(ApiError, api._create_job, name, asset, project, number_of_shots, full_state_projection=True)
 
     def __mock_list_results_handler(self, mock_api, document, keys, params=None, validate=None,
                                     overrides=None, action=None, encoding=None, transform=None):
@@ -1122,6 +1144,12 @@ class TestQuantumInspireAPI(TestCase):
                             ('queued_at', '2018-08-24T07:01:21:257557Z'),
                             ('number_of_shots', 1)])
 
+    def __error_job_handler(self, mock_api, document, keys, params=None, validate=None,
+                            overrides=None, action=None, encoding=None, transform=None, call_mock=None):
+        if call_mock:
+            call_mock(keys[1], params)
+        raise TypeError('Type is not correct')
+
     def __mocks_for_api_execution(self, fake_no_results=False):
         if fake_no_results:
             expected_job_result = self.__fake_no_results_job_handler({}, 'read', None, None, ['test', 'read'], {})
@@ -1258,4 +1286,21 @@ class TestQuantumInspireAPI(TestCase):
         api.execute_qasm(qasm, collect_tries=1)
 
         asset_call_items = asset_mock.call_args_list[0][1]
-        self.assertEqual('version 1.0\nqubits 10\n\nh q[0]\nmeasure_z q[0]\n\n\n', asset_call_items['params']['content'])
+        self.assertEqual('version 1.0\nqubits 10\n\nh q[0]\nmeasure_z q[0]\n\n\n',
+                         asset_call_items['params']['content'])
+
+    def test_execute_qasm_api_error(self):
+        _ = self.__mocks_for_api_execution()
+        job_mock = Mock()
+        self.coreapi_client.handlers['jobs'] = partial(self.__error_job_handler, call_mock=job_mock)
+
+        api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
+        self.assertIsNone(api.project_name)
+
+        qasm = 'version 1.0'
+        results = api.execute_qasm(qasm)
+
+        self.assertEqual(results['histogram'], {})
+        s = results['raw_text']
+        self.assertTrue(
+            re.match(r'Error raised while executing qasm: Job with name (.*?) not created: Type is not correct', s))
