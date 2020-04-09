@@ -18,7 +18,7 @@ on cQASM can be found in the Quantum Inspire
 [knowledge base](https://www.quantum-inspire.com/kbase/advanced-guide/).
 
 If you make use of Quanntum Inspire, please cite the following paper:
-<a href="https://doi.org/10.1117/12.2551853">Quantum Inspire: QuTech’s platform for co-development and collaboration in quantum computing</a>, T. Last et al., 2020, SPIE Advanced Lithography
+<a href="https://doi.org/10.1117/12.2551853">Quantum Inspire: QuTech’s platform for co-development and collaboration in quantum computing</a>, T. Last et al., 2020, SPIE Advanced Lithography.
 
 
 ## Installation
