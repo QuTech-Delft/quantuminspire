@@ -3,7 +3,7 @@
 *Note: this SDK is made available as a public beta, please report any
 issues or bugs in the github issue tracker.*
 
-The Quantum Inspire platform allows to execute quantum algorithms using the cQASM language. 
+The Quantum Inspire platform allows to execute quantum algorithms using the cQASM language.
 
 The software development kit (SDK) for the Quantum Inspire platform consists of:
 
@@ -16,6 +16,9 @@ For more information on Quantum Inspire see
 [https://www.quantum-inspire.com/](https://www.quantum-inspire.com/). Detailed information
 on cQASM can be found in the Quantum Inspire
 [knowledge base](https://www.quantum-inspire.com/kbase/advanced-guide/).
+
+If you make use of Quanntum Inspire, please cite the following paper:
+<a href="https://doi.org/10.1117/12.2551853">Quantum Inspire: QuTech’s platform for co-development and collaboration in quantum computing</a>, T. Last et al., 2020, SPIE Advanced Lithography
 
 
 ## Installation
@@ -133,7 +136,7 @@ else:
 
 1. Create a Quantum Inspire account if you do not already have one.
 2. Get an API token from the Quantum Inspire website.
-3. With your API token run: 
+3. With your API token run:
 ```python
 from quantuminspire.credentials import save_account
 save_account('YOUR_API_TOKEN')
@@ -170,7 +173,7 @@ This `auth` can then be used to initialize the Quantum Inspire API object.
 * Some test-cases call protected methods
 * Known issues and common questions regarding the Quantum Inspire platform
   can be found in the [FAQ](https://www.quantum-inspire.com/faq/).
- 
+
 ## Bug reports
 
 Please submit bug-reports [on the github issue tracker](https://github.com/QuTech-Delft/quantuminspire/issues).
