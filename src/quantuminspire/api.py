@@ -446,7 +446,8 @@ class QuantumInspireAPI:
             raise ApiError(f'Job with id {job_id} does not exist!') from err_msg
 
     def _create_job(self, name: str, asset: Dict[str, Any], project: Dict[str, Any], number_of_shots: int,
-                    full_state_projection: bool = False, user_data: str = '') -> Dict[str, Any]:
+                    backend_type: Dict[str, Any], full_state_projection: bool = False,
+                    user_data: str = '') -> Dict[str, Any]:
         """ Creates a new job for executing cQASM code. This method is used by execute_qasm_async and indirectly
             by execute_qasm.
 
@@ -472,7 +473,7 @@ class QuantumInspireAPI:
             'full_state_projection': full_state_projection,
             'user_data': user_data
         }
-        if not full_state_projection and self.enable_fsp_warning:
+        if not full_state_projection and self.enable_fsp_warning and not backend_type["is_hardware_backend"]:
             logger.warning("Your experiment can not be optimized and may take longer to execute, "
                            "see https://www.quantum-inspire.com/kbase/optimization-of-simulations/ for details.")
         try:
@@ -933,7 +934,7 @@ class QuantumInspireAPI:
 
         if job_name is None:
             job_name = f'qi-sdk-job-{identifier}'
-        job = self._create_job(job_name, asset, project, number_of_shots, user_data=user_data,
+        job = self._create_job(job_name, asset, project, number_of_shots, backend_type, user_data=user_data,
                                full_state_projection=full_state_projection)
 
         return QuantumInspireJob(self, job['id'])

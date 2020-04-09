@@ -496,6 +496,12 @@ class TestQuantumInspireAPI(TestCase):
         name = 'TestJob'
         asset = {'url': 'https://api.quantum-inspire.com/assets/1/'}
         project = {'backend_type': 'https://api.quantum-inspire.com/backendtypes/1/'}
+        backend_type_sim = {'url': 'https://api.quantum-inspire.com/backendtypes/1/',
+                            'name': 'QX Single-node Simulator',
+                            'is_hardware_backend': False}
+        backend_type_hw = {'url': 'https://api.quantum-inspire.com/backendtypes/1/',
+                           'name': 'Spin-2',
+                           'is_hardware_backend': True}
         number_of_shots = 1
         expected_payload = {
             'status': 'NEW',
@@ -514,14 +520,24 @@ class TestQuantumInspireAPI(TestCase):
             logging.getLogger().addHandler(stream_handler)
 
             api.show_fsp_warning(enable=False)  # Suppress warning about non fsp
-            actual = api._create_job(name, asset, project, number_of_shots, full_state_projection=False)
+            actual = api._create_job(name, asset, project, number_of_shots,
+                                     backend_type_sim, full_state_projection=False)
             self.assertDictEqual(expected, actual)
             # Verify that no warning was printed
             print_string = mock_stdout.getvalue()
             self.assertTrue(len(print_string) == 0)
 
             api.show_fsp_warning(enable=True)  # Enable warning about non fsp
-            actual = api._create_job(name, asset, project, number_of_shots, full_state_projection=False)
+            actual = api._create_job(name, asset, project, number_of_shots,
+                                     backend_type_hw, full_state_projection=False)
+            self.assertDictEqual(expected, actual)
+            # Verify warning. None on hw backend
+            print_string = mock_stdout.getvalue()
+            self.assertTrue(len(print_string) == 0)
+
+            api.show_fsp_warning(enable=True)  # Enable warning about non fsp
+            actual = api._create_job(name, asset, project, number_of_shots,
+                                     backend_type_sim, full_state_projection=False)
             self.assertDictEqual(expected, actual)
             # Verify warning
             print_string = mock_stdout.getvalue()
@@ -533,6 +549,9 @@ class TestQuantumInspireAPI(TestCase):
         name = 'TestJob'
         asset = {'url': 'https://api.quantum-inspire.com/assets/1/'}
         project = {'backend_type': 'https://api.quantum-inspire.com/backendtypes/1/'}
+        backend_type_sim = {'url': 'https://api.quantum-inspire.com/backendtypes/1/',
+                            'name': 'QX Single-node Simulator',
+                            'is_hardware_backend': False}
         number_of_shots = 1
         expected_payload = {
             'status': 'NEW',
@@ -546,13 +565,16 @@ class TestQuantumInspireAPI(TestCase):
         expected = self.__mock_job_handler(expected_payload, 'create', None, None, ['test', 'create'], expected_payload)
         self.coreapi_client.handlers['jobs'] = partial(self.__mock_job_handler, expected_payload, 'create')
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
-        actual = api._create_job(name, asset, project, number_of_shots, full_state_projection=True)
+        actual = api._create_job(name, asset, project, number_of_shots, backend_type_sim, full_state_projection=True)
         self.assertDictEqual(expected, actual)
 
     def test_create_job_raises_api_error(self):
         name = 'CreateJobFail'
         asset = {'url': 'https://api.quantum-inspire.com/assets/1/'}
         project = {'backend_type': 'https://api.quantum-inspire.com/backendtypes/1/'}
+        backend_type_sim = {'url': 'https://api.quantum-inspire.com/backendtypes/1/',
+                            'name': 'QX Single-node Simulator',
+                            'is_hardware_backend': False}
         number_of_shots = 1
         payload = {
             'status': 'NEW',
@@ -565,7 +587,8 @@ class TestQuantumInspireAPI(TestCase):
         }
         self.coreapi_client.handlers['jobs'] = partial(self.__mock_job_handler, payload, 'create')
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
-        self.assertRaises(ApiError, api._create_job, name, asset, project, number_of_shots, full_state_projection=True)
+        self.assertRaises(ApiError, api._create_job, name, asset, project, number_of_shots,
+                          backend_type_sim, full_state_projection=True)
 
     def __mock_list_results_handler(self, mock_api, document, keys, params=None, validate=None,
                                     overrides=None, action=None, encoding=None, transform=None):
