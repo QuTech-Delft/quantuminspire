@@ -278,15 +278,6 @@ class TestQiSimulatorPy(unittest.TestCase):
         job.config.shots = 0                            # now set the number of shots to 0 to trigger our validation
         self.assertRaisesRegex(QisKitBackendError, "Invalid shots \(number_of_shots=0\)", simulator.run, job)
 
-    def test_model_validate_shot_count_zero(self):
-        job_dict = self._basic_qobj_dictionary
-        job_dict['config']['shots'] = 0
-
-        with self.assertRaises(ModelValidationError) as error:
-            qiskit.qobj.QasmQobj.from_dict(job_dict)
-        message = error.exception.args[0]['config']['shots'][0]
-        self.assertEqual("Must be greater than or equal to 1.", message)
-
     def test_validate_no_classical_qubits(self):
         api = Mock()
         api.create_project.return_value = {'id': 42}
