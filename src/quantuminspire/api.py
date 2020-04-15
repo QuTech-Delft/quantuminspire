@@ -473,7 +473,7 @@ class QuantumInspireAPI:
             'full_state_projection': full_state_projection,
             'user_data': user_data
         }
-        if not full_state_projection and self.enable_fsp_warning and not backend_type["is_hardware_backend"]:
+        if not full_state_projection and self.enable_fsp_warning and not backend_type.get("is_hardware_backend", False):
             logger.warning("Your experiment can not be optimized and may take longer to execute, "
                            "see https://www.quantum-inspire.com/kbase/optimization-of-simulations/ for details.")
         try:
