@@ -157,18 +157,30 @@ class QuantumInspireAPI:
 
         Returns:
             The default backend type with all of its properties:
-                | key                        | description
-                |----------------------------|-------------------------------------------------------------------------
-                | url (str)                  | The url for the backend type.
-                | name (str)                 | Name of the backend.
-                | is_hardware_backend (bool) | Indicates whether the backend is a hardware backend (True) or
-                |                            | a simulating backend (False).
-                | required_permission (str)  | Describes the permission that is required to use this backend.
-                | number_of_qubits (int)     | Maximum number of qubits the backend supports.
-                | description (str)          | Short description of the backend.
-                | topology (OrderedDict)     | Dictionary with property 'edges' (list), specifies a list of tuples
-                |                            | that define qubit connectivity for 2-qubit gates.
-                | is_allowed (bool)          | Indicates whether the user is allowed to use this backend.
+                | key                           | description
+                |-------------------------------|----------------------------------------------------------------------
+                | url (str)                     | The url for the backend type.
+                | name (str)                    | Name of the backend.
+                | is_hardware_backend (bool)    | Indicates whether the backend is a hardware backend (True) or
+                |                               | a simulating backend (False).
+                | required_permission (str)     | Describes the permission that is required to use this backend.
+                | number_of_qubits (int)        | Maximum number of qubits the backend supports.
+                | description (str)             | Short description of the backend.
+                | topology (OrderedDict)        | Dictionary with property 'edges' (list), specifies a list of tuples
+                |                               | that define qubit connectivity for 2-qubit gates.
+                | is_allowed (bool)             | Indicates whether the user is allowed to use this backend.
+                | status (str)                  | Status of the backend.
+                | status_message (str)          | Extra info about the status of the backend.
+                | chip_image_id (str)           | Unique identification of the chip.
+                | calibration (str)             | Calibration information (url).
+                | allowed_operations (dict)     | The gates/operations names that the backend can handle.
+                | default_number_of_shots (int) | The default number of shots for an experiment.
+                | max_number_of_shots (int)     | The maximum number of shots for an experiment.
+                | max_number_of_simultaneous_jobs (int) | The maximum number of jobs that is allowed to be queued for
+                |                                         the backend simultaneously (0 = no limit).
+                | operations_count (dict)       | The maximum number of gates that is allowed in an experiment for each
+                |                                 qubit separately and for the experiment in total (0 = no limit).
+
         """
         return OrderedDict(self._action(['backendtypes', 'default', 'list']))
 
@@ -275,6 +287,9 @@ class QuantumInspireAPI:
                 | assets (str)                  | Url to get the assets of the project.
                 | backend_type (str)            | Url to get the backend type of the project.
                 | default_number_of_shots (int) | Default number of executions for this project.
+                | created (str)                 | Date/time when the project was created.
+                | number_of_jobs (int)          | Number of jobs managed within this project.
+                | last_saved (str)              | Date/time when the project was saved.
         """
         try:
             project = self._action(['projects', 'read'], params={'id': project_id})
@@ -520,7 +535,7 @@ class QuantumInspireAPI:
                 | measurement_mask (int)            | (deprecated, unused) The measurement mask.
                 | quantum_states_url (str)          | Url to get a list of quantum states.
                 | measurement_register_url (str)    | Url to get a list of measurement register.
-                | calibration                       | Calibration information.
+                | calibration (str)                 | Url to get calibration information.
         """
         try:
             result = self._action(['results', 'read'], params={'id': result_id})
@@ -665,6 +680,8 @@ class QuantumInspireAPI:
                 | contentType (str)         | The description of the content e.g. 'application/qasm' or
                 |                           | 'text/plain'.
                 | content (str)             | The content itself. For example a cQASM program when linked to a job.
+                | measurement_mask (int)    | A mask for the measured bits in the cQASM program. The measurement_mask
+                |                           | is calculated when the asset is assigned to a job.
                 | project (str)             | Url to get the project properties for which this asset was created.
                 | project_id (int)          | The project id of the project for which this asset was created.
         """
