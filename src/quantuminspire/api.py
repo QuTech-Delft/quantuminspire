@@ -680,7 +680,8 @@ class QuantumInspireAPI:
                 | contentType (str)         | The description of the content e.g. 'application/qasm' or
                 |                           | 'text/plain'.
                 | content (str)             | The content itself. For example a cQASM program when linked to a job.
-                | measurement_mask (int)    | A mask for the measured bits in the cQASM program.
+                | measurement_mask (int)    | A mask for the measured bits in the cQASM program. The measurement_mask
+                |                           | is calculated when the asset is assigned to a job.
                 | project (str)             | Url to get the project properties for which this asset was created.
                 | project_id (int)          | The project id of the project for which this asset was created.
         """
