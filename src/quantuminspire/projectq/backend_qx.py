@@ -19,6 +19,7 @@
 # limitations under the License.
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 This file contains code modified from https://github.com/ProjectQ-Framework/ProjectQ in the QIBackend class.
 The ProjectQ code is under the Apache License 2.0.
 
@@ -40,6 +41,8 @@ limitations under the License.
 import sys
 import inspect
 =======
+=======
+>>>>>>> Adapted to sphinx documentation
 
 >>>>>>> Adapted to sphinx documentation
 import random
@@ -530,6 +533,7 @@ class QIBackend(BasicEngine):  # type: ignore
 
         :param state: state represented as an integer number.
         :param qureg: list of qubits for which to extract the state bit.
+<<<<<<< HEAD
 
         :return:
             A string of ``0`` and ``1`` corresponding to the bit value in state of each Qubit in qureg.
@@ -538,6 +542,16 @@ class QIBackend(BasicEngine):  # type: ignore
 
         .. code-block::
 
+=======
+
+        :return:
+            A string of ``0`` and ``1`` corresponding to the bit value in state of each Qubit in qureg.
+
+        Example:
+
+        .. code-block::
+
+>>>>>>> Adapted to sphinx documentation
             >>> state = int('0b101010', 2)
             >>> qureg = [Qubit(0), Qubit(1), Qubit(5)]
             >>> print(self._map_state_to_bit_string(state, qureg)

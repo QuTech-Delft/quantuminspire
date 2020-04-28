@@ -107,16 +107,14 @@ class QIJob(BaseJob):  # type: ignore
     def result(self, timeout: Optional[float] = None, wait: float = 0.5) -> QIResult:
         """ Return the result for the experiments in the latest run for this project.
 
-        Args:
-            timeout: Timeout in seconds.
-            wait: Wait time between queries to the quantum-inspire platform.
+        :param timeout: Timeout in seconds.
+        :param wait: Wait time between queries to the quantum-inspire platform.
 
-        Returns:
+        :return:
             QIResult object containing the result.
 
-        Raises:
-            JobTimeoutError: If timeout is reached.
-            QisKitBackendError: If an error occurs during simulation.
+        :raises JobTimeoutError: If timeout is reached.
+        :raises QisKitBackendError: If an error occurs during simulation.
         """
         return self._result(self._backend.get_experiment_results_from_latest_run, timeout, wait)
 

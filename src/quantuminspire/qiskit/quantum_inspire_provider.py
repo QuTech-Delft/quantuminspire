@@ -113,7 +113,6 @@ class QuantumInspireProvider(BaseProvider):  # type: ignore
         .. deprecated:: 0.5.0
            Replaced with method :meth:`~.set_basic_authentication`
 
-
         :param email: A valid email address.
         :param password: Password for the account.
         :param qi_url: URL that points to quantum-inspire api. Default value: 'https://api.quantum-inspire.com'.

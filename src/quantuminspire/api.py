@@ -481,20 +481,11 @@ class QuantumInspireAPI:
         """ Creates a new job for executing cQASM code. This method is used by execute_qasm_async and indirectly
             by execute_qasm.
 
-<<<<<<< HEAD
-        Args:
-            name: The name for the job.
-            asset:  The asset with the cQASM code.
-            number_of_shots: The number of executions before returning the result.
-            full_state_projection: Used for optimizing simulations. For more information see:
-=======
-
         :param name: The name for the job.
         :param asset:  The asset with the cQASM code.
-        :param project: The project with backend type.
         :param number_of_shots: The number of executions before returning the result.
+        :param backend_type: The backend type.
         :param full_state_projection: Used for optimizing simulations. For more information see:
->>>>>>> Adapted to sphinx documentation
                                    https://www.quantum-inspire.com/kbase/optimization-of-simulations/
         :param user_data: Data that the user wants to pass along with the job.
 
