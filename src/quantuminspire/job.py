@@ -1,19 +1,27 @@
-""" Quantum Inspire SDK
+# Quantum Inspire SDK
+#
+# Copyright 2018 QuTech Delft
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-Copyright 2018 QuTech Delft
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-   http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
 """
+Module job
+==========
+
+.. autoclass:: QuantumInspireJob
+   :members:
+"""
+
 from typing import Dict, Any
 from coreapi.exceptions import ErrorMessage
 
@@ -21,12 +29,13 @@ from coreapi.exceptions import ErrorMessage
 class QuantumInspireJob:
 
     def __init__(self, api: Any, job_identifier: int) -> None:
-        """ The QuantumInspire Job class encapsulates the base job of the API and has
-            methods to check the status and retrieve the results from the API.
+        """ Encapsulation of a job.
 
-        Arguments:
-            api: An instance to the API.
-            job_identifier: The job identification number.
+        The QuantumInspire Job class encapsulates the base job of the API and has
+        methods to check the status and retrieve the results from the API.
+
+        :param api: An instance to the API.
+        :param job_identifier: The job identification number.
         """
         QuantumInspireJob.__check_arguments(api, job_identifier)
         self.__job_identifier: int = job_identifier
@@ -36,12 +45,10 @@ class QuantumInspireJob:
     def __check_arguments(api: Any, job_identifier: int) -> None:
         """ Checks whether the supplied arguments are of correct type.
 
-        Arguments:
-            api: An instance to the API.
-            job_identifier: The job identification number.
+        :param api: An instance to the API.
+        :param job_identifier: The job identification number.
 
-        Raises:
-            ValueError: When the api is not a QuantumInspireApi or when the
+        :raises ValueError: When the api is not a QuantumInspireApi or when the
             job identifier is not found.
         """
         if type(api).__name__ != 'QuantumInspireAPI':
@@ -54,7 +61,7 @@ class QuantumInspireJob:
     def check_status(self) -> str:
         """ Checks the execution status of the job.
 
-        Returns:
+        :return:
             The status of the job. Can be: 'NEW', 'RUNNING', 'COMPLETE', 'CANCELLED'
         """
         job = self.__api.get_job(self.__job_identifier)
@@ -63,7 +70,7 @@ class QuantumInspireJob:
     def retrieve_results(self) -> Dict[str, Any]:
         """ Gets the results of the job.
 
-        Returns:
+        :return:
             The execution results with a histogram item containing the result
             histogram of the job. When an error has occurred the raw_text item shall not be
             an empty string.
@@ -74,7 +81,7 @@ class QuantumInspireJob:
     def get_job_identifier(self) -> int:
         """ Gets the set job identification number for the wrapped job.
 
-        Returns:
+        :return:
             The job identification number.
         """
         return self.__job_identifier
@@ -82,7 +89,7 @@ class QuantumInspireJob:
     def get_project_identifier(self) -> int:
         """ Gets the project identification number of the wrapped job.
 
-        Returns:
+        :return:
             The project identification number.
         """
         asset = self.__api.get_asset_from_job(self.__job_identifier)

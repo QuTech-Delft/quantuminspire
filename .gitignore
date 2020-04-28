@@ -47,6 +47,9 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 
+# Sphinx stuff
+docs/build/
+
 # Translations
 *.mo
 *.pot

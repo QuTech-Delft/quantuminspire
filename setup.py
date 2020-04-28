@@ -95,5 +95,7 @@ setup(name='quantuminspire',
       extras_require={
           'qiskit': ["qiskit>=0.20.0"],
           'projectq': ["projectq>=0.4"],
-          'dev': ['pytest>=3.3.1', "pylint", "mypy>=0.670"]
+          'dev': ['pytest>=3.3.1', "pylint", "mypy>=0.670"],
+          'rtd': ['sphinx', 'sphinx_rtd_theme', 'nbsphinx', 'sphinx-automodapi', 'sphinx-copybutton'],
+
       })

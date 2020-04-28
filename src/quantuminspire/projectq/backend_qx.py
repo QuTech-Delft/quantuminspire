@@ -1,5 +1,24 @@
-""" Quantum Inspire SDK
+# Quantum Inspire SDK
+#
+# This file contains code modified from https://github.com/ProjectQ-Framework/ProjectQ in the QIBackend class.
+# The ProjectQ code is under the Apache License 2.0.
+#
+#
+# Copyright 2018 QuTech Delft
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
+<<<<<<< HEAD
 This file contains code modified from https://github.com/ProjectQ-Framework/ProjectQ in the QIBackend class.
 The ProjectQ code is under the Apache License 2.0.
 
@@ -20,6 +39,9 @@ limitations under the License.
 """
 import sys
 import inspect
+=======
+
+>>>>>>> Adapted to sphinx documentation
 import random
 from collections import defaultdict
 from functools import reduce
@@ -46,12 +68,13 @@ class QIBackend(BasicEngine):  # type: ignore
         """
         Initialize the Backend object.
 
-        Args:
-            num_runs: Number of runs to collect statistics (default is 1024).
-            verbose: Verbosity level, defaults to 0, which produces no extra output.
-            quantum_inspire_api: Connection to QI platform, optional parameter.
-            backend_type: Backend to use for execution. When no backend_type is provided, the default backend will be
-                          used.
+        :param num_runs: Number of runs to collect statistics (default is 1024).
+        :param verbose: Verbosity level, defaults to 0, which produces no extra output.
+        :param quantum_inspire_api: Connection to QI platform, optional parameter.
+        :param backend_type: Backend to use for execution.
+            When no backend_type is provided, the default backend will be used.
+
+        :raises AuthenticationError: When an authentication error occurs.
         """
         BasicEngine.__init__(self)
         self._flushed: bool = False
@@ -154,11 +177,9 @@ class QIBackend(BasicEngine):  # type: ignore
         """
         Via this method the ProjectQ framework determines which commands (gates) are available in the backend.
 
-        Args:
-            cmd: Command with a gate for which to check availability.
+        :param cmd: Command with a gate for which to check availability.
 
-        Returns:
-            True when the gate in the command is available on the Quantum Inspire backend.
+        :return: True when the gate in the command is available on the Quantum Inspire backend.
         """
         count = get_control_count(cmd)
         g = cmd.gate
@@ -192,23 +213,29 @@ class QIBackend(BasicEngine):  # type: ignore
         return False
 
     def _reset(self) -> None:
-        """ Reset temporary variable qasm to an initial value and set a flag to clear variables in _store
-            when _store is called. """
+        """ Reset qasm string.
+
+        Reset temporary variable :attr:`qasm` to an initial value and set a flag
+        to clear variables when :meth:`~._store` is called. """
         self._clear = True
         self._qasm = ""
 
     def _allocate_qubit(self, index_to_add: int) -> None:
-        """ On a simulation backend it is possible to reuse qubits. The advantage of reusing qubits is that less
+        """ Allocate qubits.
+
+        On a simulation backend it is possible to reuse qubits.
+        The advantage of reusing qubits is that less
         qubits are needed in total for the algorithm.
         A source of reusing qubits is when qubits are used as ancilla bits. Ancilla bits are used to downgrade
         complicated quantum gates into simple gates by placing controls on ancilla bits or when doing quantum error
         correction. In projectQ, a qubit can be re-used when it is de-allocated after usage. ProjectQ sends an
         Allocate-gate for a qubit that is going to be used and a Deallocate gate for qubits that are not used anymore.
 
-        _allocation_map is the store in which the administration is done for assigning physical qubits that are used
+        :attr:`_allocation_map` is the store in which the administration
+        is done for assigning physical qubits that are used
         with in ProjectQ to the simulation qubits, this is as they appear in the cqasm.
-        _allocation_map stores the assignments as tuples (simulation_bit, physical_bit) where 'physical_bit' is
-        requested by ProjectQ and simulation_bit is the assignment to a bit in the simulator.
+        :attr:`_allocation_map` stores the assignments as tuples (simulation_bit, physical_bit)
+        where 'physical_bit' is requested by ProjectQ and simulation_bit is the assignment to a bit in the simulator.
         A de-allocated physical bit is registered as -1, which means the corresponding simulation bit can be re-used.
 
         We strive for x-to-x allocation for qubits, which means we want to allocate a physical qubit to its
@@ -220,23 +247,35 @@ class QIBackend(BasicEngine):  # type: ignore
         which means we have to switch to non-full state projection.
 
         Example: When physical bit 0..4 are allocated in reversed order we would still get:
-        (0, 0), (1, 1), (2, 2), (3, 3), (4, 4)
+
+            (0, 0), (1, 1), (2, 2), (3, 3), (4, 4)
+
         and not:
-        (0, 4), (1, 3), (2, 2), (3, 1), (4, 0)
+
+            (0, 4), (1, 3), (2, 2), (3, 1), (4, 0)
 
         When bit 6 is allocated next we get:
-        (0, 0), (1, 1), (2, 2), (3, 3), (4, 4), (6, 6)
+
+            (0, 0), (1, 1), (2, 2), (3, 3), (4, 4), (6, 6)
+
         and when bit 6 is de-allocated again we get:
-        (0, 0), (1, 1), (2, 2), (3, 3), (4, 4), (6, -1)
+
+            (0, 0), (1, 1), (2, 2), (3, 3), (4, 4), (6, -1)
 
         At this point, when bit 5 is allocated we get:
-        (0, 0), (1, 1), (2, 2), (3, 3), (4, 4), (5, 5), (6, -1)
+
+            (0, 0), (1, 1), (2, 2), (3, 3), (4, 4), (5, 5), (6, -1)
+
         When a bit is allocated with an index higher than the maximum number of qubits in the simulator we try to
         allocate an earlier de-allocated bit
         When the maximum number of qubits in the simulator is 7 [0..6], allocation of bit 7 will be on position 6
-        (0, 0), (1, 1), (2, 2), (3, 3), (4, 4), (5, 5), (6, 7)
+
+            (0, 0), (1, 1), (2, 2), (3, 3), (4, 4), (5, 5), (6, 7)
+
         When bit 8 is allocated next, we cannot reuse another bit, so we add it as the next in line (bit 7)
-        (0, 0), (1, 1), (2, 2), (3, 3), (4, 4), (5, 5), (6, 7), (7, 8)
+
+            (0, 0), (1, 1), (2, 2), (3, 3), (4, 4), (5, 5), (6, 7), (7, 8)
+
         """
         if self._is_simulation_backend:
             # physical bit to add cannot be allocated already
@@ -283,8 +322,10 @@ class QIBackend(BasicEngine):  # type: ignore
             print(f'   _allocation_map {self._allocation_map}')
 
     def _deallocate_qubit(self, index_to_remove: int) -> None:
-        """ On a simulation backend it is possible to reuse qubits.
-        When a qubit is de-allocated we register -1 as physical bit id in the _allocation_map.
+        """ De-allocate qubit.
+
+        On a simulation backend it is possible to reuse qubits.
+        When a qubit is de-allocated we register ``-1`` as physical bit id in the :attr:`_allocation_map`.
         """
         if self._is_simulation_backend:
             # determine the qubits that are not de-allocated
@@ -304,10 +345,9 @@ class QIBackend(BasicEngine):  # type: ignore
         """
         Return the allocated location on the simulated backend of the qubit with the given physical qubit id.
 
-        Args:
-            physical_qubit_id: ID of the physical qubit whose position should be returned.
+        :param physical_qubit_id: ID of the physical qubit whose position should be returned.
 
-        Returns:
+        :return:
             Allocated simulation bit position of physical qubit with id pqb_id.
         """
         if self._is_simulation_backend:
@@ -320,9 +360,12 @@ class QIBackend(BasicEngine):  # type: ignore
         return physical_qubit_id
 
     def _switch_fsp_to_nonfsp(self) -> None:
-        """ We have determined that the algorithm is non-deterministic and cannot use fsp.
-        At this point, measured_ids is the collection of measurement statements in the algorithm for which no
-        measurement statement has been added to the qasm yet. For every measured_id a measurement statement is added.
+        """Switch to non-full state projection.
+
+        We have determined that the algorithm is non-deterministic and cannot use fsp.
+        At this point, :attr:`_measured_ids` is the collection of measurement statements in the algorithm for which no
+        measurement statement has been added to the qasm yet.
+        For every `measured_id` a measurement statement is added.
         """
         for logical_qubit_id in self._measured_ids:
             physical_qubit_id = self._logical_to_physical(logical_qubit_id)
@@ -331,13 +374,11 @@ class QIBackend(BasicEngine):  # type: ignore
         self._full_state_projection = False
 
     def _store(self, cmd: Command) -> None:
-        """
-        Temporarily store the command cmd.
+        """Temporarily store the command cmd.
 
         Translates the command and stores the results in local variables.
 
-        Args:
-            cmd: Command to store.
+        :param cmd: Command to store.
         """
         if self._verbose >= 3:
             print(f'_store {id(self)}: cmd {cmd}')
@@ -436,13 +477,11 @@ class QIBackend(BasicEngine):  # type: ignore
             raise NotImplementedError(f'cmd {(cmd,)} not implemented')
 
     def _logical_to_physical(self, logical_qubit_id: int) -> int:
-        """
-        Return the physical location of the qubit with the given logical id.
+        """Return the physical location of the qubit with the given logical id.
 
-        Args:
-            logical_qubit_id: ID of the logical qubit whose position should be returned.
+        :param logical_qubit_id: ID of the logical qubit whose position should be returned.
 
-        Returns:
+        :return:
             Physical position of logical qubit with id qb_id.
         """
         if self.main_engine.mapper is not None:
@@ -457,24 +496,21 @@ class QIBackend(BasicEngine):  # type: ignore
         return logical_qubit_id  # no mapping
 
     def get_probabilities(self, qureg: List[Qubit]) -> Dict[str, float]:
-        """
-        Return the list of basis states with corresponding probabilities.
+        """Return the list of basis states with corresponding probabilities.
 
         The measured bits are ordered according to the supplied quantum
         register, i.e., the left-most bit in the state-string corresponds to
         the first qubit in the supplied quantum register.
 
-        Warning:
+        .. warning::
             Only call this function after the circuit has been executed!
 
-        Args:
-            qureg: Quantum register of size n determining the contents of the probability states.
+        :param qureg: Quantum register of size n determining the contents of the probability states.
 
-        Returns:
-            Dictionary mapping n-bit strings of '0' and '1' to probabilities.
+        :return:
+            Dictionary mapping n-bit strings of ``0`` and ``1`` to probabilities.
 
-        Raises:
-            RuntimeError: If no data is available (i.e., if the circuit has
+        :raises RuntimeError: If no data is available (i.e., if the circuit has
                 not been executed). Or if a qubit was supplied which was not
                 present in the circuit (might have gotten optimized away).
         """
@@ -490,19 +526,22 @@ class QIBackend(BasicEngine):  # type: ignore
         return probability_dict
 
     def _map_state_to_bit_string(self, state: int, qureg: List[Qubit]) -> str:
-        """
+        """ Map the state to a bit string
 
-        Args:
-            state: state represented as an integer number.
-            qureg: list of qubits for which to extract the state bit.
+        :param state: state represented as an integer number.
+        :param qureg: list of qubits for which to extract the state bit.
 
-        Returns:
-            A string of '0' and '1' corresponding to the bit value in state of each Qubit in qureg.
+        :return:
+            A string of ``0`` and ``1`` corresponding to the bit value in state of each Qubit in qureg.
 
-        Examples:
-            state = int('0b101010', 2)
-            qureg = [Qubit(0), Qubit(1), Qubit(5)]
-            print(self._map_state_to_bit_string(state, qureg)  # prints '011'
+        Example:
+
+        .. code-block::
+
+            >>> state = int('0b101010', 2)
+            >>> qureg = [Qubit(0), Qubit(1), Qubit(5)]
+            >>> print(self._map_state_to_bit_string(state, qureg)
+            011
 
         """
         mapped_state = ''
@@ -519,8 +558,7 @@ class QIBackend(BasicEngine):  # type: ignore
         return mapped_state
 
     def _run(self) -> None:
-        """
-        Run the circuit.
+        """ Run the circuit.
 
         Send the circuit via the Quantum Inspire API.
         """
@@ -551,10 +589,9 @@ class QIBackend(BasicEngine):  # type: ignore
     def _execute_cqasm(self) -> None:
         """ Execute self._cqasm through the API.
 
-        Sets self._quantum_inspire_result with the result object in the API response.
+        Sets :attr:`_quantum_inspire_result` with the result object in the API response.
 
-        Raises:
-            ProjectQBackendError: when raw_text in result from API is not empty (indicating a backend error).
+        :raises ProjectQBackendError: When `raw_text` in result from API is not empty (indicating a backend error).
         """
         self._quantum_inspire_result = self._quantum_inspire_api.execute_qasm(
             self._cqasm,
@@ -571,8 +608,8 @@ class QIBackend(BasicEngine):  # type: ignore
     def _filter_result_by_measured_qubits(self) -> None:
         """ Filters the raw result by collapsing states so that unmeasured qubits are ignored.
 
-        Populates self._measured_states by filtering self._quantum_inspire_result['histogram'] based on
-        self._measured_ids (which are supposed to be logical qubit id's).
+        Populates :attr:`_measured_states` by filtering :attr:`_quantum_inspire_result['histogram']` based on
+        :attr:`_measured_ids` (which are supposed to be logical qubit id's).
         """
         mask_bits = map(lambda bit: self._physical_to_simulated(self._logical_to_physical(bit)), self._measured_ids)
         histogram: Dict[int, float] = {int(k): v for k, v in self._quantum_inspire_result['histogram'].items()}
@@ -582,21 +619,21 @@ class QIBackend(BasicEngine):  # type: ignore
     def _filter_histogram(histogram: Dict[int, float], mask_bits: Iterator[int]) -> Dict[int, float]:
         """ Filter a histogram by mask_bits.
 
-        Args:
-            histogram: input histogram mapping state to probability.
-            mask_bits: list of bits that are to be kept in the filtered histogram.
+        :param histogram: input histogram mapping state to probability.
+        :param mask_bits: list of bits that are to be kept in the filtered histogram.
 
-        Returns:
+        :return:
             Collapsed histogram mapping state to probability.
 
         Keys in a histogram dict are the states represented as an integer number (may be int or string), values the
         probability corresponding to that state.
 
-        The mask_bits list specifies the relevant bits, any bit not set to 1 in the mask will be ignored (masked out).
+        The `mask_bits` list specifies the relevant bits, any bit not set to 1 in the mask will be ignored (masked out).
         The probabilities of equivalent states summed.
 
-        For example, if we have two states b0010 and b0011, and mask_bits is [1] we only care about bit 1 (the second
-        bit from the right). The output will specify only one state, b0010, and the probability is the sum of the
+        For example, if we have two states ``0b0010`` and ``0b0011``, and mask_bits is ``[1]``
+        we only care about bit 1 (the second bit from the right).
+        The output will specify only one state, ``0b0010``, and the probability is the sum of the
         two original probabilities.
 
         """
@@ -609,7 +646,9 @@ class QIBackend(BasicEngine):  # type: ignore
         return dict(filtered_states)
 
     def _register_random_measurement_outcome(self) -> None:
-        """ Samples the _measured_states for a single result and registers this as the outcome of the circuit. """
+        """
+        Samples the :attr:`_measured_states` for a single result
+        and registers this as the outcome of the circuit. """
 
         class QB:
             def __init__(self, qubit_id: int) -> None:
@@ -625,7 +664,9 @@ class QIBackend(BasicEngine):  # type: ignore
             self.main_engine.set_measurement_result(QB(logical_qubit_id), result)
 
     def _sample_measured_states_once(self) -> int:
-        """ Obtain a random state from the _measured_states, taking into account the probability distribution. """
+        """
+        Obtain a random state from the :attr:`_measured_states`, taking into account the probability distribution.
+        """
         states = list(self._measured_states.keys())
         weights = list(self._measured_states.values())
         return random.choices(states, weights=weights)[0]
@@ -642,8 +683,7 @@ class QIBackend(BasicEngine):  # type: ignore
         """
         Receives a command list and, for each command, stores it until completion.
 
-        Args:
-            command_list: List of commands to execute.
+        :param command_list: List of commands to execute.
         """
         for cmd in command_list:
             if not cmd.gate == FlushGate():
