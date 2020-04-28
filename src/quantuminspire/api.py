@@ -559,7 +559,7 @@ class QuantumInspireAPI:
             ``measurement_mask``          int         (deprecated, unused) The measurement mask.
             ``quantum_states_url``        str         Url to get a list of quantum states.
             ``measurement_register_url``  str         Url to get a list of measurement register.
-            ``calibration``                           Url to get calibration information.
+            ``calibration``               str         Url to get calibration information.
             ============================= =========== ==================================================================
         """
         try:
