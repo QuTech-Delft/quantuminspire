@@ -29,6 +29,9 @@ class CircuitToString:
     """ Contains the translational elements to convert the Qiskit circuits to cQASM code."""
 
     def __init__(self, full_state_projection: bool = True) -> None:
+        """
+        :param full_state_projection: Whether or not to use full state projection.
+        """
         self.bfunc_instructions: List[QasmQobjInstruction] = []
         self.full_state_projection = full_state_projection
 
@@ -568,14 +571,18 @@ class CircuitToString:
 
         Examples:
 
-        ======== ====================================
-        76543210 bit_nr
-        00111000 lowest mask bit = 3, mask_length = 3
-        00000001 lowest mask bit = 0, mask_length = 1
-        11111111 lowest mask bit = 0, mask_length = 8
-        10000000 lowest mask bit = 7, mask_length = 1
-        ======== ====================================
+        ============ ====================================
+        ``76543210`` bit_nr
+        ============ ====================================
+        ``00111000`` lowest mask bit = 3, mask_length = 3
+        ``00000001`` lowest mask bit = 0, mask_length = 1
+        ``11111111`` lowest mask bit = 0, mask_length = 8
+        ``10000000`` lowest mask bit = 7, mask_length = 1
+        ============ ====================================
 
+        :param mask: The mask to get the mask data from.
+
+        :return: The mask data, i.e. a tuple (lowest_bit_number, mask_length)
         """
         # Precondition: mask != 0
         if mask == 0:

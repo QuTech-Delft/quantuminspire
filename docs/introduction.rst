@@ -72,8 +72,8 @@ Running
 -------
 
 For example usage see the python scripts and Jupyter notebooks in the
-`docs/ <docs/>`__ directory when installed from source or the
-`share/doc/quantuminspire/examples/ <share/doc/quantuminspire/examples/>`__  directory in the library root
+:file:`docs/examples/` directory when installed from source or the
+:file:`share/doc/quantuminspire/examples/` directory in the library root
 (Python's ``sys.prefix`` for system installations; ``site.USER_BASE`` for user
 installations) when installed from PyPI.
 
@@ -82,14 +82,14 @@ source:
 
 ::
 
-    cd docs
+    cd docs/examples
     jupyter notebook example_projectq.ipynb
 
 Or to perform Grover's with the ProjectQ backend from a Python script:
 
 ::
 
-    cd docs
+    cd docs/examples
     python example_projectq_grover.py
 
 |Binder|

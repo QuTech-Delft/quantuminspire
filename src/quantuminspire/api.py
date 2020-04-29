@@ -107,8 +107,9 @@ class QuantumInspireAPI:
             raise ApiError(f'Could not connect to {base_uri}') from ex
 
     def _get(self, uri_path: str) -> Any:
-        """ Method for making requests to the coreapi client instance to get some piece of information. The information
-            requested depends on the uri_path parameter.
+        """ Method for making requests to the coreapi client instance to get some piece of information.
+
+        The information requested depends on the uri_path parameter.
 
         :param uri_path: The URL where to request the data.
 
@@ -129,8 +130,7 @@ class QuantumInspireAPI:
         return self.__client.get(uri_path)
 
     def show_fsp_warning(self, enable: bool = True) -> None:
-        """ The warning that is printed when a non-FSP (full state projection) job is about to run can be controlled,
-            i.e. enabled or disabled via this method.
+        """ Enable or disable the warning that is printed when a non-FSP (full state projection) job is about to run.
 
         :param enable: when True the fsp-warning is shown, otherwise not.
 
@@ -250,8 +250,7 @@ class QuantumInspireAPI:
         return OrderedDict(backend_type)
 
     def get_backend_type(self, identifier: Optional[Union[int, str]] = None) -> Dict[str, Any]:
-        """
-        Gets the properties of the backend type indicated by `identifier`.
+        """Gets the properties of the backend type indicated by `identifier`.
 
         If no `identifier` is given,
         the default backend type will be returned. With an `identifier`
@@ -280,8 +279,10 @@ class QuantumInspireAPI:
     #  projects  #
 
     def list_projects(self) -> None:
-        """ Prints a list of all the projects registered to the current user the API is authenticated for.
-            For each project the name, id and backend type is printed.
+        """ Prints a list of projects.
+
+        Prints all the projects registered to the current user the API is authenticated for.
+        For each project the name, id and backend type is printed.
         """
         projects = self.get_projects()
         for project in projects:
@@ -348,8 +349,10 @@ class QuantumInspireAPI:
         return OrderedDict((self._action(['projects', 'create'], params=payload)))
 
     def delete_project(self, project_id: int) -> None:
-        """ Deletes the project identified by `project_id` together with all its assets, jobs and results.
-            Only projects can be deleted that are registered for the user the API is currently authenticated for.
+        """ Delete a project.
+
+        Deletes the project identified by `project_id` together with all its assets, jobs and results.
+        Only projects can be deleted that are registered for the user the API is currently authenticated for.
 
         :param project_id: The project identification number.
 
@@ -366,8 +369,10 @@ class QuantumInspireAPI:
     #  jobs  #
 
     def list_jobs(self) -> None:
-        """ Prints a list of all the jobs registered to the current user the API is authenticated for.
-            For each job the name, identification number and status is printed.
+        """ Prints a list of jobs.
+
+        Prints a list of all the jobs registered to the current user the API is authenticated for.
+        For each job the name, identification number and status is printed.
         """
         jobs = self.get_jobs()
         for job in jobs:
@@ -460,7 +465,8 @@ class QuantumInspireAPI:
 
     def delete_job(self, job_id: int) -> Dict[str, Any]:
         """ Deletes the job identified by `job_id`.
-            Only jobs can be deleted that are registered for the user the API is currently authenticated for.
+
+        Only jobs can be deleted that are registered for the user the API is currently authenticated for.
 
         :param job_id: The job identification number.
 
@@ -478,15 +484,16 @@ class QuantumInspireAPI:
     def _create_job(self, name: str, asset: Dict[str, Any], number_of_shots: int,
                     backend_type: Dict[str, Any], full_state_projection: bool = False,
                     user_data: str = '') -> Dict[str, Any]:
-        """ Creates a new job for executing cQASM code. This method is used by execute_qasm_async and indirectly
-            by execute_qasm.
+        """ Creates a new job for executing cQASM code.
+
+        This method is used by execute_qasm_async and indirectly by execute_qasm.
 
         :param name: The name for the job.
         :param asset:  The asset with the cQASM code.
         :param number_of_shots: The number of executions before returning the result.
         :param backend_type: The backend type.
         :param full_state_projection: Used for optimizing simulations. For more information see:
-                                   https://www.quantum-inspire.com/kbase/optimization-of-simulations/
+            https://www.quantum-inspire.com/kbase/optimization-of-simulations/
         :param user_data: Data that the user wants to pass along with the job.
 
         :return:
@@ -513,8 +520,10 @@ class QuantumInspireAPI:
     #  results  #
 
     def list_results(self) -> None:
-        """ Prints a list of all the results registered to the current user the API is authenticated for.
-            For each result the identification number and creation date is printed.
+        """ Prints a list of results.
+
+        Prints a list of all the results registered to the current user the API is authenticated for.
+        For each result the identification number and creation date is printed.
         """
         results = self.get_results()
         for result in results:
@@ -587,8 +596,10 @@ class QuantumInspireAPI:
         return OrderedDict(result)
 
     def get_raw_data_from_result(self, result_id: int) -> List[int]:
-        """ Gets the raw data from the result of the executed cQASM code, given the result_id. The raw data consists
-            of a list with integer state values for each shot of the experiment (see job.number_of_shots).
+        """ Gets the raw data from the result.
+
+        Gets the raw data from the result of the executed cQASM code, given the result_id.
+        The raw data consists of a list with integer state values for each shot of the experiment (see job.number_of_shots).
 
         :param result_id: The identification number of the result.
 
@@ -666,7 +677,8 @@ class QuantumInspireAPI:
 
     def list_assets(self) -> None:
         """ Prints a list of the assets registered to the current user the API is authenticated for.
-            For each asset the name, identification number and project identification number is printed."""
+
+        For each asset the name, identification number and project identification number is printed."""
         assets = self.get_assets()
         for asset in assets:
             print(f'Asset name: {asset["name"]}, id: {asset["id"]}, (project_id: {asset["project_id"]})')
@@ -755,9 +767,11 @@ class QuantumInspireAPI:
         return OrderedDict(asset)
 
     def _create_asset(self, name: str, project: Dict[str, Any], content: str) -> Dict[str, Any]:
-        """ This method is used by execute_qasm_async to generate a new asset with a unique name to hold the
-            content of the cQASM program for the project given. Assets are deleted when the project for which the asset
-            was created is deleted.
+        """ Create an asset.
+
+        This method is used by execute_qasm_async to generate a new asset with a unique name to hold the
+        content of the cQASM program for the project given. Assets are deleted when the project for which the asset
+        was created is deleted.
 
         :param name: The name of the new asset.
         :param project: The project to which the asset is linked to.
@@ -780,15 +794,17 @@ class QuantumInspireAPI:
     @staticmethod
     def _wait_for_completed_job(quantum_inspire_job: QuantumInspireJob, collect_max_tries: Optional[int] = None,
                                 sec_retry_delay: float = 0.5) -> Tuple[bool, str]:
-        """ Delays the process and requests the job status. The waiting loop is broken when the job status is
-            completed or cancelled, or when the maximum number of tries is set and has been reached.
+        """Wait for job completion.
+
+        Delays the process and requests the job status. The waiting loop is broken when the job status is
+        completed or cancelled, or when the maximum number of tries is set and has been reached.
 
         :param quantum_inspire_job: A job object.
         :param collect_max_tries: The maximum number of times the job status is checked. When set, the value should be > 0.
             When not set, the method waits until the job status is either completed or cancelled.
         :param sec_retry_delay: The time delay in between job status checks in seconds.
 
-        :eturn:
+        :return:
             True if the job result could be collected else False in hte first part of the tuple.
             The latter part of the tuple contains an (error)message.
         """
@@ -880,27 +896,27 @@ class QuantumInspireAPI:
         """With this method a cQASM program (job) is scheduled to be executed asynchronously.
 
         The method returns
-        directly without waiting for the job to complete, as opposed to method `execute_qasm` which waits for
+        directly without waiting for the job to complete, as opposed to method :meth:`~.execute_qasm` which waits for
         the job to finish and returns the result.
 
-        To execute a cQASM program a job is scheduled on a backend of type 'backend type' as given by the
+        To execute a cQASM program a job is scheduled on a backend of type `backend type` as given by the
         parameter backend_type. Currently there are 3 backend types available:
 
-            1. QX single-node simulator  (default for anonymous accounts)
+            1. QX single-node simulator (default for anonymous accounts)
             2. QX single-node simulator SurfSara (advanced account credentials needed)
             3. QX multi-node simulator SurfSara (advanced account credentials needed)
 
-        When no backend_type is given, the default backend type currently being 'QX single-node simulator', is used.
+        When no `backend_type` is given, the default backend type currently being `QX single-node simulator`, is used.
 
         The job has to be linked with a project before it can be scheduled to execute.
 
-        When a project name was supplied when the QuantumInspireAPI was created (see __init__), the job
+        When a project name was supplied when the QuantumInspireAPI was created (see :meth:`~.__init__`), the job
         is linked to an existing project with this project name. When no project exists with this name a
         project with this name is created.
 
         When no project name was given when the QuantumInspireAPI was created, the job is linked to the project
-        that is given as an argument 'project'. When this 'project' argument is empty, a project is created.
-        First a project name is generated using the parameter 'identifier' or when parameter 'identifier' is
+        that is given as an argument `project`. When this `project` argument is empty, a project is created.
+        First a project name is generated using the parameter `identifier` or when parameter `identifier` is
         empty an identifier is generated.
 
         When the project is created, it is created for the backend type and the default number of shots given.
@@ -910,16 +926,22 @@ class QuantumInspireAPI:
         An asset with a unique id is created containing the cQASM program. This asset is linked to the project.
 
         When the project and the asset containing the program are known, a job is created with the name given by
-        parameter job_name. When this parameter job_name is not filled, a job name is generated.
+        parameter `job_name`. When this parameter `job_name` is not filled, a job name is generated.
+
         The job that is created for running the program (contained in the asset) is linked to the project and will
-        be executed number_of_shots times (as given by the parameter) before the results can be collected.
-        The jobs' user_data is filled with the user data given as a parameter. This user data can be fetched and
-        used later in the process. The default value of job parameter full_state_projection is set to False which
+        be executed `number_of_shots` times (as given by the parameter) before the results can be collected.
+
+        The jobs' `user_data` is filled with the user data given as a parameter. This user data can be fetched and
+        used later in the process.
+
+        The default value of job parameter `full_state_projection` is set to False which
         means that the algorithm is treated as non-deterministic. As a result a deterministic algorithm may take
-        longer to execute than strictly needed. When full_state_projection is set to True, a non-deterministic
-        algorithm may give wrong results. Parameter full_state_projection is only used for simulations.
+        longer to execute than strictly needed. When `full_state_projection` is set to True, a non-deterministic
+        algorithm may give wrong results. Parameter `full_state_projection` is only used for simulations.
+
         Once the job is created, the method returns directly without waiting for the job to complete.
-        The job is returned as a QuantumInspireJob. This class encapsulates the job and contains methods the get
+        The job is returned as a :class:`QuantumInspireJob`.
+        This class encapsulates the job and contains methods the get
         the status of the job and retrieve the execution results when the job is completed.
 
         :param qasm: The qasm code as a string object.

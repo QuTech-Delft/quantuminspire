@@ -3,6 +3,6 @@ License
 
 .. highlight:: none
 
-.. literalinclude:: ../../LICENSE.md
+.. literalinclude:: ../LICENSE.md
 
 .. highlight:: default
