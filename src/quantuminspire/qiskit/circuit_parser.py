@@ -48,6 +48,29 @@ class CircuitToString:
             raise ApiError('Gate {} not supported'.format(instruction.name.lower()))
 
     @staticmethod
+    def _cz(stream: StringIO, instruction: QasmQobjInstruction) -> None:
+        """ Translates the controlled Z element.
+
+        Args:
+            stream: The string-io stream to where the resulting cQASM is written.
+            instruction: The Qiskit instruction to translate to cQASM.
+
+        """
+        stream.write('CZ q[{0}], q[{1}]\n'.format(*instruction.qubits))
+
+    @staticmethod
+    def _c_cz(stream: StringIO, instruction: QasmQobjInstruction, binary_control: str) -> None:
+        """ Translates the binary-controlled controlled Z element.
+
+        Args:
+            stream: The string-io stream to where the resulting cQASM is written.
+            instruction: The Qiskit instruction to translate to cQASM.
+            binary_control: The multi-bits control string. The gate is executed when all specified classical bits are 1.
+
+        """
+        stream.write('C-CZ {0}q[{1}], q[{2}]\n'.format(binary_control, *instruction.qubits))
+
+    @staticmethod
     def _cx(stream: StringIO, instruction: QasmQobjInstruction) -> None:
         """ Translates the controlled X element.
 
