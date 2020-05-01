@@ -812,8 +812,8 @@ class QuantumInspireAPI:
         return result_obj
 
     def execute_qasm(self, qasm: str, backend_type: Optional[Union[Dict[str, Any], int, str]] = None,
-                     number_of_shots: int = 256, collect_tries: Optional[int] = None,
-                     default_number_of_shots: int = 256, identifier: Optional[str] = None,
+                     number_of_shots: int = 1024, collect_tries: Optional[int] = None,
+                     default_number_of_shots: int = 1024, identifier: Optional[str] = None,
                      full_state_projection: bool = False) -> Dict[str, Any]:
         """ With this method a cQASM program is executed, and the result is returned when the job is completed.
 
@@ -865,7 +865,7 @@ class QuantumInspireAPI:
                 self.delete_project(project_identifier)
 
     def execute_qasm_async(self, qasm: str, backend_type: Optional[Union[Dict[str, Any], int, str]] = None,
-                           number_of_shots: int = 256, default_number_of_shots: int = 256,
+                           number_of_shots: int = 1024, default_number_of_shots: int = 1024,
                            identifier: Optional[str] = None, full_state_projection: bool = False,
                            project: Optional[Dict[str, Any]] = None, job_name: Optional[str] = None,
                            user_data: str = '') -> QuantumInspireJob:

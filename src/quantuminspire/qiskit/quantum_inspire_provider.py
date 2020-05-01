@@ -61,12 +61,20 @@ class QuantumInspireProvider(BaseProvider):  # type: ignore
         for backend in available_backends:
             if backend['is_allowed']:
                 config = copy(QuantumInspireBackend.DEFAULT_CONFIGURATION)
-                self.adjust_backend_configuration(config, backend)
+                self._adjust_backend_configuration(config, backend)
                 backends.append(QuantumInspireBackend(self._api, provider=self, configuration=config))
 
         return backends
 
-    def adjust_backend_configuration(self, config: QasmBackendConfiguration, backend: Dict[str, Any]) -> None:
+    @staticmethod
+    def _adjust_backend_configuration(config: QasmBackendConfiguration, backend: Dict[str, Any]) -> None:
+        """
+        Overwrites the default configuration with the backend dependent configuration items.
+
+        Args:
+            config: The configuration with default configuration that is adjusted.
+            backend: The backend for which the configuration items are adjusted.
+        """
         config.backend_name = backend['name']
         config.n_qubits = backend['number_of_qubits']
         if len(backend['allowed_operations']) > 0:
@@ -100,7 +108,6 @@ class QuantumInspireProvider(BaseProvider):  # type: ignore
         for i in range(len(backend['topology']['edges'])):
             for j in backend['topology']['edges'][i]:
                 coupling_map.append((i, j))
-        #coupling_map = [(i, j) for i in range(backend['topology']['edges']) for j in range(backend['topology']['edges'][i])]
         config.coupling_map = None if len(coupling_map) == 0 else coupling_map
 
     def set_authentication_details(self, email: str, password: str, qi_url: str = QI_URL) -> None:
