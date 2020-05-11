@@ -196,7 +196,7 @@ class TestProjectQBackend(unittest.TestCase):
     def test_init_raises_error_no_runs(self):
         num_runs = 0
         self.assertRaisesRegex(ProjectQBackendError, 'Invalid number of runs \(num_runs=0\)',
-                               QIBackend, num_runs)
+                               QIBackend, num_runs, 0, self.api)
 
     def test_init_raises_no_account_authentication_error(self):
         json.load = MagicMock()
