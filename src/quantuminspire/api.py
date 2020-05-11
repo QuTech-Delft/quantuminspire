@@ -483,7 +483,7 @@ class QuantumInspireAPI:
             'status': 'NEW',
             'name': name,
             'input': asset['url'],
-            'backend_type': project['backend_type'],
+            'backend_type': backend_type['url'],
             'number_of_shots': number_of_shots,
             'full_state_projection': full_state_projection,
             'user_data': user_data
@@ -943,6 +943,11 @@ class QuantumInspireAPI:
         if project is None:
             project_name = self.project_name if self.project_name else f'qi-sdk-project-{identifier}'
             project = self.create_project(project_name, default_number_of_shots, backend_type)
+
+        if backend_type['url'] != project['backend_type']:
+            logger.warning(f"The backend for which the project was created is different "
+                           f"from the backend type given: {backend_type['name']}. The experiment is run on backend "
+                           f"{backend_type['name']}.")
 
         qasm = qasm.lstrip()
         qasm = re.sub(r'[ \t]*\n[ \t]*', r'\n', qasm)

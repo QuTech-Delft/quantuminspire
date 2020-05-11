@@ -127,7 +127,7 @@ class TestQiSimulatorPy(unittest.TestCase):
             backend_version=quantum_inspire_version,
             n_qubits=26,
             basis_gates=['x', 'y', 'z', 'h', 'rx', 'ry', 'rz', 's', 'sdg', 't', 'tdg', 'cx', 'ccx', 'u1', 'u2', 'u3',
-                         'id', 'swap', 'snapshot'],
+                         'id', 'swap', 'cz', 'snapshot'],
             gates=[GateConfig(name='NotUsed', parameters=['NaN'], qasm_def='NaN')],
             conditional=True,
             simulator=True,
@@ -145,6 +145,7 @@ class TestQiSimulatorPy(unittest.TestCase):
         api.create_project.return_value = {'id': 42}
         api.get_jobs_from_project.return_value = []
         api.execute_qasm_async.return_value = 42
+        api.get_backend_type_by_name.return_value = {'max_number_of_shots': 4096}
         simulator = QuantumInspireBackend(api, Mock())
         instructions = [{'name': 'cx', 'qubits': [0, 1], 'memory': [0, 1]},
                         {'name': 'measure', 'qubits': [0], 'memory': [1]}]
@@ -210,6 +211,7 @@ class TestQiSimulatorPy(unittest.TestCase):
                                                 'execution_time_in_seconds': 2.1, 'number_of_qubits': 2,
                                                 'raw_data_url': 'http://saevar-qutech-nginx/api/results/24/raw-data/'}
         api.get_raw_data_from_result.return_value = []
+        api.get_backend_type_by_name.return_value = {'max_number_of_shots': 4096}
         jobs = self._basic_job_dictionary
         measurements = QuantumInspireBackend._collect_measurements(experiment)
         user_data = {'name': 'name', 'memory_slots': 2,
@@ -270,19 +272,28 @@ class TestQiSimulatorPy(unittest.TestCase):
         self.assertEqual(one_shot_results['0x2'], 4003)
         self.assertEqual(one_shot_results['0x3'], 984)
 
-    def test_validate_shot_count_zero(self):
-        simulator = QuantumInspireBackend(Mock(), Mock())
+    def test_validate_shot_count(self):
+        api = Mock()
+        api.create_project.return_value = {'id': 42}
+        api.get_jobs_from_project.return_value = []
+        api.execute_qasm_async.return_value = 42
+        api.get_backend_type_by_name.return_value = {'max_number_of_shots': 4096}
+        simulator = QuantumInspireBackend(api, Mock())
+
         job_dict = self._basic_qobj_dictionary
         job_dict['config']['shots'] = 1                 # first set shots to 1 to satisfy qiskit model validation
         job = qiskit.qobj.QasmQobj.from_dict(job_dict)  # qiskit validation is satisfied
         job.config.shots = 0                            # now set the number of shots to 0 to trigger our validation
         self.assertRaisesRegex(QisKitBackendError, "Invalid shots \(number_of_shots=0\)", simulator.run, job)
+        job.config.shots = 4097                         # now set the number of shots to a too high value
+        self.assertRaisesRegex(QisKitBackendError, "Invalid shots \(number_of_shots=4097\)", simulator.run, job)
 
     def test_validate_no_classical_qubits(self):
         api = Mock()
         api.create_project.return_value = {'id': 42}
         api.get_jobs_from_project.return_value = []
         api.execute_qasm_async.return_value = 42
+        api.get_backend_type_by_name.return_value = {'max_number_of_shots': 4096}
         simulator = QuantumInspireBackend(api, Mock())
         job_dict = self._basic_qobj_dictionary
         job_dict['experiments'][0]['instructions'] = []
@@ -296,6 +307,7 @@ class TestQiSimulatorPy(unittest.TestCase):
         api.create_project.return_value = {'id': 42}
         api.get_jobs_from_project.return_value = []
         api.execute_qasm_async.return_value = 42
+        api.get_backend_type_by_name.return_value = {'max_number_of_shots': 4096}
         simulator = QuantumInspireBackend(api, Mock())
         instructions = [{'mask': '0xF', 'name': 'bfunc', 'register': 2, 'relation': '==', 'val': '0x1'},
                         {'conditional': 2, 'name': 'cx', 'qubits': [0, 1]},
@@ -316,6 +328,7 @@ class TestQiSimulatorPy(unittest.TestCase):
             api.create_project.return_value = project
             api.get_jobs_from_project.return_value = []
             api.execute_qasm_async.return_value = 42
+            api.get_backend_type_by_name.return_value = {'max_number_of_shots': 4096}
             simulator = QuantumInspireBackend(api, Mock())
             instructions = [{'name': 'cx', 'qubits': [0, 1]},
                             {'memory': [0], 'name': 'measure', 'qubits': [0]},
@@ -336,6 +349,7 @@ class TestQiSimulatorPy(unittest.TestCase):
             api.create_project.return_value = project
             api.get_jobs_from_project.return_value = []
             api.execute_qasm_async.return_value = 42
+            api.get_backend_type_by_name.return_value = {'max_number_of_shots': 4096}
             simulator = QuantumInspireBackend(api, Mock())
             instructions = [{'memory': [0], 'name': 'measure', 'qubits': [0]},
                             {'name': 'cx', 'qubits': [0, 1]},
@@ -357,6 +371,7 @@ class TestQiSimulatorPy(unittest.TestCase):
             api.create_project.return_value = project
             api.get_jobs_from_project.return_value = []
             api.execute_qasm_async.return_value = 42
+            api.get_backend_type_by_name.return_value = {'max_number_of_shots': 4096}
             simulator = QuantumInspireBackend(api, Mock())
             instructions = [{'name': 'cx', 'qubits': [0, 1]},
                             {'name': 'x', 'qubits': [0]},
@@ -377,6 +392,7 @@ class TestQiSimulatorPy(unittest.TestCase):
             api.create_project.return_value = project
             api.get_jobs_from_project.return_value = []
             api.execute_qasm_async.return_value = 42
+            api.get_backend_type_by_name.return_value = {'max_number_of_shots': 4096}
             simulator = QuantumInspireBackend(api, Mock())
             instructions = [{'name': 'cx', 'qubits': [0, 1]},
                             {'name': 'x', 'qubits': [0]}]
@@ -396,6 +412,7 @@ class TestQiSimulatorPy(unittest.TestCase):
             api.create_project.return_value = project
             api.get_jobs_from_project.return_value = []
             api.execute_qasm_async.return_value = 42
+            api.get_backend_type_by_name.return_value = {'max_number_of_shots': 4096}
             simulator = QuantumInspireBackend(api, Mock())
             instructions = [{'name': 'cx', 'qubits': [0, 1]},
                             {'memory': [0], 'name': 'measure', 'qubits': [0]},
@@ -416,6 +433,7 @@ class TestQiSimulatorPy(unittest.TestCase):
             api.create_project.return_value = project
             api.get_jobs_from_project.return_value = []
             api.execute_qasm_async.return_value = 42
+            api.get_backend_type_by_name.return_value = {'max_number_of_shots': 4096}
             simulator = QuantumInspireBackend(api, Mock())
             instructions = [{'name': 'cx', 'qubits': [0, 1]},
                             {'memory': [1], 'name': 'measure', 'qubits': [1]},
@@ -435,6 +453,7 @@ class TestQiSimulatorPy(unittest.TestCase):
         api.create_project.return_value = {'id': 42}
         api.get_jobs_from_project.return_value = []
         api.execute_qasm_async.return_value = 42
+        api.get_backend_type_by_name.return_value = {'max_number_of_shots': 4096}
         simulator = QuantumInspireBackend(api, Mock())
         instructions = [{'name': 'h', 'qubits': [0]},
                         {'name': 'h', 'qubits': [2]},

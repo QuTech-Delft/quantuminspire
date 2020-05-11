@@ -19,20 +19,23 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import inspect
 import random
 from collections import defaultdict
 from functools import reduce
-from typing import List, Dict, Iterator, Union, Optional, Tuple
+from typing import List, Dict, Iterator, Union, Optional, Tuple, Any
 
 from projectq.cengines import BasicEngine
 from projectq.meta import LogicalQubitIDTag, get_control_count
-from projectq.ops import (NOT, Allocate, Barrier, Deallocate, FlushGate, H,
+from projectq.ops import (NOT, Allocate, Barrier, Deallocate, FlushGate, H, DaggeredGate,
                           Measure, Ph, Rx, Ry, Rz, S, Sdag, Swap, T, Tdag, X,
-                          Y, Z, Command)
+                          Y, Z, Command, CZ, C, R, CNOT, Toffoli)
 from projectq.types import Qubit
 from quantuminspire.api import QuantumInspireAPI
 from quantuminspire.exceptions import AuthenticationError
 from quantuminspire.exceptions import ProjectQBackendError
+# shortcut for Controlled Phase-shift gate (CR)
+CR = C(R)
 
 
 class QIBackend(BasicEngine):  # type: ignore
@@ -58,16 +61,12 @@ class QIBackend(BasicEngine):  # type: ignore
         any additional gates received after a FlushGate triggers an exception. """
         self._clear: bool = True
         self._reset()
-        self._num_runs: int = num_runs
-        if num_runs < 1:
-            raise ProjectQBackendError('Invalid number of runs (num_runs={})'.format(num_runs))
         self._verbose: int = verbose
         self._cqasm: str = str()
         self._measured_states: Dict[int, float] = {}
         self._measured_ids: List[int] = []
         self._allocation_map: List[Tuple[int, int]] = []
         self._max_qubit_id: int = -1
-        self._full_state_projection = True
         if quantum_inspire_api is None:
             try:
                 quantum_inspire_api = QuantumInspireAPI()
@@ -75,10 +74,93 @@ class QIBackend(BasicEngine):  # type: ignore
                 raise AuthenticationError('Make sure you have saved your token credentials on disk or '
                                           'provide a QuantumInspireAPI instance as parameter to QIBackend') from ex
         self._quantum_inspire_api: QuantumInspireAPI = quantum_inspire_api
-        self._backend_type: Optional[Union[int, str]] = backend_type
-        backend = self._quantum_inspire_api.get_backend_type(backend_type)
-        self._is_simulation_backend = not backend["is_hardware_backend"]
-        self._max_number_of_qubits = backend["number_of_qubits"]
+        self._backend: Dict[str, Any] = self._quantum_inspire_api.get_backend_type(backend_type)
+        if num_runs < 1 or num_runs > self._backend['max_number_of_shots']:
+            raise ProjectQBackendError('Invalid number of runs (num_runs={})'.format(num_runs))
+        self._num_runs: int = num_runs
+        self._full_state_projection = not self._backend["is_hardware_backend"]
+        self._is_simulation_backend = not self._backend["is_hardware_backend"]
+        self._max_number_of_qubits: int = self._backend["number_of_qubits"]
+        self._one_qubit_gates: Tuple[Any, ...] = self._get_one_qubit_gates()
+        self._two_qubit_gates: Tuple[Any, ...] = self._get_two_qubit_gates()
+        self._three_qubit_gates: Tuple[Any, ...] = self._get_three_qubit_gates()
+
+    def _get_one_qubit_gates(self) -> Tuple[Any, ...]:
+        if len(self._backend['allowed_operations']) > 0:
+            one_qubit_gates = []
+            for keys in self._backend['allowed_operations']:
+                if keys in ['single_gates', 'parameterized_single_gates']:
+                    for gate in self._backend['allowed_operations'][keys]:
+                        if gate == 'x':
+                            one_qubit_gates += [X]
+                        elif gate == 'y':
+                            one_qubit_gates += [Y]
+                        elif gate == 'z':
+                            one_qubit_gates += [Z]
+                        elif gate == 'h':
+                            one_qubit_gates += [H]
+                        elif gate == 's':
+                            one_qubit_gates += [S]
+                        elif gate == 't':
+                            one_qubit_gates += [T]
+                        elif gate == 'rx':
+                            one_qubit_gates += [Rx]
+                        elif gate == 'ry':
+                            one_qubit_gates += [Ry]
+                        elif gate == 'rz':
+                            one_qubit_gates += [Rz]
+                        elif gate == 'sdag':
+                            one_qubit_gates += [Sdag]
+                        elif gate == 'tdag':
+                            one_qubit_gates += [Tdag]
+        else:
+            one_qubit_gates = [T, Tdag, S, Sdag, H, X, Y, Z, Rx, Ry, Rz]
+        return tuple(one_qubit_gates)
+
+    def _get_two_qubit_gates(self) -> Tuple[Any, ...]:
+        if len(self._backend['allowed_operations']) > 0:
+            two_qubit_gates = []
+            for keys in self._backend['allowed_operations']:
+                if keys in ['dual_gates', 'parameterized_dual_gates']:
+                    for gate in self._backend['allowed_operations'][keys]:
+                        if gate == 'cz':
+                            two_qubit_gates += [CZ]
+                        elif gate == 'cnot':
+                            two_qubit_gates += [CNOT]
+                        elif gate == 'swap':
+                            two_qubit_gates += [Swap]
+                        elif gate == 'cr':
+                            two_qubit_gates += [CR]
+        else:
+            two_qubit_gates = [CZ, CNOT, Swap, CR]
+        return tuple(two_qubit_gates)
+
+    def _get_three_qubit_gates(self) -> Tuple[Any, ...]:
+        if len(self._backend['allowed_operations']) > 0:
+            three_qubit_gates = []
+            for keys in self._backend['allowed_operations']:
+                if keys in ['triple_gates']:
+                    for gate in self._backend['allowed_operations'][keys]:
+                        if gate == 'toffoli':
+                            three_qubit_gates += [Toffoli]
+        else:
+            three_qubit_gates = [Toffoli]
+        return tuple(three_qubit_gates)
+
+    @property
+    def one_qubit_gates(self) -> Tuple[Any, ...]:
+        """ Return the one qubit gates as a tuple """
+        return self._one_qubit_gates
+
+    @property
+    def two_qubit_gates(self) -> Tuple[Any, ...]:
+        """ Return the two qubit gates as a tuple """
+        return self._two_qubit_gates
+
+    @property
+    def three_qubit_gates(self) -> Tuple[Any, ...]:
+        """ Return the three qubit gates as a tuple """
+        return self._three_qubit_gates
 
     def cqasm(self) -> str:
         """ Return cqasm code that is generated last. """
@@ -98,22 +180,32 @@ class QIBackend(BasicEngine):  # type: ignore
         g = cmd.gate
         if self._verbose >= 3:
             print('call to is_available with cmd %s (gate %s)' % (cmd, g))
-        if g == NOT and count <= 2:
-            return True
-        if g == Z and count <= 1:
-            return True
         if g in (Measure, Allocate, Deallocate, Barrier):
             return True
+        if g == NOT and count == 2:
+            return Toffoli in self.three_qubit_gates
+        if g == NOT and count == 1:
+            return CNOT in self.two_qubit_gates
+        if g == Z and count == 1:
+            return CZ in self.two_qubit_gates
+        if (g == R or isinstance(g, (R,))) and count == 1:
+            return CR in self.two_qubit_gates
         if count != 0:
             return False
-        if g in (T, Tdag, S, Sdag, Swap, H, X, Y, Z):
-            return True
-        elif isinstance(g, (Rx, Ry, Rz)):
-            return True
-        elif isinstance(g, Ph):
+        if g == Swap:
+            return g in self.two_qubit_gates
+        if g in (T, Tdag, S, Sdag, H, X, Y, Z):
+            return g in self.one_qubit_gates
+        if isinstance(g, (Rx, Ry, Rz)):
+            one_qubit_types = []
+            for gate in self.one_qubit_gates:
+                if inspect.isclass(gate):
+                    one_qubit_types.append(gate)
+            return isinstance(g, tuple(one_qubit_types))
+        if isinstance(g, Ph):
             return False
-        else:
-            return False
+
+        return False
 
     def _reset(self) -> None:
         """ Reset temporary variable qasm to an initial value and set a flag to clear variables in _store
@@ -272,7 +364,7 @@ class QIBackend(BasicEngine):  # type: ignore
             self.qasm = ""
             self._measured_states = {}
             self._measured_ids = []
-            self._full_state_projection = True
+            self._full_state_projection = not self._backend["is_hardware_backend"]
 
         gate = cmd.gate
 
@@ -303,7 +395,8 @@ class QIBackend(BasicEngine):  # type: ignore
             self._measured_ids += [logical_id]
             # do not add the measurement statement when fsp is possible
             if not self._full_state_projection:
-                self.qasm += "\nmeasure q[{}]".format(sim_qubit_id)
+                if self._is_simulation_backend:
+                    self.qasm += "\nmeasure q[{}]".format(sim_qubit_id)
             return
 
         # when we find a gate after measurements we don't have fsp
@@ -333,7 +426,7 @@ class QIBackend(BasicEngine):  # type: ignore
             qb_pos_list = [qb.id for qr in cmd.qubits for qb in qr]
             qb_str = ', '.join([f'q[{self._physical_to_simulated(x)}]' for x in qb_pos_list])
             self.qasm += f"\n# barrier gate {qb_str};"
-        elif isinstance(gate, Rz) and get_control_count(cmd) == 1:
+        elif isinstance(gate, (Rz, R)) and get_control_count(cmd) == 1:
             ctrl_pos = self._physical_to_simulated(cmd.control_qubits[0].id)
             qb_pos = self._physical_to_simulated(cmd.qubits[0][0].id)
             gate_name = 'cr'
@@ -452,8 +545,8 @@ class QIBackend(BasicEngine):  # type: ignore
             return
 
         # Finally: add measurement commands for all measured qubits if no measurements are given.
-        # Only measurements after all gate operations will perform properly in FSP.
-        if not self._measured_ids:
+        # Only for simulation backends, measurements after all gate operations will perform properly in FSP.
+        if not self._measured_ids and self._is_simulation_backend:
             self.__add_measure_all_qubits()
 
         self._finalize_qasm()
@@ -483,7 +576,7 @@ class QIBackend(BasicEngine):  # type: ignore
         self._quantum_inspire_result = self._quantum_inspire_api.execute_qasm(
             self._cqasm,
             number_of_shots=self._num_runs,
-            backend_type=self._backend_type,
+            backend_type=self._backend,
             full_state_projection=self._full_state_projection
         )
 
@@ -556,8 +649,11 @@ class QIBackend(BasicEngine):  # type: ignore
 
     @property
     def _number_of_qubits(self) -> int:
-        """ Return the number of qubits used in the circuit. """
-        return self._max_qubit_id + 1
+        """ Return the number of qubits used in the circuit. If it is a hardware backend return max nr of qubits """
+        if self._is_simulation_backend:
+            return self._max_qubit_id + 1
+        else:
+            return self._max_number_of_qubits
 
     def receive(self, command_list: List[Command]) -> None:
         """

@@ -1242,7 +1242,7 @@ class TestQuantumInspireAPI(TestCase):
         job_mock.assert_called_with('read', {'id': 509})
         job_call_items = job_mock.call_args_list[0][0][1]
         self.assertEqual('NEW', job_call_items['status'])
-        self.assertEqual(256, job_call_items['number_of_shots'])
+        self.assertEqual(1024, job_call_items['number_of_shots'])
         self.assertEqual(full_state_projection, job_call_items['full_state_projection'])
 
     def test_execute_qasm_with_fsp_creates_job_with_fsp(self):
@@ -1258,7 +1258,7 @@ class TestQuantumInspireAPI(TestCase):
         self.assertIsNone(api.project_name)
 
         qasm = 'version 1.0...'
-        default_number_of_shots = 256
+        default_number_of_shots = 1024
         actual_job_result = api.execute_qasm(qasm, collect_tries=1)
         self.assertEqual(expected_job_result, actual_job_result)
 

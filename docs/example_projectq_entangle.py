@@ -41,11 +41,11 @@ if __name__ == '__main__':
     name = 'TestProjectQ'
     authentication = get_authentication()
     qi_api = QuantumInspireAPI(QI_URL, authentication, project_name=name)
-
-    compiler_engines = restrictedgateset.get_engine_list(one_qubit_gates="any", two_qubit_gates=(CNOT,))
-    compiler_engines.extend([ResourceCounter()])
-
     qi_backend = QIBackend(quantum_inspire_api=qi_api)
+
+    compiler_engines = restrictedgateset.get_engine_list(one_qubit_gates=qi_backend.one_qubit_gates,
+                                                         two_qubit_gates=qi_backend.two_qubit_gates)
+    compiler_engines.extend([ResourceCounter()])
     engine = MainEngine(backend=qi_backend, engine_list=compiler_engines)
 
     qubits = engine.allocate_qureg(2)
