@@ -812,8 +812,8 @@ class QuantumInspireAPI:
         return result_obj
 
     def execute_qasm(self, qasm: str, backend_type: Optional[Union[Dict[str, Any], int, str]] = None,
-                     number_of_shots: int = 1024, collect_tries: Optional[int] = None,
-                     default_number_of_shots: int = 1024, identifier: Optional[str] = None,
+                     number_of_shots: Optional[int] = None, collect_tries: Optional[int] = None,
+                     default_number_of_shots: Optional[int] = None, identifier: Optional[str] = None,
                      full_state_projection: bool = False) -> Dict[str, Any]:
         """ With this method a cQASM program is executed, and the result is returned when the job is completed.
 
@@ -865,7 +865,7 @@ class QuantumInspireAPI:
                 self.delete_project(project_identifier)
 
     def execute_qasm_async(self, qasm: str, backend_type: Optional[Union[Dict[str, Any], int, str]] = None,
-                           number_of_shots: int = 1024, default_number_of_shots: int = 1024,
+                           number_of_shots: Optional[int] = None, default_number_of_shots: Optional[int] = None,
                            identifier: Optional[str] = None, full_state_projection: bool = False,
                            project: Optional[Dict[str, Any]] = None, job_name: Optional[str] = None,
                            user_data: str = '') -> QuantumInspireJob:
@@ -941,6 +941,8 @@ class QuantumInspireAPI:
                             if project['name'] == self.project_name), None)
 
         if project is None:
+            if default_number_of_shots is None:
+                default_number_of_shots = backend_type['default_number_of_shots']
             project_name = self.project_name if self.project_name else f'qi-sdk-project-{identifier}'
             project = self.create_project(project_name, default_number_of_shots, backend_type)
 
@@ -956,6 +958,8 @@ class QuantumInspireAPI:
 
         if job_name is None:
             job_name = f'qi-sdk-job-{identifier}'
+        if number_of_shots is None:
+            number_of_shots = backend_type['default_number_of_shots']
         job = self._create_job(job_name, asset, project, number_of_shots, backend_type, user_data=user_data,
                                full_state_projection=full_state_projection)
 

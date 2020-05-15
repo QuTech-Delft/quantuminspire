@@ -43,9 +43,9 @@ class CircuitToString:
 
         """
         if hasattr(instruction, 'conditional'):
-            raise ApiError('Conditional gate c-{} not supported'.format(instruction.name.lower()))
+            raise ApiError(f'Conditional gate c-{instruction.name.lower()} not supported')
         else:
-            raise ApiError('Gate {} not supported'.format(instruction.name.lower()))
+            raise ApiError(f'Gate {instruction.name.lower()} not supported')
 
     @staticmethod
     def _cz(stream: StringIO, instruction: QasmQobjInstruction) -> None:
@@ -56,7 +56,7 @@ class CircuitToString:
             instruction: The Qiskit instruction to translate to cQASM.
 
         """
-        stream.write('CZ q[{0}], q[{1}]\n'.format(*instruction.qubits))
+        stream.write(f'CZ q[{instruction.qubits[0]}], q[{instruction.qubits[1]}]\n')
 
     @staticmethod
     def _c_cz(stream: StringIO, instruction: QasmQobjInstruction, binary_control: str) -> None:
@@ -68,7 +68,7 @@ class CircuitToString:
             binary_control: The multi-bits control string. The gate is executed when all specified classical bits are 1.
 
         """
-        stream.write('C-CZ {0}q[{1}], q[{2}]\n'.format(binary_control, *instruction.qubits))
+        stream.write(f'C-CZ {binary_control}q[{instruction.qubits[0]}], q[{instruction.qubits[1]}]\n')
 
     @staticmethod
     def _cx(stream: StringIO, instruction: QasmQobjInstruction) -> None:
@@ -644,15 +644,15 @@ class CircuitToString:
         conditional_reg_idx = instruction.conditional
         conditional = next((x for x in self.bfunc_instructions if x.register == conditional_reg_idx), None)
         if conditional is None:
-            raise ApiError('Conditional not found: reg_idx = {}'.format(conditional_reg_idx))
+            raise ApiError(f'Conditional not found: reg_idx = {conditional_reg_idx}')
         self.bfunc_instructions.remove(conditional)
 
         conditional_type = conditional.relation
         if conditional_type != '==':
-            raise ApiError('Conditional statement with relation {} not supported'.format(conditional_type))
+            raise ApiError(f'Conditional statement with relation {conditional_type} not supported')
         mask = int(conditional.mask, 16)
         if mask == 0:
-            raise ApiError('Conditional statement {} without a mask'.format(instruction.name.lower()))
+            raise ApiError(f'Conditional statement {instruction.name.lower()} without a mask')
         lowest_mask_bit, mask_length = self.get_mask_data(mask)
         val = int(conditional.val, 16)
         masked_val = mask & val
@@ -665,14 +665,14 @@ class CircuitToString:
                 if not (masked_val & (1 << i))) + ']\n'
 
         if mask_length == 1:
-            binary_control = 'b[{}], '.format(lowest_mask_bit)
+            binary_control = f'b[{lowest_mask_bit}], '
         else:
             # form multi bits control - qasm-single-gate-multiple-qubits
-            binary_control = 'b[{}:{}], '.format(lowest_mask_bit, lowest_mask_bit + mask_length - 1)
+            binary_control = f'b[{lowest_mask_bit}:{lowest_mask_bit + mask_length - 1}], '
 
         with StringIO() as gate_stream:
             # add the gate
-            gate_name = '_c_%s' % instruction.name.lower()
+            gate_name = f'_c_{instruction.name.lower()}'
             gate_function = getattr(self, gate_name, getattr(self, "_gate_not_supported"))
             gate_function(gate_stream, instruction, binary_control)
             line = gate_stream.getvalue()
@@ -701,6 +701,6 @@ class CircuitToString:
         elif hasattr(instruction, 'conditional'):
             self._parse_bin_ctrl_gate(stream, instruction)
         else:
-            gate_name = '_%s' % instruction.name.lower()
+            gate_name = f'_{instruction.name.lower()}'
             gate_function = getattr(self, gate_name, getattr(self, "_gate_not_supported"))
             gate_function(stream, instruction)

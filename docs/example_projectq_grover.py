@@ -114,7 +114,8 @@ if __name__ == '__main__':
     qi_backend = QIBackend(quantum_inspire_api=qi)
 
     compiler_engines = restrictedgateset.get_engine_list(one_qubit_gates=qi_backend.one_qubit_gates,
-                                                         two_qubit_gates=qi_backend.two_qubit_gates)
+                                                         two_qubit_gates=qi_backend.two_qubit_gates,
+                                                         other_gates=qi_backend.three_qubit_gates)
     compiler_engines.extend([ResourceCounter()])
     qi_engine = MainEngine(backend=qi_backend, engine_list=compiler_engines)
 

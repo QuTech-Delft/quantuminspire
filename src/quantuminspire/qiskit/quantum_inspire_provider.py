@@ -83,8 +83,7 @@ class QuantumInspireProvider(BaseProvider):  # type: ignore
                 if keys in ['single_gates', 'parameterized_single_gates', 'dual_gates',
                             'parameterized_dual_gates', 'triple_gates']:
                     for gate in backend['allowed_operations'][keys]:
-                        if gate == 'x' or gate == 'y' or gate == 'z' or gate == 'h' or gate == 's' or gate == 't' or \
-                           gate == 'rx' or gate == 'ry' or gate == 'rz' or gate == 'swap' or gate == 'cz':
+                        if gate in ['x', 'y', 'z', 'h', 's', 't', 'rx', 'ry', 'rz', 'swap', 'cz']:
                             config.basis_gates += [gate]
                         elif gate == 'i':
                             config.basis_gates += ['id']

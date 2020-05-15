@@ -27,7 +27,6 @@ from coreapi.exceptions import ErrorMessage
 from qiskit.providers.models import QasmBackendConfiguration
 from qiskit.providers.models.backendconfiguration import GateConfig
 from qiskit.qobj import QasmQobjExperiment, QasmQobj
-from qiskit.validation import ModelValidationError
 
 from quantuminspire.api import QuantumInspireAPI
 from quantuminspire.exceptions import QisKitBackendError
@@ -298,7 +297,7 @@ class TestQiSimulatorPy(unittest.TestCase):
         job_dict = self._basic_qobj_dictionary
         job_dict['experiments'][0]['instructions'] = []
         job_dict['experiments'][0]['header']['memory_slots'] = 0
-        job = qiskit.qobj.Qobj.from_dict(job_dict)
+        job = qiskit.qobj.QasmQobj.from_dict(job_dict)
         self.assertRaisesRegex(QisKitBackendError, 'Invalid amount of classical bits \(0\)!',
                                simulator.run, job)
 
@@ -316,7 +315,7 @@ class TestQiSimulatorPy(unittest.TestCase):
         job_dict = self._basic_qobj_dictionary
         qobj_dict['experiments'][0]['instructions'] = instructions
         job_dict['experiments'][0]['header']['memory_slots'] = 3
-        job = qiskit.qobj.Qobj.from_dict(job_dict)
+        job = qiskit.qobj.QasmQobj.from_dict(job_dict)
         self.assertRaisesRegex(QisKitBackendError, 'Number of classical bits must be less than or equal to the'
                                                    ' number of qubits when using conditional gate operations',
                                simulator.run, job)

@@ -67,7 +67,7 @@ class QIBackendNonProtected(QIBackend):
 
     @property
     def backend(self):
-        return self._backend
+        return self._backend_type
 
     @property
     def is_simulation_backend(self):
