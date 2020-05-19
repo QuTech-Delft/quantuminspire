@@ -56,7 +56,7 @@ class CircuitToString:
             instruction: The Qiskit instruction to translate to cQASM.
 
         """
-        stream.write(f'CZ q[{instruction.qubits[0]}], q[{instruction.qubits[1]}]\n')
+        stream.write('CZ q[{0}], q[{1}]\n'.format(*instruction.qubits))
 
     @staticmethod
     def _c_cz(stream: StringIO, instruction: QasmQobjInstruction, binary_control: str) -> None:
@@ -68,7 +68,7 @@ class CircuitToString:
             binary_control: The multi-bits control string. The gate is executed when all specified classical bits are 1.
 
         """
-        stream.write(f'C-CZ {binary_control}q[{instruction.qubits[0]}], q[{instruction.qubits[1]}]\n')
+        stream.write('C-CZ {0}q[{1}], q[{2}]\n'.format(binary_control, *instruction.qubits))
 
     @staticmethod
     def _cx(stream: StringIO, instruction: QasmQobjInstruction) -> None:

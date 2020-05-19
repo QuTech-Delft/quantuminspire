@@ -86,23 +86,25 @@ class QIBackend(BasicEngine):  # type: ignore
         self._three_qubit_gates: Tuple[Any, ...] = self._get_three_qubit_gates()
 
     def _get_one_qubit_gates(self) -> Tuple[Any, ...]:
-        if len(self._backend_type['allowed_operations']) > 0:
+        allowed_operations = self._backend_type['allowed_operations']
+        if len(allowed_operations) > 0:
             one_qubit_gates = []
-            for keys in self._backend_type['allowed_operations']:
-                if keys in ['single_gates', 'parameterized_single_gates']:
-                    for gate in self._backend_type['allowed_operations'][keys]:
-                        if gate in ['x', 'y', 'z', 'h','s', 'sdag', 't', 'tdag', 'rx', 'ry', 'rz']:
+            for gate_set in ['single_gates', 'parameterized_single_gates']:
+                if gate_set in allowed_operations:
+                    for gate in allowed_operations[gate_set]:
+                        if gate in ['x', 'y', 'z', 'h', 's', 'sdag', 't', 'tdag', 'rx', 'ry', 'rz']:
                             one_qubit_gates += [getattr(sys.modules[__name__], gate.capitalize())]
         else:
             one_qubit_gates = [X, Y, Z, H, S, Sdag, T, Tdag, Rx, Ry, Rz]
         return tuple(one_qubit_gates)
 
     def _get_two_qubit_gates(self) -> Tuple[Any, ...]:
-        if len(self._backend_type['allowed_operations']) > 0:
+        allowed_operations = self._backend_type['allowed_operations']
+        if len(allowed_operations) > 0:
             two_qubit_gates = []
-            for keys in self._backend_type['allowed_operations']:
-                if keys in ['dual_gates', 'parameterized_dual_gates']:
-                    for gate in self._backend_type['allowed_operations'][keys]:
+            for gate_set in ['dual_gates', 'parameterized_dual_gates']:
+                if gate_set in allowed_operations:
+                    for gate in allowed_operations[gate_set]:
                         if gate in ['cz', 'cnot', 'cr']:
                             two_qubit_gates += [getattr(sys.modules[__name__], gate.upper())]
                         elif gate == 'swap':
@@ -112,11 +114,12 @@ class QIBackend(BasicEngine):  # type: ignore
         return tuple(two_qubit_gates)
 
     def _get_three_qubit_gates(self) -> Tuple[Any, ...]:
-        if len(self._backend_type['allowed_operations']) > 0:
+        allowed_operations = self._backend_type['allowed_operations']
+        if len(allowed_operations) > 0:
             three_qubit_gates = []
-            for keys in self._backend_type['allowed_operations']:
-                if keys in ['triple_gates']:
-                    for gate in self._backend_type['allowed_operations'][keys]:
+            for gate_set in ['triple_gates']:
+                if gate_set in allowed_operations:
+                    for gate in allowed_operations[gate_set]:
                         if gate == 'toffoli':
                             three_qubit_gates += [Toffoli]
         else:
