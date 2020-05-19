@@ -12,8 +12,7 @@ env:
 - API_URL=https://staging.quantum-inspire.com
 script:
 - echo "running unit tests"
-- coverage run --source="./src/quantuminspire" -m unittest discover -s src/tests -t
-  src -v
+- coverage run --source="./src/quantuminspire" -m unittest discover -s src/tests -t src -v
 - echo "running mypy"
 - MYPYPATH=./src mypy --strict --ignore-missing-imports -p quantuminspire
 - echo "running examples"

@@ -9,7 +9,7 @@ from getpass import getpass
 from projectq import MainEngine
 from projectq.backends import ResourceCounter, Simulator
 from projectq.meta import Compute, Control, Loop, Uncompute
-from projectq.ops import CNOT, CZ, All, H, Measure, Toffoli, X, Z
+from projectq.ops import CNOT, CZ, All, H, Measure, X, Z
 from projectq.setups import restrictedgateset
 
 from quantuminspire.credentials import load_account, get_token_authentication, get_basic_authentication
@@ -111,10 +111,12 @@ if __name__ == '__main__':
     # Remote Quantum-Inspire backend #
     authentication = get_authentication()
     qi = QuantumInspireAPI(QI_URL, authentication)
-
-    compiler_engines = restrictedgateset.get_engine_list(one_qubit_gates="any", two_qubit_gates=(CNOT, CZ, Toffoli))
-    compiler_engines.extend([ResourceCounter()])
     qi_backend = QIBackend(quantum_inspire_api=qi)
+
+    compiler_engines = restrictedgateset.get_engine_list(one_qubit_gates=qi_backend.one_qubit_gates,
+                                                         two_qubit_gates=qi_backend.two_qubit_gates,
+                                                         other_gates=qi_backend.three_qubit_gates)
+    compiler_engines.extend([ResourceCounter()])
     qi_engine = MainEngine(backend=qi_backend, engine_list=compiler_engines)
 
     # Run remote Grover search to find a n-bit solution

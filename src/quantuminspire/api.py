@@ -460,7 +460,7 @@ class QuantumInspireAPI:
         except ErrorMessage as err_msg:
             raise ApiError(f'Job with id {job_id} does not exist!') from err_msg
 
-    def _create_job(self, name: str, asset: Dict[str, Any], project: Dict[str, Any], number_of_shots: int,
+    def _create_job(self, name: str, asset: Dict[str, Any], number_of_shots: int,
                     backend_type: Dict[str, Any], full_state_projection: bool = False,
                     user_data: str = '') -> Dict[str, Any]:
         """ Creates a new job for executing cQASM code. This method is used by execute_qasm_async and indirectly
@@ -469,7 +469,6 @@ class QuantumInspireAPI:
         Args:
             name: The name for the job.
             asset:  The asset with the cQASM code.
-            project: The project with backend type.
             number_of_shots: The number of executions before returning the result.
             full_state_projection: Used for optimizing simulations. For more information see:
                                    https://www.quantum-inspire.com/kbase/optimization-of-simulations/
@@ -483,7 +482,7 @@ class QuantumInspireAPI:
             'status': 'NEW',
             'name': name,
             'input': asset['url'],
-            'backend_type': project['backend_type'],
+            'backend_type': backend_type['url'],
             'number_of_shots': number_of_shots,
             'full_state_projection': full_state_projection,
             'user_data': user_data
@@ -812,8 +811,8 @@ class QuantumInspireAPI:
         return result_obj
 
     def execute_qasm(self, qasm: str, backend_type: Optional[Union[Dict[str, Any], int, str]] = None,
-                     number_of_shots: int = 256, collect_tries: Optional[int] = None,
-                     default_number_of_shots: int = 256, identifier: Optional[str] = None,
+                     number_of_shots: Optional[int] = None, collect_tries: Optional[int] = None,
+                     default_number_of_shots: Optional[int] = None, identifier: Optional[str] = None,
                      full_state_projection: bool = False) -> Dict[str, Any]:
         """ With this method a cQASM program is executed, and the result is returned when the job is completed.
 
@@ -865,7 +864,7 @@ class QuantumInspireAPI:
                 self.delete_project(project_identifier)
 
     def execute_qasm_async(self, qasm: str, backend_type: Optional[Union[Dict[str, Any], int, str]] = None,
-                           number_of_shots: int = 256, default_number_of_shots: int = 256,
+                           number_of_shots: Optional[int] = None, default_number_of_shots: Optional[int] = None,
                            identifier: Optional[str] = None, full_state_projection: bool = False,
                            project: Optional[Dict[str, Any]] = None, job_name: Optional[str] = None,
                            user_data: str = '') -> QuantumInspireJob:
@@ -941,8 +940,15 @@ class QuantumInspireAPI:
                             if project['name'] == self.project_name), None)
 
         if project is None:
+            if default_number_of_shots is None:
+                default_number_of_shots = backend_type['default_number_of_shots']
             project_name = self.project_name if self.project_name else f'qi-sdk-project-{identifier}'
             project = self.create_project(project_name, default_number_of_shots, backend_type)
+
+        if backend_type['url'] != project['backend_type']:
+            logger.warning(f"The backend for which the project was created is different "
+                           f"from the backend type given: {backend_type['name']}. The experiment is run on backend "
+                           f"{backend_type['name']}.")
 
         qasm = qasm.lstrip()
         qasm = re.sub(r'[ \t]*\n[ \t]*', r'\n', qasm)
@@ -951,7 +957,9 @@ class QuantumInspireAPI:
 
         if job_name is None:
             job_name = f'qi-sdk-job-{identifier}'
-        job = self._create_job(job_name, asset, project, number_of_shots, backend_type, user_data=user_data,
+        if number_of_shots is None:
+            number_of_shots = backend_type['default_number_of_shots']
+        job = self._create_job(job_name, asset, number_of_shots, backend_type, user_data=user_data,
                                full_state_projection=full_state_projection)
 
         return QuantumInspireJob(self, job['id'])

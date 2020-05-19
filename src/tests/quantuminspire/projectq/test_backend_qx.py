@@ -28,7 +28,7 @@ from projectq.meta import LogicalQubitIDTag
 from projectq.ops import (CNOT, NOT, Allocate, Barrier,
                           Deallocate, FlushGate, H, Measure,
                           Ph, Rx, Ry, Rz, S, Sdag, Swap, T, Tdag, Toffoli, X,
-                          Y, Z)
+                          Y, Z, R)
 
 from quantuminspire.exceptions import ProjectQBackendError, AuthenticationError
 from quantuminspire.projectq.backend_qx import QIBackend
@@ -39,8 +39,24 @@ class MockApiClient:
     def __init__(self):
         result = {'histogram': {'00': 0.49, '11': 0.51}, 'results': 'dummy'}
         self.execute_qasm = MagicMock(return_value=result)
-        self.get_backend_type = MagicMock(return_value=OrderedDict({"is_hardware_backend": False,
-                                                                    "number_of_qubits": 26}))
+        self.get_backend_type = MagicMock(return_value=OrderedDict({'is_hardware_backend': False,
+                                                                    'is_allowed': True,
+                                                                    'allowed_operations': {
+                                                                        'display': ['display', 'display_binary'],
+                                                                        'measure': ['measure_x', 'measure_y',
+                                                                                    'measure_z', 'measure'],
+                                                                        'measure_all': ['measure_all'],
+                                                                        'parameterized_single_gates': ['rx', 'ry',
+                                                                                                       'rz'],
+                                                                        'prep': ['prep_x', 'prep_y', 'prep_z', 'prep'],
+                                                                        'single_gates': ['mx90', 'my90', 'x90', 'y90',
+                                                                                         't', 'tdag', 's', 'sdag',
+                                                                                         'x', 'y', 'z', 'h', 'i'],
+                                                                        'dual_gates': ['cz', 'cnot', 'swap', 'cr'],
+                                                                        'triple_gates': ['toffoli']
+                                                                    },
+                                                                    'max_number_of_shots': 4096,
+                                                                    'number_of_qubits': 26}))
 
 
 class QIBackendNonProtected(QIBackend):
@@ -50,7 +66,7 @@ class QIBackendNonProtected(QIBackend):
         return self._quantum_inspire_api
 
     @property
-    def backend_type(self):
+    def backend(self):
         return self._backend_type
 
     @property
@@ -130,36 +146,57 @@ class QIBackendNonProtected(QIBackend):
 class TestProjectQBackend(unittest.TestCase):
 
     def setUp(self):
+        self.hardware_backend_type = OrderedDict({'is_hardware_backend': True,
+                                                  'is_allowed': True,
+                                                  'allowed_operations': {
+                                                     'measure': ['measure_z', 'measure'],
+                                                     'measure_all': ['measure_all'],
+                                                     'parameterized_single_gates': ['rx', 'ry', 'rz'],
+                                                     'single_gates': ['x', 'y', 'z', 'h', 'i'],
+                                                     'dual_gates': ['cz', 'cnot', 'swap']
+                                                  },
+                                                  'max_number_of_shots': 4096,
+                                                  'max_number_of_simultaneous_jobs': 1,
+                                                  'topology': {'edges': []},
+                                                  'number_of_qubits': 3})
+
+        self.simulator_backend_type = OrderedDict({'is_hardware_backend': False,
+                                                   'is_allowed': True,
+                                                   'allowed_operations': {},
+                                                   'max_number_of_shots': 4096,
+                                                   'max_number_of_simultaneous_jobs': 3,
+                                                   'topology': {'edges': []},
+                                                   'number_of_qubits': 5})
+
         warnings.filterwarnings("ignore", category=PendingDeprecationWarning)
 
         self.api = MockApiClient()
         self.qi_backend = QIBackendNonProtected(quantum_inspire_api=self.api)
         self.qi_verbose_backend = QIBackendNonProtected(quantum_inspire_api=self.api, verbose=2)
-        self.api.get_backend_type = MagicMock(return_value=OrderedDict({"is_hardware_backend": True,
-                                                                        "number_of_qubits": 26}))
+        self.api.get_backend_type = MagicMock(return_value=self.hardware_backend_type)
         self.qi_hw_backend = QIBackendNonProtected(quantum_inspire_api=self.api)
 
     def test_init_has_correct_values(self):
         self.assertIsInstance(self.qi_backend.qasm, str)
         self.assertEqual(self.qi_backend.quantum_inspire_api, self.api)
-        self.assertIsNone(self.qi_backend.backend_type)
+        self.assertIsNotNone(self.qi_backend.backend)
 
     def test_init_without_api_has_correct_values(self):
         os.environ.get = MagicMock()
         os.environ.get.return_value = 'token'
         coreapi.Client.get = MagicMock()
-        result = {"is_hardware_backend": False, "number_of_qubits": 26}
+        result = self.simulator_backend_type
         coreapi.Client.action = MagicMock(return_value=result)
         self.qi_backend_no_api = QIBackendNonProtected()
         self.assertIsInstance(self.qi_backend_no_api.qasm, str)
         self.assertNotEqual(self.qi_backend_no_api.quantum_inspire_api, None)
-        self.assertIsNone(self.qi_backend_no_api.backend_type)
+        self.assertIsNotNone(self.qi_backend_no_api.backend)
         self.assertTrue(self.qi_backend_no_api.is_simulation_backend)
 
     def test_init_raises_error_no_runs(self):
         num_runs = 0
         self.assertRaisesRegex(ProjectQBackendError, 'Invalid number of runs \(num_runs=0\)',
-                               QIBackend, num_runs)
+                               QIBackend, num_runs, 0, self.api)
 
     def test_init_raises_no_account_authentication_error(self):
         json.load = MagicMock()
@@ -198,12 +235,13 @@ class TestProjectQBackend(unittest.TestCase):
 
     def test_is_available_correct_result(self):
         self.__is_available_assert_equal(NOT, True, count=1)
+        self.__is_available_assert_equal(NOT, True, count=2)
         self.__is_available_assert_equal(NOT, False, count=3)
         self.__is_available_assert_equal(CNOT, False, count=0)
         self.__is_available_assert_equal(Z, True, count=1)
         self.__is_available_assert_equal(Z, False, count=3)
+        self.__is_available_assert_equal(R, True, count=1)
         self.__is_available_assert_equal(Ph(0.4), False)
-        self.__is_available_assert_equal(Toffoli, False)
         for gate in [Measure, Allocate, Deallocate, Barrier, T, Tdag,
                      S, Sdag, Swap, H, X, Y, Z, Rx(0.1), Ry(0.2), Rz(0.3)]:
             self.__is_available_assert_equal(gate, True)
@@ -246,7 +284,7 @@ class TestProjectQBackend(unittest.TestCase):
         self.__store_function_assert_equal(1, Z, "\ncz q[0], q[1]", count=1)
         self.__store_function_assert_equal(0, Barrier, "\n# barrier gate q[0], q[1];")
         self.__store_function_assert_equal(1, Rz(angle), "\ncr q[0],q[1],{0:.12f}".format(angle), count=1)
-        self.__store_function_assert_equal(1, Rz(angle), "\ncr q[0],q[1],{0:.12f}".format(angle), count=1)
+        self.__store_function_assert_equal(1, R(angle), "\ncr q[0],q[1],{0:.12f}".format(angle), count=1)
         self.__store_function_assert_equal(1, Rx(angle), "\nrx q[1],{0}".format(angle))
         self.__store_function_assert_equal(1, Ry(angle), "\nry q[1],{0}".format(angle))
         self.__store_function_assert_equal(1, Rz(angle), "\nrz q[1],{0}".format(angle))
