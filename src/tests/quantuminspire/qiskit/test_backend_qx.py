@@ -187,10 +187,10 @@ class TestQiSimulatorPy(unittest.TestCase):
         job = QIJob('backend', '42', api)
         simulator = QuantumInspireBackend(api, Mock())
         experiment_result = simulator.get_experiment_results(job)[0]
-        self.assertEqual(experiment_result.data.counts.to_dict()['0x1'], 60)
-        self.assertEqual(experiment_result.data.counts.to_dict()['0x3'], 40)
-        self.assertEqual(experiment_result.data.probabilities.to_dict()['0x1'], 0.6)
-        self.assertEqual(experiment_result.data.probabilities.to_dict()['0x3'], 0.4)
+        self.assertEqual(experiment_result.data.counts['0x1'], 60)
+        self.assertEqual(experiment_result.data.counts['0x3'], 40)
+        self.assertEqual(experiment_result.data.probabilities['0x1'], 0.6)
+        self.assertEqual(experiment_result.data.probabilities['0x3'], 0.4)
         self.assertEqual(len(experiment_result.data.memory), 100)
         self.assertEqual(experiment_result.data.memory.count('0x1'), 60)
         self.assertEqual(experiment_result.data.memory.count('0x3'), 40)
@@ -220,17 +220,17 @@ class TestQiSimulatorPy(unittest.TestCase):
         job = QIJob('backend', '42', api)
         simulator = QuantumInspireBackend(api, Mock())
         experiment_result = simulator.get_experiment_results(job)[0]
-        self.assertEqual(experiment_result.data.probabilities.to_dict()['0x0'], 0.5)
-        self.assertEqual(experiment_result.data.probabilities.to_dict()['0x3'], 0.5)
-        self.assertEqual('memory' in experiment_result.data.to_dict(), True)
+        self.assertEqual(experiment_result.data.probabilities['0x0'], 0.5)
+        self.assertEqual(experiment_result.data.probabilities['0x3'], 0.5)
+        self.assertTrue(hasattr(experiment_result.data, 'memory'))
         # Exactly one value in counts histogram
-        self.assertEqual(len(experiment_result.data.counts.to_dict()), 1)
+        self.assertEqual(len(experiment_result.data.counts), 1)
         # The single value in counts histogram has count 1
-        self.assertEqual(list(experiment_result.data.counts.to_dict().values())[0], 1)
+        self.assertEqual(list(experiment_result.data.counts.values())[0], 1)
         # Exactly one value in memory
         self.assertEqual(len(experiment_result.data.memory), 1)
         # The only value in memory is the same as the value in the counts histogram.
-        self.assertEqual(list(experiment_result.data.counts.to_dict().keys())[0], experiment_result.data.memory[0])
+        self.assertEqual(list(experiment_result.data.counts.keys())[0], experiment_result.data.memory[0])
         self.assertEqual(experiment_result.name, 'circuit0')
         self.assertEqual(experiment_result.shots, number_of_shots)
 
@@ -263,7 +263,7 @@ class TestQiSimulatorPy(unittest.TestCase):
             # Exactly one value in memory
             self.assertEqual(len(experiment_result.data.memory), 1)
             # The only value in memory is the same as the value in the counts histogram.
-            self.assertEqual(list(experiment_result.data.counts.to_dict().keys())[0], experiment_result.data.memory[0])
+            self.assertEqual(list(experiment_result.data.counts.keys())[0], experiment_result.data.memory[0])
             one_shot_results[experiment_result.data.memory[0]] += 1
 
         self.assertEqual(one_shot_results['0x0'], 2066)
@@ -545,9 +545,9 @@ class TestQiSimulatorPyHistogram(unittest.TestCase):
         number_of_shots = jobs['number_of_shots']
         self.assertEqual(1, len(result))
         first_experiment = first_item(result)
-        actual = first_experiment.data.counts.to_dict()
+        actual = first_experiment.data.counts
         self.assertDictEqual(expected_histogram, actual)
-        probabilities = first_experiment.data.probabilities.to_dict()
+        probabilities = first_experiment.data.probabilities
         self.assertTrue(len(expected_histogram_prob.keys() - probabilities.keys()) == 0)
         for key in set(probabilities.keys()) & set(expected_histogram_prob.keys()):
             self.assertTrue(np.isclose(expected_histogram_prob[key], probabilities[key]))
