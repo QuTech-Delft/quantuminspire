@@ -14,7 +14,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-from typing import List, Union, Dict
+from typing import List, Union, Dict, Any
 from qiskit.exceptions import QiskitError
 from qiskit.result import postprocess, Result
 from qiskit.result.models import ExperimentResult
@@ -30,7 +30,8 @@ class QIResult(Result):  # type: ignore
         qi_result = qi_job.result()
     """
     def __init__(self, backend_name: str, backend_version: str, qobj_id: str, job_id: str, success: bool,
-                 results: List[ExperimentResult], date=None, status=None, header=None, **kwargs):
+                 results: List[ExperimentResult], date: Any = None, status: Any = None, header: Any = None,
+                 **kwargs: str) -> None:
         """
         Construct a new QIResult object. Not normally called directly, use a QIJob to get the QIResult.
 
@@ -49,7 +50,7 @@ class QIResult(Result):  # type: ignore
         super().__init__(backend_name, backend_version, qobj_id, job_id, success,
                          results, date, status, header, **kwargs)
 
-    def get_probabilities(self, experiment=None) -> Union[Dict, List[Dict]]:
+    def get_probabilities(self, experiment: Any = None) -> Union[Dict[str, float], List[Dict[str, float]]]:
 
         """Get the probability data of an experiment. The probability data is added as a separate result by
         Quantum Inspire backend. Based on Qiskit get_count method from Result.
@@ -67,9 +68,9 @@ class QIResult(Result):  # type: ignore
         if experiment is None:
             exp_keys = range(len(self.results))
         else:
-            exp_keys = [experiment]
+            exp_keys = [experiment]  # type: ignore
 
-        dict_list = []
+        dict_list: List[Dict[str, float]] = []
         for key in exp_keys:
             exp = self._get_experiment(key)
             try:

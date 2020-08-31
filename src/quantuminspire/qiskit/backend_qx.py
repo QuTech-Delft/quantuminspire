@@ -352,7 +352,7 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
         return classical_state_hex
 
     @staticmethod
-    def __convert_histogram(result: Dict[str, Any], measurements: Dict[str, Any]) -> dict:
+    def __convert_histogram(result: Dict[str, Any], measurements: Dict[str, Any]) -> Dict[str, float]:
         """ The quantum inspire backend always uses full state projection. The SDK user
             can measure not all qubits and change the combined classical bits. This function
             converts the result to a histogram output that represents the probabilities
@@ -379,7 +379,8 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
                                                                          key=lambda kv: int(kv[0], 16))
         return dict(sorted_histogram_probabilities)
 
-    def __convert_result_data(self, result: Dict[str, Any], measurements: Dict[str, Any]) -> Tuple[dict, List[str]]:
+    def __convert_result_data(self, result: Dict[str, Any], measurements: Dict[str, Any]) -> Tuple[Dict[str, int],
+                                                                                                   List[str]]:
         """ The quantum inspire backend returns the single shot values as raw data. This function
             converts this list of single shot values to hexadecimal memory data according the Qiskit spec.
             From this memory data the counts histogram is constructed by counting the single shot values.
