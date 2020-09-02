@@ -46,7 +46,7 @@ class TestQiCircuitToString(unittest.TestCase):
         new_circuits = transpile(circuit, backend)
         run_config = RunConfig(shots=1024, max_credits=10, memory=False)
         # assembling the circuits into a qobj to be run on the backend
-        qiskit_job = assemble(new_circuits, backend, run_config=run_config)
+        qiskit_job = assemble(new_circuits, backend, run_config=run_config.to_dict())
 
         experiment = qiskit_job.experiments[0]
         result = backend._generate_cqasm(experiment)

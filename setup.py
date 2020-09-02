@@ -88,6 +88,6 @@ setup(name='quantuminspire',
           'License :: OSI Approved :: Apache Software License'],
       license='Apache 2.0',
       packages=['quantuminspire', 'quantuminspire.qiskit', 'quantuminspire.projectq'],
-      install_requires=['pytest>=3.3.1', 'coverage>=4.5.1', 'matplotlib>=2.1',
-                        'coreapi>=2.3.3', 'numpy>=1.16.3', 'jupyter', 'nbimporter', 'sklearn'],
-      extras_require={'qiskit': ["qiskit>=0.9.0"], 'projectq': ["projectq>=0.4"]})
+      install_requires=['pytest>=3.3.1', 'coverage>=4.5.1', 'matplotlib>=2.1', 'pylatexenc',
+                        'coreapi>=2.3.3', 'numpy>=1.17', 'jupyter', 'nbimporter', 'sklearn'],
+      extras_require={'qiskit': ["qiskit>=0.20.0"], 'projectq': ["projectq>=0.4"]})

@@ -28,7 +28,7 @@ from qiskit.providers.models import QasmBackendConfiguration
 from qiskit.providers.models.backendconfiguration import GateConfig
 from qiskit.qobj import QasmQobj, QasmQobjExperiment
 from qiskit.result.models import ExperimentResult, ExperimentResultData
-from qiskit.validation.base import Obj
+from qiskit.qobj import QobjExperimentHeader
 
 from quantuminspire.api import QuantumInspireAPI
 from quantuminspire.exceptions import QisKitBackendError
@@ -202,9 +202,9 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
             histogram_obj, memory_data = self.__convert_result_data(result, measurements)
             full_state_histogram_obj = self.__convert_histogram(result, measurements)
             experiment_result_data = ExperimentResultData(counts=histogram_obj,
-                                                          probabilities=full_state_histogram_obj,
                                                           memory=memory_data)
-            header = Obj.from_dict(user_data)
+            experiment_result_data.probabilities = full_state_histogram_obj
+            header = QobjExperimentHeader.from_dict(user_data)
             experiment_result_dictionary = {'name': job.get('name'), 'seed': 42, 'shots': job.get('number_of_shots'),
                                             'data': experiment_result_data, 'status': 'DONE', 'success': True,
                                             'time_taken': result.get('execution_time_in_seconds'), 'header': header}
@@ -352,7 +352,7 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
         return classical_state_hex
 
     @staticmethod
-    def __convert_histogram(result: Dict[str, Any], measurements: Dict[str, Any]) -> Obj:
+    def __convert_histogram(result: Dict[str, Any], measurements: Dict[str, Any]) -> Dict[str, float]:
         """ The quantum inspire backend always uses full state projection. The SDK user
             can measure not all qubits and change the combined classical bits. This function
             converts the result to a histogram output that represents the probabilities
@@ -377,10 +377,10 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
 
         sorted_histogram_probabilities: List[Tuple[str, float]] = sorted(output_histogram_probabilities.items(),
                                                                          key=lambda kv: int(kv[0], 16))
-        full_state_histogram_obj = OrderedDict(sorted_histogram_probabilities)
-        return Obj.from_dict(full_state_histogram_obj)
+        return dict(sorted_histogram_probabilities)
 
-    def __convert_result_data(self, result: Dict[str, Any], measurements: Dict[str, Any]) -> Tuple[Obj, List[str]]:
+    def __convert_result_data(self, result: Dict[str, Any], measurements: Dict[str, Any]) -> Tuple[Dict[str, int],
+                                                                                                   List[str]]:
         """ The quantum inspire backend returns the single shot values as raw data. This function
             converts this list of single shot values to hexadecimal memory data according the Qiskit spec.
             From this memory data the counts histogram is constructed by counting the single shot values.
@@ -432,4 +432,4 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
 
         sorted_histogram_data: List[Tuple[str, int]] = sorted(histogram_data.items(), key=lambda kv: int(kv[0], 16))
         histogram_obj = OrderedDict(sorted_histogram_data)
-        return Obj.from_dict(histogram_obj), memory_data
+        return dict(histogram_obj), memory_data

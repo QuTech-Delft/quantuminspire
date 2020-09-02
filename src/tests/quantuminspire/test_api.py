@@ -15,7 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import os
 import sys
 import logging
 import json
@@ -102,29 +101,27 @@ class TestQuantumInspireAPI(TestCase):
         expected_token = 'secret'
         json.load = MagicMock()
         json.load.return_value = {'token': expected_token}
-        os.environ.get = MagicMock()
-        os.environ.get.return_value = expected_token
-        expected = 'schema/'
-        base_url = 'https://api.mock.test.com/'
-        url = ''.join([base_url, expected])
-        self.coreapi_client.getters[url] = expected
-        with patch("builtins.open", mock_open(read_data="secret_token")) as mock_file:
-            api = QuantumInspireAPI(base_url, coreapi_client_class=self.coreapi_client)
-            self.assertEqual(expected, api.document)
+        with patch.dict('os.environ', values={'QI_TOKEN': expected_token}):
+            expected = 'schema/'
+            base_url = 'https://api.mock.test.com/'
+            url = ''.join([base_url, expected])
+            self.coreapi_client.getters[url] = expected
+            with patch("builtins.open", mock_open(read_data="secret_token")) as mock_file:
+                api = QuantumInspireAPI(base_url, coreapi_client_class=self.coreapi_client)
+                self.assertEqual(expected, api.document)
 
     def test_no_authentication_raises_authentication_error(self):
         expected_token = 'secret'
         json.load = MagicMock()
         json.load.return_value = {'wrong_key': expected_token}
-        os.environ.get = MagicMock()
-        os.environ.get.return_value = None
-        expected = 'schema/'
-        base_url = 'https://api.mock.test.com/'
-        url = ''.join([base_url, expected])
-        self.coreapi_client.getters[url] = expected
-        with patch("builtins.open", mock_open(read_data="secret_token")) as mock_file:
-            self.assertRaisesRegex(AuthenticationError, 'No credentials have been provided', QuantumInspireAPI,
-                                   base_url, coreapi_client_class=self.coreapi_client)
+        with patch.dict('os.environ', values={'QI_TOKEN': ''}):
+            expected = 'schema/'
+            base_url = 'https://api.mock.test.com/'
+            url = ''.join([base_url, expected])
+            self.coreapi_client.getters[url] = expected
+            with patch("builtins.open", mock_open(read_data="secret_token")) as mock_file:
+                self.assertRaisesRegex(AuthenticationError, 'No credentials have been provided', QuantumInspireAPI,
+                                       base_url, coreapi_client_class=self.coreapi_client)
 
     def test_load_schema_collects_correct_schema(self):
         expected = 'schema/'

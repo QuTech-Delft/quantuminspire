@@ -19,7 +19,6 @@ import io
 import unittest
 import warnings
 import json
-import os
 import coreapi
 from collections import OrderedDict
 from unittest.mock import MagicMock, patch
@@ -182,16 +181,15 @@ class TestProjectQBackend(unittest.TestCase):
         self.assertIsNotNone(self.qi_backend.backend)
 
     def test_init_without_api_has_correct_values(self):
-        os.environ.get = MagicMock()
-        os.environ.get.return_value = 'token'
-        coreapi.Client.get = MagicMock()
-        result = self.simulator_backend_type
-        coreapi.Client.action = MagicMock(return_value=result)
-        self.qi_backend_no_api = QIBackendNonProtected()
-        self.assertIsInstance(self.qi_backend_no_api.qasm, str)
-        self.assertNotEqual(self.qi_backend_no_api.quantum_inspire_api, None)
-        self.assertIsNotNone(self.qi_backend_no_api.backend)
-        self.assertTrue(self.qi_backend_no_api.is_simulation_backend)
+        with patch.dict('os.environ', values={'QI_TOKEN': 'token'}):
+            coreapi.Client.get = MagicMock()
+            result = self.simulator_backend_type
+            coreapi.Client.action = MagicMock(return_value=result)
+            self.qi_backend_no_api = QIBackendNonProtected()
+            self.assertIsInstance(self.qi_backend_no_api.qasm, str)
+            self.assertNotEqual(self.qi_backend_no_api.quantum_inspire_api, None)
+            self.assertIsNotNone(self.qi_backend_no_api.backend)
+            self.assertTrue(self.qi_backend_no_api.is_simulation_backend)
 
     def test_init_raises_error_no_runs(self):
         num_runs = 0
@@ -201,11 +199,11 @@ class TestProjectQBackend(unittest.TestCase):
     def test_init_raises_no_account_authentication_error(self):
         json.load = MagicMock()
         json.load.return_value = {'faulty_key': 'faulty_token'}
-        os.environ.get = MagicMock()
-        os.environ.get.return_value = None
-        self.assertRaisesRegex(AuthenticationError, 'Make sure you have saved your token credentials on disk '
-                                                    'or provide a QuantumInspireAPI instance as parameter to QIBackend',
-                               QIBackend)
+        with patch.dict('os.environ', values={'QI_TOKEN': ''}):
+            self.assertRaisesRegex(AuthenticationError, 'Make sure you have saved your token credentials on disk or '
+                                                        'provide a QuantumInspireAPI instance as parameter to '
+                                                        'QIBackend',
+                                   QIBackend)
 
     def test_cqasm_returns_correct_cqasm_data(self):
         expected = 'fake_cqasm_data'
