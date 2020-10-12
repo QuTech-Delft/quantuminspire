@@ -1,0 +1,38 @@
+name: Nightly SDK build
+
+on: push
+
+jobs:
+  test:
+    name: Integration test with Qiskit dev branch
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Clone Qiskit-terra
+      uses: actions/checkout@v2
+      with:
+        repository: https://github.com/Qiskit/qiskit-terra.git
+        ref: dev
+    - name: Checkout Quantum Inspire SDK
+      uses: actions/checkout@v2
+    - name: Set up Python 3.6
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.6
+    - name: Pip install prerequisites
+      uses: BSFishy/pip-action@v1
+      with:
+        packages: |
+          cython
+          ./qiskit-terra
+        upgrade: true
+    - name: Pip install SDK
+      uses: BSFishy/pip-action@v1
+      with:
+        requirements: ./src/tests/requirements.txt
+        upgrade: true
+    - name: Run examples
+      run: |
+        python ./docs/example_qiskit_entangle.py
+        python ./docs/example_qiskit_conditional.py
