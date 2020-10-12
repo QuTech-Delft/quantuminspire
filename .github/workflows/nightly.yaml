@@ -12,7 +12,7 @@ jobs:
     - name: Clone Qiskit-terra
       uses: actions/checkout@v2
       with:
-        repository: https://github.com/Qiskit/qiskit-terra.git
+        repository: Qiskit/qiskit-terra
         ref: dev
     - name: Checkout Quantum Inspire SDK
       uses: actions/checkout@v2
