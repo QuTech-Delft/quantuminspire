@@ -1,6 +1,8 @@
 name: Nightly SDK build
 
-on: push
+on:
+  schedule:
+    - cron: "59 23 * * 1-5"
 
 jobs:
   test:
@@ -20,18 +22,13 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: 3.6
-    - name: Pip install prerequisites
+    - name: pip install prerequisites
       uses: BSFishy/pip-action@v1
       with:
         packages: |
           cython
           ./qiskit-terra
-          .
-        upgrade: true
-    - name: Pip install SDK
-      uses: BSFishy/pip-action@v1
-      with:
-        requirements: ./src/tests/requirements.txt
+          .[dev]
         upgrade: true
     - name: Run examples
       run: |
