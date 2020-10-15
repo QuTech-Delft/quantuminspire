@@ -1,0 +1,40 @@
+name: Nightly SDK build
+
+on:
+  schedule:
+    - cron: "59 23 * * 1-5"
+
+jobs:
+  test:
+    name: Integration test with Qiskit dev branch
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Quantum Inspire SDK
+      uses: actions/checkout@v2
+    - name: Clone Qiskit-terra
+      uses: actions/checkout@v2
+      with:
+        repository: qiskit/qiskit-terra
+        path: qiskit-terra
+    - name: Set up Python 3.6
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.6
+    - name: pip install prerequisites
+      uses: BSFishy/pip-action@v1
+      with:
+        packages: |
+          cython
+          ./qiskit-terra
+          .[dev]
+        upgrade: true
+    - name: Run examples
+      run: |
+        python ./docs/example_qiskit_entangle.py
+        python ./docs/example_qiskit_conditional.py
+      env:
+        QI_EMAIL: ${{ secrets.QI_EMAIL }}
+        QI_PASSWORD: ${{ secrets.QI_PASSWORD }}
+        API_URL: https://api.quantum-inspire.com
