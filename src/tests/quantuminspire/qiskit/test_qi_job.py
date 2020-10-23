@@ -20,7 +20,6 @@ from unittest.mock import Mock
 from qiskit.providers import JobStatus, JobError, JobTimeoutError
 from qiskit.qobj import QasmQobj, QobjHeader, QasmQobjConfig
 from qiskit.result.models import ExperimentResult, ExperimentResultData
-from qiskit.validation.base import Obj
 
 from quantuminspire.qiskit.qi_job import QIJob
 
@@ -30,9 +29,9 @@ class TestQIJob(unittest.TestCase):
         experiment_result_data = ExperimentResultData.from_dict({'counts': {'0x0': 42}})
         experiment_result_data_2 = ExperimentResultData.from_dict({'counts': {'0x1': 42}})
         experiment_result_data_3 = ExperimentResultData.from_dict({})
-        header_1 = Obj.from_dict({'name': 'Test1'})
-        header_2 = Obj.from_dict({'name': 'Test2'})
-        header_3 = Obj.from_dict({'name': 'Test3'})
+        header_1 = QobjHeader.from_dict({'name': 'Test1'})
+        header_2 = QobjHeader.from_dict({'name': 'Test2'})
+        header_3 = QobjHeader.from_dict({'name': 'Test3'})
         self.experiment_result_dictionary_1 = {'name': 'Test1', 'shots': 42, 'data': experiment_result_data,
                                                'status': 'DONE', 'success': True, 'time_taken': 0.42,
                                                'header': header_1}

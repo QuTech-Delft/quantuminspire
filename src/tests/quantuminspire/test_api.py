@@ -15,11 +15,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import os
 import sys
 import logging
 import json
 import io
+import re
 from coreapi.exceptions import CoreAPIException, ErrorMessage
 from collections import OrderedDict
 from functools import partial
@@ -101,29 +101,27 @@ class TestQuantumInspireAPI(TestCase):
         expected_token = 'secret'
         json.load = MagicMock()
         json.load.return_value = {'token': expected_token}
-        os.environ.get = MagicMock()
-        os.environ.get.return_value = expected_token
-        expected = 'schema/'
-        base_url = 'https://api.mock.test.com/'
-        url = ''.join([base_url, expected])
-        self.coreapi_client.getters[url] = expected
-        with patch("builtins.open", mock_open(read_data="secret_token")) as mock_file:
-            api = QuantumInspireAPI(base_url, coreapi_client_class=self.coreapi_client)
-            self.assertEqual(expected, api.document)
+        with patch.dict('os.environ', values={'QI_TOKEN': expected_token}):
+            expected = 'schema/'
+            base_url = 'https://api.mock.test.com/'
+            url = ''.join([base_url, expected])
+            self.coreapi_client.getters[url] = expected
+            with patch("builtins.open", mock_open(read_data="secret_token")) as mock_file:
+                api = QuantumInspireAPI(base_url, coreapi_client_class=self.coreapi_client)
+                self.assertEqual(expected, api.document)
 
     def test_no_authentication_raises_authentication_error(self):
         expected_token = 'secret'
         json.load = MagicMock()
         json.load.return_value = {'wrong_key': expected_token}
-        os.environ.get = MagicMock()
-        os.environ.get.return_value = None
-        expected = 'schema/'
-        base_url = 'https://api.mock.test.com/'
-        url = ''.join([base_url, expected])
-        self.coreapi_client.getters[url] = expected
-        with patch("builtins.open", mock_open(read_data="secret_token")) as mock_file:
-            self.assertRaisesRegex(AuthenticationError, 'No credentials have been provided', QuantumInspireAPI,
-                                   base_url, coreapi_client_class=self.coreapi_client)
+        with patch.dict('os.environ', values={'QI_TOKEN': ''}):
+            expected = 'schema/'
+            base_url = 'https://api.mock.test.com/'
+            url = ''.join([base_url, expected])
+            self.coreapi_client.getters[url] = expected
+            with patch("builtins.open", mock_open(read_data="secret_token")) as mock_file:
+                self.assertRaisesRegex(AuthenticationError, 'No credentials have been provided', QuantumInspireAPI,
+                                       base_url, coreapi_client_class=self.coreapi_client)
 
     def test_load_schema_collects_correct_schema(self):
         expected = 'schema/'
@@ -369,6 +367,9 @@ class TestQuantumInspireAPI(TestCase):
         if input_key == 'read' or input_key == 'delete' or input_key == 'jobs':
             if params['id'] != 509:
                 raise ErrorMessage('Not found')
+        if input_key == 'create':
+            if params['name'] == 'CreateJobFail':
+                raise ErrorMessage('Not created')
         return OrderedDict([('url', 'https,//api.quantum-inspire.com/jobs/509/'),
                             ('name', 'qi-sdk-job-7e37c8fa-a76b-11e8-b5a0-a44cc848f1f2'),
                             ('id', 509),
@@ -492,6 +493,12 @@ class TestQuantumInspireAPI(TestCase):
         name = 'TestJob'
         asset = {'url': 'https://api.quantum-inspire.com/assets/1/'}
         project = {'backend_type': 'https://api.quantum-inspire.com/backendtypes/1/'}
+        backend_type_sim = {'url': 'https://api.quantum-inspire.com/backendtypes/1/',
+                            'name': 'QX Single-node Simulator',
+                            'is_hardware_backend': False}
+        backend_type_hw = {'url': 'https://api.quantum-inspire.com/backendtypes/1/',
+                           'name': 'Spin-2',
+                           'is_hardware_backend': True}
         number_of_shots = 1
         expected_payload = {
             'status': 'NEW',
@@ -502,7 +509,7 @@ class TestQuantumInspireAPI(TestCase):
             'full_state_projection': False,
             'user_data': ''
         }
-        expected = self.__mock_job_handler({}, 'create', None, None, ['test', 'create'], {})
+        expected = self.__mock_job_handler(expected_payload, 'create', None, None, ['test', 'create'], expected_payload)
         self.coreapi_client.handlers['jobs'] = partial(self.__mock_job_handler, expected_payload, 'create')
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
         with patch('sys.stdout', new_callable=io.StringIO) as mock_stdout:
@@ -510,14 +517,21 @@ class TestQuantumInspireAPI(TestCase):
             logging.getLogger().addHandler(stream_handler)
 
             api.show_fsp_warning(enable=False)  # Suppress warning about non fsp
-            actual = api._create_job(name, asset, project, number_of_shots, full_state_projection=False)
+            actual = api._create_job(name, asset, number_of_shots, backend_type_sim, full_state_projection=False)
             self.assertDictEqual(expected, actual)
             # Verify that no warning was printed
             print_string = mock_stdout.getvalue()
             self.assertTrue(len(print_string) == 0)
 
             api.show_fsp_warning(enable=True)  # Enable warning about non fsp
-            actual = api._create_job(name, asset, project, number_of_shots, full_state_projection=False)
+            actual = api._create_job(name, asset, number_of_shots, backend_type_hw, full_state_projection=False)
+            self.assertDictEqual(expected, actual)
+            # Verify warning. None on hw backend
+            print_string = mock_stdout.getvalue()
+            self.assertTrue(len(print_string) == 0)
+
+            api.show_fsp_warning(enable=True)  # Enable warning about non fsp
+            actual = api._create_job(name, asset, number_of_shots, backend_type_sim, full_state_projection=False)
             self.assertDictEqual(expected, actual)
             # Verify warning
             print_string = mock_stdout.getvalue()
@@ -529,6 +543,9 @@ class TestQuantumInspireAPI(TestCase):
         name = 'TestJob'
         asset = {'url': 'https://api.quantum-inspire.com/assets/1/'}
         project = {'backend_type': 'https://api.quantum-inspire.com/backendtypes/1/'}
+        backend_type_sim = {'url': 'https://api.quantum-inspire.com/backendtypes/1/',
+                            'name': 'QX Single-node Simulator',
+                            'is_hardware_backend': False}
         number_of_shots = 1
         expected_payload = {
             'status': 'NEW',
@@ -539,11 +556,33 @@ class TestQuantumInspireAPI(TestCase):
             'full_state_projection': True,
             'user_data': ''
         }
-        expected = self.__mock_job_handler({}, 'create', None, None, ['test', 'create'], {})
+        expected = self.__mock_job_handler(expected_payload, 'create', None, None, ['test', 'create'], expected_payload)
         self.coreapi_client.handlers['jobs'] = partial(self.__mock_job_handler, expected_payload, 'create')
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
-        actual = api._create_job(name, asset, project, number_of_shots, full_state_projection=True)
+        actual = api._create_job(name, asset, number_of_shots, backend_type_sim, full_state_projection=True)
         self.assertDictEqual(expected, actual)
+
+    def test_create_job_raises_api_error(self):
+        name = 'CreateJobFail'
+        asset = {'url': 'https://api.quantum-inspire.com/assets/1/'}
+        project = {'backend_type': 'https://api.quantum-inspire.com/backendtypes/1/'}
+        backend_type_sim = {'url': 'https://api.quantum-inspire.com/backendtypes/1/',
+                            'name': 'QX Single-node Simulator',
+                            'is_hardware_backend': False}
+        number_of_shots = 1
+        payload = {
+            'status': 'NEW',
+            'name': name,
+            'input': asset['url'],
+            'backend_type': project['backend_type'],
+            'number_of_shots': number_of_shots,
+            'full_state_projection': True,
+            'user_data': ''
+        }
+        self.coreapi_client.handlers['jobs'] = partial(self.__mock_job_handler, payload, 'create')
+        api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
+        self.assertRaises(ApiError, api._create_job, name, asset, number_of_shots, backend_type_sim,
+                          full_state_projection=True)
 
     def __mock_list_results_handler(self, mock_api, document, keys, params=None, validate=None,
                                     overrides=None, action=None, encoding=None, transform=None):
@@ -1031,6 +1070,7 @@ class TestQuantumInspireAPI(TestCase):
                                  ('is_hardware_backend', False),
                                  ('required_permission', 'can_simulate_single_node_qutech'),
                                  ('number_of_qubits', 26),
+                                 ('default_number_of_shots', 4096),
                                  ('description', 'Single-node running on a 4GB Hetzner VPS.'),
                                  ('topology', '{"edges": []}'),
                                  ('is_allowed', True)]),
@@ -1039,8 +1079,8 @@ class TestQuantumInspireAPI(TestCase):
                                  ('is_hardware_backend', False),
                                  ('required_permission', 'can_simulate_single_node_qutech'),
                                  ('number_of_qubits', 26),
-                                 ('description',
-                                  'Single-node running on a 4GB Hetzner VPS.'),
+                                 ('default_number_of_shots', 2048),
+                                 ('description', 'Single-node running on a 4GB Hetzner VPS.'),
                                  ('topology', '{"edges": []}'),
                                  ('is_allowed', True)])]
         else:
@@ -1050,6 +1090,7 @@ class TestQuantumInspireAPI(TestCase):
                                 ('is_hardware_backend', False),
                                 ('required_permission', 'can_simulate_single_node_qutech'),
                                 ('number_of_qubits', 26),
+                                ('default_number_of_shots', 4321),
                                 ('description', 'Single-node running on a 4GB Hetzner VPS.'),
                                 ('topology', '{"edges": []}'),
                                 ('is_allowed', True)])
@@ -1105,7 +1146,7 @@ class TestQuantumInspireAPI(TestCase):
                             ('backend_type', 'https//api.quantum-inspire.com/backendtypes/1/'),
                             ('results', 'mocked_job'),
                             ('queued_at', '2018-08-24T07:01:21:257557Z'),
-                            ('number_of_shots', 1)])
+                            ('number_of_shots', 4096)])
 
     def __fake_no_results_job_handler(self, mock_api, document, keys, params=None, validate=None,
                                       overrides=None, action=None, encoding=None, transform=None, call_mock=None):
@@ -1121,6 +1162,12 @@ class TestQuantumInspireAPI(TestCase):
                             ('results', ''),
                             ('queued_at', '2018-08-24T07:01:21:257557Z'),
                             ('number_of_shots', 1)])
+
+    def __error_job_handler(self, mock_api, document, keys, params=None, validate=None,
+                            overrides=None, action=None, encoding=None, transform=None, call_mock=None):
+        if call_mock:
+            call_mock(keys[1], params)
+        raise TypeError('Type is not correct')
 
     def __mocks_for_api_execution(self, fake_no_results=False):
         if fake_no_results:
@@ -1191,7 +1238,7 @@ class TestQuantumInspireAPI(TestCase):
         job_mock.assert_called_with('read', {'id': 509})
         job_call_items = job_mock.call_args_list[0][0][1]
         self.assertEqual('NEW', job_call_items['status'])
-        self.assertEqual(256, job_call_items['number_of_shots'])
+        self.assertEqual(4321, job_call_items['number_of_shots'])
         self.assertEqual(full_state_projection, job_call_items['full_state_projection'])
 
     def test_execute_qasm_with_fsp_creates_job_with_fsp(self):
@@ -1207,7 +1254,7 @@ class TestQuantumInspireAPI(TestCase):
         self.assertIsNone(api.project_name)
 
         qasm = 'version 1.0...'
-        default_number_of_shots = 256
+        default_number_of_shots = 4321
         actual_job_result = api.execute_qasm(qasm, collect_tries=1)
         self.assertEqual(expected_job_result, actual_job_result)
 
@@ -1232,14 +1279,14 @@ class TestQuantumInspireAPI(TestCase):
         self.assertEqual(api.project_name, project_name)
 
         qasm = 'version 1.0...'
-        actual_job_result = api.execute_qasm(qasm, number_of_shots=1024, collect_tries=1, full_state_projection=True)
+        actual_job_result = api.execute_qasm(qasm, number_of_shots=4096, collect_tries=1, full_state_projection=True)
         self.assertEqual(expected_job_result, actual_job_result)
 
         job_mock.assert_any_call('read', {'id': 509})
         job_mock.assert_any_call('result', {'id': 509})
         job_call_items = job_mock.call_args_list[0][0][1]
         self.assertEqual('NEW', job_call_items['status'])
-        self.assertEqual(1024, job_call_items['number_of_shots'])
+        self.assertEqual(4096, job_call_items['number_of_shots'])
         self.assertTrue(job_call_items['full_state_projection'])
 
         asset_mock.assert_called_with('create', params=mock.ANY)
@@ -1247,6 +1294,25 @@ class TestQuantumInspireAPI(TestCase):
 
         project_mock.assert_called_with('create', params=mock.ANY)
         self.assertTrue(call('delete') not in project_mock.call_args_list)
+
+    @patch('quantuminspire.api.QuantumInspireAPI.get_projects')
+    def test_execute_qasm_project_with_default_number_of_shots(self, get_projects_mock):
+        expected_job_result, job_mock, asset_mock, backend_mock, project_mock = self.__mocks_for_api_execution()
+
+        get_projects_mock.return_value = {}
+        project_name = 'Grover algorithm - 1900-01-01 10:00'
+        api = QuantumInspireAPI('FakeURL', self.authentication, project_name=project_name,
+                                coreapi_client_class=self.coreapi_client)
+        self.assertEqual(api.project_name, project_name)
+
+        qasm = 'version 1.0...'
+        actual_job_result = api.execute_qasm(qasm, number_of_shots=None, collect_tries=1, full_state_projection=True)
+        self.assertEqual(expected_job_result, actual_job_result)
+
+        job_call_items = job_mock.call_args_list[0][0][1]
+        self.assertEqual(4321, job_call_items['number_of_shots'])
+        project_call_items = project_mock.call_args_list[0][1]['params']
+        self.assertEqual(4321, project_call_items['default_number_of_shots'])
 
     def test_execute_qasm_qasm_stripped(self):
         _, _, asset_mock, _, _ = self.__mocks_for_api_execution()
@@ -1258,4 +1324,21 @@ class TestQuantumInspireAPI(TestCase):
         api.execute_qasm(qasm, collect_tries=1)
 
         asset_call_items = asset_mock.call_args_list[0][1]
-        self.assertEqual('version 1.0\nqubits 10\n\nh q[0]\nmeasure_z q[0]\n\n\n', asset_call_items['params']['content'])
+        self.assertEqual('version 1.0\nqubits 10\n\nh q[0]\nmeasure_z q[0]\n\n\n',
+                         asset_call_items['params']['content'])
+
+    def test_execute_qasm_api_error(self):
+        _ = self.__mocks_for_api_execution()
+        job_mock = Mock()
+        self.coreapi_client.handlers['jobs'] = partial(self.__error_job_handler, call_mock=job_mock)
+
+        api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
+        self.assertIsNone(api.project_name)
+
+        qasm = 'version 1.0'
+        results = api.execute_qasm(qasm)
+
+        self.assertEqual(results['histogram'], {})
+        s = results['raw_text']
+        self.assertTrue(
+            re.match(r'Error raised while executing qasm: Job with name (.*?) not created: Type is not correct', s))

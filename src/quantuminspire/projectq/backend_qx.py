@@ -18,21 +18,24 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-
+import sys
+import inspect
 import random
 from collections import defaultdict
 from functools import reduce
-from typing import List, Dict, Iterator, Union, Optional, Tuple
+from typing import List, Dict, Iterator, Union, Optional, Tuple, Any
 
 from projectq.cengines import BasicEngine
 from projectq.meta import LogicalQubitIDTag, get_control_count
 from projectq.ops import (NOT, Allocate, Barrier, Deallocate, FlushGate, H,
                           Measure, Ph, Rx, Ry, Rz, S, Sdag, Swap, T, Tdag, X,
-                          Y, Z, Command)
+                          Y, Z, Command, CZ, C, R, CNOT, Toffoli)
 from projectq.types import Qubit
 from quantuminspire.api import QuantumInspireAPI
 from quantuminspire.exceptions import AuthenticationError
 from quantuminspire.exceptions import ProjectQBackendError
+# shortcut for Controlled Phase-shift gate (CR)
+CR = C(R)
 
 
 class QIBackend(BasicEngine):  # type: ignore
@@ -58,16 +61,12 @@ class QIBackend(BasicEngine):  # type: ignore
         any additional gates received after a FlushGate triggers an exception. """
         self._clear: bool = True
         self._reset()
-        self._num_runs: int = num_runs
-        if num_runs < 1:
-            raise ProjectQBackendError('Invalid number of runs (num_runs={})'.format(num_runs))
         self._verbose: int = verbose
         self._cqasm: str = str()
         self._measured_states: Dict[int, float] = {}
         self._measured_ids: List[int] = []
         self._allocation_map: List[Tuple[int, int]] = []
         self._max_qubit_id: int = -1
-        self._full_state_projection = True
         if quantum_inspire_api is None:
             try:
                 quantum_inspire_api = QuantumInspireAPI()
@@ -75,10 +74,72 @@ class QIBackend(BasicEngine):  # type: ignore
                 raise AuthenticationError('Make sure you have saved your token credentials on disk or '
                                           'provide a QuantumInspireAPI instance as parameter to QIBackend') from ex
         self._quantum_inspire_api: QuantumInspireAPI = quantum_inspire_api
-        self._backend_type: Optional[Union[int, str]] = backend_type
-        backend = self._quantum_inspire_api.get_backend_type(backend_type)
-        self._is_simulation_backend = not backend["is_hardware_backend"]
-        self._max_number_of_qubits = backend["number_of_qubits"]
+        self._backend_type: Dict[str, Any] = self._quantum_inspire_api.get_backend_type(backend_type)
+        if num_runs < 1 or num_runs > self._backend_type['max_number_of_shots']:
+            raise ProjectQBackendError(f'Invalid number of runs (num_runs={num_runs})')
+        self._num_runs: int = num_runs
+        self._full_state_projection = not self._backend_type["is_hardware_backend"]
+        self._is_simulation_backend = not self._backend_type["is_hardware_backend"]
+        self._max_number_of_qubits: int = self._backend_type["number_of_qubits"]
+        self._one_qubit_gates: Tuple[Any, ...] = self._get_one_qubit_gates()
+        self._two_qubit_gates: Tuple[Any, ...] = self._get_two_qubit_gates()
+        self._three_qubit_gates: Tuple[Any, ...] = self._get_three_qubit_gates()
+
+    def _get_one_qubit_gates(self) -> Tuple[Any, ...]:
+        allowed_operations = self._backend_type['allowed_operations']
+        if len(allowed_operations) > 0:
+            one_qubit_gates = []
+            for gate_set in ['single_gates', 'parameterized_single_gates']:
+                if gate_set in allowed_operations:
+                    for gate in allowed_operations[gate_set]:
+                        if gate in ['x', 'y', 'z', 'h', 's', 'sdag', 't', 'tdag', 'rx', 'ry', 'rz']:
+                            one_qubit_gates += [getattr(sys.modules[__name__], gate.capitalize())]
+        else:
+            one_qubit_gates = [X, Y, Z, H, S, Sdag, T, Tdag, Rx, Ry, Rz]
+        return tuple(one_qubit_gates)
+
+    def _get_two_qubit_gates(self) -> Tuple[Any, ...]:
+        allowed_operations = self._backend_type['allowed_operations']
+        if len(allowed_operations) > 0:
+            two_qubit_gates = []
+            for gate_set in ['dual_gates', 'parameterized_dual_gates']:
+                if gate_set in allowed_operations:
+                    for gate in allowed_operations[gate_set]:
+                        if gate in ['cz', 'cnot', 'cr']:
+                            two_qubit_gates += [getattr(sys.modules[__name__], gate.upper())]
+                        elif gate == 'swap':
+                            two_qubit_gates += [Swap]
+        else:
+            two_qubit_gates = [CZ, CNOT, CR, Swap]
+        return tuple(two_qubit_gates)
+
+    def _get_three_qubit_gates(self) -> Tuple[Any, ...]:
+        allowed_operations = self._backend_type['allowed_operations']
+        if len(allowed_operations) > 0:
+            three_qubit_gates = []
+            for gate_set in ['triple_gates']:
+                if gate_set in allowed_operations:
+                    for gate in allowed_operations[gate_set]:
+                        if gate == 'toffoli':
+                            three_qubit_gates += [Toffoli]
+        else:
+            three_qubit_gates = [Toffoli]
+        return tuple(three_qubit_gates)
+
+    @property
+    def one_qubit_gates(self) -> Tuple[Any, ...]:
+        """ Return the one qubit gates as a tuple """
+        return self._one_qubit_gates
+
+    @property
+    def two_qubit_gates(self) -> Tuple[Any, ...]:
+        """ Return the two qubit gates as a tuple """
+        return self._two_qubit_gates
+
+    @property
+    def three_qubit_gates(self) -> Tuple[Any, ...]:
+        """ Return the three qubit gates as a tuple """
+        return self._three_qubit_gates
 
     def cqasm(self) -> str:
         """ Return cqasm code that is generated last. """
@@ -97,23 +158,33 @@ class QIBackend(BasicEngine):  # type: ignore
         count = get_control_count(cmd)
         g = cmd.gate
         if self._verbose >= 3:
-            print('call to is_available with cmd %s (gate %s)' % (cmd, g))
-        if g == NOT and count <= 2:
-            return True
-        if g == Z and count <= 1:
-            return True
+            print(f'call to is_available with cmd {cmd} (gate {g})')
         if g in (Measure, Allocate, Deallocate, Barrier):
             return True
+        if g == NOT and count == 2:
+            return Toffoli in self.three_qubit_gates
+        if g == NOT and count == 1:
+            return CNOT in self.two_qubit_gates
+        if g == Z and count == 1:
+            return CZ in self.two_qubit_gates
+        if (g == R or isinstance(g, (R,))) and count == 1:
+            return CR in self.two_qubit_gates
         if count != 0:
             return False
-        if g in (T, Tdag, S, Sdag, Swap, H, X, Y, Z):
-            return True
-        elif isinstance(g, (Rx, Ry, Rz)):
-            return True
-        elif isinstance(g, Ph):
+        if g == Swap:
+            return g in self.two_qubit_gates
+        if g in (T, Tdag, S, Sdag, H, X, Y, Z):
+            return g in self.one_qubit_gates
+        if isinstance(g, (Rx, Ry, Rz)):
+            one_qubit_types = []
+            for gate in self.one_qubit_gates:
+                if inspect.isclass(gate):
+                    one_qubit_types.append(gate)
+            return isinstance(g, tuple(one_qubit_types))
+        if isinstance(g, Ph):
             return False
-        else:
-            return False
+
+        return False
 
     def _reset(self) -> None:
         """ Reset temporary variable qasm to an initial value and set a flag to clear variables in _store
@@ -165,7 +236,7 @@ class QIBackend(BasicEngine):  # type: ignore
         if self._is_simulation_backend:
             # physical bit to add cannot be allocated already
             if next(iter(x for x in self._allocation_map if x[1] == index_to_add), None) is not None:
-                raise RuntimeError("Bit {0} is already allocated.".format(index_to_add))
+                raise RuntimeError(f"Bit {index_to_add} is already allocated.")
 
             # check if the corresponding simulation bit is in the _allocation_map already,
             # we strive for x-to-x allocation, so when (x, -1) we should reuse this bit
@@ -191,8 +262,8 @@ class QIBackend(BasicEngine):  # type: ignore
 
                     # to reuse a de-allocated bit we do a prep_z first, which is better implemented as a
                     # measurement and binary controlled x-gate
-                    self.qasm += "\nmeasure q[{}]".format(allocation_entry[0])
-                    self.qasm += "\nc-x b[{}], q[{}]".format(allocation_entry[0], allocation_entry[0])
+                    self.qasm += f"\nmeasure q[{allocation_entry[0]}]"
+                    self.qasm += f"\nc-x b[{allocation_entry[0]}], q[{allocation_entry[0]}]"
                     index = self._allocation_map.index(allocation_entry)
                     self._allocation_map[index] = (allocation_entry[0], index_to_add)
 
@@ -203,8 +274,8 @@ class QIBackend(BasicEngine):  # type: ignore
             self._max_qubit_id = max(self._max_qubit_id, index_to_add)
 
         if self._verbose >= 1:
-            print('_store: Allocate gate {0}'.format((index_to_add,)))
-            print('   _allocation_map {0}'.format(self._allocation_map))
+            print(f'_store: Allocate gate {(index_to_add,)}')
+            print(f'   _allocation_map {self._allocation_map}')
 
     def _deallocate_qubit(self, index_to_remove: int) -> None:
         """ On a simulation backend it is possible to reuse qubits.
@@ -214,15 +285,15 @@ class QIBackend(BasicEngine):  # type: ignore
             # determine the qubits that are not de-allocated
             allocation_entry = next(iter(x for x in self._allocation_map if x[1] == index_to_remove), None)
             if allocation_entry is None:
-                raise RuntimeError("De-allocated bit {0} was not allocated.".format(index_to_remove))
+                raise RuntimeError(f"De-allocated bit {index_to_remove} was not allocated.")
             else:
                 # deallocate the corresponding simulation bit
                 index = self._allocation_map.index(allocation_entry)
                 self._allocation_map[index] = (allocation_entry[0], -1)
 
         if self._verbose >= 1:
-            print('_store: Deallocate gate {0}'.format((index_to_remove,)))
-            print('   _allocation_map {0}'.format(self._allocation_map))
+            print(f'_store: Deallocate gate {(index_to_remove,)}')
+            print(f'   _allocation_map {self._allocation_map}')
 
     def _physical_to_simulated(self, physical_qubit_id: int) -> int:
         """
@@ -237,8 +308,8 @@ class QIBackend(BasicEngine):  # type: ignore
         if self._is_simulation_backend:
             allocation_entry = next(iter(x for x in self._allocation_map if x[1] == physical_qubit_id), None)
             if allocation_entry is None:
-                raise RuntimeError("Bit position in simulation backend not found for physical bit {0}."
-                                   .format(physical_qubit_id))
+                raise RuntimeError(f"Bit position in simulation backend not found for"
+                                   f" physical bit {physical_qubit_id}.")
             else:
                 return allocation_entry[0]
         else:
@@ -252,7 +323,7 @@ class QIBackend(BasicEngine):  # type: ignore
         for logical_qubit_id in self._measured_ids:
             physical_qubit_id = self._logical_to_physical(logical_qubit_id)
             sim_qubit_id = self._physical_to_simulated(physical_qubit_id)
-            self.qasm += "\nmeasure q[{}]".format(sim_qubit_id)
+            self.qasm += f"\nmeasure q[{sim_qubit_id}]"
         self._full_state_projection = False
 
     def _store(self, cmd: Command) -> None:
@@ -265,14 +336,14 @@ class QIBackend(BasicEngine):  # type: ignore
             cmd: Command to store.
         """
         if self._verbose >= 3:
-            print('_store {0}: cmd {1}'.format(id(self), cmd))
+            print(f'_store {id(self)}: cmd {cmd}')
 
         if self._clear:
             self._clear = False
             self.qasm = ""
             self._measured_states = {}
             self._measured_ids = []
-            self._full_state_projection = True
+            self._full_state_projection = not self._backend_type["is_hardware_backend"]
 
         gate = cmd.gate
 
@@ -303,7 +374,8 @@ class QIBackend(BasicEngine):  # type: ignore
             self._measured_ids += [logical_id]
             # do not add the measurement statement when fsp is possible
             if not self._full_state_projection:
-                self.qasm += "\nmeasure q[{}]".format(sim_qubit_id)
+                if self._is_simulation_backend:
+                    self.qasm += f"\nmeasure q[{sim_qubit_id}]"
             return
 
         # when we find a gate after measurements we don't have fsp
@@ -315,49 +387,49 @@ class QIBackend(BasicEngine):  # type: ignore
             # this case also covers the CX controlled gate
             ctrl_pos = self._physical_to_simulated(cmd.control_qubits[0].id)
             qb_pos = self._physical_to_simulated(cmd.qubits[0][0].id)
-            self.qasm += "\ncnot q[{}], q[{}]".format(ctrl_pos, qb_pos)
+            self.qasm += f"\ncnot q[{ctrl_pos}], q[{qb_pos}]"
         elif gate == Swap:
             q0 = self._physical_to_simulated(cmd.qubits[0][0].id)
             q1 = self._physical_to_simulated(cmd.qubits[1][0].id)
-            self.qasm += "\nswap q[{}], q[{}]".format(q0, q1)
+            self.qasm += f"\nswap q[{q0}], q[{q1}]"
         elif gate == X and get_control_count(cmd) == 2:
             ctrl_pos1 = self._physical_to_simulated(cmd.control_qubits[0].id)
             ctrl_pos2 = self._physical_to_simulated(cmd.control_qubits[1].id)
             qb_pos = self._physical_to_simulated(cmd.qubits[0][0].id)
-            self.qasm += "\ntoffoli q[{}], q[{}], q[{}]".format(ctrl_pos1, ctrl_pos2, qb_pos)
+            self.qasm += f"\ntoffoli q[{ctrl_pos1}], q[{ctrl_pos2}], q[{qb_pos}]"
         elif gate == Z and get_control_count(cmd) == 1:
             ctrl_pos = self._physical_to_simulated(cmd.control_qubits[0].id)
             qb_pos = self._physical_to_simulated(cmd.qubits[0][0].id)
-            self.qasm += "\ncz q[{}], q[{}]".format(ctrl_pos, qb_pos)
+            self.qasm += f"\ncz q[{ctrl_pos}], q[{qb_pos}]"
         elif gate == Barrier:
             qb_pos_list = [qb.id for qr in cmd.qubits for qb in qr]
             qb_str = ', '.join([f'q[{self._physical_to_simulated(x)}]' for x in qb_pos_list])
             self.qasm += f"\n# barrier gate {qb_str};"
-        elif isinstance(gate, Rz) and get_control_count(cmd) == 1:
+        elif isinstance(gate, (Rz, R)) and get_control_count(cmd) == 1:
             ctrl_pos = self._physical_to_simulated(cmd.control_qubits[0].id)
             qb_pos = self._physical_to_simulated(cmd.qubits[0][0].id)
             gate_name = 'cr'
-            self.qasm += "\n{} q[{}],q[{}],{:.12f}".format(gate_name, ctrl_pos, qb_pos, gate.angle)
+            self.qasm += f"\n{gate_name} q[{ctrl_pos}],q[{qb_pos}],{gate.angle:.12f}"
         elif isinstance(gate, (Rx, Ry)) and get_control_count(cmd) == 1:
             raise NotImplementedError('controlled Rx or Ry gate not implemented')
         elif isinstance(gate, (Rx, Ry, Rz)):
             assert get_control_count(cmd) == 0
             qb_pos = self._physical_to_simulated(cmd.qubits[0][0].id)
             gate_name = str(gate)[0:2].lower()
-            self.qasm += "\n{} q[{}],{:.12g}".format(gate_name, qb_pos, gate.angle)
+            self.qasm += f"\n{gate_name} q[{qb_pos}],{gate.angle:.12g}"
         elif gate == Tdag and get_control_count(cmd) == 0:
             qb_pos = self._physical_to_simulated(cmd.qubits[0][0].id)
-            self.qasm += "\ntdag q[{}]".format(qb_pos)
+            self.qasm += f"\ntdag q[{qb_pos}]"
         elif gate == Sdag and get_control_count(cmd) == 0:
             qb_pos = self._physical_to_simulated(cmd.qubits[0][0].id)
-            self.qasm += "\nsdag q[{}]".format(qb_pos)
+            self.qasm += f"\nsdag q[{qb_pos}]"
         elif isinstance(gate, tuple(type(gate) for gate in (X, Y, Z, H, S, T))):
             assert get_control_count(cmd) == 0
             gate_str = str(gate).lower()
             qb_pos = self._physical_to_simulated(cmd.qubits[0][0].id)
-            self.qasm += "\n{} q[{}]".format(gate_str, qb_pos)
+            self.qasm += f"\n{gate_str} q[{qb_pos}]"
         else:
-            raise NotImplementedError('cmd {0} not implemented'.format((cmd,)))
+            raise NotImplementedError(f'cmd {(cmd,)} not implemented')
 
     def _logical_to_physical(self, logical_qubit_id: int) -> int:
         """
@@ -372,10 +444,10 @@ class QIBackend(BasicEngine):  # type: ignore
         if self.main_engine.mapper is not None:
             mapping = self.main_engine.mapper.current_mapping
             if logical_qubit_id not in mapping:
-                raise RuntimeError("Unknown qubit id {}. Please make sure "
-                                   "eng.flush() was called and that the qubit "
-                                   "was eliminated during optimization."
-                                   .format(logical_qubit_id))
+                raise RuntimeError(f"Unknown qubit id {logical_qubit_id}. Please make sure "
+                                   f"eng.flush() was called and that the qubit "
+                                   f"was eliminated during optimization.")
+
             return int(mapping[logical_qubit_id])
         else:
             return logical_qubit_id  # no mapping
@@ -452,8 +524,8 @@ class QIBackend(BasicEngine):  # type: ignore
             return
 
         # Finally: add measurement commands for all measured qubits if no measurements are given.
-        # Only measurements after all gate operations will perform properly in FSP.
-        if not self._measured_ids:
+        # Only for simulation backends, measurements after all gate operations will perform properly in FSP.
+        if not self._measured_ids and self._is_simulation_backend:
             self.__add_measure_all_qubits()
 
         self._finalize_qasm()
@@ -464,8 +536,8 @@ class QIBackend(BasicEngine):  # type: ignore
 
     def _finalize_qasm(self) -> None:
         """ Finalize qasm (add version and qubits line). """
-        qasm = 'version 1.0\n# cQASM generated by Quantum Inspire {0} class\nqubits {1}\n'.format(
-            self.__class__, self._number_of_qubits)
+        qasm = f'version 1.0\n# cQASM generated by Quantum Inspire {self.__class__} class\n' \
+               f'qubits {self._number_of_qubits}\n'
         qasm += self.qasm
 
         if self._verbose >= 2:
@@ -490,7 +562,7 @@ class QIBackend(BasicEngine):  # type: ignore
         if not self._quantum_inspire_result.get('histogram', {}):
             raw_text = self._quantum_inspire_result.get('raw_text', 'no raw_text in result structure')
             raise ProjectQBackendError(
-                'Result structure does not contain proper histogram. raw_text field: %s' % raw_text)
+                f'Result structure does not contain proper histogram. raw_text field: {raw_text}')
 
     def _filter_result_by_measured_qubits(self) -> None:
         """ Filters the raw result by collapsing states so that unmeasured qubits are ignored.
@@ -556,8 +628,11 @@ class QIBackend(BasicEngine):  # type: ignore
 
     @property
     def _number_of_qubits(self) -> int:
-        """ Return the number of qubits used in the circuit. """
-        return self._max_qubit_id + 1
+        """ Return the number of qubits used in the circuit. If it is a hardware backend return max nr of qubits """
+        if self._is_simulation_backend:
+            return self._max_qubit_id + 1
+        else:
+            return self._max_number_of_qubits
 
     def receive(self, command_list: List[Command]) -> None:
         """

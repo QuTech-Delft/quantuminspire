@@ -28,7 +28,7 @@ from qiskit.providers.models import QasmBackendConfiguration
 from qiskit.providers.models.backendconfiguration import GateConfig
 from qiskit.qobj import QasmQobj, QasmQobjExperiment
 from qiskit.result.models import ExperimentResult, ExperimentResultData
-from qiskit.validation.base import Obj
+from qiskit.qobj import QobjExperimentHeader
 
 from quantuminspire.api import QuantumInspireAPI
 from quantuminspire.exceptions import QisKitBackendError
@@ -44,7 +44,7 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
         backend_version=quantum_inspire_version,
         n_qubits=26,
         basis_gates=['x', 'y', 'z', 'h', 'rx', 'ry', 'rz', 's', 'sdg', 't', 'tdg', 'cx', 'ccx', 'u1', 'u2', 'u3', 'id',
-                     'swap', 'snapshot'],
+                     'swap', 'cz', 'snapshot'],
         gates=[GateConfig(name='NotUsed', parameters=['NaN'], qasm_def='NaN')],
         local=False,
         simulator=True,
@@ -68,22 +68,23 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
                 configuration fields are listed in the table below. The table rows with an asterisk specify fields which
                 can have a custom value and are allowed to be changed according to the description column.
 
-                | key                     | description
-                |-------------------------|----------------------------------------------------------------------------
-                | backend_name (str)*     | The name of the quantum inspire backend. The API can list the name of each
-                |                         | available backend using the function api.list_backend_types(). One of the
-                |                         | listed names must be used.
-                | backend_version (str)   | Backend version in the form X.Y.Z.
-                | n_qubits (int)          | Number of qubits.
-                | basis_gates (list[str]) | A list of basis gates to compile to.
-                | gates (GateConfig)      | List of basis gates on the backend. Not used.
-                | local (bool)            | Indicates whether the system is running locally or remotely. Not used.
-                | simulator (bool)        | Specifies whether the backend is a simulator or a quantum system. Not used.
-                | conditional (bool)      | Backend supports conditional operations.
-                | open_pulse (bool)       | Backend supports open pulse. False.
-                | memory (bool)           | Backend supports memory. True.
-                | max_shots (int)         | Maximum number of shots supported.
-                | max_experiments (int)   | Optional: Maximum number of experiments (circuits) per job.
+                | key                        | description
+                |----------------------------|-------------------------------------------------------------------------
+                | backend_name (str)*        | The name of the quantum inspire backend. The API can list the name of
+                |                            | each available backend using the function api.list_backend_types(). One
+                |                            | of the listed names must be used.
+                | backend_version (str)      | Backend version in the form X.Y.Z.
+                | n_qubits (int)             | Number of qubits.
+                | basis_gates (list(str))    | A list of basis gates to compile to.
+                | gates (GateConfig)         | List of basis gates on the backend. Not used.
+                | local (bool)               | Indicates whether the system is running locally or remotely.
+                | simulator (bool)           | Specifies whether the backend is a simulator or a quantum system.
+                | conditional (bool)         | Backend supports conditional operations.
+                | open_pulse (bool)          | Backend supports open pulse. False.
+                | memory (bool)              | Backend supports memory. True.
+                | max_shots (int)            | Maximum number of shots supported.
+                | max_experiments (int)      | Optional: Maximum number of experiments (circuits) per job.
+                | coupling_map (list(tuple)) | Define the edges.
         """
         super().__init__(configuration=(configuration or
                                         QuantumInspireBackend.DEFAULT_CONFIGURATION),
@@ -201,17 +202,16 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
             histogram_obj, memory_data = self.__convert_result_data(result, measurements)
             full_state_histogram_obj = self.__convert_histogram(result, measurements)
             experiment_result_data = ExperimentResultData(counts=histogram_obj,
-                                                          probabilities=full_state_histogram_obj,
                                                           memory=memory_data)
-            header = Obj.from_dict(user_data)
+            experiment_result_data.probabilities = full_state_histogram_obj
+            header = QobjExperimentHeader.from_dict(user_data)
             experiment_result_dictionary = {'name': job.get('name'), 'seed': 42, 'shots': job.get('number_of_shots'),
                                             'data': experiment_result_data, 'status': 'DONE', 'success': True,
                                             'time_taken': result.get('execution_time_in_seconds'), 'header': header}
             experiment_results.append(ExperimentResult(**experiment_result_dictionary))
         return experiment_results
 
-    @staticmethod
-    def __validate_number_of_shots(job: QasmQobj) -> None:
+    def __validate_number_of_shots(self, job: QasmQobj) -> None:
         """ Checks whether the number of shots has a valid value.
 
         Args:
@@ -221,7 +221,7 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
             QisKitBackendError: When the value is not correct.
         """
         number_of_shots = job.config.shots
-        if number_of_shots < 1:
+        if number_of_shots < 1 or number_of_shots > self.__backend['max_number_of_shots']:
             raise QisKitBackendError('Invalid shots (number_of_shots={})'.format(number_of_shots))
 
     def __validate_number_of_clbits(self, experiment: QasmQobjExperiment) -> None:
@@ -352,7 +352,7 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
         return classical_state_hex
 
     @staticmethod
-    def __convert_histogram(result: Dict[str, Any], measurements: Dict[str, Any]) -> Obj:
+    def __convert_histogram(result: Dict[str, Any], measurements: Dict[str, Any]) -> Dict[str, float]:
         """ The quantum inspire backend always uses full state projection. The SDK user
             can measure not all qubits and change the combined classical bits. This function
             converts the result to a histogram output that represents the probabilities
@@ -377,10 +377,10 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
 
         sorted_histogram_probabilities: List[Tuple[str, float]] = sorted(output_histogram_probabilities.items(),
                                                                          key=lambda kv: int(kv[0], 16))
-        full_state_histogram_obj = OrderedDict(sorted_histogram_probabilities)
-        return Obj.from_dict(full_state_histogram_obj)
+        return dict(sorted_histogram_probabilities)
 
-    def __convert_result_data(self, result: Dict[str, Any], measurements: Dict[str, Any]) -> Tuple[Obj, List[str]]:
+    def __convert_result_data(self, result: Dict[str, Any], measurements: Dict[str, Any]) -> Tuple[Dict[str, int],
+                                                                                                   List[str]]:
         """ The quantum inspire backend returns the single shot values as raw data. This function
             converts this list of single shot values to hexadecimal memory data according the Qiskit spec.
             From this memory data the counts histogram is constructed by counting the single shot values.
@@ -432,4 +432,4 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
 
         sorted_histogram_data: List[Tuple[str, int]] = sorted(histogram_data.items(), key=lambda kv: int(kv[0], 16))
         histogram_obj = OrderedDict(sorted_histogram_data)
-        return Obj.from_dict(histogram_obj), memory_data
+        return dict(histogram_obj), memory_data

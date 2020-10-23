@@ -46,7 +46,7 @@ class TestQiCircuitToString(unittest.TestCase):
         new_circuits = transpile(circuit, backend)
         run_config = RunConfig(shots=1024, max_credits=10, memory=False)
         # assembling the circuits into a qobj to be run on the backend
-        qiskit_job = assemble(new_circuits, backend, run_config=run_config)
+        qiskit_job = assemble(new_circuits, backend, run_config=run_config.to_dict())
 
         experiment = qiskit_job.experiments[0]
         result = backend._generate_cqasm(experiment)
@@ -76,6 +76,17 @@ class TestQiCircuitToString(unittest.TestCase):
         simulator = QuantumInspireBackend(Mock(), Mock())
         result = simulator._generate_cqasm(experiment, full_state_projection)
         return result
+
+    def test_generate_cqasm_correct_output_controlled_z(self):
+        instructions = [{'name': 'cz', 'qubits': [0, 1]}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('CZ q[0], q[1]\n' in result)
+
+    def test_generate_cqasm_correct_output_conditional_controlled_z(self):
+        instructions = [{'mask': '0xF', 'name': 'bfunc', 'register': 1, 'relation': '==', 'val': '0xE'},
+                        {'conditional': 1, 'name': 'cz', 'qubits': [0, 1]}]
+        result = self._generate_cqasm_from_instructions(instructions, 2)
+        self.assertTrue('not b[0]\nC-CZ b[0:3], q[0], q[1]\nnot b[0]\n' in result)
 
     def test_generate_cqasm_correct_output_controlled_not(self):
         instructions = [{'name': 'cx', 'qubits': [0, 1]}]

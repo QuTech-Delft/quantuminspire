@@ -91,7 +91,7 @@ class QuantumInspireAPI:
         try:
             self._load_schema()
         except (CoreAPIException, TypeError) as ex:
-            raise ApiError('Could not connect to {}'.format(base_uri)) from ex
+            raise ApiError(f'Could not connect to {base_uri}') from ex
 
     def _get(self, uri_path: str) -> Any:
         """ Method for making requests to the coreapi client instance to get some piece of information. The information
@@ -157,18 +157,30 @@ class QuantumInspireAPI:
 
         Returns:
             The default backend type with all of its properties:
-                | key                        | description
-                |----------------------------|-------------------------------------------------------------------------
-                | url (str)                  | The url for the backend type.
-                | name (str)                 | Name of the backend.
-                | is_hardware_backend (bool) | Indicates whether the backend is a hardware backend (True) or
-                |                            | a simulating backend (False).
-                | required_permission (str)  | Describes the permission that is required to use this backend.
-                | number_of_qubits (int)     | Maximum number of qubits the backend supports.
-                | description (str)          | Short description of the backend.
-                | topology (OrderedDict)     | Dictionary with property 'edges' (list), specifies a list of tuples
-                |                            | that define qubit connectivity for 2-qubit gates.
-                | is_allowed (bool)          | Indicates whether the user is allowed to use this backend.
+                | key                           | description
+                |-------------------------------|----------------------------------------------------------------------
+                | url (str)                     | The url for the backend type.
+                | name (str)                    | Name of the backend.
+                | is_hardware_backend (bool)    | Indicates whether the backend is a hardware backend (True) or
+                |                               | a simulating backend (False).
+                | required_permission (str)     | Describes the permission that is required to use this backend.
+                | number_of_qubits (int)        | Maximum number of qubits the backend supports.
+                | description (str)             | Short description of the backend.
+                | topology (OrderedDict)        | Dictionary with property 'edges' (list), specifies a list of tuples
+                |                               | that define qubit connectivity for 2-qubit gates.
+                | is_allowed (bool)             | Indicates whether the user is allowed to use this backend.
+                | status (str)                  | Status of the backend.
+                | status_message (str)          | Extra info about the status of the backend.
+                | chip_image_id (str)           | Unique identification of the chip.
+                | calibration (str)             | Calibration information (url).
+                | allowed_operations (dict)     | The gates/operations names that the backend can handle.
+                | default_number_of_shots (int) | The default number of shots for an experiment.
+                | max_number_of_shots (int)     | The maximum number of shots for an experiment.
+                | max_number_of_simultaneous_jobs (int) | The maximum number of jobs that is allowed to be queued for
+                |                                         the backend simultaneously (0 = no limit).
+                | operations_count (dict)       | The maximum number of gates that is allowed in an experiment for each
+                |                                 qubit separately and for the experiment in total (0 = no limit).
+
         """
         return OrderedDict(self._action(['backendtypes', 'default', 'list']))
 
@@ -198,7 +210,7 @@ class QuantumInspireAPI:
         try:
             backend_type = self._action(['backendtypes', 'read'], params={'id': backend_type_id})
         except ErrorMessage as err_msg:
-            raise ApiError('Backend type with id {} does not exist!'.format(backend_type_id)) from err_msg
+            raise ApiError(f'Backend type with id {backend_type_id} does not exist!') from err_msg
         return OrderedDict(backend_type)
 
     def get_backend_type_by_name(self, backend_name: str) -> Dict[str, Any]:
@@ -217,7 +229,7 @@ class QuantumInspireAPI:
         backend_type = next((backend for backend in self.get_backend_types()
                             if backend['name'].lower() == backend_name.lower()), None)
         if backend_type is None:
-            raise ApiError('Backend type with name {} does not exist!'.format(backend_name))
+            raise ApiError(f'Backend type with name {backend_name} does not exist!')
         return OrderedDict(backend_type)
 
     def get_backend_type(self, identifier: Optional[Union[int, str]] = None) -> Dict[str, Any]:
@@ -275,11 +287,14 @@ class QuantumInspireAPI:
                 | assets (str)                  | Url to get the assets of the project.
                 | backend_type (str)            | Url to get the backend type of the project.
                 | default_number_of_shots (int) | Default number of executions for this project.
+                | created (str)                 | Date/time when the project was created.
+                | number_of_jobs (int)          | Number of jobs managed within this project.
+                | last_saved (str)              | Date/time when the project was saved.
         """
         try:
             project = self._action(['projects', 'read'], params={'id': project_id})
         except ErrorMessage as err_msg:
-            raise ApiError('Project with id {} does not exist!'.format(project_id)) from err_msg
+            raise ApiError(f'Project with id {project_id} does not exist!') from err_msg
         return OrderedDict(project)
 
     def get_projects(self) -> List[Dict[str, Any]]:
@@ -328,7 +343,7 @@ class QuantumInspireAPI:
         try:
             self._action(['projects', 'delete'], params=payload)
         except ErrorMessage as err_msg:
-            raise ApiError('Project with id {} does not exist!'.format(project_id)) from err_msg
+            raise ApiError(f'Project with id {project_id} does not exist!') from err_msg
 
     #  jobs  #
 
@@ -373,7 +388,7 @@ class QuantumInspireAPI:
         try:
             job = self._action(['jobs', 'read'], params={'id': job_id})
         except ErrorMessage as err_msg:
-            raise ApiError('Job with id {} does not exist!'.format(job_id)) from err_msg
+            raise ApiError(f'Job with id {job_id} does not exist!') from err_msg
         return OrderedDict(job)
 
     def get_jobs(self) -> List[Dict[str, Any]]:
@@ -402,7 +417,7 @@ class QuantumInspireAPI:
         try:
             jobs = self._action(['assets', 'jobs', 'list'], params={'id': asset_id})
         except ErrorMessage as err_msg:
-            raise ApiError('Asset with id {} does not exist!'.format(asset_id)) from err_msg
+            raise ApiError(f'Asset with id {asset_id} does not exist!') from err_msg
         ret: List[Dict[str, Any]] = jobs
         return ret
 
@@ -422,7 +437,7 @@ class QuantumInspireAPI:
         try:
             jobs = self._action(['projects', 'jobs', 'list'], params={'id': project_id})
         except ErrorMessage as err_msg:
-            raise ApiError('Project with id {} does not exist!'.format(project_id)) from err_msg
+            raise ApiError(f'Project with id {project_id} does not exist!') from err_msg
         ret: List[Dict[str, Any]] = jobs
         return ret
 
@@ -443,17 +458,17 @@ class QuantumInspireAPI:
         try:
             return OrderedDict(self._action(['jobs', 'delete'], params={'id': job_id}))
         except ErrorMessage as err_msg:
-            raise ApiError('Job with id {} does not exist!'.format(job_id)) from err_msg
+            raise ApiError(f'Job with id {job_id} does not exist!') from err_msg
 
-    def _create_job(self, name: str, asset: Dict[str, Any], project: Dict[str, Any], number_of_shots: int,
-                    full_state_projection: bool = False, user_data: str = '') -> Dict[str, Any]:
+    def _create_job(self, name: str, asset: Dict[str, Any], number_of_shots: int,
+                    backend_type: Dict[str, Any], full_state_projection: bool = False,
+                    user_data: str = '') -> Dict[str, Any]:
         """ Creates a new job for executing cQASM code. This method is used by execute_qasm_async and indirectly
             by execute_qasm.
 
         Args:
             name: The name for the job.
             asset:  The asset with the cQASM code.
-            project: The project with backend type.
             number_of_shots: The number of executions before returning the result.
             full_state_projection: Used for optimizing simulations. For more information see:
                                    https://www.quantum-inspire.com/kbase/optimization-of-simulations/
@@ -467,15 +482,18 @@ class QuantumInspireAPI:
             'status': 'NEW',
             'name': name,
             'input': asset['url'],
-            'backend_type': project['backend_type'],
+            'backend_type': backend_type['url'],
             'number_of_shots': number_of_shots,
             'full_state_projection': full_state_projection,
             'user_data': user_data
         }
-        if not full_state_projection and self.enable_fsp_warning:
+        if not full_state_projection and self.enable_fsp_warning and not backend_type.get("is_hardware_backend", False):
             logger.warning("Your experiment can not be optimized and may take longer to execute, "
                            "see https://www.quantum-inspire.com/kbase/optimization-of-simulations/ for details.")
-        return OrderedDict(self._action(['jobs', 'create'], params=payload))
+        try:
+            return OrderedDict(self._action(['jobs', 'create'], params=payload))
+        except (CoreAPIException, TypeError, ValueError) as err_msg:
+            raise ApiError(f'Job with name {name} not created: {err_msg}') from err_msg
 
     #  results  #
 
@@ -516,12 +534,12 @@ class QuantumInspireAPI:
                 | measurement_mask (int)            | (deprecated, unused) The measurement mask.
                 | quantum_states_url (str)          | Url to get a list of quantum states.
                 | measurement_register_url (str)    | Url to get a list of measurement register.
-                | calibration                       | Calibration information.
+                | calibration (str)                 | Url to get calibration information.
         """
         try:
             result = self._action(['results', 'read'], params={'id': result_id})
         except ErrorMessage as err_msg:
-            raise ApiError('Result with id {} does not exist!'.format(result_id)) from err_msg
+            raise ApiError(f'Result with id {result_id} does not exist!') from err_msg
         return OrderedDict(result)
 
     def get_results(self) -> List[Dict[str, Any]]:
@@ -550,7 +568,7 @@ class QuantumInspireAPI:
         try:
             result = self._action(['jobs', 'result', 'list'], params={'id': job_id})
         except ErrorMessage as err_msg:
-            raise ApiError('Job with id {} does not exist!'.format(job_id)) from err_msg
+            raise ApiError(f'Job with id {job_id} does not exist!') from err_msg
         return OrderedDict(result)
 
     def get_raw_data_from_result(self, result_id: int) -> List[int]:
@@ -571,12 +589,12 @@ class QuantumInspireAPI:
         try:
             token = raw_data_url.split('/')[-2]
         except IndexError as err_msg:
-            raise ApiError('Invalid raw data url for result with id {}!'.format(result_id)) from err_msg
+            raise ApiError(f'Invalid raw data url for result with id {result_id}!') from err_msg
         try:
             raw_data: List[int] = self._action(['results', 'raw-data', 'read'], params={'id': result_id,
                                                                                         'token': token})
         except ErrorMessage as err_msg:
-            raise ApiError('Raw data for result with id {} does not exist!'.format(result_id)) from err_msg
+            raise ApiError(f'Raw data for result with id {result_id} does not exist!') from err_msg
         return raw_data
 
     def get_quantum_states_from_result(self, result_id: int) -> List[Any]:
@@ -598,12 +616,12 @@ class QuantumInspireAPI:
         try:
             token = quantum_states_url.split('/')[-2]
         except IndexError as err_msg:
-            raise ApiError('Invalid quantum states url for result with id {}!'.format(result_id)) from err_msg
+            raise ApiError(f'Invalid quantum states url for result with id {result_id}!') from err_msg
         try:
             quantum_states: List[Any] = self._action(['results', 'quantum-states', 'read'], params={'id': result_id,
                                                                                                     'token': token})
         except ErrorMessage as err_msg:
-            raise ApiError('Quantum states for result with id {} does not exist!'.format(result_id)) from err_msg
+            raise ApiError(f'Quantum states for result with id {result_id} does not exist!') from err_msg
         return quantum_states
 
     def get_measurement_register_from_result(self, result_id: int) -> List[Any]:
@@ -625,13 +643,13 @@ class QuantumInspireAPI:
         try:
             token = measurement_register_url.split('/')[-2]
         except IndexError as err_msg:
-            raise ApiError('Invalid measurement register url for result with id {}!'.format(result_id)) from err_msg
+            raise ApiError(f'Invalid measurement register url for result with id {result_id}!') from err_msg
         try:
             measurement_register: List[Any] = self._action(['results', 'measurement-register', 'read'],
                                                            params={'id': result_id,
                                                                    'token': token})
         except ErrorMessage as err_msg:
-            raise ApiError('Measurement register for result with id {} does not exist!'.format(result_id)) from err_msg
+            raise ApiError(f'Measurement register for result with id {result_id} does not exist!') from err_msg
         return measurement_register
 
     #  assets  #
@@ -661,13 +679,15 @@ class QuantumInspireAPI:
                 | contentType (str)         | The description of the content e.g. 'application/qasm' or
                 |                           | 'text/plain'.
                 | content (str)             | The content itself. For example a cQASM program when linked to a job.
+                | measurement_mask (int)    | A mask for the measured bits in the cQASM program. The measurement_mask
+                |                           | is calculated when the asset is assigned to a job.
                 | project (str)             | Url to get the project properties for which this asset was created.
                 | project_id (int)          | The project id of the project for which this asset was created.
         """
         try:
             asset = self._action(['assets', 'read'], params={'id': asset_id})
         except ErrorMessage as err_msg:
-            raise ApiError('Asset with id {} does not exist!'.format(asset_id)) from err_msg
+            raise ApiError(f'Asset with id {asset_id} does not exist!') from err_msg
         return OrderedDict(asset)
 
     def get_assets(self) -> List[Dict[str, Any]]:
@@ -696,7 +716,7 @@ class QuantumInspireAPI:
         try:
             assets: List[Dict[str, Any]] = self._action(['projects', 'assets', 'list'], params={'id': project_id})
         except ErrorMessage as err_msg:
-            raise ApiError('Project with id {} does not exist!'.format(project_id)) from err_msg
+            raise ApiError(f'Project with id {project_id} does not exist!') from err_msg
         return assets
 
     def get_asset_from_job(self, job_id: int) -> Dict[str, Any]:
@@ -717,11 +737,11 @@ class QuantumInspireAPI:
         try:
             asset_id = int(asset_url.split('/')[-2])
         except (ValueError, IndexError) as err_msg:
-            raise ApiError('Invalid input url for job with id {}!'.format(job_id)) from err_msg
+            raise ApiError(f'Invalid input url for job with id {job_id}!') from err_msg
         try:
             asset = self._action(['assets', 'read'], params={'id': asset_id})
         except ErrorMessage as err_msg:
-            raise ApiError('Asset with id {} does not exist!'.format(asset_id)) from err_msg
+            raise ApiError(f'Asset with id {asset_id} does not exist!') from err_msg
         return OrderedDict(asset)
 
     def _create_asset(self, name: str, project: Dict[str, Any], content: str) -> Dict[str, Any]:
@@ -791,8 +811,8 @@ class QuantumInspireAPI:
         return result_obj
 
     def execute_qasm(self, qasm: str, backend_type: Optional[Union[Dict[str, Any], int, str]] = None,
-                     number_of_shots: int = 256, collect_tries: Optional[int] = None,
-                     default_number_of_shots: int = 256, identifier: Optional[str] = None,
+                     number_of_shots: Optional[int] = None, collect_tries: Optional[int] = None,
+                     default_number_of_shots: Optional[int] = None, identifier: Optional[str] = None,
                      full_state_projection: bool = False) -> Dict[str, Any]:
         """ With this method a cQASM program is executed, and the result is returned when the job is completed.
 
@@ -835,13 +855,16 @@ class QuantumInspireAPI:
             has_results, message = self._wait_for_completed_job(quantum_inspire_job, collect_tries)
             return OrderedDict(quantum_inspire_job.retrieve_results()) if has_results else \
                 OrderedDict(self._generate_error_result(message))
+        except (CoreAPIException, TypeError, ValueError, ApiError) as err_msg:
+            message = f'Error raised while executing qasm: {err_msg}'
+            return OrderedDict(self._generate_error_result(message))
         finally:
             if delete_project_afterwards and quantum_inspire_job is not None:
                 project_identifier = quantum_inspire_job.get_project_identifier()
                 self.delete_project(project_identifier)
 
     def execute_qasm_async(self, qasm: str, backend_type: Optional[Union[Dict[str, Any], int, str]] = None,
-                           number_of_shots: int = 256, default_number_of_shots: int = 256,
+                           number_of_shots: Optional[int] = None, default_number_of_shots: Optional[int] = None,
                            identifier: Optional[str] = None, full_state_projection: bool = False,
                            project: Optional[Dict[str, Any]] = None, job_name: Optional[str] = None,
                            user_data: str = '') -> QuantumInspireJob:
@@ -917,17 +940,26 @@ class QuantumInspireAPI:
                             if project['name'] == self.project_name), None)
 
         if project is None:
-            project_name = self.project_name if self.project_name else 'qi-sdk-project-{}'.format(identifier)
+            if default_number_of_shots is None:
+                default_number_of_shots = backend_type['default_number_of_shots']
+            project_name = self.project_name if self.project_name else f'qi-sdk-project-{identifier}'
             project = self.create_project(project_name, default_number_of_shots, backend_type)
+
+        if backend_type['url'] != project['backend_type']:
+            logger.warning(f"The backend for which the project was created is different "
+                           f"from the backend type given: {backend_type['name']}. The experiment is run on backend "
+                           f"{backend_type['name']}.")
 
         qasm = qasm.lstrip()
         qasm = re.sub(r'[ \t]*\n[ \t]*', r'\n', qasm)
-        asset_name = 'qi-sdk-asset-{}'.format(identifier)
+        asset_name = f'qi-sdk-asset-{identifier}'
         asset = self._create_asset(asset_name, project, qasm)
 
         if job_name is None:
-            job_name = 'qi-sdk-job-{}'.format(identifier)
-        job = self._create_job(job_name, asset, project, number_of_shots, user_data=user_data,
+            job_name = f'qi-sdk-job-{identifier}'
+        if number_of_shots is None:
+            number_of_shots = backend_type['default_number_of_shots']
+        job = self._create_job(job_name, asset, number_of_shots, backend_type, user_data=user_data,
                                full_state_projection=full_state_projection)
 
         return QuantumInspireJob(self, job['id'])
