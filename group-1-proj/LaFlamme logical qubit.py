@@ -9,11 +9,16 @@ from qiskit.circuit.library import *
 from quantuminspire.qiskit import QI
 QI.set_authentication()
 
+# For the algorithm this source is used: https://arxiv.org/pdf/quant-ph/9602019.pdf, together with
+# https://arxiv.org/pdf/1208.4797.pdf to make the usage of gates more clear.
+# The middle physical qubit, qubit 2, is used to initialize and readout the state of the logical qubit.
+
+
 backend_types = ['Spin-2','QX single-node simulator','Starmon-5']
 qi_backend = QI.get_backend(backend_types[1])                           #Sets backend type
 
 q = QuantumRegister(5, "q")
-c = ClassicalRegister(1, "c")                                           # Only 1 bit for measuring the qubits state
+c = ClassicalRegister(1, "c")                                           # Only 1 bit for measuring the state of the qubit
 
 qc = QuantumCircuit(q, c, name="Laflamme logical qubit")
 
@@ -25,8 +30,8 @@ multi= QuantumCircuit(1, name= 'pi phase')                              # Create
 multi.z(0)
 multi_gate=multi.to_gate()                                              # Makes a gate out of the circuit
 
-cmulti_z_gate0= multi_gate.control(3)                                   # Makes a controlled gate, with three controls
-cmulti_z_gate1=multi_gate.control(3,ctrl_state='010')                   # Also specifies in which state the qubits should be in
+cmulti_z_gate0= multi_gate.control(3)                                   # Makes it a controlled gate, with three controls
+cmulti_z_gate1=multi_gate.control(3,ctrl_state='010')                   # Other gate, but also specifies in which state the control qubits should be in
 cmulti_z_gate2=multi_gate.control(2)
 
 qc.append(cmulti_z_gate0, [1,2,3,4])                                    # Adds the gates to the existing circuit with the [ control , target ]
@@ -49,7 +54,7 @@ qc.cx(1,4)
 qc.append(cmulti_z_gate2, [4,3,2])
 
 
-# Here can errors occur
+########################################## Errors can occur here #######################################################
 
 qc=qc+qc.inverse()                                                      # Decoder is the same as the encoder, so this completes the circuit
 
