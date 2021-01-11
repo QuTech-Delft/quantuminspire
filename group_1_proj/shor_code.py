@@ -1,20 +1,14 @@
-import math
 import os
 import random
 import numpy as np
-from getpass import getpass
 
 from qiskit.quantum_info import Operator
-from quantuminspire.credentials import load_account, get_token_authentication, get_basic_authentication
-
-from qiskit import QuantumCircuit
+from quantuminspire.credentials import load_account, get_token_authentication
 
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import execute
 
 from quantuminspire.qiskit import QI
-
-import matplotlib.pyplot as plt
 
 QI_EMAIL = os.getenv('QI_EMAIL')
 QI_PASSWORD = os.getenv('QI_PASSWORD')

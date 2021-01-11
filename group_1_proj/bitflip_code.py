@@ -1,18 +1,11 @@
 import os
 import random
-from getpass import getpass
 from quantuminspire.credentials import load_account, get_token_authentication, get_basic_authentication
 
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import execute
 
 from quantuminspire.qiskit import QI
-
-from qiskit.providers.aer.noise import NoiseModel
-from qiskit.providers.aer.noise import QuantumError, ReadoutError
-from qiskit.providers.aer.noise import pauli_error
-
-import matplotlib.pyplot as plt
 
 QI_EMAIL = os.getenv('QI_EMAIL')
 QI_PASSWORD = os.getenv('QI_PASSWORD')
