@@ -28,6 +28,7 @@ def do_simulation(p_error):
     b = ClassicalRegister(nbits)
     circuit = QuantumCircuit(q, b)
 
+    # ENCODING PHASE
     circuit.cx(q[0], q[1])
     circuit.cx(q[0], q[2])
 
@@ -37,10 +38,12 @@ def do_simulation(p_error):
             print("qubit ", i, " flipped")
             circuit.x(q[i])
 
+    # DECODING PHASE
     circuit.cx(q[0], q[1])
     circuit.cx(q[0], q[2])
     circuit.ccx(q[2], q[1], q[0])
 
+    # SIMULATION
     qi_job = execute(circuit, backend=qi_backend, shots=1)
     qi_result = qi_job.result()
     histogram = qi_result.get_counts(circuit)

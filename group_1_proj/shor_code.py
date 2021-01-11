@@ -58,6 +58,7 @@ def do_simulation(p_error):
     b = ClassicalRegister(nbits)
     circuit = QuantumCircuit(q, b)
 
+    # ENCODING PHASE
     circuit.cx(q[0], q[3])
     circuit.cx(q[0], q[6])
 
@@ -78,6 +79,7 @@ def do_simulation(p_error):
             print(matrix)
             circuit.unitary(err_op, [i], label='error')
 
+    # DECODING PHASE
     cnot_next_two(circuit, q, 0)
     cnot_next_two(circuit, q, 3)
     cnot_next_two(circuit, q, 6)
@@ -94,6 +96,7 @@ def do_simulation(p_error):
     circuit.cx(q[0], q[6])
     circuit.toffoli(q[6], q[3], q[0])
 
+    # SIMULATION
     qi_job = execute(circuit, backend=qi_backend, shots=256)
     qi_result = qi_job.result()
     histogram = qi_result.get_counts(circuit)
