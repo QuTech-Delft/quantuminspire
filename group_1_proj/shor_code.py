@@ -90,8 +90,8 @@ def do_simulation(p_error):
     circuit.cx(q[0], q[6])
     circuit.toffoli(q[6], q[3], q[0])
 
-    # SIMULATION
-    qi_job = execute(circuit, backend=qi_backend, shots=256)
+    # SIMULATION (SHOTS MUST BE EQUAL TO 1 HERE!!!)
+    qi_job = execute(circuit, backend=qi_backend, shots=1)
     qi_result = qi_job.result()
     histogram = qi_result.get_counts(circuit)
 
@@ -109,7 +109,7 @@ def do_simulation(p_error):
 if __name__ == '__main__':
     ########################################################################################
     # set these parameters to your liking. Remember: 100 repetitions takes +/- 8 minutes
-    p_error = 0.1
+    p_error = 0
     repetitions = 1
     ########################################################################################
 
