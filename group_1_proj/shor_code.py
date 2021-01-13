@@ -65,13 +65,17 @@ def do_simulation(p_error):
     cnot_next_two(circuit, q, 6)
 
     # ERROR PHASE
+    any_corrupted = False
     for i in range(nbits):
         if random.random() < p_error:
-            print("qubit ", i, " corrupted")
+            print("qubit", i, "corrupted")
+            any_corrupted = True
             matrix = get_random_noise_matrix()
             err_op = Operator(matrix)
-            print(matrix)
             circuit.unitary(err_op, [i], label='error')
+
+    if not any_corrupted:
+        print("no qubits corrupted")
 
     # DECODING PHASE
     cnot_next_two(circuit, q, 0)
@@ -90,40 +94,38 @@ def do_simulation(p_error):
     circuit.cx(q[0], q[6])
     circuit.toffoli(q[6], q[3], q[0])
 
-    # SIMULATION (SHOTS MUST BE EQUAL TO 1 HERE!!!)
+    # SIMULATION (SHOTS MUST BE EQUAL TO 1 HERE!!!) (otherwise the optimization is not triggered correctly)
     qi_job = execute(circuit, backend=qi_backend, shots=1)
     qi_result = qi_job.result()
-    histogram = qi_result.get_counts(circuit)
+    probabilities_histogram = qi_result.get_probabilities(circuit)
 
-    final_state = 2
-    final_states = []
-    for state, counts in histogram.items():
-        print("The initial state was 0, and after the process it is ", state[8])
-        final_state = int(state[8])
-        final_states.append(state[8])
+    correct_prob = 0.0
+    wrong_prob = 0.0
+    for state, val in probabilities_histogram.items():
+        if int(state[8]) == 0:
+            correct_prob += val
+        else:
+            wrong_prob += val
 
-    assert final_state != 2
-    return final_state
+    print("The initial state was 0, and after the process it is 0 with probability", round(correct_prob, 3))
+    print("The initial state was 0, and after the process it is 1 with probability", round(wrong_prob, 3))
+
+    return correct_prob
 
 
 if __name__ == '__main__':
     ########################################################################################
     # set these parameters to your liking. Remember: 100 repetitions takes +/- 8 minutes
-    p_error = 0
-    repetitions = 1
+    p_error = 0.1
+    repetitions = 10
     ########################################################################################
 
-    correct = 0
-    wrong = 0
-
+    total_prob = 0
     for i in range(repetitions):
         print("run", i)
-        if do_simulation(p_error) == 0:
-            correct += 1
-        else:
-            wrong += 1
+        correct_prob = do_simulation(p_error)
+        total_prob += correct_prob
 
-    print("correct: ", correct)
-    print("wrong: ", wrong)
+    error_rate = 1 - (total_prob / repetitions)
 
-    print("The error rate is now", wrong / repetitions, "instead of the underlying", p_error)
+    print("The error rate is now", round(error_rate, 5), "instead of the underlying", p_error)
