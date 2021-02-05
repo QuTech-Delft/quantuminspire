@@ -77,7 +77,7 @@ class QIJob(BaseJob):  # type: ignore
             raise JobError('Job has already been submitted!')
         self._job_id = self._backend.run(self._qobj)
 
-    def result(self, timeout: Optional[float] = None, wait: float = 0.5, only_latest_run: bool = False) -> QIResult:
+    def result(self, timeout: Optional[float] = None, wait: float = 0.5, only_latest_run: bool = True) -> QIResult:
         """
 
         Args:
