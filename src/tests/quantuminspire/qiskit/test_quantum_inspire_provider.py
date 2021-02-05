@@ -73,7 +73,7 @@ class TestQuantumInspireProvider(unittest.TestCase):
             secret = 'secret'
             quantum_inpire_provider.set_basic_authentication(email, secret)
             authentication = BasicAuthentication(email, secret)
-            api.assert_called_with(QI_URL, authentication)
+            api.assert_called_with(QI_URL, authentication, None)
             quantum_inpire_provider._api.get_backend_types.return_value = [self.simulator_backend_type]
             backend = quantum_inpire_provider.get_backend(name='qi_simulator')
             self.assertEqual('qi_simulator', backend.name())
@@ -90,7 +90,7 @@ class TestQuantumInspireProvider(unittest.TestCase):
             secret = 'secret'
             quantum_inpire_provider.set_basic_authentication(email, secret)
             authentication = BasicAuthentication(email, secret)
-            api.assert_called_with(QI_URL, authentication)
+            api.assert_called_with(QI_URL, authentication, None)
             quantum_inpire_provider._api.get_backend_types.return_value = [self.simulator_backend_type]
             backend = quantum_inpire_provider.get_backend(name='qi_simulator')
             self.assertEqual('qi_simulator', backend.name())
@@ -114,7 +114,7 @@ class TestQuantumInspireProvider(unittest.TestCase):
             secret = 'secret'
             quantum_inpire_provider.set_basic_authentication(email, secret)
             authentication = BasicAuthentication(email, secret)
-            api.assert_called_with(QI_URL, authentication)
+            api.assert_called_with(QI_URL, authentication, None)
             quantum_inpire_provider._api.get_backend_types.return_value = [self.hardware_backend_type]
             backend = quantum_inpire_provider.get_backend(name='qi_hardware')
             self.assertEqual('qi_hardware', backend.name())
@@ -137,7 +137,7 @@ class TestQuantumInspireProvider(unittest.TestCase):
             secret = 'secret'
             quantum_inpire_provider.set_basic_authentication(email, secret)
             authentication = BasicAuthentication(email, secret)
-            api.assert_called_with(QI_URL, authentication)
+            api.assert_called_with(QI_URL, authentication, None)
             quantum_inpire_provider._api.get_backend_types.return_value = [self.hardware_backend_type2]
             backend = quantum_inpire_provider.get_backend(name='qi_hardware')
             self.assertEqual('qi_hardware', backend.name())
@@ -161,7 +161,7 @@ class TestQuantumInspireProvider(unittest.TestCase):
             secret = 'secret'
             quantum_inpire_provider.set_authentication_details(email, secret)
             authentication = BasicAuthentication(email, secret)
-            api.assert_called_with(QI_URL, authentication)
+            api.assert_called_with(QI_URL, authentication, None)
             quantum_inpire_provider._api.get_backend_types.return_value = [self.simulator_backend_type]
             backend = quantum_inpire_provider.get_backend(name='qi_simulator')
             self.assertEqual('qi_simulator', backend.name())
@@ -175,7 +175,7 @@ class TestQuantumInspireProvider(unittest.TestCase):
             secret = 'secret'
             quantum_inpire_provider.set_basic_authentication(email, secret)
             authentication = BasicAuthentication(email, secret)
-            api.assert_called_with(QI_URL, authentication)
+            api.assert_called_with(QI_URL, authentication, None)
             quantum_inpire_provider._api.get_backend_types.return_value = [self.simulator_backend_type]
             backend = quantum_inpire_provider.get_backend(name='qi_simulator')
             self.assertEqual('qi_simulator', backend.name())
@@ -191,7 +191,7 @@ class TestQuantumInspireProvider(unittest.TestCase):
             url = 'https/some-api.api'
             quantum_inpire_provider.set_basic_authentication(email, secret, url)
             authentication = BasicAuthentication(email, secret)
-            api.assert_called_with(url, authentication)
+            api.assert_called_with(url, authentication, None)
 
     def test_set_token_authentication(self):
         with mock.patch('quantuminspire.qiskit.quantum_inspire_provider.QuantumInspireAPI') as api:
@@ -210,10 +210,23 @@ class TestQuantumInspireProvider(unittest.TestCase):
             token = 'This_is_a_nice_looking_token'
             authentication = TokenAuthentication(token, scheme="token")
             quantum_inpire_provider.set_authentication(authentication)
-            api.assert_called_with(QI_URL, authentication)
+            api.assert_called_with(QI_URL, authentication, None)
             authentication = BasicAuthentication('email', 'password')
             quantum_inpire_provider.set_authentication(authentication)
-            api.assert_called_with(QI_URL, authentication)
+            api.assert_called_with(QI_URL, authentication, None)
+
+    def test_set_projectname(self):
+        with mock.patch('quantuminspire.qiskit.quantum_inspire_provider.QuantumInspireAPI') as api:
+            quantum_inpire_provider = QuantumInspireProvider()
+            token = 'This_is_a_nice_looking_token'
+            token = 'This_is_a_nice_looking_token'
+            authentication = TokenAuthentication(token, scheme="token")
+            project_name = 'This_is_my_first_project_name'
+            quantum_inpire_provider.set_authentication(authentication, project_name = project_name)
+            api.assert_called_with(QI_URL, authentication, project_name)
+            project_name = 'This_is_my_second_project_name'
+            quantum_inpire_provider.set_project_name(project_name)
+            self.assertEqual(api.return_value.project_name, project_name)
 
     def test_string_method(self):
         quantum_inpire_provider = QuantumInspireProvider()

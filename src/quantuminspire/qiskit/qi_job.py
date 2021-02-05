@@ -15,13 +15,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import time
-from typing import List, Optional, Any
+from typing import List, Optional, Any, Dict
 
 from qiskit.providers import BaseJob, JobError, JobTimeoutError
 from qiskit.providers.jobstatus import JobStatus, JOB_FINAL_STATES
 from qiskit.qobj import QasmQobj, QasmQobjExperiment
 from quantuminspire.qiskit.qi_result import QIResult
 from quantuminspire.api import QuantumInspireAPI
+from quantuminspire.job import QuantumInspireJob
 from quantuminspire.version import __version__ as quantum_inspire_version
 
 
@@ -48,12 +49,22 @@ class QIJob(BaseJob):  # type: ignore
         self._api: QuantumInspireAPI = api
         super().__init__(backend, job_id)
         self.experiments: Optional[List[QasmQobjExperiment]] = None
+        self.jobs: List[QuantumInspireJob] = []
         self._status: JobStatus = JobStatus.INITIALIZING
         self._qobj: Optional[QasmQobj] = qobj
         if self._qobj is not None:
             self._job_id = ''  # invalidate _job_id
         else:
             self.status()
+
+    def set_job_id(self, job_id: str) -> None:
+        """ Overwrite the job_id with a new id.
+        Args:
+            job_id: New id for the QIJob. Used in the use case for linking the job to the user-given QI project that
+            must contain the job.
+
+        """
+        self._job_id = job_id
 
     def submit(self) -> None:
         """
@@ -66,12 +77,14 @@ class QIJob(BaseJob):  # type: ignore
             raise JobError('Job has already been submitted!')
         self._job_id = self._backend.run(self._qobj)
 
-    def result(self, timeout: Optional[float] = None, wait: float = 0.5) -> QIResult:
+    def result(self, timeout: Optional[float] = None, wait: float = 0.5, only_latest_run: bool = False) -> QIResult:
         """
 
         Args:
             timeout: Timeout in seconds.
             wait: Wait time between queries to the quantum-inspire platform.
+            only_latest_run: when True, only the result for the experiments in the latest run for this project are
+            fetched, when False all the results for the project are fetched
 
         Returns:
             QIResult object containing results from the experiments.
@@ -86,7 +99,7 @@ class QIJob(BaseJob):  # type: ignore
             if timeout is not None and elapsed_time > timeout:
                 raise JobTimeoutError('Failed getting result: timeout reached.')
             time.sleep(wait)
-        experiment_results = self._backend.get_experiment_results(self)
+        experiment_results = self._backend.get_experiment_results(self, only_latest_run)
         return QIResult(backend_name=self._backend.backend_name, backend_version=quantum_inspire_version,
                         job_id=self.job_id(), qobj_id=self.job_id(), success=True, results=experiment_results)
 
@@ -94,14 +107,39 @@ class QIJob(BaseJob):  # type: ignore
         """ Cancel the job and delete the project. """
         self._api.delete_project(int(self._job_id))
 
+    def get_jobs(self) -> List[Dict[str, Any]]:
+        """ Gets the jobs that were submitted in the latest run. These job were added with add_job.
+
+        Returns:
+            List of jobs with their properties for the jobs that were added for the experiments submitted when running
+            this instance of QIJob.
+            An empty list is returned when there were no jobs added.
+
+        Raises:
+            ApiError: If the job for the job identified does not exist.
+        """
+        ret = [self._api.get_job(job.get_job_identifier()) for job in self.jobs]
+        return ret
+
+    def add_job(self, job: QuantumInspireJob) -> None:
+        """ Add a quantum inspire job to the list. The list contains the (quantum inspire) jobs created for the
+        submitted experiments in this particular QIJob
+
+        Args:
+            job: QuatumInspireJob (submitted) that has to be added to the list of jobs created for the experiments
+            in QIJob.
+
+        """
+        self.jobs.append(job)
+
     def status(self) -> JobStatus:
         """
-        Query the quantum-inspire platform for the status of the job.
+        Check the status of the jobs submitted in the latest run.
 
         Returns:
             The status of the job.
         """
-        jobs = self._api.get_jobs_from_project(int(self._job_id))
+        jobs = self.get_jobs()
         number_of_jobs = len(jobs)
         cancelled = len([job for job in jobs if job['status'] == 'CANCELLED'])
         running = len([job for job in jobs if job['status'] == 'RUNNING'])

@@ -45,8 +45,9 @@ def get_authentication():
 
 if __name__ == '__main__':
 
+    project_name = 'TestQiskit'
     authentication = get_authentication()
-    QI.set_authentication(authentication, QI_URL)
+    QI.set_authentication(authentication, QI_URL, project_name=project_name)
     qi_backend = QI.get_backend('QX single-node simulator')
 
     q = QuantumRegister(2)

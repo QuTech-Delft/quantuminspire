@@ -32,6 +32,7 @@ from quantuminspire.api import QuantumInspireAPI
 from quantuminspire.exceptions import QisKitBackendError
 from quantuminspire.qiskit.backend_qx import QuantumInspireBackend
 from quantuminspire.qiskit.qi_job import QIJob
+from quantuminspire.job import QuantumInspireJob
 from quantuminspire.qiskit.quantum_inspire_provider import QuantumInspireProvider
 from quantuminspire.version import __version__ as quantum_inspire_version
 
@@ -141,9 +142,10 @@ class TestQiSimulatorPy(unittest.TestCase):
 
     def test_run_returns_correct_result(self):
         api = Mock()
+        type(api).__name__ = 'QuantumInspireAPI'
         api.create_project.return_value = {'id': 42}
-        api.get_jobs_from_project.return_value = []
-        api.execute_qasm_async.return_value = 42
+        api.get_asset_from_job.return_value = {'project_id': '42'}
+        api.execute_qasm_async.return_value = QuantumInspireJob(api, 42)
         api.get_backend_type_by_name.return_value = {'max_number_of_shots': 4096}
         simulator = QuantumInspireBackend(api, Mock())
         instructions = [{'name': 'cx', 'qubits': [0, 1], 'memory': [0, 1]},
@@ -163,10 +165,10 @@ class TestQiSimulatorPy(unittest.TestCase):
         job.job_id.return_value = '42'
         simulator = QuantumInspireBackend(api, Mock())
         with self.assertRaises(QisKitBackendError) as error:
-            simulator.get_experiment_results(job)
+            simulator.get_experiment_results(job, False)
         self.assertEqual(('Result from backend contains no histogram data!\nError',), error.exception.args)
 
-    def test_get_experiment_results_returns_correct_value(self):
+    def test_get_experiment_results_returns_correct_value_from_project(self):
         number_of_shots = 100
         instructions = [{'name': 'h', 'qubits': [0]},
                         {'name': 'cx', 'qubits': [0, 1]},
@@ -186,7 +188,7 @@ class TestQiSimulatorPy(unittest.TestCase):
         api.get_jobs_from_project.return_value = [jobs]
         job = QIJob('backend', '42', api)
         simulator = QuantumInspireBackend(api, Mock())
-        experiment_result = simulator.get_experiment_results(job)[0]
+        experiment_result = simulator.get_experiment_results(job, False)[0]
         self.assertEqual(experiment_result.data.counts['0x1'], 60)
         self.assertEqual(experiment_result.data.counts['0x3'], 40)
         self.assertEqual(experiment_result.data.probabilities['0x1'], 0.6)
@@ -196,6 +198,67 @@ class TestQiSimulatorPy(unittest.TestCase):
         self.assertEqual(experiment_result.data.memory.count('0x3'), 40)
         self.assertEqual(experiment_result.name, 'circuit0')
         self.assertEqual(experiment_result.shots, number_of_shots)
+
+    def test_get_experiment_results_returns_correct_value_from_latest_run(self):
+        number_of_shots = 100
+        instructions = [{'name': 'h', 'qubits': [0]},
+                        {'name': 'cx', 'qubits': [0, 1]},
+                        {'name': 'measure', 'qubits': [1], 'memory': [1]},
+                        {'name': 'measure', 'qubits': [0], 'memory': [0]}]
+        experiment = self._instructions_to_two_qubit_experiment(instructions)
+        api = Mock()
+        api.get_result_from_job.return_value = {'id': 1, 'histogram': {'1': 0.6, '3': 0.4},
+                                                'execution_time_in_seconds': 2.1, 'number_of_qubits': 2,
+                                                'raw_data_url': 'http://saevar-qutech-nginx/api/results/24/raw-data/'}
+        api.get_raw_data_from_result.return_value = [1] * 60 + [3] * 40
+        job = self._basic_job_dictionary
+        measurements = QuantumInspireBackend._collect_measurements(experiment)
+        user_data = {'name': 'name', 'memory_slots': 2,
+                     'creg_sizes': [['c1', 2]], 'measurements': measurements}
+        job['user_data'] = json.dumps(user_data)
+
+        api.get_job.side_effect = [job]
+        quantuminspire_job = Mock()
+        quantuminspire_job.get_job_identifier.side_effect = [1]
+        qijob = QIJob('backend', '42', api)
+        qijob.add_job(quantuminspire_job)
+
+        simulator = QuantumInspireBackend(api, Mock())
+        experiment_result = simulator.get_experiment_results(qijob, True)[0]
+        self.assertEqual(experiment_result.data.counts['0x1'], 60)
+        self.assertEqual(experiment_result.data.counts['0x3'], 40)
+        self.assertEqual(experiment_result.data.probabilities['0x1'], 0.6)
+        self.assertEqual(experiment_result.data.probabilities['0x3'], 0.4)
+        self.assertEqual(len(experiment_result.data.memory), 100)
+        self.assertEqual(experiment_result.data.memory.count('0x1'), 60)
+        self.assertEqual(experiment_result.data.memory.count('0x3'), 40)
+        self.assertEqual(experiment_result.name, 'circuit0')
+        self.assertEqual(experiment_result.shots, number_of_shots)
+
+    def test_run_returns_correct_result_for_my_project_number(self):
+        default_project_number = 42
+        my_project_number = 43
+        api = Mock()
+        api.create_project.return_value = {'id': default_project_number}
+        quantum_inspire_job = Mock()
+        quantum_inspire_job.get_project_identifier.return_value = my_project_number
+        api.execute_qasm_async.return_value = quantum_inspire_job
+        api.get_backend_type_by_name.return_value = {'max_number_of_shots': 4096}
+        simulator = QuantumInspireBackend(api, Mock())
+        instructions = [{'name': 'h', 'qubits': [0]},
+                        {'name': 'h', 'qubits': [2]},
+                        {'memory': [0], 'name': 'measure', 'qubits': [1]},
+                        {'memory': [1], 'name': 'measure', 'qubits': [0]},
+                        {'mask': '0x2', 'name': 'bfunc', 'register': 7, 'relation': '==', 'val': '0x2'},
+                        {'conditional': 7, 'name': 'h', 'qubits': [1]},
+                        {'memory': [1], 'name': 'measure', 'qubits': [0]},
+                        {'memory': [0], 'name': 'measure', 'qubits': [1]}]
+        qobj_dict = self._basic_qobj_dictionary
+        qobj_dict['experiments'][0]['instructions'] = instructions
+        qobj = QasmQobj.from_dict(qobj_dict)
+        job = simulator.run(qobj)
+        api.delete_project.assert_called_with(default_project_number)
+        self.assertEqual(my_project_number, int(job.job_id()))
 
     def test_get_experiment_results_returns_single_shot(self):
         number_of_shots = 1
@@ -219,7 +282,7 @@ class TestQiSimulatorPy(unittest.TestCase):
         api.get_jobs_from_project.return_value = [jobs]
         job = QIJob('backend', '42', api)
         simulator = QuantumInspireBackend(api, Mock())
-        experiment_result = simulator.get_experiment_results(job)[0]
+        experiment_result = simulator.get_experiment_results(job, False)[0]
         self.assertEqual(experiment_result.data.probabilities['0x0'], 0.5)
         self.assertEqual(experiment_result.data.probabilities['0x3'], 0.5)
         self.assertTrue(hasattr(experiment_result.data, 'memory'))
@@ -259,7 +322,7 @@ class TestQiSimulatorPy(unittest.TestCase):
             api.get_jobs_from_project.return_value = [jobs]
             job = QIJob('backend', '42', api)
             simulator = QuantumInspireBackend(api, Mock())
-            experiment_result = simulator.get_experiment_results(job)[0]
+            experiment_result = simulator.get_experiment_results(job, False)[0]
             # Exactly one value in memory
             self.assertEqual(len(experiment_result.data.memory), 1)
             # The only value in memory is the same as the value in the counts histogram.
@@ -274,7 +337,6 @@ class TestQiSimulatorPy(unittest.TestCase):
     def test_validate_shot_count(self):
         api = Mock()
         api.create_project.return_value = {'id': 42}
-        api.get_jobs_from_project.return_value = []
         api.execute_qasm_async.return_value = 42
         api.get_backend_type_by_name.return_value = {'max_number_of_shots': 4096}
         simulator = QuantumInspireBackend(api, Mock())
@@ -290,7 +352,6 @@ class TestQiSimulatorPy(unittest.TestCase):
     def test_validate_no_classical_qubits(self):
         api = Mock()
         api.create_project.return_value = {'id': 42}
-        api.get_jobs_from_project.return_value = []
         api.execute_qasm_async.return_value = 42
         api.get_backend_type_by_name.return_value = {'max_number_of_shots': 4096}
         simulator = QuantumInspireBackend(api, Mock())
@@ -304,7 +365,6 @@ class TestQiSimulatorPy(unittest.TestCase):
     def test_validate_nr_classical_qubits_less_than_nr_qubits_conditional_gate(self):
         api = Mock()
         api.create_project.return_value = {'id': 42}
-        api.get_jobs_from_project.return_value = []
         api.execute_qasm_async.return_value = 42
         api.get_backend_type_by_name.return_value = {'max_number_of_shots': 4096}
         simulator = QuantumInspireBackend(api, Mock())
@@ -325,7 +385,6 @@ class TestQiSimulatorPy(unittest.TestCase):
             api = Mock()
             project = {'id': 42}
             api.create_project.return_value = project
-            api.get_jobs_from_project.return_value = []
             api.execute_qasm_async.return_value = 42
             api.get_backend_type_by_name.return_value = {'max_number_of_shots': 4096}
             simulator = QuantumInspireBackend(api, Mock())
@@ -346,7 +405,6 @@ class TestQiSimulatorPy(unittest.TestCase):
             api = Mock()
             project = {'id': 42}
             api.create_project.return_value = project
-            api.get_jobs_from_project.return_value = []
             api.execute_qasm_async.return_value = 42
             api.get_backend_type_by_name.return_value = {'max_number_of_shots': 4096}
             simulator = QuantumInspireBackend(api, Mock())
@@ -368,7 +426,6 @@ class TestQiSimulatorPy(unittest.TestCase):
             api = Mock()
             project = {'id': 42}
             api.create_project.return_value = project
-            api.get_jobs_from_project.return_value = []
             api.execute_qasm_async.return_value = 42
             api.get_backend_type_by_name.return_value = {'max_number_of_shots': 4096}
             simulator = QuantumInspireBackend(api, Mock())
@@ -389,7 +446,6 @@ class TestQiSimulatorPy(unittest.TestCase):
             api = Mock()
             project = {'id': 42}
             api.create_project.return_value = project
-            api.get_jobs_from_project.return_value = []
             api.execute_qasm_async.return_value = 42
             api.get_backend_type_by_name.return_value = {'max_number_of_shots': 4096}
             simulator = QuantumInspireBackend(api, Mock())
@@ -409,7 +465,6 @@ class TestQiSimulatorPy(unittest.TestCase):
             api = Mock()
             project = {'id': 42}
             api.create_project.return_value = project
-            api.get_jobs_from_project.return_value = []
             api.execute_qasm_async.return_value = 42
             api.get_backend_type_by_name.return_value = {'max_number_of_shots': 4096}
             simulator = QuantumInspireBackend(api, Mock())
@@ -430,7 +485,6 @@ class TestQiSimulatorPy(unittest.TestCase):
             api = Mock()
             project = {'id': 42}
             api.create_project.return_value = project
-            api.get_jobs_from_project.return_value = []
             api.execute_qasm_async.return_value = 42
             api.get_backend_type_by_name.return_value = {'max_number_of_shots': 4096}
             simulator = QuantumInspireBackend(api, Mock())
@@ -450,8 +504,10 @@ class TestQiSimulatorPy(unittest.TestCase):
     def test_valid_non_fsp_measurement_qubit_to_classical(self):
         api = Mock()
         api.create_project.return_value = {'id': 42}
-        api.get_jobs_from_project.return_value = []
-        api.execute_qasm_async.return_value = 42
+        api.get_asset_from_job.return_value = {'project_id': '42'}
+        quantum_inspire_job = Mock()
+        quantum_inspire_job.get_project_identifier.return_value = 42
+        api.execute_qasm_async.return_value = quantum_inspire_job
         api.get_backend_type_by_name.return_value = {'max_number_of_shots': 4096}
         simulator = QuantumInspireBackend(api, Mock())
         instructions = [{'name': 'h', 'qubits': [0]},
@@ -470,7 +526,6 @@ class TestQiSimulatorPy(unittest.TestCase):
 
     def test_retrieve_job(self):
         api = Mock()
-        api.get_jobs_from_project.return_value = []
         backend = QuantumInspireBackend(api, QuantumInspireProvider())
         qi_job = backend.retrieve_job('42')
         api.get_project.assert_called_with(42)
@@ -541,7 +596,7 @@ class TestQiSimulatorPyHistogram(unittest.TestCase):
         self.mock_api.get_jobs_from_project.return_value = [jobs]
         job = QIJob('backend', '42', self.mock_api)
 
-        result = self.simulator.get_experiment_results(job)
+        result = self.simulator.get_experiment_results(job, False)
         number_of_shots = jobs['number_of_shots']
         self.assertEqual(1, len(result))
         first_experiment = first_item(result)
