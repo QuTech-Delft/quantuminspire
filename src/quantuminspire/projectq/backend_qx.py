@@ -39,9 +39,7 @@ CR = C(R)
 
 
 class QIBackend(BasicEngine):  # type: ignore
-    """ Backend for Quantum Inspire
-
-    """
+    """ Backend for Quantum Inspire """
 
     def __init__(self, num_runs: int = 1024, verbose: int = 0, quantum_inspire_api: Optional[QuantumInspireAPI] = None,
                  backend_type: Optional[Union[int, str]] = None) -> None:
@@ -60,6 +58,7 @@ class QIBackend(BasicEngine):  # type: ignore
         """ Because engines are meant to be 'single use' by the way ProjectQ is designed,
         any additional gates received after a FlushGate triggers an exception. """
         self._clear: bool = True
+        self.qasm: str = ""
         self._reset()
         self._verbose: int = verbose
         self._cqasm: str = str()
@@ -67,6 +66,7 @@ class QIBackend(BasicEngine):  # type: ignore
         self._measured_ids: List[int] = []
         self._allocation_map: List[Tuple[int, int]] = []
         self._max_qubit_id: int = -1
+        self._quantum_inspire_result: Dict[str, Any] = {}
         if quantum_inspire_api is None:
             try:
                 quantum_inspire_api = QuantumInspireAPI()
@@ -286,10 +286,10 @@ class QIBackend(BasicEngine):  # type: ignore
             allocation_entry = next(iter(x for x in self._allocation_map if x[1] == index_to_remove), None)
             if allocation_entry is None:
                 raise RuntimeError(f"De-allocated bit {index_to_remove} was not allocated.")
-            else:
-                # deallocate the corresponding simulation bit
-                index = self._allocation_map.index(allocation_entry)
-                self._allocation_map[index] = (allocation_entry[0], -1)
+
+            # deallocate the corresponding simulation bit
+            index = self._allocation_map.index(allocation_entry)
+            self._allocation_map[index] = (allocation_entry[0], -1)
 
         if self._verbose >= 1:
             print(f'_store: Deallocate gate {(index_to_remove,)}')
@@ -310,8 +310,7 @@ class QIBackend(BasicEngine):  # type: ignore
             if allocation_entry is None:
                 raise RuntimeError(f"Bit position in simulation backend not found for"
                                    f" physical bit {physical_qubit_id}.")
-            else:
-                return allocation_entry[0]
+            return allocation_entry[0]
         else:
             return physical_qubit_id
 

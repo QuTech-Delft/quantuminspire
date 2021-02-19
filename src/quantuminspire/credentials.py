@@ -54,7 +54,7 @@ def read_account(filename: str = DEFAULT_QIRC_FILE) -> Optional[str]:
                   in the user home directory is used (`HOME/.quantuminspire/qirc`).
 
     Returns:
-        The Quantum Inspire token or None when no token is found.
+        The Quantum Inspire token or None when no token is found or token is empty.
     """
     try:
         with open(filename, 'r') as file:
@@ -62,7 +62,7 @@ def read_account(filename: str = DEFAULT_QIRC_FILE) -> Optional[str]:
             token: Optional[str] = accounts['token']
     except (OSError, KeyError, ValueError):  # file does not exist or is empty/invalid
         token = None
-    return token if (token and len(token)) else None
+    return token if token else None
 
 
 def store_account(token: str, filename: str = DEFAULT_QIRC_FILE, overwrite: bool = False) -> None:
