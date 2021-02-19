@@ -38,7 +38,7 @@ def get_authentication():
 
 if __name__ == '__main__':
 
-    project_name = 'TestProjectQ'
+    project_name = 'ProjectQ-entangle'
     authentication = get_authentication()
     qi_api = QuantumInspireAPI(QI_URL, authentication, project_name=project_name)
     qi_backend = QIBackend(quantum_inspire_api=qi_api)

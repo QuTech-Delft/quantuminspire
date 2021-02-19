@@ -3,7 +3,7 @@
 *Note: this SDK is made available as a public beta, please report any
 issues or bugs in the github issue tracker.*
 
-The Quantum Inspire platform allows to execute quantum algorithms using the cQASM language. 
+The Quantum Inspire platform allows to execute quantum algorithms using the cQASM language.
 
 The software development kit (SDK) for the Quantum Inspire platform consists of:
 
@@ -23,15 +23,15 @@ on cQASM can be found in the Quantum Inspire
 The Quantum Inspire SDK can be installed from PyPI via pip:
 
 ```
-$ pip install quantuminspire
+pip install quantuminspire
 ```
 
 In addition, to use Quantum Inspire through Qiskit or ProjectQ, install either or both of
 the qiskit and projectq packages:
 
 ```
-$ pip install qiskit
-$ pip install projectq
+pip install qiskit
+pip install projectq
 ```
 
 ### Installing from source
@@ -39,9 +39,9 @@ $ pip install projectq
 The source for the SDK can also be found at Github. For the default installation execute:
 
 ```
-$ git clone https://github.com/QuTech-Delft/quantuminspire
-$ cd quantuminspire
-$ pip install .
+git clone https://github.com/QuTech-Delft/quantuminspire
+cd quantuminspire
+pip install .
 ```
 
 This does not install ProjectQ or Qiskit, but will install the Quantum Inspire backends for
@@ -51,13 +51,13 @@ If you want to include a specific SDK as a dependency, install with
 (e.g. for the ProjectQ backend):
 
 ```
-$ pip install .[projectq]
+pip install .[projectq]
 ```
 
 To install both ProjectQ as well as Qiskit as a dependency:
 
 ```
-$ pip install .[qiskit,projectq]
+pip install .[qiskit,projectq]
 ```
 
 ## Running
@@ -108,7 +108,7 @@ password = getpass()
 
 server_url = r'https://api.quantum-inspire.com'
 authentication = BasicAuthentication(email, password)
-qi = QuantumInspireAPI(server_url, authentication)
+qi = QuantumInspireAPI(server_url, authentication, 'my-project-name')
 
 qasm = '''version 1.0
 
@@ -129,11 +129,43 @@ else:
     print(f'Result structure does not contain proper histogram data. {reason}')
 ```
 
+## Configure a project name for Quantum Inspire
+
+SDK stores the jobs in a Quantum Inspire project with the name "qi-sdk-project-" concatenated with a unique identifier.
+It is possible to provide a project name yourself. This makes finding the project in the Quantum Inspire web-interface
+easier.
+
+Qiskit users do something like:
+```python
+from coreapi.auth import BasicAuthentication
+from quantuminspire.qiskit import QI
+
+authentication = BasicAuthentication("email", "password")
+QI.set_authentication(authentication, project_name='my-project-name')
+```
+or set the project name separately after setting authentication
+```python
+from coreapi.auth import BasicAuthentication
+from quantuminspire.qiskit import QI
+
+authentication = BasicAuthentication("email", "password")
+QI.set_authentication(authentication)
+QI.set_project_name('my-project-name')
+```
+ProjectQ users set the project name while initializing QuantumInspireAPI:
+```python
+from coreapi.auth import BasicAuthentication
+from quantuminspire.api import QuantumInspireAPI
+
+authentication = BasicAuthentication("email", "password")
+qi_api = QuantumInspireAPI(authentication=authentication, project_name='my-project-name')
+```
+
 ## Configure your token credentials for Quantum Inspire
 
 1. Create a Quantum Inspire account if you do not already have one.
 2. Get an API token from the Quantum Inspire website.
-3. With your API token run: 
+3. With your API token run:
 ```python
 from quantuminspire.credentials import save_account
 save_account('YOUR_API_TOKEN')
@@ -165,15 +197,6 @@ from quantuminspire.credentials import get_token_authentication
 auth = get_token_authentication()
 ```
 This `auth` can then be used to initialize the Quantum Inspire API object.
- ## Known issues
-
-* Some test-cases call protected methods
-* Known issues and common questions regarding the Quantum Inspire platform
-  can be found in the [FAQ](https://www.quantum-inspire.com/faq/).
- 
-## Bug reports
-
-Please submit bug-reports [on the github issue tracker](https://github.com/QuTech-Delft/quantuminspire/issues).
 
 ## Testing
 
@@ -183,6 +206,16 @@ Run all unit tests and collect the code coverage using:
 coverage run --source="./src/quantuminspire" -m unittest discover -s src/tests -t src -v
 coverage report -m
 ```
+
+## Known issues
+
+* Some test-cases call protected methods
+* Known issues and common questions regarding the Quantum Inspire platform
+  can be found in the [FAQ](https://www.quantum-inspire.com/faq/).
+
+## Bug reports
+
+Please submit bug-reports [on the github issue tracker](https://github.com/QuTech-Delft/quantuminspire/issues).
 
 ## Note
 
