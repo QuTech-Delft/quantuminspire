@@ -131,9 +131,9 @@ else:
 
 ## Configure a project name for Quantum Inspire
 
-SDK stores the jobs in a Quantum Inspire project with the name "qi-sdk-project-" concatenated with a unique identifier.
-It is possible to provide a project name yourself. This makes finding the project in the Quantum Inspire web-interface
-easier.
+As a default, SDK stores the jobs in a Quantum Inspire project with the name "qi-sdk-project-" concatenated with a
+unique identifier for each run. Providing a project name yourself makes it easier to find the project in the Quantum
+Inspire web-interface and makes it possible to gather related jobs to the same project.
 
 Qiskit users do something like:
 ```python
