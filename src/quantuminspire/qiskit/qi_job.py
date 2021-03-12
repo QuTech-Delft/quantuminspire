@@ -84,7 +84,7 @@ class QIJob(BaseJob):  # type: ignore
             timeout: Timeout in seconds.
             wait: Wait time between queries to the quantum-inspire platform.
             only_latest_run: when True, only the result for the experiments in the latest run for this project are
-            fetched, when False all the results for the project are fetched
+            fetched, when False all the experiment results for all the jobs in the project are fetched
 
         Returns:
             QIResult object containing results from the experiments.
@@ -99,7 +99,10 @@ class QIJob(BaseJob):  # type: ignore
             if timeout is not None and elapsed_time > timeout:
                 raise JobTimeoutError('Failed getting result: timeout reached.')
             time.sleep(wait)
-        experiment_results = self._backend.get_experiment_results(self, only_latest_run)
+        if only_latest_run:
+            experiment_results = self._backend.get_experiment_results_from_latest_run(self)
+        else:
+            experiment_results = self._backend.get_experiment_results_from_all_jobs(self)
         return QIResult(backend_name=self._backend.backend_name, backend_version=quantum_inspire_version,
                         job_id=self.job_id(), qobj_id=self.job_id(), success=True, results=experiment_results)
 

@@ -184,24 +184,18 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
                                                             full_state_projection=full_state_projection)
         return quantum_inspire_job
 
-    def get_experiment_results(self, qi_job: QIJob, only_latest_run: bool = True) -> List[ExperimentResult]:
-        """ Get results from experiments from the Quantum-inspire platform.
+    def _get_experiment_results(self, jobs: List[Dict[str, Any]]) -> List[ExperimentResult]:
+        """ Get results from experiments from the Quantum Inspire platform for one or more jobs.
 
         Args:
-            qi_job: A job that has already been submitted and which execution is completed.
-            only_latest_run: when True, only the result for the experiments in the latest run for this project are
-            fetched, when False all the results for the project are fetched
+            jobs: A list of jobs.
 
         Raises:
-            QisKitBackendError: If an error occurred during execution by the backend.
+            QisKitBackendError: If an error occurred while executing the job on the Quantum Inspire backend.
 
         Returns:
-            A list of experiment results; containing the data, execution time, status, etc.
+            A list of experiment results; containing the data, execution time, status, etc. for the list of jobs.
         """
-        if only_latest_run:
-            jobs = qi_job.get_jobs()
-        else:
-            jobs = self.__api.get_jobs_from_project(int(qi_job.job_id()))
         results = [self.__api.get_result_from_job(job['id']) for job in jobs]
         experiment_results = []
         for result, job in zip(results, jobs):
@@ -222,6 +216,30 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
                                             'time_taken': result.get('execution_time_in_seconds'), 'header': header}
             experiment_results.append(ExperimentResult(**experiment_result_dictionary))
         return experiment_results
+
+    def get_experiment_results_from_latest_run(self, qi_job: QIJob) -> List[ExperimentResult]:
+        """
+        Args:
+            qi_job: A job that has already been submitted and which execution is completed.
+
+        Returns:
+            A list of experiment results; containing the data, execution time, status, etc. for the experiments in the
+            latest job run in the Quantum Inspire project.
+        """
+        jobs = qi_job.get_jobs()
+        return self._get_experiment_results(jobs)
+
+    def get_experiment_results_from_all_jobs(self, qi_job: QIJob) -> List[ExperimentResult]:
+        """
+        Args:
+            qi_job: A job that has already been submitted and which execution is completed.
+
+        Returns:
+            A list of experiment results; containing the data, execution time, status, etc. for all the experiments in
+            all the job runs of the Quantum Inspire project.
+        """
+        jobs = self.__api.get_jobs_from_project(int(qi_job.job_id()))
+        return self._get_experiment_results(jobs)
 
     def __validate_number_of_shots(self, job: QasmQobj) -> None:
         """ Checks whether the number of shots has a valid value.

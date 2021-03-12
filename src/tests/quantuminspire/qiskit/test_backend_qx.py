@@ -165,7 +165,7 @@ class TestQiSimulatorPy(unittest.TestCase):
         job.job_id.return_value = '42'
         simulator = QuantumInspireBackend(api, Mock())
         with self.assertRaises(QisKitBackendError) as error:
-            simulator.get_experiment_results(job, False)
+            simulator.get_experiment_results_from_all_jobs(job)
         self.assertEqual(('Result from backend contains no histogram data!\nError',), error.exception.args)
 
     def test_get_experiment_results_returns_correct_value_from_project(self):
@@ -188,7 +188,7 @@ class TestQiSimulatorPy(unittest.TestCase):
         api.get_jobs_from_project.return_value = [jobs]
         job = QIJob('backend', '42', api)
         simulator = QuantumInspireBackend(api, Mock())
-        experiment_result = simulator.get_experiment_results(job, False)[0]
+        experiment_result = simulator.get_experiment_results_from_all_jobs(job)[0]
         self.assertEqual(experiment_result.data.counts['0x1'], 60)
         self.assertEqual(experiment_result.data.counts['0x3'], 40)
         self.assertEqual(experiment_result.data.probabilities['0x1'], 0.6)
@@ -224,7 +224,7 @@ class TestQiSimulatorPy(unittest.TestCase):
         qijob.add_job(quantuminspire_job)
 
         simulator = QuantumInspireBackend(api, Mock())
-        experiment_result = simulator.get_experiment_results(qijob, True)[0]
+        experiment_result = simulator.get_experiment_results_from_latest_run(qijob)[0]
         self.assertEqual(experiment_result.data.counts['0x1'], 60)
         self.assertEqual(experiment_result.data.counts['0x3'], 40)
         self.assertEqual(experiment_result.data.probabilities['0x1'], 0.6)
@@ -282,7 +282,7 @@ class TestQiSimulatorPy(unittest.TestCase):
         api.get_jobs_from_project.return_value = [jobs]
         job = QIJob('backend', '42', api)
         simulator = QuantumInspireBackend(api, Mock())
-        experiment_result = simulator.get_experiment_results(job, False)[0]
+        experiment_result = simulator.get_experiment_results_from_all_jobs(job)[0]
         self.assertEqual(experiment_result.data.probabilities['0x0'], 0.5)
         self.assertEqual(experiment_result.data.probabilities['0x3'], 0.5)
         self.assertTrue(hasattr(experiment_result.data, 'memory'))
@@ -322,7 +322,7 @@ class TestQiSimulatorPy(unittest.TestCase):
             api.get_jobs_from_project.return_value = [jobs]
             job = QIJob('backend', '42', api)
             simulator = QuantumInspireBackend(api, Mock())
-            experiment_result = simulator.get_experiment_results(job, False)[0]
+            experiment_result = simulator.get_experiment_results_from_all_jobs(job)[0]
             # Exactly one value in memory
             self.assertEqual(len(experiment_result.data.memory), 1)
             # The only value in memory is the same as the value in the counts histogram.
@@ -596,7 +596,7 @@ class TestQiSimulatorPyHistogram(unittest.TestCase):
         self.mock_api.get_jobs_from_project.return_value = [jobs]
         job = QIJob('backend', '42', self.mock_api)
 
-        result = self.simulator.get_experiment_results(job, False)
+        result = self.simulator.get_experiment_results_from_all_jobs(job)
         number_of_shots = jobs['number_of_shots']
         self.assertEqual(1, len(result))
         first_experiment = first_item(result)

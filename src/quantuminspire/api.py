@@ -251,12 +251,11 @@ class QuantumInspireAPI:
         """
         if identifier is None:
             return self.get_default_backend_type()
-        elif isinstance(identifier, int):
+        if isinstance(identifier, int):
             return self.get_backend_type_by_id(identifier)
-        elif isinstance(identifier, str):
+        if isinstance(identifier, str):
             return self.get_backend_type_by_name(identifier)
-        else:
-            raise ValueError('Identifier should be of type int, str or None!')
+        raise ValueError('Identifier should be of type int, str or None!')
 
     #  projects  #
 

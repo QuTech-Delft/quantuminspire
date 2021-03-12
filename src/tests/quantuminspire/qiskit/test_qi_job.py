@@ -97,10 +97,31 @@ class TestQIJob(unittest.TestCase):
                                                   {'name': 'Test2', 'status': 'COMPLETE'}]
         job_id = '42'
         backend = Mock()
-        backend.get_experiment_results.return_value = [self.experiment_result_1, self.experiment_result_2]
+        backend.get_experiment_results_from_latest_run.return_value = \
+            [self.experiment_result_1, self.experiment_result_2]
         backend.backend_name = 'some backend'
         job = QIJob(backend, job_id, api)
         results = job.result()
+
+        self.assertTrue(results.success)
+        self.assertDictEqual({'counts': {'0x0': 42}}, results.data(0))
+        self.assertDictEqual({'counts': {'0x1': 42}}, results.data(1))
+        self.assertDictEqual({'0': 42}, results.get_counts(0))
+        self.assertDictEqual({'1': 42}, results.get_counts(1))
+        self.assertEqual('42', results.job_id)
+        self.assertListEqual(['Test1', 'Test2'], [r.name for r in results.results])
+        self.assertListEqual(['DONE', 'DONE'], [r.status for r in results.results])
+
+    def test_result_all_jobs_run(self):
+        api = Mock()
+        api.get_jobs_from_project.return_value = [{'name': 'Test1', 'status': 'COMPLETE'},
+                                                  {'name': 'Test2', 'status': 'COMPLETE'}]
+        job_id = '42'
+        backend = Mock()
+        backend.get_experiment_results_from_all_jobs.return_value = [self.experiment_result_1, self.experiment_result_2]
+        backend.backend_name = 'some backend'
+        job = QIJob(backend, job_id, api)
+        results = job.result(only_latest_run=False)
 
         self.assertTrue(results.success)
         self.assertDictEqual({'counts': {'0x0': 42}}, results.data(0))
@@ -127,7 +148,7 @@ class TestQIJob(unittest.TestCase):
         api = Mock()
         job_id = '42'
         backend = Mock()
-        backend.get_experiment_results.return_value = [self.experiment_result_3]
+        backend.get_experiment_results_from_latest_run.return_value = [self.experiment_result_3]
         backend.backend_name = 'some backend'
         job = QIJob(backend, job_id, api)
         results = job.result(timeout=None).results[0]

@@ -219,7 +219,6 @@ class TestQuantumInspireProvider(unittest.TestCase):
         with mock.patch('quantuminspire.qiskit.quantum_inspire_provider.QuantumInspireAPI') as api:
             quantum_inpire_provider = QuantumInspireProvider()
             token = 'This_is_a_nice_looking_token'
-            token = 'This_is_a_nice_looking_token'
             authentication = TokenAuthentication(token, scheme="token")
             project_name = 'This_is_my_first_project_name'
             quantum_inpire_provider.set_authentication(authentication, project_name = project_name)
