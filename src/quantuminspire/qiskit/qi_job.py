@@ -15,10 +15,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import time
-from typing import List, Optional, Any, Dict
+from typing import List, Optional, Any, Dict, Callable
 
 from qiskit.providers import BaseJob, JobError, JobTimeoutError
 from qiskit.providers.jobstatus import JobStatus, JOB_FINAL_STATES
+from qiskit.result.models import ExperimentResult
 from qiskit.qobj import QasmQobj, QasmQobjExperiment
 from quantuminspire.qiskit.qi_result import QIResult
 from quantuminspire.api import QuantumInspireAPI
@@ -77,15 +78,21 @@ class QIJob(BaseJob):  # type: ignore
             raise JobError('Job has already been submitted!')
         self._job_id = self._backend.run(self._qobj)
 
-    def _wait_for_job_finished(self, timeout: Optional[float] = None, wait: float = 0.5) -> None:
-        """ Wait for the job to be finished.
+    def _result(self, result_function: Callable[[], List[ExperimentResult]], timeout: Optional[float] = None,
+                wait: float = 0.5) -> QIResult:
+        """ Return the result for the experiments.
 
         Args:
+            result_function: backend function for fetching the requested results
             timeout: Timeout in seconds.
             wait: Wait time between queries to the quantum-inspire platform.
 
+        Returns:
+            QIResult object containing the result.
+
         Raises:
             JobTimeoutError: If timeout is reached.
+            QisKitBackendError: If an error occurs during simulation.
         """
         start_time = time.time()
         while self.status() not in JOB_FINAL_STATES:
@@ -93,6 +100,10 @@ class QIJob(BaseJob):  # type: ignore
             if timeout is not None and elapsed_time > timeout:
                 raise JobTimeoutError('Failed getting result: timeout reached.')
             time.sleep(wait)
+
+        experiment_results = result_function()
+        return QIResult(backend_name=self._backend.backend_name, backend_version=quantum_inspire_version,
+                        job_id=self.job_id(), qobj_id=self.job_id(), success=True, results=experiment_results)
 
     def result(self, timeout: Optional[float] = None, wait: float = 0.5) -> QIResult:
         """ Return the result for the experiments in the latest run for this project.
@@ -108,11 +119,7 @@ class QIJob(BaseJob):  # type: ignore
             JobTimeoutError: If timeout is reached.
             QisKitBackendError: If an error occurs during simulation.
         """
-        self._wait_for_job_finished(timeout, wait)
-
-        experiment_results = self._backend.get_experiment_results_from_latest_run(self)
-        return QIResult(backend_name=self._backend.backend_name, backend_version=quantum_inspire_version,
-                        job_id=self.job_id(), qobj_id=self.job_id(), success=True, results=experiment_results)
+        return self._result(self._backend.get_experiment_results_from_latest_run, timeout, wait)
 
     def result_all_jobs(self, timeout: Optional[float] = None, wait: float = 0.5) -> QIResult:
         """ Return the result for the experiments for all the existing jobs in the project.
@@ -128,11 +135,7 @@ class QIJob(BaseJob):  # type: ignore
             JobTimeoutError: If timeout is reached.
             QisKitBackendError: If an error occurs during simulation.
         """
-        self._wait_for_job_finished(timeout, wait)
-
-        experiment_results = self._backend.get_experiment_results_from_all_jobs(self)
-        return QIResult(backend_name=self._backend.backend_name, backend_version=quantum_inspire_version,
-                        job_id=self.job_id(), qobj_id=self.job_id(), success=True, results=experiment_results)
+        return self._result(self._backend.get_experiment_results_from_all_jobs, timeout, wait)
 
     def cancel(self) -> None:
         """ Cancel the job and delete the project. """
