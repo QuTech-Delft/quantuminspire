@@ -121,7 +121,7 @@ class TestQIJob(unittest.TestCase):
         backend.get_experiment_results_from_all_jobs.return_value = [self.experiment_result_1, self.experiment_result_2]
         backend.backend_name = 'some backend'
         job = QIJob(backend, job_id, api)
-        results = job.result(only_latest_run=False)
+        results = job.result_all_jobs()
 
         self.assertTrue(results.success)
         self.assertDictEqual({'counts': {'0x0': 42}}, results.data(0))
