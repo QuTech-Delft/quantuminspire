@@ -121,6 +121,14 @@ class QIBackendNonProtected(QIBackend):
         self._measured_ids = x
 
     @property
+    def qasm(self):
+        return self._qasm
+
+    @qasm.setter
+    def qasm(self, x):
+        self._qasm = x
+
+    @property
     def number_of_qubits(self):
         return self._number_of_qubits
 

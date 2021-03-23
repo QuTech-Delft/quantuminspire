@@ -16,9 +16,11 @@ limitations under the License.
 
 """
 import copy
-import numpy as np
 from io import StringIO
 from typing import Optional, Tuple, List
+
+import numpy as np
+
 from qiskit.qobj import QasmQobjInstruction
 from quantuminspire.exceptions import ApiError
 
@@ -44,8 +46,8 @@ class CircuitToString:
         """
         if hasattr(instruction, 'conditional'):
             raise ApiError(f'Conditional gate c-{instruction.name.lower()} not supported')
-        else:
-            raise ApiError(f'Gate {instruction.name.lower()} not supported')
+
+        raise ApiError(f'Gate {instruction.name.lower()} not supported')
 
     @staticmethod
     def _cz(stream: StringIO, instruction: QasmQobjInstruction) -> None:
@@ -569,7 +571,6 @@ class CircuitToString:
             instruction: The Qiskit instruction to translate to cQASM.
 
         """
-        pass
 
     @staticmethod
     def _c_barrier(stream: StringIO, instruction: QasmQobjInstruction, binary_control: str) -> None:
@@ -581,7 +582,6 @@ class CircuitToString:
             binary_control: The multi-bits control string. The gate is executed when all specified classical bits are 1.
 
         """
-        pass
 
     def _measure(self, stream: StringIO, instruction: QasmQobjInstruction) -> None:
         """ Translates the measure element. No cQASM is added for this gate when FSP is used.

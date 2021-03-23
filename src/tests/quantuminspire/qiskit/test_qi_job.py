@@ -97,7 +97,8 @@ class TestQIJob(unittest.TestCase):
                                                   {'name': 'Test2', 'status': 'COMPLETE'}]
         job_id = '42'
         backend = Mock()
-        backend.get_experiment_results.return_value = [self.experiment_result_1, self.experiment_result_2]
+        backend.get_experiment_results_from_latest_run.return_value = \
+            [self.experiment_result_1, self.experiment_result_2]
         backend.backend_name = 'some backend'
         job = QIJob(backend, job_id, api)
         results = job.result()
@@ -111,22 +112,43 @@ class TestQIJob(unittest.TestCase):
         self.assertListEqual(['Test1', 'Test2'], [r.name for r in results.results])
         self.assertListEqual(['DONE', 'DONE'], [r.status for r in results.results])
 
-    def test_result_timeout(self):
+    def test_result_all_jobs_run(self):
         api = Mock()
-        api.get_jobs_from_project.return_value = [{'name': 'test_job', 'status': 'COMPLETE'},
-                                                  {'name': 'other_job', 'status': 'RUNNING'}]
+        api.get_jobs_from_project.return_value = [{'name': 'Test1', 'status': 'COMPLETE'},
+                                                  {'name': 'Test2', 'status': 'COMPLETE'}]
         job_id = '42'
         backend = Mock()
+        backend.get_experiment_results_from_all_jobs.return_value = [self.experiment_result_1, self.experiment_result_2]
+        backend.backend_name = 'some backend'
         job = QIJob(backend, job_id, api)
+        results = job.result_all_jobs()
+
+        self.assertTrue(results.success)
+        self.assertDictEqual({'counts': {'0x0': 42}}, results.data(0))
+        self.assertDictEqual({'counts': {'0x1': 42}}, results.data(1))
+        self.assertDictEqual({'0': 42}, results.get_counts(0))
+        self.assertDictEqual({'1': 42}, results.get_counts(1))
+        self.assertEqual('42', results.job_id)
+        self.assertListEqual(['Test1', 'Test2'], [r.name for r in results.results])
+        self.assertListEqual(['DONE', 'DONE'], [r.status for r in results.results])
+
+    def test_result_timeout(self):
+        api = Mock()
+        api.get_job.return_value = {'name': 'other_job', 'status': 'RUNNING'}
+        job_id = '42'
+        backend = Mock()
+        quantuminspire_job = Mock()
+        quantuminspire_job.get_job_identifier.return_value = [1]
+        qijob = QIJob(backend, job_id, api)
+        qijob.add_job(quantuminspire_job)
         with self.assertRaises(JobTimeoutError):
-            job.result(timeout=1e-2, wait=0)
+            qijob.result(timeout=1e-2, wait=0)
 
     def test_result_cancelled(self):
         api = Mock()
-        api.get_jobs_from_project.return_value = [{'name': 'Test3', 'status': 'CANCELLED'}]
         job_id = '42'
         backend = Mock()
-        backend.get_experiment_results.return_value = [self.experiment_result_3]
+        backend.get_experiment_results_from_latest_run.return_value = [self.experiment_result_3]
         backend.backend_name = 'some backend'
         job = QIJob(backend, job_id, api)
         results = job.result(timeout=None).results[0]
@@ -145,40 +167,50 @@ class TestQIJob(unittest.TestCase):
 
     def test_status(self):
         api = Mock()
-        api.get_jobs_from_project.return_value = [{'name': 'test_job', 'status': 'COMPLETE'},
-                                                  {'name': 'other_job', 'status': 'RUNNING'}]
+        api.get_job.side_effect = [{'name': 'test_job', 'status': 'COMPLETE'},
+                                   {'name': 'other_job', 'status': 'RUNNING'}]
         job_id = '42'
         backend = Mock()
-        job = QIJob(backend, job_id, api)
-        status = job.status()
+        quantuminspire_job = Mock()
+        quantuminspire_job.get_job_identifier.side_effect = [1, 2]
+        qijob = QIJob(backend, job_id, api)
+        qijob.add_job(quantuminspire_job)
+        qijob.add_job(quantuminspire_job)
+        status = qijob.status()
         self.assertEqual(JobStatus.RUNNING, status)
 
-        api.get_jobs_from_project.return_value = [{'name': 'test_job', 'status': 'COMPLETE'},
-                                                  {'name': 'other_job', 'status': 'COMPLETE'}]
-        status = job.status()
+        api.get_job.side_effect = [{'name': 'test_job', 'status': 'COMPLETE'},
+                                   {'name': 'other_job', 'status': 'COMPLETE'}]
+        quantuminspire_job.get_job_identifier.side_effect = [1, 2]
+        status = qijob.status()
         self.assertEqual(JobStatus.DONE, status)
 
-        api.get_jobs_from_project.return_value = [{'name': 'test_job', 'status': 'CANCELLED'},
-                                                  {'name': 'other_job', 'status': 'COMPLETE'}]
-        status = job.status()
+        api.get_job.side_effect = [{'name': 'test_job', 'status': 'CANCELLED'},
+                                   {'name': 'other_job', 'status': 'COMPLETE'}]
+        quantuminspire_job.get_job_identifier.side_effect = [1, 2]
+        status = qijob.status()
         self.assertEqual(JobStatus.ERROR, status)
 
-        api.get_jobs_from_project.return_value = [{'name': 'test_job', 'status': 'NEW'},
-                                                  {'name': 'other_job', 'status': 'NEW'}]
-        status = job.status()
+        api.get_job.side_effect = [{'name': 'test_job', 'status': 'NEW'},
+                                   {'name': 'other_job', 'status': 'NEW'}]
+        quantuminspire_job.get_job_identifier.side_effect = [1, 2]
+        status = qijob.status()
         self.assertEqual(JobStatus.QUEUED, status)
 
-        api.get_jobs_from_project.return_value = [{'name': 'test_job', 'status': 'CANCELLED'},
-                                                  {'name': 'other_job', 'status': 'CANCELLED'}]
-        status = job.status()
+        api.get_job.side_effect = [{'name': 'test_job', 'status': 'CANCELLED'},
+                                   {'name': 'other_job', 'status': 'CANCELLED'}]
+        quantuminspire_job.get_job_identifier.side_effect = [1, 2]
+        status = qijob.status()
         self.assertEqual(JobStatus.CANCELLED, status)
 
-        api.get_jobs_from_project.return_value = [{'name': 'test_job', 'status': 'NEW'},
-                                                  {'name': 'other_job', 'status': 'RUNNING'}]
-        status = job.status()
+        api.get_job.side_effect = [{'name': 'test_job', 'status': 'NEW'},
+                                   {'name': 'other_job', 'status': 'RUNNING'}]
+        quantuminspire_job.get_job_identifier.side_effect = [1, 2]
+        status = qijob.status()
         self.assertEqual(JobStatus.RUNNING, status)
 
-        api.get_jobs_from_project.return_value = [{'name': 'test_job', 'status': 'NEW'},
-                                                  {'name': 'other_job', 'status': 'COMPLETE'}]
-        status = job.status()
+        api.get_job.side_effect = [{'name': 'test_job', 'status': 'NEW'},
+                                   {'name': 'other_job', 'status': 'COMPLETE'}]
+        quantuminspire_job.get_job_identifier.side_effect = [1, 2]
+        status = qijob.status()
         self.assertEqual(JobStatus.RUNNING, status)

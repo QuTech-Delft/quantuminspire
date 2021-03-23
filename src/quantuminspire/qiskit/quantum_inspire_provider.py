@@ -146,7 +146,7 @@ class QuantumInspireProvider(BaseProvider):  # type: ignore
         self.set_authentication(authentication, qi_url)
 
     def set_authentication(self, authentication: Optional[coreapi.auth.AuthBase] = None,
-                           qi_url: str = QI_URL) -> None:
+                           qi_url: str = QI_URL, project_name: Optional[str] = None) -> None:
         """
         Initializes the API and sets the authentication for Quantum Inspire.
 
@@ -156,5 +156,17 @@ class QuantumInspireProvider(BaseProvider):  # type: ignore
                             TokenAuthentication(token, scheme="token"), token authentication with a valid API-token.
                             When authentication is None, api will try to load a token from the default resource.
             qi_url: URL that points to quantum-inspire api. Default value: 'https://api.quantum-inspire.com'.
+            project_name: The project name of the project that is used for executing the jobs.
         """
-        self._api = QuantumInspireAPI(qi_url, authentication)
+        self._api = QuantumInspireAPI(qi_url, authentication, project_name)
+
+    def set_project_name(self, project_name: str) -> None:
+        """
+        Set the project name for the Quantum Inspire project that is used for executing the jobs.
+        Default a generated project-name is used, but it can be overridden by the user.
+
+        Args:
+            project_name: project name of the QI project used for executing the jobs.
+        """
+        if self._api is not None:
+            self._api.project_name = project_name

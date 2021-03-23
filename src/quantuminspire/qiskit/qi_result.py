@@ -87,5 +87,5 @@ class QIResult(Result):  # type: ignore
         # Return first item of dict_list if size is 1
         if len(dict_list) == 1:
             return dict_list[0]
-        else:
-            return dict_list
+
+        return dict_list

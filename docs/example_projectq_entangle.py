@@ -38,9 +38,9 @@ def get_authentication():
 
 if __name__ == '__main__':
 
-    name = 'TestProjectQ'
+    project_name = 'ProjectQ-entangle'
     authentication = get_authentication()
-    qi_api = QuantumInspireAPI(QI_URL, authentication, project_name=name)
+    qi_api = QuantumInspireAPI(QI_URL, authentication, project_name=project_name)
     qi_backend = QIBackend(quantum_inspire_api=qi_api)
 
     compiler_engines = restrictedgateset.get_engine_list(one_qubit_gates=qi_backend.one_qubit_gates,

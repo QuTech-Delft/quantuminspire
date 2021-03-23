@@ -110,6 +110,7 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
 
         identifier = uuid.uuid1()
         project_name = 'qi-sdk-project-{}'.format(identifier)
+        project: Optional[Dict[str, Any]]
         project = self.__api.create_project(project_name, number_of_shots, self.__backend)
         experiments = qobj.experiments
         job = QIJob(self, str(project['id']), self.__api)
@@ -118,8 +119,13 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
             full_state_projection = self.__validate_full_state_projection(experiment)
             if not full_state_projection:
                 QuantumInspireBackend.__validate_unsupported_measurements(experiment)
-            self._submit_experiment(experiment, number_of_shots, project=project,
-                                    full_state_projection=full_state_projection)
+            job_for_experiment = self._submit_experiment(experiment, number_of_shots, project=project,
+                                                         full_state_projection=full_state_projection)
+            job.add_job(job_for_experiment)
+            if project is not None and job_for_experiment.get_project_identifier() != project['id']:
+                self.__api.delete_project(int(project['id']))
+                project = None
+                job.set_job_id(str(job_for_experiment.get_project_identifier()))
 
         job.experiments = experiments
         return job
@@ -171,25 +177,25 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
         measurements = self._collect_measurements(experiment)
         user_data = {'name': experiment.header.name, 'memory_slots': experiment.header.memory_slots,
                      'creg_sizes': experiment.header.creg_sizes, 'measurements': measurements}
-        job_id = self.__api.execute_qasm_async(compiled_qasm, backend_type=self.__backend,
-                                               number_of_shots=number_of_shots, project=project,
-                                               job_name=experiment.header.name, user_data=json.dumps(user_data),
-                                               full_state_projection=full_state_projection)
-        return job_id
+        quantum_inspire_job = self.__api.execute_qasm_async(compiled_qasm, backend_type=self.__backend,
+                                                            number_of_shots=number_of_shots, project=project,
+                                                            job_name=experiment.header.name,
+                                                            user_data=json.dumps(user_data),
+                                                            full_state_projection=full_state_projection)
+        return quantum_inspire_job
 
-    def get_experiment_results(self, qi_job: QIJob) -> List[ExperimentResult]:
-        """ Get results from experiments from the Quantum-inspire platform.
+    def _get_experiment_results(self, jobs: List[Dict[str, Any]]) -> List[ExperimentResult]:
+        """ Get results from experiments from the Quantum Inspire platform for one or more jobs.
 
         Args:
-            qi_job: A job that has already been submitted and which execution is completed.
+            jobs: A list of jobs.
 
         Raises:
-            QisKitBackendError: If an error occurred during execution by the backend.
+            QisKitBackendError: If an error occurred while executing the job on the Quantum Inspire backend.
 
         Returns:
-            A list of experiment results; containing the data, execution time, status, etc.
+            A list of experiment results; containing the data, execution time, status, etc. for the list of jobs.
         """
-        jobs = self.__api.get_jobs_from_project(int(qi_job.job_id()))
         results = [self.__api.get_result_from_job(job['id']) for job in jobs]
         experiment_results = []
         for result, job in zip(results, jobs):
@@ -210,6 +216,30 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
                                             'time_taken': result.get('execution_time_in_seconds'), 'header': header}
             experiment_results.append(ExperimentResult(**experiment_result_dictionary))
         return experiment_results
+
+    def get_experiment_results_from_latest_run(self, qi_job: QIJob) -> List[ExperimentResult]:
+        """
+        Args:
+            qi_job: A job that has already been submitted and which execution is completed.
+
+        Returns:
+            A list of experiment results; containing the data, execution time, status, etc. for the experiments in the
+            latest job run in the Quantum Inspire project.
+        """
+        jobs = qi_job.get_jobs()
+        return self._get_experiment_results(jobs)
+
+    def get_experiment_results_from_all_jobs(self, qi_job: QIJob) -> List[ExperimentResult]:
+        """
+        Args:
+            qi_job: A job that has already been submitted and which execution is completed.
+
+        Returns:
+            A list of experiment results; containing the data, execution time, status, etc. for all the experiments in
+            all the job runs of the Quantum Inspire project.
+        """
+        jobs = self.__api.get_jobs_from_project(int(qi_job.job_id()))
+        return self._get_experiment_results(jobs)
 
     def __validate_number_of_shots(self, job: QasmQobj) -> None:
         """ Checks whether the number of shots has a valid value.
