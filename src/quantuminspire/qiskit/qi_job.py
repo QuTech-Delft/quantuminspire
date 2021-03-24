@@ -101,7 +101,7 @@ class QIJob(BaseJob):  # type: ignore
                 raise JobTimeoutError('Failed getting result: timeout reached.')
             time.sleep(wait)
 
-        experiment_results = result_function()
+        experiment_results = result_function(self)
         return QIResult(backend_name=self._backend.backend_name, backend_version=quantum_inspire_version,
                         job_id=self.job_id(), qobj_id=self.job_id(), success=True, results=experiment_results)
 
