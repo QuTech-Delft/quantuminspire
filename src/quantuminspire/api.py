@@ -812,7 +812,8 @@ class QuantumInspireAPI:
     def execute_qasm(self, qasm: str, backend_type: Optional[Union[Dict[str, Any], int, str]] = None,
                      number_of_shots: Optional[int] = None, collect_tries: Optional[int] = None,
                      default_number_of_shots: Optional[int] = None, identifier: Optional[str] = None,
-                     full_state_projection: bool = False) -> Dict[str, Any]:
+                     full_state_projection: bool = False,
+                     user_data : str = '') -> Dict[str, Any]:
         """ With this method a cQASM program is executed, and the result is returned when the job is completed.
 
             The method 'execute_qasm_async' is called which returns a QuantumInspireJob directly without waiting
@@ -836,6 +837,7 @@ class QuantumInspireAPI:
             default_number_of_shots: The default used number of shots for the project.
             identifier: The identifier to generate names for the project, asset and job when necessary.
             full_state_projection: Do not use full state projection with simulations when set to False (default).
+            user_data: Data that the user wants to pass along with the job.
 
         Returns:
             The results of the executed cQASM if successful else an error result if
@@ -849,7 +851,8 @@ class QuantumInspireAPI:
                                                           number_of_shots=number_of_shots,
                                                           default_number_of_shots=default_number_of_shots,
                                                           identifier=identifier,
-                                                          full_state_projection=full_state_projection)
+                                                          full_state_projection=full_state_projection,
+                                                          user_data = user_data)
 
             has_results, message = self._wait_for_completed_job(quantum_inspire_job, collect_tries)
             return OrderedDict(quantum_inspire_job.retrieve_results()) if has_results else \
