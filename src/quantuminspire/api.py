@@ -838,6 +838,7 @@ class QuantumInspireAPI:
             default_number_of_shots: The default used number of shots for the project.
             identifier: The identifier to generate names for the project, asset and job when necessary.
             full_state_projection: Do not use full state projection with simulations when set to False (default).
+            user_data: Data that the user wants to pass along with the job.
 
         Returns:
             The results of the executed cQASM if successful else an error result if
