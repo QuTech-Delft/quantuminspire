@@ -69,9 +69,8 @@ class QuantumInspireProvider(BaseProvider):  # type: ignore
         """
         Overwrites the default configuration with the backend dependent configuration items.
 
-        Args:
-            config: The configuration with default configuration that is adjusted.
-            backend: The backend for which the configuration items are adjusted.
+        :param config: The configuration with default configuration that is adjusted.
+        :param backend: The backend for which the configuration items are adjusted.
         """
         config.backend_name = backend['name']
         config.n_qubits = backend['number_of_qubits']

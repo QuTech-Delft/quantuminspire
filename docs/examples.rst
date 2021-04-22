@@ -26,8 +26,8 @@ Classifier
 
 ..
    examples/classifier_example/classification_example1_2_data_points
-   examples/classifier_example\classification_example2_4_data_points
-   examples/classifier_example\classification_example3_4_features
+   examples/classifier_example/classification_example2_4_data_points
+   examples/classifier_example/classification_example3_4_features
 
 General
 -------

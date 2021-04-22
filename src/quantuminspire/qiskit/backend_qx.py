@@ -214,10 +214,9 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
 
     def get_experiment_results_from_latest_run(self, qi_job: QIJob) -> List[ExperimentResult]:
         """
-        Args:
-            qi_job: A job that has already been submitted and which execution is completed.
+        :param qi_job: A job that has already been submitted and which execution is completed.
 
-        Returns:
+        :return:
             A list of experiment results; containing the data, execution time, status, etc. for the experiments in the
             latest job run in the Quantum Inspire project.
         """
@@ -226,10 +225,9 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
 
     def get_experiment_results_from_all_jobs(self, qi_job: QIJob) -> List[ExperimentResult]:
         """
-        Args:
-            qi_job: A job that has already been submitted and which execution is completed.
+        :param qi_job: A job that has already been submitted and which execution is completed.
 
-        Returns:
+        :return:
             A list of experiment results; containing the data, execution time, status, etc. for all the experiments in
             all the job runs of the Quantum Inspire project.
         """

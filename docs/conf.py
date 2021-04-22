@@ -18,13 +18,11 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join('..', '..')))
 
-
 # -- Project information -----------------------------------------------------
 
 project = 'quantuminspire'
-copyright = '2020, QuTech'
+copyright = '2021, QuTech'
 author = 'QuTech'
-
 
 # -- General configuration ---------------------------------------------------
 
@@ -49,7 +47,6 @@ templates_path = ['_templates']
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = []
-
 
 # -- Options for HTML output -------------------------------------------------
 

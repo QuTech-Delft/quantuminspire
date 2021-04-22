@@ -62,9 +62,10 @@ class QuantumInspireAPI:
         QuantumInspireAPI is a convenient interface (or wrapper) to the low level API and hides details for
         requesting data (via get) and performing operations on the different entities (via actions).
 
-        For more documentation see the knowledge base on: https://www.quantum-inspire.com/kbase/low-level-api/
-        The REST API can be found on: https://api.quantum-inspire.com/
-        The Core API schema is published on: https://api.quantum-inspire.com/schema/
+        For more documentation:
+            * The knowledge base on: https://www.quantum-inspire.com/kbase/low-level-api/
+            * The REST API can be found on: https://api.quantum-inspire.com/
+            * The Core API schema is published on: https://api.quantum-inspire.com/schema/
 
         :param base_uri: The base uri of the Quantum Inspire API-location where the schema can be found
                 in path 'schema/').
@@ -599,7 +600,8 @@ class QuantumInspireAPI:
         """ Gets the raw data from the result.
 
         Gets the raw data from the result of the executed cQASM code, given the result_id.
-        The raw data consists of a list with integer state values for each shot of the experiment (see job.number_of_shots).
+        The raw data consists of a list with integer state values for each shot of the experiment (see
+        job.number_of_shots).
 
         :param result_id: The identification number of the result.
 
@@ -800,8 +802,8 @@ class QuantumInspireAPI:
         completed or cancelled, or when the maximum number of tries is set and has been reached.
 
         :param quantum_inspire_job: A job object.
-        :param collect_max_tries: The maximum number of times the job status is checked. When set, the value should be > 0.
-            When not set, the method waits until the job status is either completed or cancelled.
+        :param collect_max_tries: The maximum number of times the job status is checked. When set, the value should
+            be > 0. When not set, the method waits until the job status is either completed or cancelled.
         :param sec_retry_delay: The time delay in between job status checks in seconds.
 
         :return:

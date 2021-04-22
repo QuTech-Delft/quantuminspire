@@ -60,6 +60,17 @@ To install both ProjectQ as well as Qiskit as a dependency:
 pip install .[qiskit,projectq]
 ```
 
+### Installing for generating documentation
+To install the necessary packages to perform documentation activities for SDK do:
+```
+pip install -e .[rtd]
+```
+To build the 'readthedocs' documentation do:
+```
+cd docs
+make html
+```
+
 ## Running
 
 For example usage see the python scripts and Jupyter notebooks in the [docs/examples](docs/examples) directory

@@ -18,34 +18,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-This file contains code modified from https://github.com/ProjectQ-Framework/ProjectQ in the QIBackend class.
-The ProjectQ code is under the Apache License 2.0.
-
-
-Copyright 2018 QuTech Delft
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-   http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-"""
-import sys
 import inspect
-=======
-=======
->>>>>>> Adapted to sphinx documentation
-
->>>>>>> Adapted to sphinx documentation
 import random
+import sys
 from collections import defaultdict
 from functools import reduce
 from typing import List, Dict, Iterator, Union, Optional, Tuple, Any
@@ -533,7 +508,6 @@ class QIBackend(BasicEngine):  # type: ignore
 
         :param state: state represented as an integer number.
         :param qureg: list of qubits for which to extract the state bit.
-<<<<<<< HEAD
 
         :return:
             A string of ``0`` and ``1`` corresponding to the bit value in state of each Qubit in qureg.
@@ -542,16 +516,6 @@ class QIBackend(BasicEngine):  # type: ignore
 
         .. code-block::
 
-=======
-
-        :return:
-            A string of ``0`` and ``1`` corresponding to the bit value in state of each Qubit in qureg.
-
-        Example:
-
-        .. code-block::
-
->>>>>>> Adapted to sphinx documentation
             >>> state = int('0b101010', 2)
             >>> qureg = [Qubit(0), Qubit(1), Qubit(5)]
             >>> print(self._map_state_to_bit_string(state, qureg)

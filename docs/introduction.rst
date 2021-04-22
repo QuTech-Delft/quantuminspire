@@ -28,17 +28,17 @@ Installation
 
 The Quantum Inspire SDK can be installed from PyPI via pip:
 
-::
+.. code-block:: console
 
-    $ pip install quantuminspire
+    pip install quantuminspire
 
 In addition, to use Quantum Inspire through Qiskit or ProjectQ, install
 either or both of the qiskit and projectq packages:
 
-::
+.. code-block:: console
 
-    $ pip install qiskit
-    $ pip install projectq
+    pip install qiskit
+    pip install projectq
 
 Installing from source
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -46,11 +46,11 @@ Installing from source
 The source for the SDK can also be found at Github. For the default
 installation execute:
 
-::
+.. code-block:: console
 
-    $ git clone https://github.com/QuTech-Delft/quantuminspire
-    $ cd quantuminspire
-    $ pip install .
+    git clone https://github.com/QuTech-Delft/quantuminspire
+    cd quantuminspire
+    pip install .
 
 This does not install ProjectQ or Qiskit, but will install the Quantum
 Inspire backends for those projects.
@@ -58,15 +58,31 @@ Inspire backends for those projects.
 If you want to include a specific SDK as a dependency, install with
 (e.g. for the ProjectQ backend):
 
-::
+.. code-block:: console
 
-    $ pip install .[projectq]
+    pip install .[projectq]
 
 To install both ProjectQ as well as Qiskit as a dependency:
 
-::
+.. code-block:: console
 
-    $ pip install .[qiskit,projectq]
+    pip install .[qiskit,projectq]
+
+Installing for generating documentation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To install the necessary packages to perform documentation activities:
+
+.. code-block:: console
+
+    pip install .[rtd]
+
+To build the 'readthedocs' documentation do:
+
+.. code-block:: console
+
+    cd docs
+    make html
 
 Running
 -------
@@ -80,14 +96,22 @@ installations) when installed from PyPI.
 For example, to run the ProjectQ example notebook after installing from
 source:
 
-::
+.. code-block:: console
 
     cd docs/examples
     jupyter notebook example_projectq.ipynb
 
-Or to perform Grover's with the ProjectQ backend from a Python script:
+or when you want to choose which example notebook to run from the browser do:
 
-::
+.. code-block:: console
+
+    jupyter notebook --notebook-dir="docs/notebooks"
+
+and select an ipython notebook (file with extension ``ipynb``) to run from one of the directories.
+
+To perform Grover's with the ProjectQ backend from a Python script:
+
+.. code-block:: console
 
     cd docs/examples
     python example_projectq_grover.py
@@ -141,6 +165,43 @@ API wrapper directly:
         reason = result.get('raw_text', 'No reason in result structure.')
         print(f'Result structure does not contain proper histogram data. {reason}')
 
+Configure a project name for Quantum Inspire
+--------------------------------------------
+As a default, SDK stores the jobs in a Quantum Inspire project with the name "qi-sdk-project-" concatenated with a
+unique identifier for each run. Providing a project name yourself makes it easier to find the project in the Quantum
+Inspire web-interface and makes it possible to gather related jobs to the same project.
+
+Qiskit users do something like:
+
+.. code:: python
+
+    from coreapi.auth import BasicAuthentication
+    from quantuminspire.qiskit import QI
+
+    authentication = BasicAuthentication("email", "password")
+    QI.set_authentication(authentication, project_name='my-project-name')
+
+or set the project name separately after setting authentication
+
+.. code:: python
+
+    from coreapi.auth import BasicAuthentication
+    from quantuminspire.qiskit import QI
+
+    authentication = BasicAuthentication("email", "password")
+    QI.set_authentication(authentication)
+    QI.set_project_name('my-project-name')
+
+ProjectQ users set the project name while initializing QuantumInspireAPI:
+
+.. code:: python
+
+    from coreapi.auth import BasicAuthentication
+    from quantuminspire.api import QuantumInspireAPI
+
+    authentication = BasicAuthentication("email", "password")
+    qi_api = QuantumInspireAPI(authentication=authentication, project_name='my-project-name')
+
 Configure your token credentials for Quantum Inspire
 ----------------------------------------------------
 
@@ -193,6 +254,16 @@ you do:
 This ``auth`` can then be used to initialize the Quantum Inspire API
 object.
 
+Testing
+-------
+
+Run all unit tests and collect the code coverage using:
+
+::
+
+    coverage run --source="./src/quantuminspire" -m unittest discover -s src/tests -t src -v
+    coverage report -m
+
 Known issues
 ------------
 
@@ -206,16 +277,6 @@ Bug reports
 
 Please submit bug-reports `on the github issue
 tracker <https://github.com/QuTech-Delft/quantuminspire/issues>`__.
-
-Testing
--------
-
-Run all unit tests and collect the code coverage using:
-
-::
-
-    coverage run --source="./src/quantuminspire" -m unittest discover -s src/tests -t src -v
-    coverage report -m
 
 .. note::
 

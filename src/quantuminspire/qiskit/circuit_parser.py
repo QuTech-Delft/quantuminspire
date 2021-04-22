@@ -66,7 +66,8 @@ class CircuitToString:
 
         :param stream: The string-io stream to where the resulting cQASM is written.
         :param instruction: The Qiskit instruction to translate to cQASM.
-        :param binary_control: The multi-bits control string. The gate is executed when all specified classical bits are 1.
+        :param binary_control: The multi-bits control string. The gate is executed when all specified classical bits
+        are 1.
 
         """
         stream.write('C-CZ {0}q[{1}], q[{2}]\n'.format(binary_control, *instruction.qubits))
@@ -87,7 +88,8 @@ class CircuitToString:
 
         :param stream: The string-io stream to where the resulting cQASM is written.
         :param instruction: The Qiskit instruction to translate to cQASM.
-        :param binary_control: The multi-bits control string. The gate is executed when all specified classical bits are 1.
+        :param binary_control: The multi-bits control string. The gate is executed when all specified classical bits
+        are 1.
 
         """
         stream.write('C-CNOT {0}q[{1}], q[{2}]\n'.format(binary_control, *instruction.qubits))
@@ -108,7 +110,8 @@ class CircuitToString:
 
         :param stream: The string-io stream to where the resulting cQASM is written.
         :param instruction: The Qiskit instruction to translate to cQASM.
-        :param binary_control: The multi-bits control string. The gate is executed when all specified classical bits are 1.
+        :param binary_control: The multi-bits control string. The gate is executed when all specified classical bits
+        are 1.
 
         """
         stream.write('C-Toffoli {0}q[{1}], q[{2}], q[{3}]\n'.format(binary_control, *instruction.qubits))
@@ -129,7 +132,8 @@ class CircuitToString:
 
         :param stream: The string-io stream to where the resulting cQASM is written.
         :param instruction: The Qiskit instruction to translate to cQASM.
-        :param binary_control: The multi-bits control string. The gate is executed when all specified classical bits are 1.
+        :param binary_control: The multi-bits control string. The gate is executed when all specified classical bits
+        are 1.
 
         """
         stream.write('C-H {0}q[{1}]\n'.format(binary_control, *instruction.qubits))
@@ -150,7 +154,8 @@ class CircuitToString:
 
         :param stream: The string-io stream to where the resulting cQASM is written.
         :param instruction: The Qiskit instruction to translate to cQASM.
-        :param binary_control: The multi-bits control string. The gate is executed when all specified classical bits are 1.
+        :param binary_control: The multi-bits control string. The gate is executed when all specified classical bits
+        are 1.
 
         """
         stream.write('C-I {0}q[{1}]\n'.format(binary_control, *instruction.qubits))
@@ -291,7 +296,8 @@ class CircuitToString:
 
         :param stream: The string-io stream to where the resulting cQASM is written.
         :param instruction: The Qiskit instruction to translate to cQASM.
-        :param binary_control: The multi-bits control string. The gate is executed when all specified classical bits are 1.
+        :param binary_control: The multi-bits control string. The gate is executed when all specified classical bits
+        are 1.
 
         """
         stream.write('C-Y {0}q[{1}]\n'.format(binary_control, *instruction.qubits))
@@ -312,7 +318,8 @@ class CircuitToString:
 
         :param stream: The string-io stream to where the resulting cQASM is written.
         :param instruction: The Qiskit instruction to translate to cQASM.
-        :param binary_control: The multi-bits control string. The gate is executed when all specified classical bits are 1.
+        :param binary_control: The multi-bits control string. The gate is executed when all specified classical bits
+        are 1.
 
         """
         stream.write('C-Z {0}q[{1}]\n'.format(binary_control, *instruction.qubits))
@@ -336,7 +343,8 @@ class CircuitToString:
         :param stream: The string-io stream to where the resulting cQASM is written.
         :param instruction: The Qiskit instruction to translate to cQASM.
         :param axis: The axis for which the Rotation operator is parsed ('x', 'y' or 'z').
-        :param binary_control: The multi-bits control string. The gate is executed when all specified classical bits are 1.
+        :param binary_control: The multi-bits control string. The gate is executed when all specified classical bits
+        are 1.
 
         """
         angle_q0 = float(instruction.params[0])
@@ -358,7 +366,8 @@ class CircuitToString:
 
         :param stream: The string-io stream to where the resulting cQASM is written.
         :param instruction: The Qiskit instruction to translate to cQASM.
-        :param binary_control: The multi-bits control string. The gate is executed when all specified classical bits are 1.
+        :param binary_control: The multi-bits control string. The gate is executed when all specified classical bits
+        are 1.
 
         """
         CircuitToString._c_r(stream, instruction, 'x', binary_control)
@@ -379,7 +388,8 @@ class CircuitToString:
 
         :param stream: The string-io stream to where the resulting cQASM is written.
         :param instruction: The Qiskit instruction to translate to cQASM.
-        :param binary_control: The multi-bits control string. The gate is executed when all specified classical bits are 1.
+        :param binary_control: The multi-bits control string. The gate is executed when all specified classical bits
+        are 1.
 
         """
         CircuitToString._c_r(stream, instruction, 'y', binary_control)
@@ -400,7 +410,8 @@ class CircuitToString:
 
         :param stream: The string-io stream to where the resulting cQASM is written.
         :param instruction: The Qiskit instruction to translate to cQASM.
-        :param binary_control: The multi-bits control string. The gate is executed when all specified classical bits are 1.
+        :param binary_control: The multi-bits control string. The gate is executed when all specified classical bits
+        are 1.
 
         """
         CircuitToString._c_r(stream, instruction, 'z', binary_control)
@@ -424,7 +435,8 @@ class CircuitToString:
 
         :param stream: The string-io stream to where the resulting cQASM is written.
         :param instruction: The Qiskit instruction to translate to cQASM.
-        :param binary_control: The multi-bits control string. The gate is executed when all specified classical bits are 1.
+        :param binary_control: The multi-bits control string. The gate is executed when all specified classical bits
+        are 1.
 
         """
         CircuitToString._c_u3(stream, instruction, binary_control)
@@ -453,7 +465,8 @@ class CircuitToString:
 
         :param stream: The string-io stream to where the resulting cQASM is written.
         :param instruction: The Qiskit instruction to translate to cQASM.
-        :param binary_control: The multi-bits control string. The gate is executed when all specified classical bits are 1.
+        :param binary_control: The multi-bits control string. The gate is executed when all specified classical bits
+        are 1.
 
         """
         temp_instruction = copy.deepcopy(instruction)
@@ -484,7 +497,8 @@ class CircuitToString:
 
         :param stream: The string-io stream to where the resulting cQASM is written.
         :param instruction: The Qiskit instruction to translate to cQASM.
-        :param binary_control: The multi-bits control string. The gate is executed when all specified classical bits are 1.
+        :param binary_control: The multi-bits control string. The gate is executed when all specified classical bits
+        are 1.
 
         """
         temp_instruction = copy.deepcopy(instruction)
@@ -522,7 +536,8 @@ class CircuitToString:
 
         :param stream: The string-io stream to where the resulting cQASM is written.
         :param instruction: The Qiskit instruction to translate to cQASM.
-        :param binary_control: The multi-bits control string. The gate is executed when all specified classical bits are 1.
+        :param binary_control: The multi-bits control string. The gate is executed when all specified classical bits
+        are 1.
 
         """
         gates = ['C-Rz', 'C-Ry', 'C-Rz']
@@ -548,7 +563,8 @@ class CircuitToString:
 
         :param stream: The string-io stream to where the resulting cQASM is written.
         :param instruction: The Qiskit instruction to translate to cQASM.
-        :param binary_control: The multi-bits control string. The gate is executed when all specified classical bits are 1.
+        :param binary_control: The multi-bits control string. The gate is executed when all specified classical bits
+        are 1.
 
         """
 
