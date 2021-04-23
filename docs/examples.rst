@@ -1,9 +1,6 @@
 Examples
 ========
 
-.. note::
-   The documentation for the examples must still be completed.
-
 ProjectQ
 --------
 .. toctree::
