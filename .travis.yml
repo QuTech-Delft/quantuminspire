@@ -1,10 +1,6 @@
 language: python
 matrix:
   include:
-    - name: python 3.6
-      python: 3.6
-      sudo: true
-      dist: xenial
     - name: python 3.7
       python: 3.7
       sudo: true
