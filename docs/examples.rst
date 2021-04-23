@@ -11,6 +11,7 @@ ProjectQ
 ..
    examples/example_projectq
    examples/example_projectq_entangle
+   examples/example_projectq_grover
 
 Qiskit
 ------
@@ -18,6 +19,7 @@ Qiskit
 
 ..
    examples/example_qiskit_conditional
+   examples/example_qiskit_entangle
 
 Classifier
 ----------
