@@ -15,6 +15,7 @@ matrix:
     dist: xenial
   - name: python 3.9
     python: 3.9
+    if: branch = master
     sudo: true
     dist: xenial
 install:
