@@ -501,6 +501,7 @@ class QuantumInspireAPI:
             The properties describing the new job.
             See :meth:`~.get_job` for a description of the job properties.
         """
+        full_state_projection = full_state_projection and not backend_type.get("is_hardware_backend", False)
         payload = {
             'status': 'NEW',
             'name': name,

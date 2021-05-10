@@ -116,7 +116,8 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
         job = QIJob(self, str(project['id']), self.__api)
         for experiment in experiments:
             self.__validate_number_of_clbits(experiment)
-            full_state_projection = self.__validate_full_state_projection(experiment)
+            full_state_projection = BaseBackend.configuration(self).simulator and \
+                                    self.__validate_full_state_projection(experiment)
             if not full_state_projection:
                 QuantumInspireBackend.__validate_unsupported_measurements(experiment)
             job_for_experiment = self._submit_experiment(experiment, number_of_shots, project=project,
