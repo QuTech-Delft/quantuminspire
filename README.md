@@ -60,9 +60,20 @@ To install both ProjectQ as well as Qiskit as a dependency:
 pip install .[qiskit,projectq]
 ```
 
+### Installing for generating documentation
+To install the necessary packages to perform documentation activities for SDK do:
+```
+pip install -e .[rtd]
+```
+To build the 'readthedocs' documentation do:
+```
+cd docs
+make html
+```
+
 ## Running
 
-For example usage see the python scripts and Jupyter notebooks in the [docs/](docs/) directory
+For example usage see the python scripts and Jupyter notebooks in the [docs/examples](docs/examples) directory
 when installed from source or the share/doc/quantuminspire/examples/ directory in the
 library root (Python’s sys.prefix for system installations; site.USER_BASE for user
 installations) when installed from PyPI.
@@ -70,14 +81,14 @@ installations) when installed from PyPI.
 For example, to run the ProjectQ example notebook after installing from source:
 
 ```
-cd docs
+cd docs/examples
 jupyter notebook example_projectq.ipynb
 ```
 
 Or to perform Grover's with the ProjectQ backend from a Python script:
 
 ```
-cd docs
+cd docs/examples
 python example_projectq_grover.py
 ```
 

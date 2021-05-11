@@ -35,17 +35,16 @@ class QIResult(Result):  # type: ignore
         """
         Construct a new QIResult object. Not normally called directly, use a QIJob to get the QIResult.
 
-        Args:
-            backend_name: backend name.
-            backend_version: backend version, in the form X.Y.Z.
-            qobj_id: user-generated Qobj id.
-            job_id: unique execution id from the backend.
-            success: True if complete input qobj executed correctly. (Implies each experiment success)
-            results: corresponding results for array of experiments of the input qobj
-            date: date to be added to the result object
-            status: status to be added to the result object
-            header: header to be added to the result object
-            kwargs: other parameters (added as metadata to the result object)
+        :param backend_name: backend name.
+        :param backend_version: backend version, in the form X.Y.Z.
+        :param qobj_id: user-generated Qobj id.
+        :param job_id: unique execution id from the backend.
+        :param success: True if complete input qobj executed correctly. (Implies each experiment success)
+        :param results: corresponding results for array of experiments of the input qobj
+        :param date: date to be added to the result object
+        :param status: status to be added to the result object
+        :param header: header to be added to the result object
+        :param kwargs: other parameters (added as metadata to the result object)
         """
         super().__init__(backend_name, backend_version, qobj_id, job_id, success,
                          results, date, status, header, **kwargs)
@@ -55,15 +54,13 @@ class QIResult(Result):  # type: ignore
         """Get the probability data of an experiment. The probability data is added as a separate result by
         Quantum Inspire backend. Based on Qiskit get_count method from Result.
 
-        Args:
-            experiment (str or QuantumCircuit or Schedule or int or None): the index of the
+        :param experiment (str or QuantumCircuit or Schedule or int or None): the index of the
                 experiment, as specified by ``get_data()``.
 
-        Returns:
+        :return:
             One or more dictionaries which holds the states and probabilities for each result.
 
-        Raises:
-            QisKitBackendError: raised if there are no probabilities in a result for the experiment(s).
+        :raises QisKitBackendError: raised if there are no probabilities in a result for the experiment(s).
         """
         if experiment is None:
             exp_keys = range(len(self.results))

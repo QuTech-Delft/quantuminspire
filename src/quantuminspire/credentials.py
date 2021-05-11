@@ -1,18 +1,37 @@
-""" Quantum Inspire SDK
+# Quantum Inspire SDK
+#
+# Copyright 2018 QuTech Delft
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-Copyright 2018 QuTech Delft
+"""
+Module credentials
+==================
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+The following functions use a resource file to store credentials information
+for the user. The default location of this resource file is
+:file:`.quantuminspire/qirc` in the user's home directory.
+This default location is indicated with `DEFAULT_QIRC_FILE` in the following function signatures.
 
-   http://www.apache.org/licenses/LICENSE-2.0
+.. autofunction:: load_account(filename: str = DEFAULT_QIRC_FILE) -> Optional[str]
+.. autofunction:: read_account(filename: str = DEFAULT_QIRC_FILE) -> Optional[str]
+.. autofunction:: store_account(token: str, filename: str = DEFAULT_QIRC_FILE, overwrite: bool = False) -> None
+.. autofunction:: delete_account(token: str, filename: str = DEFAULT_QIRC_FILE) -> None
+.. autofunction:: save_account(token: str, filename: str = DEFAULT_QIRC_FILE) -> None
+.. autofunction:: enable_account
+.. autofunction:: get_token_authentication
+.. autofunction:: get_basic_authentication
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
 """
 
 import warnings
@@ -25,18 +44,17 @@ DEFAULT_QIRC_FILE = os.path.join(os.path.expanduser("~"), '.quantuminspire', 'qi
 
 
 def load_account(filename: str = DEFAULT_QIRC_FILE) -> Optional[str]:
-    """ Try to load an earlier stored Quantum Inspire token from file or environment
+    """ Try to load an earlier stored Quantum Inspire token from file or environment.
 
     Load the token when found. This method looks for the token in two locations, in the following order:
-    1. In the environment variable ('QI_TOKEN').
-    2. In the file with filename given or, when not given, the default resource file in the user home directory
-       (`HOME/.quantuminspire/qirc`).
 
-    Args:
-        filename: full path to the resource file. If no filename is given, the default resource file
-                  in the user home directory is used (`HOME/.quantuminspire/qirc`).
+        1. In the environment variable (:envvar:`QI_TOKEN`).
+        2. In the file with `filename` given or, when not given, the default resource file
+           :file:`.quantuminspire/qirc` in the user's home directory.
 
-    Returns:
+    :param filename: full path to the resource file. If no `filename` is given, the default resource file
+        :file:`.quantuminspire/qirc` in the user's home directory is used.
+    :return:
         The Quantum Inspire token or None when no token is found.
     """
     token = os.environ.get('QI_TOKEN', None) or read_account(filename)
@@ -44,16 +62,15 @@ def load_account(filename: str = DEFAULT_QIRC_FILE) -> Optional[str]:
 
 
 def read_account(filename: str = DEFAULT_QIRC_FILE) -> Optional[str]:
-    """ Try to read an earlier stored Quantum Inspire token from file
+    """ Try to read an earlier stored Quantum Inspire token from file.
 
-    Read the token from file. This method looks for the token in the file with filename given or,
-    when no filename is given, the default resource file in the user home directory (`HOME/.quantuminspire/qirc`).
+    his method looks for the token in the file with `filename` given or,
+    when no `filename` is given, the default resource file :file:`.quantuminspire/qirc` in the user's home directory.
 
-    Args:
-        filename: full path to the resource file. If no filename is given, the default resource file
-                  in the user home directory is used (`HOME/.quantuminspire/qirc`).
+    :param filename: full path to the resource file. If no filename is given, the default resource file
+        :file:`.quantuminspire/qirc` in the user's home directory is used.
 
-    Returns:
+    :return:
         The Quantum Inspire token or None when no token is found or token is empty.
     """
     try:
@@ -66,14 +83,14 @@ def read_account(filename: str = DEFAULT_QIRC_FILE) -> Optional[str]:
 
 
 def store_account(token: str, filename: str = DEFAULT_QIRC_FILE, overwrite: bool = False) -> None:
-    """
-    Store the token in a resource file. Replace an existing token only when overwrite=True.
+    """Store the token in a resource file.
 
-    Args:
-        token: the Quantum Inspire token to store to disk.
-        filename: full path to the resource file. If no filename is given, the default resource file
-                  in the user home directory is used (`HOME/.quantuminspire/qirc`).
-        overwrite: overwrite an existing token.
+    Replace an existing token only when overwrite=True.
+
+    :param token: the Quantum Inspire token to store to disk.
+    :param filename: full path to the resource file. If no `filename` is given, the default resource file
+        :file:`.quantuminspire/qirc` in the user's home directory is used.
+    :param overwrite: overwrite an existing token.
     """
     stored_token = read_account(filename)
     if stored_token and stored_token != token and not overwrite:
@@ -83,12 +100,11 @@ def store_account(token: str, filename: str = DEFAULT_QIRC_FILE, overwrite: bool
 
 
 def delete_account(token: str, filename: str = DEFAULT_QIRC_FILE) -> None:
-    """ Remove the token from the resource file.
+    """Remove the token from the resource file.
 
-    Args:
-        token: the Quantum Inspire token to remove.
-        filename: full path to the resource file. If no filename is given, the default resource file
-                  in the user home directory is used (`HOME/.quantuminspire/qirc`).
+    :param token: the Quantum Inspire token to remove.
+    :param filename: full path to the resource file. If no `filename` is given, the default resource file
+        :file:`.quantuminspire/qirc` in the user's home directory is used.
     """
     stored_token = read_account(filename)
     if stored_token == token:
@@ -96,13 +112,14 @@ def delete_account(token: str, filename: str = DEFAULT_QIRC_FILE) -> None:
 
 
 def save_account(token: str, filename: str = DEFAULT_QIRC_FILE) -> None:
-    """ Save the token to a file with filename given, otherwise save to the default resource file.
-        An existing token is overwritten. Use store_account to prevent overwriting an existing token.
+    """Save the token to a file.
 
-    Args:
-        token: the Quantum Inspire token to save.
-        filename: full path to the resource file. If no filename is given, the default resource file
-                  in the user home directory is used (`HOME/.quantuminspire/qirc`).
+    Save the token to the file with `filename` given, otherwise save to the default resource file.
+    An existing token is overwritten. Use :meth:`~.store_account` to prevent overwriting an existing token.
+
+    :param token: the Quantum Inspire token to save.
+    :param filename: full path to the resource file. If no `filename` is given, the default resource file
+        :file:`.quantuminspire/qirc` in the user's home directory is used.
     """
     accounts = {'token': token}
     os.makedirs(os.path.dirname(filename), exist_ok=True)
@@ -111,23 +128,23 @@ def save_account(token: str, filename: str = DEFAULT_QIRC_FILE) -> None:
 
 
 def enable_account(token: str) -> None:
-    """ Save the token to the internal environment, that will be used by load_account for the session.
-        When a token was already loaded from the system environment it is overwritten.
-        The system environment is not effected.
+    """Save the token to the internal environment, that will be used by load_account for the session.
 
-    Args:
-        token: the Quantum Inspire token to be used by load_account() for the session.
+    When a token was already loaded from the system environment it is overwritten.
+    The system environment is not effected.
+
+    :param token: the Quantum Inspire token to be used by :meth:`~.load_account` for the session.
     """
     os.environ['QI_TOKEN'] = token
 
 
 def get_token_authentication(token: Optional[str] = None) -> TokenAuthentication:
-    """ Set up token authentication for Quantum Inspire to be used in the API.
+    """Set up token authentication for Quantum Inspire to be used in the API.
 
-    Args:
-        token: the Quantum Inspire token to set in TokenAuthentication. When no token is given,
+    :param token: the Quantum Inspire token to set in TokenAuthentication. When no token is given,
+        the token returned from :meth:`~.load_account` is used.
 
-    Returns:
+    :return:
         The token authentication for Quantum Inspire.
     """
     if not token:
@@ -136,13 +153,12 @@ def get_token_authentication(token: Optional[str] = None) -> TokenAuthentication
 
 
 def get_basic_authentication(email: str, password: str) -> BasicAuthentication:
-    """ Set up basic authentication for Quantum Inspire to be used in the API.
+    """Set up basic authentication for Quantum Inspire to be used in the API.
 
-    Args:
-        email: a valid email address.
-        password: password for the account.
+    :param email: a valid email address.
+    :param password: password for the account.
 
-    Returns:
+    :return:
         The basic authentication for Quantum Inspire.
     """
     return BasicAuthentication(email, password)

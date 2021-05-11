@@ -1,0 +1,1 @@
+.. automodule:: quantuminspire.api
