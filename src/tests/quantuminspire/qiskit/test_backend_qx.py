@@ -460,6 +460,28 @@ class TestQiSimulatorPy(unittest.TestCase):
             simulator.run(qobj)
         result_experiment.assert_called_once_with(experiment, 25, project=project, full_state_projection=True)
 
+    def test_for_non_fsp_hardware_backend(self):
+        with patch.object(QuantumInspireBackend, "_submit_experiment", return_value=Mock()) as result_experiment:
+            api = Mock()
+            project = {'id': 42}
+            api.create_project.return_value = project
+            api.execute_qasm_async.return_value = 42
+            api.get_backend_type_by_name.return_value = {'max_number_of_shots': 4096}
+            config = QuantumInspireBackend.DEFAULT_CONFIGURATION
+            config.backend_name = 'qi_hardware'
+            config.simulator = False
+            simulator = QuantumInspireBackend(api, config)
+            instructions = [{'name': 'cx', 'qubits': [0, 1]},
+                            {'name': 'x', 'qubits': [0]}]
+            experiment = self._basic_experiment_dictionary
+            experiment['instructions'] = instructions
+            qjob_dict = self._basic_qobj_dictionary
+            qjob_dict['experiments'][0] = experiment
+            qobj = QasmQobj.from_dict(qjob_dict)
+            experiment = qobj.experiments[0]
+            simulator.run(qobj)
+        result_experiment.assert_called_once_with(experiment, 25, project=project, full_state_projection=False)
+
     def test_measurement_2_qubits_to_1_classical_bit(self):
         with patch.object(QuantumInspireBackend, "_submit_experiment", return_value=Mock()):
             api = Mock()
