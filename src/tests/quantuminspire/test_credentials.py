@@ -158,10 +158,6 @@ class TestCredentials(TestCase):
             self.assertEqual(auth.scheme, 'token')
 
     def test_get_authentication_basic(self):
-        # remove token from env
-        token = os.environ.get('QI_TOKEN', None)
-        if token is not None:
-            os.environ.pop('QI_TOKEN')
         email = 'bla@bla.bla'
         secret_password = 'secret'
         with patch("builtins.open", mock_open()) as mock_file, \
@@ -175,10 +171,6 @@ class TestCredentials(TestCase):
 
     # @skipUnless(sys.platform.startswith("win"), "getpass mocking fails on Linux")
     def test_get_authentication_basic_stdin(self):
-        # remove token and email from env
-        token = os.environ.get('QI_TOKEN', None)
-        if token is not None:
-            os.environ.pop('QI_TOKEN')
         email = os.environ.get('QI_EMAIL', None)
         if email is not None:
             os.environ.pop('QI_EMAIL')
