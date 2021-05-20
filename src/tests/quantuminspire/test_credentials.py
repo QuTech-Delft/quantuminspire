@@ -157,15 +157,23 @@ class TestCredentials(TestCase):
             self.assertEqual(auth.scheme, 'token')
 
     def test_get_authentication_basic(self):
+        # remove token from env
+        token = os.environ.get('QI_TOKEN', None)
+        if token is not None:
+            os.environ.pop('QI_TOKEN')
         email = 'bla@bla.bla'
         secret_password = 'secret'
-        with patch("builtins.open", mock_open()) as mock_file:
-            with patch.dict('os.environ', values={'QI_EMAIL': email, 'QI_PASSWORD': secret_password}):
-                auth = get_authentication()
-                auth_expected = BasicAuthentication(email, secret_password)
-                self.assertEqual(auth, auth_expected)
+        with patch("builtins.open", mock_open()) as mock_file, \
+                patch.dict('os.environ', values={'QI_EMAIL': email, 'QI_PASSWORD': secret_password}):
+            auth = get_authentication()
+            auth_expected = BasicAuthentication(email, secret_password)
+            self.assertEqual(auth, auth_expected)
 
     def test_get_authentication_basic_stdin(self):
+        # remove token and email from env
+        token = os.environ.get('QI_TOKEN', None)
+        if token is not None:
+            os.environ.pop('QI_TOKEN')
         email = os.environ.get('QI_EMAIL', None)
         if email is not None:
             os.environ.pop('QI_EMAIL')
