@@ -169,7 +169,7 @@ class TestCredentials(TestCase):
             auth_expected = BasicAuthentication(email, secret_password)
             self.assertEqual(auth, auth_expected)
 
-    @skipUnless(sys.platform.startswith("win"), "getpass mocking fails on Linux")
+    # @skipUnless(sys.platform.startswith("win"), "getpass mocking fails on Linux")
     def test_get_authentication_basic_stdin(self):
         email = os.environ.get('QI_EMAIL', None)
         if email is not None:
@@ -185,7 +185,8 @@ class TestCredentials(TestCase):
                 patch("getpass.win_getpass") as mock_win_getpass, \
                 patch("sys.stdin") as mock_sys_stdin, \
                 patch("getpass.unix_getpass") as mock_unix_getpass, \
-                patch("os.open") as mock_os_open, \
+                patch("os.open", side_effect = OSError('foo')), \
+                patch("sys.stdin.fileno", side_effect=ValueError('foo')), \
                 patch("getpass._raw_input") as mock_raw_input, \
                 patch("quantuminspire.credentials.load_account") as mock_load_account, \
                 patch("warnings.warn") as mock_warn:
