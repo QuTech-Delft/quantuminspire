@@ -157,23 +157,18 @@ class TestCredentials(TestCase):
             self.assertEqual(auth.scheme, 'token')
 
     def test_get_authentication_basic(self):
-        # remove token from env
-        token = os.environ.get('QI_TOKEN', None)
-        if token is not None:
-            os.environ.pop('QI_TOKEN')
         email = 'bla@bla.bla'
         secret_password = 'secret'
         with patch("builtins.open", mock_open()) as mock_file, \
+                patch("quantuminspire.credentials.load_account") as mock_load_account, \
                 patch.dict('os.environ', values={'QI_EMAIL': email, 'QI_PASSWORD': secret_password}):
+
+            mock_load_account.return_value = None
             auth = get_authentication()
             auth_expected = BasicAuthentication(email, secret_password)
             self.assertEqual(auth, auth_expected)
 
     def test_get_authentication_basic_stdin(self):
-        # remove token and email from env
-        token = os.environ.get('QI_TOKEN', None)
-        if token is not None:
-            os.environ.pop('QI_TOKEN')
         email = os.environ.get('QI_EMAIL', None)
         if email is not None:
             os.environ.pop('QI_EMAIL')
@@ -190,7 +185,9 @@ class TestCredentials(TestCase):
                 patch("getpass.unix_getpass") as mock_unix_getpass, \
                 patch("os.open") as mock_os_open, \
                 patch("getpass._raw_input") as mock_raw_input, \
+                patch("quantuminspire.credentials.load_account") as mock_load_account, \
                 patch("warnings.warn") as mock_warn:
+            mock_load_account.return_value = None
             mock_input.return_value = email
             mock_getpass.return_value = secret_password
             mock_raw_input.return_value = secret_password
