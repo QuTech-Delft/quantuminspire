@@ -28,16 +28,19 @@ This default location is indicated with `DEFAULT_QIRC_FILE` in the following fun
 .. autofunction:: store_account(token: str, filename: str = DEFAULT_QIRC_FILE, overwrite: bool = False) -> None
 .. autofunction:: delete_account(token: str, filename: str = DEFAULT_QIRC_FILE) -> None
 .. autofunction:: save_account(token: str, filename: str = DEFAULT_QIRC_FILE) -> None
-.. autofunction:: enable_account
-.. autofunction:: get_token_authentication
-.. autofunction:: get_basic_authentication
+.. autofunction:: enable_account(token: str) -> None:
+.. autofunction:: get_token_authentication(token: Optional[str] = None) -> TokenAuthentication:
+.. autofunction:: get_basic_authentication(email: str, password: str) -> BasicAuthentication:
+.. autofunction:: get_authentication() -> Union[TokenAuthentication, BasicAuthentication]:
 
 """
 
-import warnings
-import os
+from getpass import getpass
 import json
-from typing import Optional
+import os
+from typing import Optional, Union
+import warnings
+
 from coreapi.auth import BasicAuthentication, TokenAuthentication
 
 DEFAULT_QIRC_FILE = os.path.join(os.path.expanduser("~"), '.quantuminspire', 'qirc')
@@ -162,3 +165,28 @@ def get_basic_authentication(email: str, password: str) -> BasicAuthentication:
         The basic authentication for Quantum Inspire.
     """
     return BasicAuthentication(email, password)
+
+
+def get_authentication() -> Union[TokenAuthentication, BasicAuthentication]:
+    """ Gets the authentication for connecting to the Quantum Inspire API.
+
+        First it tries to load a token, saved earlier. When a token is not found it tries to login
+        with basic authentication read from the environment variables QI_EMAIL and QI_PASSWORD. When the environment
+        variables are not both set, email and password are read from standard input.
+
+    :return:
+        The token or basic authentication for Quantum Inspire.
+    """
+    token = load_account()
+    if token is not None:
+        return get_token_authentication(token)
+    else:
+        email = os.environ.get('QI_EMAIL', None)
+        password = os.environ.get('QI_PASSWORD', None)
+        if email is None or password is None:
+            print('Enter email:')
+            email = input()
+            print('Enter password')
+            password = getpass()
+
+        return get_basic_authentication(email, password)
