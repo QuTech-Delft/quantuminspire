@@ -16,7 +16,8 @@ limitations under the License.
 """
 import os
 import json
-from unittest import TestCase
+import sys
+from unittest import TestCase, skipUnless
 from unittest.mock import MagicMock, patch, mock_open, call
 
 from coreapi.auth import BasicAuthentication
@@ -168,6 +169,7 @@ class TestCredentials(TestCase):
             auth_expected = BasicAuthentication(email, secret_password)
             self.assertEqual(auth, auth_expected)
 
+    @skipUnless(sys.platform.startswith("win"), "getpass mocking fails on Linux")
     def test_get_authentication_basic_stdin(self):
         email = os.environ.get('QI_EMAIL', None)
         if email is not None:
