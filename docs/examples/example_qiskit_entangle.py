@@ -1,10 +1,10 @@
-"""Example usage of the Quantum Inspire backend with the QisKit SDK.
+"""Example usage of the Quantum Inspire backend with the Qiskit SDK.
 
 A simple example that demonstrates how to use the SDK to create
 a circuit to create a Bell state, and simulate the circuit on
 Quantum Inspire.
 
-For documentation on how to use QisKit we refer to
+For documentation on how to use Qiskit we refer to
 [https://qiskit.org/](https://qiskit.org/).
 
 Specific to Quantum Inspire is the creation of the QI instance, which is used to set the authentication of the user and

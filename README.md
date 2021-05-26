@@ -62,14 +62,19 @@ pip install .[qiskit,projectq]
 
 ### Installing for generating documentation
 To install the necessary packages to perform documentation activities for SDK do:
+
 ```
 pip install -e .[rtd]
 ```
+
 To build the 'readthedocs' documentation do:
+
 ```
 cd docs
 make html
 ```
+
+The documentation is then build in 'docs/_build/html' and can be viewed [here](docs/_build/html/index.html).
 
 ## Running
 

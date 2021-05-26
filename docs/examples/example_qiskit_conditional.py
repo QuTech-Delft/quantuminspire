@@ -1,4 +1,4 @@
-"""Example usage of the Quantum Inspire backend with the QisKit SDK.
+"""Example usage of the Quantum Inspire backend with the Qiskit SDK.
 
 A simple example that demonstrates how to use the SDK to create
 a circuit to demonstrate conditional gate execution.

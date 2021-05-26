@@ -12,6 +12,7 @@ Welcome to Quantum Inspire's SDK documentation!
 
    introduction
    modules
+   examples
    license
 
 

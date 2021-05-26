@@ -81,6 +81,8 @@ To build the 'readthedocs' documentation do:
     cd docs
     make html
 
+The documentation is then build in 'docs/_build/html'.
+
 Running
 -------
 
@@ -104,7 +106,7 @@ or when you want to choose which example notebook to run from the browser do:
 
     jupyter notebook --notebook-dir="docs/notebooks"
 
-and select an ipython notebook (file with extension ``ipynb``) to run from one of the directories.
+and select an ipython notebook (file with extension ``ipynb``) to run.
 
 To perform Grover's with the ProjectQ backend from a Python script:
 
