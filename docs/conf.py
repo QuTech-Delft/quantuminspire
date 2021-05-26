@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.abspath(os.path.join('..', '..')))
 
 # -- Project information -----------------------------------------------------
 
-project = 'quantuminspire'
+project = 'Quantum Inspire'
 copyright = '2021, QuTech'
 author = 'QuTech'
 

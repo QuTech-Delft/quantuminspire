@@ -287,7 +287,7 @@ tracker <https://github.com/QuTech-Delft/quantuminspire/issues>`__.
 
     .. code-block:: bash
 
-        rm -Rf env/lib/python3.6/site-packages/tests
+        rm -Rf env/lib/python3.7/site-packages/tests
 
 .. |Binder| image:: https://mybinder.org/badge_logo.svg
    :target: https://mybinder.org/v2/gh/QuTech-Delft/quantuminspire/master?filepath=docs

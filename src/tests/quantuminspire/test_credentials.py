@@ -16,12 +16,13 @@ limitations under the License.
 """
 import os
 import json
-from unittest import TestCase
+import sys
+from unittest import TestCase, skipUnless
 from unittest.mock import MagicMock, patch, mock_open, call
 
 from coreapi.auth import BasicAuthentication
 from quantuminspire.credentials import save_account, store_account, delete_account, enable_account, load_account,\
-    get_token_authentication, get_basic_authentication
+    get_token_authentication, get_basic_authentication, get_authentication
 DEFAULT_QIRC_FILE = os.path.join(os.path.expanduser("~"), '.quantuminspire', 'qirc')
 
 
@@ -148,3 +149,53 @@ class TestCredentials(TestCase):
             all_calls = environment.mock_calls
             self.assertIn([call.get('QI_TOKEN', None)], all_calls)
             self.assertEqual(expected_token, token)
+
+    def test_get_authentication_token(self):
+        secret_token = 'secret'
+        with patch.dict('os.environ', values={'QI_TOKEN': secret_token}):
+            auth = get_authentication()
+            self.assertEqual(auth.token, secret_token)
+            self.assertEqual(auth.scheme, 'token')
+
+    def test_get_authentication_basic(self):
+        email = 'bla@bla.bla'
+        secret_password = 'secret'
+        with patch("builtins.open", mock_open()) as mock_file, \
+                patch("quantuminspire.credentials.load_account") as mock_load_account, \
+                patch.dict('os.environ', values={'QI_EMAIL': email, 'QI_PASSWORD': secret_password}):
+
+            mock_load_account.return_value = None
+            auth = get_authentication()
+            auth_expected = BasicAuthentication(email, secret_password)
+            self.assertEqual(auth, auth_expected)
+
+    # @skipUnless(sys.platform.startswith("win"), "getpass mocking fails on Linux")
+    def test_get_authentication_basic_stdin(self):
+        email = os.environ.get('QI_EMAIL', None)
+        if email is not None:
+            os.environ.pop('QI_EMAIL')
+        email = 'bla@bla.bla'
+        secret_password = 'secret'
+
+        # somehow mocking getpass.getpass is not enough for different OS
+        with patch("builtins.open", mock_open()) as mock_file, \
+                patch("builtins.input") as mock_input, \
+                patch("builtins.print") as mock_print, \
+                patch("getpass.getpass") as mock_getpass, \
+                patch("getpass.win_getpass") as mock_win_getpass, \
+                patch("sys.stdin") as mock_sys_stdin, \
+                patch("getpass.unix_getpass") as mock_unix_getpass, \
+                patch("os.open", side_effect = OSError('foo')), \
+                patch("sys.stdin.fileno", side_effect=ValueError('foo')), \
+                patch("getpass._raw_input") as mock_raw_input, \
+                patch("quantuminspire.credentials.load_account") as mock_load_account, \
+                patch("warnings.warn") as mock_warn:
+            mock_load_account.return_value = None
+            mock_input.return_value = email
+            mock_getpass.return_value = secret_password
+            mock_raw_input.return_value = secret_password
+            mock_win_getpass.return_value = secret_password
+            mock_unix_getpass.return_value = secret_password
+            auth = get_authentication()
+            auth_expected = BasicAuthentication(email, secret_password)
+            self.assertEqual(auth, auth_expected)

@@ -1,22 +1,17 @@
 language: python
 matrix:
   include:
-    - name: python 3.6
-      python: 3.6
-      sudo: true
-      dist: xenial
     - name: python 3.7
       python: 3.7
       sudo: true
       dist: xenial
     - name: python 3.8
       python: 3.8
-      if: branch = master
+      if: branch = dev
       sudo: true
       dist: xenial
     - name: python 3.9
       python: 3.9
-      if: branch = master
       sudo: true
       dist: xenial
 install:
