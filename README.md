@@ -92,7 +92,7 @@ cd docs/examples
 python example_projectq_grover.py
 ```
 
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/QuTech-Delft/quantuminspire/master?filepath=docs)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/QuTech-Delft/quantuminspire/master?filepath=docs/examples)
 
 Another way to browse and run the available notebooks is by clicking the 'launch binder' button above.
 

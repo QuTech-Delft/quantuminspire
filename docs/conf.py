@@ -31,6 +31,7 @@ author = 'QuTech'
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinx.ext.viewcode',
     'sphinx_rtd_theme',
     'recommonmark'
 ]

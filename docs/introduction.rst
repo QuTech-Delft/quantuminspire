@@ -1,9 +1,6 @@
 Introduction
 ============
 
-*Note: this SDK is made available as a public beta, please report any
-issues or bugs in the github issue tracker.*
-
 The Quantum Inspire platform allows to execute quantum algorithms using
 the cQASM language.
 
@@ -167,6 +164,7 @@ API wrapper directly:
 
 Configure a project name for Quantum Inspire
 --------------------------------------------
+
 As a default, SDK stores the jobs in a Quantum Inspire project with the name "qi-sdk-project-" concatenated with a
 unique identifier for each run. Providing a project name yourself makes it easier to find the project in the Quantum
 Inspire web-interface and makes it possible to gather related jobs to the same project.
@@ -290,4 +288,4 @@ tracker <https://github.com/QuTech-Delft/quantuminspire/issues>`__.
         rm -Rf env/lib/python3.7/site-packages/tests
 
 .. |Binder| image:: https://mybinder.org/badge_logo.svg
-   :target: https://mybinder.org/v2/gh/QuTech-Delft/quantuminspire/master?filepath=docs
+   :target: https://mybinder.org/v2/gh/QuTech-Delft/quantuminspire/master?filepath=%2Fdocs%2Fexamples
