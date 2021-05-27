@@ -206,7 +206,7 @@ class QIBackend(BasicEngine):  # type: ignore
         qubits are needed in total for the algorithm.
         A source of reusing qubits is when qubits are used as ancilla bits. Ancilla bits are used to downgrade
         complicated quantum gates into simple gates by placing controls on ancilla bits or when doing quantum error
-        correction. In projectQ, a qubit can be re-used when it is de-allocated after usage. ProjectQ sends an
+        correction. In ProjectQ, a qubit can be re-used when it is de-allocated after usage. ProjectQ sends an
         Allocate-gate for a qubit that is going to be used and a Deallocate gate for qubits that are not used anymore.
 
         :attr:`_allocation_map` is the store in which the administration
