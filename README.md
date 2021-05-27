@@ -1,7 +1,9 @@
 # Quantum Inspire SDK
 
-*Note: this SDK is made available as a public beta, please report any
-issues or bugs in the github issue tracker.*
+[![License](https://img.shields.io/github/license/qutech-delft/quantuminspire.svg?)](https://opensource.org/licenses/Apache-2.0)
+[![Documentation Status](https://readthedocs.org/projects/quantum-inspire/badge/?version=latest)](https://quantum-inspire.readthedocs.io/en/latest/?badge=latest)
+[![](https://img.shields.io/github/release/qutech-delft/quantuminspire.svg)](https://github.com/qutech-delft/quantuminspire/releases)
+[![Downloads](https://pepy.tech/badge/quantuminspire)](https://pypi.org/project/quantuminspire/)
 
 The Quantum Inspire platform allows to execute quantum algorithms using the cQASM language.
 
