@@ -11,8 +11,8 @@ from projectq.meta import Compute, Control, Loop, Uncompute
 from projectq.ops import CNOT, CZ, All, H, Measure, X, Z
 from projectq.setups import restrictedgateset
 
-from quantuminspire.credentials import get_authentication
 from quantuminspire.api import QuantumInspireAPI
+from quantuminspire.credentials import get_authentication
 from quantuminspire.projectq.backend_qx import QIBackend
 
 QI_URL = os.getenv('API_URL', 'https://api.quantum-inspire.com/')
@@ -87,28 +87,26 @@ def alternating_bits_oracle(eng, qubits, output):
     Uncompute(eng)
 
 
-if __name__ == '__main__':
+# Remote Quantum-Inspire backend
+authentication = get_authentication()
+qi = QuantumInspireAPI(QI_URL, authentication)
+qi_backend = QIBackend(quantum_inspire_api=qi)
 
-    # Remote Quantum-Inspire backend #
-    authentication = get_authentication()
-    qi = QuantumInspireAPI(QI_URL, authentication)
-    qi_backend = QIBackend(quantum_inspire_api=qi)
+compiler_engines = restrictedgateset.get_engine_list(one_qubit_gates=qi_backend.one_qubit_gates,
+                                                     two_qubit_gates=qi_backend.two_qubit_gates,
+                                                     other_gates=qi_backend.three_qubit_gates)
+compiler_engines.extend([ResourceCounter()])
+qi_engine = MainEngine(backend=qi_backend, engine_list=compiler_engines)
 
-    compiler_engines = restrictedgateset.get_engine_list(one_qubit_gates=qi_backend.one_qubit_gates,
-                                                         two_qubit_gates=qi_backend.two_qubit_gates,
-                                                         other_gates=qi_backend.three_qubit_gates)
-    compiler_engines.extend([ResourceCounter()])
-    qi_engine = MainEngine(backend=qi_backend, engine_list=compiler_engines)
+# Run remote Grover search to find a n-bit solution
+result_qi = run_grover(qi_engine, 3, alternating_bits_oracle)
+print("\nResult from the remote Quantum-Inspire backend: {}".format(result_qi))
 
-    # Run remote Grover search to find a n-bit solution
-    result_qi = run_grover(qi_engine, 3, alternating_bits_oracle)
-    print("\nResult from the remote Quantum-Inspire backend: {}".format(result_qi))
+# Local ProjectQ simulator backend
+compiler_engines = restrictedgateset.get_engine_list(one_qubit_gates="any", two_qubit_gates=(CNOT, CZ))
+compiler_engines.append(ResourceCounter())
+local_engine = MainEngine(Simulator(), compiler_engines)
 
-    # Local ProjectQ simulator backend #
-    compiler_engines = restrictedgateset.get_engine_list(one_qubit_gates="any", two_qubit_gates=(CNOT, CZ))
-    compiler_engines.append(ResourceCounter())
-    local_engine = MainEngine(Simulator(), compiler_engines)
-
-    # Run local Grover search to find a n-bit solution
-    result_local = run_grover(local_engine, 3, alternating_bits_oracle)
-    print("Result from the local ProjectQ simulator backend: {}\n".format(result_local))
+# Run local Grover search to find a n-bit solution
+result_local = run_grover(local_engine, 3, alternating_bits_oracle)
+print("Result from the local ProjectQ simulator backend: {}\n".format(result_local))

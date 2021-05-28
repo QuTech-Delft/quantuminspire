@@ -1,6 +1,7 @@
 # Quantum Inspire SDK
 
 [![License](https://img.shields.io/github/license/qutech-delft/quantuminspire.svg?)](https://opensource.org/licenses/Apache-2.0)
+[![Coverage Status](https://coveralls.io/repos/github/QuTech-Delft/quantuminspire/badge.svg?branch=dev)](https://coveralls.io/github/QuTech-Delft/quantuminspire?branch=dev)
 [![Documentation Status](https://readthedocs.org/projects/quantum-inspire/badge/?version=latest)](https://quantum-inspire.readthedocs.io/en/latest/?badge=latest)
 [![](https://img.shields.io/github/release/qutech-delft/quantuminspire.svg)](https://github.com/qutech-delft/quantuminspire/releases)
 [![Downloads](https://pepy.tech/badge/quantuminspire)](https://pypi.org/project/quantuminspire/)
