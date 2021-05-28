@@ -32,6 +32,7 @@ author = 'QuTech'
 extensions = [
     'nbsphinx',
     'sphinx.ext.autodoc',
+    'sphinx.ext.napoleon',  # google style docstrings
     'sphinx.ext.viewcode',
     'sphinx_rtd_theme',
     'recommonmark'
