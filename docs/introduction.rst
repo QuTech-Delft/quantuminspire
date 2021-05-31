@@ -20,6 +20,9 @@ https://www.quantum-inspire.com/. Detailed information on cQASM can be
 found in the Quantum Inspire `knowledge
 base <https://www.quantum-inspire.com/kbase/advanced-guide/>`__.
 
+Examples of more complex algorithms that make use of Quantum Inspire SDK can be found in
+`Quantum Inspire Examples <https://github.com/QuTech-Delft/quantum-inspire-examples>`__.
+
 Installation
 ------------
 
