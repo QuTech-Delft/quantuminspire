@@ -251,8 +251,8 @@ you do:
 
 .. code:: python
 
-    from quantuminspire.credentials import get_token_authentication
-    auth = get_token_authentication()
+    from quantuminspire.credentials import get_authentication
+    auth = get_authentication()
 
 This ``auth`` can then be used to initialize the Quantum Inspire API
 object.
@@ -270,7 +270,6 @@ Run all unit tests and collect the code coverage using:
 Known issues
 ------------
 
--  Some test-cases call protected methods
 -  Known issues and common questions regarding the Quantum Inspire
    platform can be found in the
    `FAQ <https://www.quantum-inspire.com/faq/>`__.
@@ -280,17 +279,6 @@ Bug reports
 
 Please submit bug-reports `on the github issue
 tracker <https://github.com/QuTech-Delft/quantuminspire/issues>`__.
-
-.. note::
-
-    If you are getting import errors related to ``tests.quantuminspire``
-    when running the above commands after a ``pip install -e .``, as a
-    workaround you should remove the package :file:`tests` installed by older
-    versions of ``marshmallow-polyfield`` (a Qiskit dependency):
-
-    .. code-block:: bash
-
-        rm -Rf env/lib/python3.7/site-packages/tests
 
 .. |Binder| image:: https://mybinder.org/badge_logo.svg
    :target: https://mybinder.org/v2/gh/QuTech-Delft/quantuminspire/master?filepath=%2Fdocs%2Fexamples

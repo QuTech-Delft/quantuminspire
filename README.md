@@ -213,8 +213,8 @@ qi = QuantumInspireAPI()
 ```
 To create a token authentication object yourself using the stored token you do:
 ```python
-from quantuminspire.credentials import get_token_authentication
-auth = get_token_authentication()
+from quantuminspire.credentials import get_authentication
+auth = get_authentication()
 ```
 This `auth` can then be used to initialize the Quantum Inspire API object.
 
@@ -229,19 +229,9 @@ coverage report -m
 
 ## Known issues
 
-* Some test-cases call protected methods
 * Known issues and common questions regarding the Quantum Inspire platform
   can be found in the [FAQ](https://www.quantum-inspire.com/faq/).
 
 ## Bug reports
 
 Please submit bug-reports [on the github issue tracker](https://github.com/QuTech-Delft/quantuminspire/issues).
-
-## Note
-
-If you are getting import errors related to `tests.quantuminspire` when running
-the above commands after a `pip install -e .`, as a workaround you should remove
-the package `tests` installed by older versions of `marshmallow-polyfield` (a Qiskit
-dependency):
-
-`rm -Rf env/lib/python3.7/site-packages/tests`
