@@ -1,9 +1,6 @@
 Introduction
 ============
 
-*Note: this SDK is made available as a public beta, please report any
-issues or bugs in the github issue tracker.*
-
 The Quantum Inspire platform allows to execute quantum algorithms using
 the cQASM language.
 
@@ -22,6 +19,9 @@ For more information on Quantum Inspire see
 https://www.quantum-inspire.com/. Detailed information on cQASM can be
 found in the Quantum Inspire `knowledge
 base <https://www.quantum-inspire.com/kbase/advanced-guide/>`__.
+
+Examples of more complex algorithms that make use of Quantum Inspire SDK can be found in
+`Quantum Inspire Examples <https://github.com/QuTech-Delft/quantum-inspire-examples>`__.
 
 Installation
 ------------
@@ -84,6 +84,8 @@ To build the 'readthedocs' documentation do:
     cd docs
     make html
 
+The documentation is then build in 'docs/_build/html'.
+
 Running
 -------
 
@@ -107,7 +109,7 @@ or when you want to choose which example notebook to run from the browser do:
 
     jupyter notebook --notebook-dir="docs/notebooks"
 
-and select an ipython notebook (file with extension ``ipynb``) to run from one of the directories.
+and select an IPython notebook (file with extension ``ipynb``) to run.
 
 To perform Grover's with the ProjectQ backend from a Python script:
 
@@ -167,6 +169,7 @@ API wrapper directly:
 
 Configure a project name for Quantum Inspire
 --------------------------------------------
+
 As a default, SDK stores the jobs in a Quantum Inspire project with the name "qi-sdk-project-" concatenated with a
 unique identifier for each run. Providing a project name yourself makes it easier to find the project in the Quantum
 Inspire web-interface and makes it possible to gather related jobs to the same project.
@@ -248,8 +251,8 @@ you do:
 
 .. code:: python
 
-    from quantuminspire.credentials import get_token_authentication
-    auth = get_token_authentication()
+    from quantuminspire.credentials import get_authentication
+    auth = get_authentication()
 
 This ``auth`` can then be used to initialize the Quantum Inspire API
 object.
@@ -267,7 +270,6 @@ Run all unit tests and collect the code coverage using:
 Known issues
 ------------
 
--  Some test-cases call protected methods
 -  Known issues and common questions regarding the Quantum Inspire
    platform can be found in the
    `FAQ <https://www.quantum-inspire.com/faq/>`__.
@@ -278,16 +280,5 @@ Bug reports
 Please submit bug-reports `on the github issue
 tracker <https://github.com/QuTech-Delft/quantuminspire/issues>`__.
 
-.. note::
-
-    If you are getting import errors related to ``tests.quantuminspire``
-    when running the above commands after a ``pip install -e .``, as a
-    workaround you should remove the package :file:`tests` installed by older
-    versions of ``marshmallow-polyfield`` (a Qiskit dependency):
-
-    .. code-block:: bash
-
-        rm -Rf env/lib/python3.7/site-packages/tests
-
 .. |Binder| image:: https://mybinder.org/badge_logo.svg
-   :target: https://mybinder.org/v2/gh/QuTech-Delft/quantuminspire/master?filepath=docs
+   :target: https://mybinder.org/v2/gh/QuTech-Delft/quantuminspire/master?filepath=%2Fdocs%2Fexamples

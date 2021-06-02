@@ -1,7 +1,10 @@
 # Quantum Inspire SDK
 
-*Note: this SDK is made available as a public beta, please report any
-issues or bugs in the github issue tracker.*
+[![License](https://img.shields.io/github/license/qutech-delft/quantuminspire.svg?)](https://opensource.org/licenses/Apache-2.0)
+[![Coverage Status](https://coveralls.io/repos/github/QuTech-Delft/quantuminspire/badge.svg?branch=dev)](https://coveralls.io/github/QuTech-Delft/quantuminspire?branch=dev)
+[![Documentation Status](https://readthedocs.org/projects/quantum-inspire/badge/?version=latest)](https://quantum-inspire.readthedocs.io/en/latest/?badge=latest)
+[![](https://img.shields.io/github/release/qutech-delft/quantuminspire.svg)](https://github.com/qutech-delft/quantuminspire/releases)
+[![Downloads](https://pepy.tech/badge/quantuminspire)](https://pypi.org/project/quantuminspire/)
 
 The Quantum Inspire platform allows to execute quantum algorithms using the cQASM language.
 
@@ -17,6 +20,7 @@ For more information on Quantum Inspire see
 on cQASM can be found in the Quantum Inspire
 [knowledge base](https://www.quantum-inspire.com/kbase/advanced-guide/).
 
+Examples of more complex algorithms that make use of Quantum Inspire SDK can be found in [Quantum Inspire Examples](https://github.com/QuTech-Delft/quantum-inspire-examples).
 
 ## Installation
 
@@ -62,14 +66,19 @@ pip install .[qiskit,projectq]
 
 ### Installing for generating documentation
 To install the necessary packages to perform documentation activities for SDK do:
+
 ```
 pip install -e .[rtd]
 ```
+
 To build the 'readthedocs' documentation do:
+
 ```
 cd docs
 make html
 ```
+
+The documentation is then build in 'docs/_build/html' and can be viewed [here](docs/_build/html/index.html).
 
 ## Running
 
@@ -92,7 +101,7 @@ cd docs/examples
 python example_projectq_grover.py
 ```
 
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/QuTech-Delft/quantuminspire/master?filepath=docs)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/QuTech-Delft/quantuminspire/master?filepath=docs/examples)
 
 Another way to browse and run the available notebooks is by clicking the 'launch binder' button above.
 
@@ -204,8 +213,8 @@ qi = QuantumInspireAPI()
 ```
 To create a token authentication object yourself using the stored token you do:
 ```python
-from quantuminspire.credentials import get_token_authentication
-auth = get_token_authentication()
+from quantuminspire.credentials import get_authentication
+auth = get_authentication()
 ```
 This `auth` can then be used to initialize the Quantum Inspire API object.
 
@@ -220,19 +229,9 @@ coverage report -m
 
 ## Known issues
 
-* Some test-cases call protected methods
 * Known issues and common questions regarding the Quantum Inspire platform
   can be found in the [FAQ](https://www.quantum-inspire.com/faq/).
 
 ## Bug reports
 
 Please submit bug-reports [on the github issue tracker](https://github.com/QuTech-Delft/quantuminspire/issues).
-
-## Note
-
-If you are getting import errors related to `tests.quantuminspire` when running
-the above commands after a `pip install -e .`, as a workaround you should remove
-the package `tests` installed by older versions of `marshmallow-polyfield` (a Qiskit
-dependency):
-
-`rm -Rf env/lib/python3.7/site-packages/tests`

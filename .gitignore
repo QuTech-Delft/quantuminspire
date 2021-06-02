@@ -47,9 +47,6 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 
-# Sphinx stuff
-docs/build/
-
 # Translations
 *.mo
 *.pot
@@ -68,13 +65,13 @@ instance/
 
 # Sphinx documentation
 docs/_build/
-docs/_test/
 
 # PyBuilder
 target/
 
 # Jupyter Notebook
 .ipynb_checkpoints
+*.nbconvert.ipynb
 
 # pyenv
 .python-version

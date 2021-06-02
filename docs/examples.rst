@@ -1,38 +1,29 @@
-Examples
-========
+Python Examples
+===============
 
-ProjectQ
---------
-.. toctree::
+ProjectQ examples
+-----------------
 
-..
-   examples/example_projectq
-   examples/example_projectq_entangle
-   examples/example_projectq_grover
+A simple example that demonstrates how to use the SDK to create a circuit to create a Bell state, and simulate the
+circuit on Quantum Inspire.
 
-Qiskit
-------
-.. toctree::
+.. literalinclude:: examples/example_projectq_entangle.py
 
-..
-   examples/example_qiskit_conditional
-   examples/example_qiskit_entangle
+An example that demonstrates how to use the SDK to create a more complex circuit to run Grover's algorithm and
+simulate the circuit on Quantum Inspire.
 
-Classifier
-----------
+.. literalinclude:: examples/example_projectq_grover.py
 
-.. toctree::
+Qiskit examples
+---------------
 
-..
-   examples/classifier_example/classification_example1_2_data_points
-   examples/classifier_example/classification_example2_4_data_points
-   examples/classifier_example/classification_example3_4_features
+A simple example that demonstrates how to use the SDK to create a circuit to create a Bell state, and simulate the
+circuit on Quantum Inspire.
 
-General
--------
+.. literalinclude:: examples/example_qiskit_entangle.py
 
-.. toctree::
+A simple example that demonstrates how to use the SDK to create a circuit to demonstrate conditional gate execution.
 
-..
-   examples/grover_algorithm_qi
-   examples/qi-performance-test
+.. literalinclude:: examples/example_qiskit_conditional.py
+
+Back to the :doc:`main page <index>`.
