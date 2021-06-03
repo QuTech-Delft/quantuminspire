@@ -676,6 +676,32 @@ class QuantumInspireAPI:
             raise ApiError(f'Measurement register for result with id {result_id} does not exist!') from err_msg
         return measurement_register
 
+    def get_calibration_from_result(self, result_id: int) -> Optional[Any]:
+        """ Gets the calibration information from the result of the executed cQASM code, given the result_id.
+
+        :param result_id: The identification number of the result.
+
+        :raises ApiError: If the calibration url in result is invalid or the request
+            for the calibration info using the url failed.
+
+        :return:
+            The calibration info.
+            An empty list is returned when there is no data.
+        """
+        calibration_info = None
+        result = self.get_result(result_id)
+        calibration_url = result.get('calibration')
+        if calibration_url is not None:
+            try:
+                token = str(calibration_url).split('/')[-2]
+            except IndexError as err_msg:
+                raise ApiError(f'Invalid calibration url for result with id {result_id}!') from err_msg
+            try:
+                calibration_info = self._action(['calibration', 'read'], params={'id': token})
+            except ErrorMessage as err_msg:
+                raise ApiError(f'Calibration info for result with id {result_id} does not exist!') from err_msg
+        return calibration_info
+
     #  assets  #
 
     def list_assets(self) -> None:
