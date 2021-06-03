@@ -14,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import io
 import json
 import uuid
@@ -31,7 +30,7 @@ from qiskit.result.models import ExperimentResult, ExperimentResultData
 from qiskit.qobj import QobjExperimentHeader
 
 from quantuminspire.api import QuantumInspireAPI
-from quantuminspire.exceptions import QisKitBackendError
+from quantuminspire.exceptions import QisKitBackendError, ApiError
 from quantuminspire.job import QuantumInspireJob
 from quantuminspire.qiskit.circuit_parser import CircuitToString
 from quantuminspire.qiskit.qi_job import QIJob
@@ -112,21 +111,27 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
         project_name = 'qi-sdk-project-{}'.format(identifier)
         project: Optional[Dict[str, Any]]
         project = self.__api.create_project(project_name, number_of_shots, self.__backend)
-        experiments = qobj.experiments
-        job = QIJob(self, str(project['id']), self.__api)
-        for experiment in experiments:
-            self.__validate_number_of_clbits(experiment)
-            full_state_projection = BaseBackend.configuration(self).simulator and \
-                                    self.__validate_full_state_projection(experiment)
-            if not full_state_projection:
-                QuantumInspireBackend.__validate_unsupported_measurements(experiment)
-            job_for_experiment = self._submit_experiment(experiment, number_of_shots, project=project,
-                                                         full_state_projection=full_state_projection)
-            job.add_job(job_for_experiment)
-            if project is not None and job_for_experiment.get_project_identifier() != project['id']:
+        try:
+            experiments = qobj.experiments
+            job = QIJob(self, str(project['id']), self.__api)
+            for experiment in experiments:
+                self.__validate_number_of_clbits(experiment)
+                full_state_projection = BaseBackend.configuration(self).simulator and \
+                                        self.__validate_full_state_projection(experiment)
+                if not full_state_projection:
+                    QuantumInspireBackend.__validate_unsupported_measurements(experiment)
+                job_for_experiment = self._submit_experiment(experiment, number_of_shots, project=project,
+                                                             full_state_projection=full_state_projection)
+                job.add_job(job_for_experiment)
+                if project is not None and job_for_experiment.get_project_identifier() != project['id']:
+                    self.__api.delete_project(int(project['id']))
+                    project = None
+                    job.set_job_id(str(job_for_experiment.get_project_identifier()))
+        except (ApiError, QisKitBackendError) as error:
+            # delete the empty project
+            if project is not None:
                 self.__api.delete_project(int(project['id']))
-                project = None
-                job.set_job_id(str(job_for_experiment.get_project_identifier()))
+            raise error
 
         job.experiments = experiments
         return job
@@ -143,7 +148,7 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
         """
         try:
             self.__api.get_project(int(job_id))
-        except (ErrorMessage, ValueError):
+        except (ApiError, ValueError):
             raise QisKitBackendError("Could not retrieve job with job_id '{}' ".format(job_id))
         return QIJob(self, job_id, self.__api)
 
@@ -274,6 +279,13 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
         number_of_clbits = experiment.header.memory_slots
         if number_of_clbits < 1:
             raise QisKitBackendError("Invalid amount of classical bits ({})!".format(number_of_clbits))
+
+        measurements = self._collect_measurements(experiment)
+        number_of_classical_bits = measurements['number_of_clbits']
+        max_measurement_index = max(measurement[1] for measurement in measurements['measurements'])
+        if max_measurement_index >= number_of_classical_bits:
+            raise QisKitBackendError("Number of classical bits is not sufficient for storing the outcomes of the"
+                                     " experiment")
 
         if BaseBackend.configuration(self).conditional:
             number_of_qubits = experiment.header.n_qubits
