@@ -677,7 +677,7 @@ class QuantumInspireAPI:
         return measurement_register
 
     def get_calibration_from_result(self, result_id: int) -> Optional[Any]:
-        """ Gets the calibration information from the result of the executed cQASM code, given the result_id.
+        """ Gets the calibration information of the executed cQASM code, given the result_id.
 
         :param result_id: The identification number of the result.
 
@@ -685,8 +685,8 @@ class QuantumInspireAPI:
             for the calibration info using the url failed.
 
         :return:
-            The calibration info.
-            An empty list is returned when there is no data.
+            The calibration information from the backend.
+            None is returned when there is no calibration information (e.g. simulator backend).
         """
         calibration_info = None
         result = self.get_result(result_id)
