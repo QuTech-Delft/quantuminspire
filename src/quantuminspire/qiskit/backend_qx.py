@@ -284,8 +284,8 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
         number_of_classical_bits = measurements['number_of_clbits']
         max_measurement_index = max(measurement[1] for measurement in measurements['measurements'])
         if max_measurement_index >= number_of_classical_bits:
-            raise QisKitBackendError("Number of classical bits is not sufficient for storing the outcomes of the"
-                                     " experiment")
+            raise QisKitBackendError(f"Number of classical bits ({number_of_classical_bits}) is not sufficient for "
+                                     f"storing the outcomes of the experiment")
 
         if BaseBackend.configuration(self).conditional:
             number_of_qubits = experiment.header.n_qubits
@@ -391,7 +391,7 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
         return classical_state_hex
 
     @staticmethod
-    def __convert_histogram(result: Dict[str, Any], measurements: Dict[str, Any])  -> Dict[str, float]:
+    def __convert_histogram(result: Dict[str, Any], measurements: Dict[str, Any]) -> Dict[str, float]:
         """Convert histogram
 
         The quantum inspire backend always uses full state projection. The SDK user
@@ -418,7 +418,6 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
         sorted_histogram_probabilities: List[Tuple[str, float]] = sorted(output_histogram_probabilities.items(),
                                                                          key=lambda kv: int(kv[0], 16))
         return dict(sorted_histogram_probabilities)
-
 
     def __convert_result_data(self, result: Dict[str, Any], measurements: Dict[str, Any]) -> Tuple[Dict[str, int],
                                                                                                    List[str]]:

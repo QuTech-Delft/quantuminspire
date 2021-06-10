@@ -270,14 +270,7 @@ class TestQiSimulatorPy(unittest.TestCase):
         api.execute_qasm_async.return_value = quantum_inspire_job
         api.get_backend_type_by_name.return_value = {'max_number_of_shots': 4096}
         simulator = QuantumInspireBackend(api, Mock())
-        instructions = [{'name': 'h', 'qubits': [0]},
-                        {'name': 'h', 'qubits': [2]},
-                        {'memory': [0], 'name': 'measure', 'qubits': [1]},
-                        {'memory': [1], 'name': 'measure', 'qubits': [0]},
-                        {'mask': '0x2', 'name': 'bfunc', 'register': 7, 'relation': '==', 'val': '0x2'},
-                        {'conditional': 7, 'name': 'h', 'qubits': [1]},
-                        {'memory': [1], 'name': 'measure', 'qubits': [0]},
-                        {'memory': [0], 'name': 'measure', 'qubits': [1]}]
+        instructions = [{'memory': [0], 'name': 'measure', 'qubits': [1]}]
         qobj_dict = self._basic_qobj_dictionary
         qobj_dict['experiments'][0]['instructions'] = instructions
         qobj_dict['experiments'][0]['header']['memory_slots'] = 0
@@ -418,7 +411,7 @@ class TestQiSimulatorPy(unittest.TestCase):
         qobj_dict['experiments'][0]['instructions'] = instructions
         job_dict['experiments'][0]['header']['memory_slots'] = 1
         job = qiskit.qobj.QasmQobj.from_dict(job_dict)
-        self.assertRaisesRegex(QisKitBackendError, 'Number of classical bits is not sufficient for storing the '
+        self.assertRaisesRegex(QisKitBackendError, 'Number of classical bits \(1\) is not sufficient for storing the '
                                                    'outcomes of the experiment',
                                simulator.run, job)
 
