@@ -109,7 +109,7 @@ or when you want to choose which example notebook to run from the browser do:
 
     jupyter notebook --notebook-dir="docs/notebooks"
 
-and select an IPython notebook (file with extension ``ipynb``) to run.
+and select a Jupyter notebook (file with extension ``ipynb``) to run.
 
 To perform Grover's with the ProjectQ backend from a Python script:
 

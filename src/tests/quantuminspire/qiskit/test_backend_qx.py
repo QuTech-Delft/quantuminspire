@@ -29,7 +29,7 @@ from qiskit.providers.models.backendconfiguration import GateConfig
 from qiskit.qobj import QasmQobjExperiment, QasmQobj
 
 from quantuminspire.api import QuantumInspireAPI
-from quantuminspire.exceptions import QisKitBackendError
+from quantuminspire.exceptions import QisKitBackendError, ApiError
 from quantuminspire.qiskit.backend_qx import QuantumInspireBackend
 from quantuminspire.qiskit.qi_job import QIJob
 from quantuminspire.job import QuantumInspireJob
@@ -260,6 +260,25 @@ class TestQiSimulatorPy(unittest.TestCase):
         api.delete_project.assert_called_with(default_project_number)
         self.assertEqual(my_project_number, int(job.job_id()))
 
+    def test_run_deletes_empty_project_when_error_occurs(self):
+        default_project_number = 42
+        my_project_number = 43
+        api = Mock()
+        api.create_project.return_value = {'id': default_project_number}
+        quantum_inspire_job = Mock()
+        quantum_inspire_job.get_project_identifier.return_value = my_project_number
+        api.execute_qasm_async.return_value = quantum_inspire_job
+        api.get_backend_type_by_name.return_value = {'max_number_of_shots': 4096}
+        simulator = QuantumInspireBackend(api, Mock())
+        instructions = [{'memory': [0], 'name': 'measure', 'qubits': [1]}]
+        qobj_dict = self._basic_qobj_dictionary
+        qobj_dict['experiments'][0]['instructions'] = instructions
+        qobj_dict['experiments'][0]['header']['memory_slots'] = 0
+        qobj = QasmQobj.from_dict(qobj_dict)
+        self.assertRaisesRegex(QisKitBackendError, 'Invalid amount of classical bits \(0\)!',
+                               simulator.run, qobj)
+        api.delete_project.assert_called_with(default_project_number)
+
     def test_get_experiment_results_returns_single_shot(self):
         number_of_shots = 1
         self._basic_job_dictionary['number_of_shots'] = number_of_shots
@@ -378,6 +397,22 @@ class TestQiSimulatorPy(unittest.TestCase):
         job = qiskit.qobj.QasmQobj.from_dict(job_dict)
         self.assertRaisesRegex(QisKitBackendError, 'Number of classical bits must be less than or equal to the'
                                                    ' number of qubits when using conditional gate operations',
+                               simulator.run, job)
+
+    def test_validate_nr_classical_qubits_less_than_needed_for_storing_measured_qubits(self):
+        api = Mock()
+        api.create_project.return_value = {'id': 42}
+        api.execute_qasm_async.return_value = 42
+        api.get_backend_type_by_name.return_value = {'max_number_of_shots': 4096}
+        simulator = QuantumInspireBackend(api, Mock())
+        instructions = [{'name': 'cx', 'qubits': [0, 1]}]
+        qobj_dict = self._basic_qobj_dictionary
+        job_dict = self._basic_qobj_dictionary
+        qobj_dict['experiments'][0]['instructions'] = instructions
+        job_dict['experiments'][0]['header']['memory_slots'] = 1
+        job = qiskit.qobj.QasmQobj.from_dict(job_dict)
+        self.assertRaisesRegex(QisKitBackendError, 'Number of classical bits \(1\) is not sufficient for storing the '
+                                                   'outcomes of the experiment',
                                simulator.run, job)
 
     def test_for_non_fsp_gate_after_measurement(self):
@@ -554,8 +589,8 @@ class TestQiSimulatorPy(unittest.TestCase):
         self.assertEqual('42', qi_job.job_id())
 
     def test_retrieve_job_with_error(self):
-        api = Mock(side_effect=ErrorMessage(error='404'))
-        api.get_project.side_effect = ErrorMessage(error='404')
+        api = Mock(side_effect=ApiError(f'Project with id 404 does not exist!'))
+        api.get_project.side_effect = ApiError(f'Project with id 404 does not exist!')
         backend = QuantumInspireBackend(api, QuantumInspireProvider())
         with self.assertRaises(QisKitBackendError) as error:
             backend.retrieve_job('wrong')
