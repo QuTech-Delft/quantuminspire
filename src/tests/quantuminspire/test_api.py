@@ -659,7 +659,8 @@ class TestQuantumInspireAPI(TestCase):
                                 ('measurement_mask', 0),
                                 ('quantum_states_url',
                                  'https,//api.quantum-inspire.com/results/485/quantum-states/qstates/'),
-                                ('measurement_register_url', 'https,//api.quantum-inspire.com/results/485/mreg/')])
+                                ('measurement_register_url', 'https,//api.quantum-inspire.com/results/485/mreg/'),
+                                ('calibration', 'https,//api.quantum-inspire.com/results/485/584/')])
         elif keys[1] == 'raw-data':
             if params['token'] != '162c':
                 raise ErrorMessage('Not found')
@@ -713,7 +714,8 @@ class TestQuantumInspireAPI(TestCase):
                                     ('histogram_url', 'https,//api.quantum-inspire.com/results/485/histogram/162c/'),
                                     ('measurement_mask', 0),
                                     ('quantum_states_url', ''),
-                                    ('measurement_register_url', '')])
+                                    ('measurement_register_url', ''),
+                                    ('calibration', '')])
             else:
                 self.assertEqual(params['id'], 486)
                 return OrderedDict([('id', 486),
@@ -729,7 +731,8 @@ class TestQuantumInspireAPI(TestCase):
                                     ('measurement_mask', 0),
                                     ('quantum_states_url',
                                      'https,//api.quantum-inspire.com/results/485/quantum-states/999/'),
-                                    ('measurement_register_url', 'https,//api.quantum-inspire.com/results/485/999/')])
+                                    ('measurement_register_url', 'https,//api.quantum-inspire.com/results/485/999/'),
+                                    ('calibration', 'https,//api.quantum-inspire.com/results/485/999/')])
         elif keys[1] == 'raw-data':
             if params['token'] != '162c':
                 raise ErrorMessage('Not found')
@@ -743,6 +746,19 @@ class TestQuantumInspireAPI(TestCase):
             if params['token'] != 'mreg':
                 raise ErrorMessage('Not found')
             return [4, 3, 2, 1]
+
+    def __mock_calibration_handler(self, input_params, input_key, mock_api, document, keys, params=None,
+                                   validate=None, overrides=None, action=None, encoding=None, transform=None):
+        self.assertTrue(keys[1] == input_key)
+        if input_key == 'read':
+            if params['id'] != '584':
+                raise ErrorMessage('Not found')
+        if keys[1] == 'read':
+            return OrderedDict([('url', 'https://fake.quantum-inspire.com/calibration/584/'),
+                                ('backend', 'backend'),
+                                ('parameters', 'parameters')])
+        else:
+            self.assertTrue(False)
 
     def test_list_results_has_correct_output(self):
         self.coreapi_client.handlers['results'] = self.__mock_list_results_handler
@@ -823,13 +839,13 @@ class TestQuantumInspireAPI(TestCase):
                                api.get_raw_data_from_result, result_id=result_identity)
 
     def test_get_quantum_states_from_result_has_correct_input_and_output(self):
-        identity = 485
-        expected_payload = {'id': identity, 'token': 'qstates'}
+        result_identity = 485
+        expected_payload = {'id': result_identity, 'token': 'qstates'}
         expected_quantum_states = self.__mock_result_handler(expected_payload, 'read', None, None,
                                                              ['test', 'quantum-states', 'read'], expected_payload)
         self.coreapi_client.handlers['results'] = partial(self.__mock_result_handler, expected_payload, 'read')
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
-        actual = api.get_quantum_states_from_result(result_id=identity)
+        actual = api.get_quantum_states_from_result(result_id=result_identity)
         self.assertListEqual(actual, expected_quantum_states)
 
     def test_get_quantum_states_unknown_from_result_raises_api_error(self):
@@ -851,14 +867,14 @@ class TestQuantumInspireAPI(TestCase):
                                api.get_quantum_states_from_result, result_id=result_identity)
 
     def test_get_measurement_register_from_result_has_correct_input_and_output(self):
-        identity = 485
-        expected_payload = {'id': identity, 'token': 'mreg'}
+        result_identity = 485
+        expected_payload = {'id': result_identity, 'token': 'mreg'}
         expected_measurement_register = self.__mock_result_handler(expected_payload, 'read', None, None,
                                                                    ['test', 'measurement-register', 'read'],
                                                                    expected_payload)
         self.coreapi_client.handlers['results'] = partial(self.__mock_result_handler, expected_payload, 'read')
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
-        actual = api.get_measurement_register_from_result(result_id=identity)
+        actual = api.get_measurement_register_from_result(result_id=result_identity)
         self.assertListEqual(actual, expected_measurement_register)
 
     def test_get_measurement_register_unknown_from_result_raises_api_error(self):
@@ -878,6 +894,50 @@ class TestQuantumInspireAPI(TestCase):
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
         self.assertRaisesRegex(ApiError, 'Measurement register for result with id 486 does not exist!',
                                api.get_measurement_register_from_result, result_id=result_identity)
+
+    def test_get_calibration_info_from_result_has_correct_input_and_output(self):
+        result_identity = 485
+        calibration_identity = 584
+        expected_payload_result = {'id': result_identity, 'token': str(calibration_identity)}
+        expected_payload_calibration = {'id': str(calibration_identity)}
+        expected_calibration_info = self.__mock_calibration_handler(expected_payload_calibration, 'read', None, None,
+                                                                    ['calibration', 'read'],
+                                                                    expected_payload_calibration)
+        self.coreapi_client.handlers['results'] = partial(self.__mock_result_handler, expected_payload_result, 'read')
+        self.coreapi_client.handlers['calibration'] = partial(self.__mock_calibration_handler,
+                                                              expected_payload_calibration, 'read')
+        api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
+        actual = api.get_calibration_from_result(result_id=result_identity)
+        self.assertDictEqual(actual, expected_calibration_info)
+
+    def test_get_calibration_info_unknown_from_result_raises_api_error(self):
+        result_identity = 485
+        calibration_identity = 584
+        expected_payload_result = {'id': result_identity, 'token': str(calibration_identity)}
+        expected_payload_calibration = {'id': str(calibration_identity)}
+        expected_calibration_info = self.__mock_calibration_handler(expected_payload_calibration, 'read', None, None,
+                                                                    ['calibration', 'read'],
+                                                                    expected_payload_calibration)
+        self.coreapi_client.handlers['results'] = partial(self.__mock_errors_in_result_handler,
+                                                          expected_payload_result, 'read')
+        self.coreapi_client.handlers['calibration'] = partial(self.__mock_calibration_handler,
+                                                              expected_payload_calibration, 'read')
+        api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
+        self.assertRaisesRegex(ApiError, 'Invalid calibration url for result with id 485!',
+                               api.get_calibration_from_result, result_id=result_identity)
+
+    def test_get_calibration_info_invalid_from_result_raises_api_error(self):
+        result_identity = 486
+        calibration_identity = 584
+        expected_payload_result = {'id': result_identity, 'token': str(calibration_identity)}
+        expected_payload_calibration = {'id': str(calibration_identity)}
+        self.coreapi_client.handlers['results'] = partial(self.__mock_errors_in_result_handler,
+                                                          expected_payload_result, 'read')
+        self.coreapi_client.handlers['calibration'] = partial(self.__mock_calibration_handler,
+                                                              expected_payload_calibration, 'read')
+        api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
+        self.assertRaisesRegex(ApiError, 'Calibration info for result with id 486 does not exist!',
+                               api.get_calibration_from_result, result_id=result_identity)
 
     def __mock_list_assets_handler(self, mock_api, document, keys, params=None, validate=None,
                                    overrides=None, action=None, encoding=None, transform=None):

@@ -49,7 +49,7 @@ class QuantumInspireAPI:
                  coreapi_client_class: Type[coreapi.Client] = coreapi.Client) -> None:
         """ Python interface to the Quantum Inspire API (Application Programmer Interface).
 
-        The Quantum Inspire API supplies an interface for executing cQASM programs and can be used to access the
+        The Quantum Inspire API supplies an interface for executing programs and can be used to access the
         different entities in the Quantum Inspire database needed for running the programs.
         The entities for which an interface is provided are:
 
@@ -331,7 +331,7 @@ class QuantumInspireAPI:
         return ret
 
     def create_project(self, name: str, default_number_of_shots: int, backend_type: Dict[str, Any]) -> Dict[str, Any]:
-        """ Creates a new project for executing cQASM code.
+        """ Creates a new project for executing jobs.
 
         :param name: The name for the project. The name need not be unique.
         :param default_number_of_shots: The default number of executions of the program before collecting
@@ -490,7 +490,7 @@ class QuantumInspireAPI:
         This method is used by execute_qasm_async and indirectly by execute_qasm.
 
         :param name: The name for the job.
-        :param asset:  The asset with the cQASM code.
+        :param asset: The asset with the cQASM code.
         :param number_of_shots: The number of executions before returning the result.
         :param backend_type: The backend type.
         :param full_state_projection: Used for optimizing simulations. For more information see:
@@ -532,7 +532,7 @@ class QuantumInspireAPI:
             print(f'Result id: {result["id"]} (date: {result["created_at"]})')
 
     def get_result(self, result_id: int) -> Dict[str, Any]:
-        """ Gets the histogram results of the executed cQASM code, given the result_id.
+        """ Gets the histogram results of the executed job, given the result_id.
 
         :param result_id: The result identification number.
 
@@ -600,7 +600,7 @@ class QuantumInspireAPI:
     def get_raw_data_from_result(self, result_id: int) -> List[int]:
         """ Gets the raw data from the result.
 
-        Gets the raw data from the result of the executed cQASM code, given the result_id.
+        Gets the raw data from the result of the executed job, given the result_id.
         The raw data consists of a list with integer state values for each shot of the experiment (see
         job.number_of_shots).
 
@@ -626,7 +626,7 @@ class QuantumInspireAPI:
         return raw_data
 
     def get_quantum_states_from_result(self, result_id: int) -> List[Any]:
-        """ Gets the quantum states from the result of the executed cQASM code, given the result_id.
+        """ Gets the quantum states from the result of the executed job, given the result_id.
 
         :param result_id: The identification number of the result.
 
@@ -651,7 +651,7 @@ class QuantumInspireAPI:
         return quantum_states
 
     def get_measurement_register_from_result(self, result_id: int) -> List[Any]:
-        """ Gets the measurement register from the result of the executed cQASM code, given the result_id.
+        """ Gets the measurement register from the result of the executed code, given the result_id.
 
         :param result_id: The identification number of the result.
 
@@ -675,6 +675,32 @@ class QuantumInspireAPI:
         except ErrorMessage as err_msg:
             raise ApiError(f'Measurement register for result with id {result_id} does not exist!') from err_msg
         return measurement_register
+
+    def get_calibration_from_result(self, result_id: int) -> Optional[Any]:
+        """ Gets the calibration information of the executed job, given the result_id.
+
+        :param result_id: The identification number of the result.
+
+        :raises ApiError: If the calibration url in result is invalid or the request
+            for the calibration info using the url failed.
+
+        :return:
+            The calibration information from the backend.
+            None is returned when there is no calibration information (e.g. simulator backend).
+        """
+        calibration_info = None
+        result = self.get_result(result_id)
+        calibration_url = result.get('calibration')
+        if calibration_url is not None:
+            try:
+                token = str(calibration_url).split('/')[-2]
+            except IndexError as err_msg:
+                raise ApiError(f'Invalid calibration url for result with id {result_id}!') from err_msg
+            try:
+                calibration_info = self._action(['calibration', 'read'], params={'id': token})
+            except ErrorMessage as err_msg:
+                raise ApiError(f'Calibration info for result with id {result_id} does not exist!') from err_msg
+        return calibration_info
 
     #  assets  #
 
