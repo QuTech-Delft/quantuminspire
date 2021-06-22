@@ -61,30 +61,30 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
 
         :param api: The interface instance to the Quantum Inspire API.
         :param provider: Provider for this backend.
-        :param configuration: The configuration of the quantum inspire backend. The
+        :param configuration: The configuration of the Quantum Inspire backend. The
                 configuration must implement the fields given by the QiSimulatorPy.DEFAULT_CONFIGURATION. All
                 configuration fields are listed in the table below. The table rows with an asterisk specify fields which
                 can have a custom value and are allowed to be changed according to the description column.
 
-                =============== ============= =========================================================================
-                Key             Type          Description
-                =============== ============= =========================================================================
-                backend_name *  str           The name of the quantum inspire backend. The API can list the name of
-                                              each available backend using the function api.list_backend_types(). One
-                                              of the listed names must be used.
-                backend_version str           Backend version in the form X.Y.Z.
-                n_qubits        int           Number of qubits.
-                basis_gates     list[str]     A list of basis gates to compile to.
-                gates           GateConfig    List of basis gates on the backend. Not used.
-                local           bool          Indicates whether the system is running locally or remotely.
-                simulator       bool          Specifies whether the backend is a simulator or a quantum system.
-                conditional     bool          Backend supports conditional operations.
-                open_pulse      bool          Backend supports open pulse. False.
-                memory          bool          Backend supports memory. True.
-                max_shots       int           Maximum number of shots supported.
-                max_experiments int           Optional: Maximum number of experiments (circuits) per job.
-                coupling_map    (list(tuple)) Define the edges.
-                =============== ============= =========================================================================
+                =================== ============= =====================================================================
+                Key                 Type          Description
+                =================== ============= =====================================================================
+                ``backend_name`` *  str           The name of the Quantum Inspire backend. The API can list the name of
+                                                  each available backend using the function api.list_backend_types().
+                                                  One of the listed names must be used.
+                ``backend_version`` str           Backend version in the form X.Y.Z.
+                ``n_qubits``        int           Number of qubits.
+                ``basis_gates``     list[str]     A list of basis gates to compile to.
+                ``gates``           GateConfig    List of basis gates on the backend. Not used.
+                ``local``           bool          Indicates whether the system is running locally or remotely.
+                ``simulator``       bool          Specifies whether the backend is a simulator or a quantum system.
+                ``conditional``     bool          Backend supports conditional operations.
+                ``open_pulse``      bool          Backend supports open pulse. False.
+                ``memory``          bool          Backend supports memory. True.
+                ``max_shots``       int           Maximum number of shots supported.
+                ``max_experiments`` int           Optional: Maximum number of experiments (circuits) per job.
+                ``coupling_map``    (list(tuple)) Define the edges.
+                =================== ============= =====================================================================
         """
         super().__init__(configuration=(configuration or
                                         QuantumInspireBackend.DEFAULT_CONFIGURATION),
@@ -99,7 +99,7 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
     def run(self, qobj: QasmQobj) -> QIJob:
         """ Submits a quantum job to the Quantum Inspire platform.
 
-        :param qobj: The quantum job with the Qiskit algorithm and quantum inspire backend.
+        :param qobj: The quantum job with the Qiskit algorithm and Quantum Inspire backend.
 
         :return:
             A job that has been submitted.
@@ -243,7 +243,7 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
     def __validate_number_of_shots(self, job: QasmQobj) -> None:
         """ Checks whether the number of shots has a valid value.
 
-        :param job: The quantum job with the Qiskit algorithm and quantum inspire backend.
+        :param job: The quantum job with the Qiskit algorithm and Quantum Inspire backend.
 
         :raises QisKitBackendError: When the value is not correct.
         """
@@ -394,12 +394,12 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
     def __convert_histogram(result: Dict[str, Any], measurements: Dict[str, Any]) -> Dict[str, float]:
         """Convert histogram
 
-        The quantum inspire backend always uses full state projection. The SDK user
+        The Quantum Inspire backend always uses full state projection. The SDK user
         can measure not all qubits and change the combined classical bits. This function
         converts the result to a histogram output that represents the probabilities
         measured with the classical bits.
 
-        :param result: The result output from the quantum inspire backend with full-
+        :param result: The result output from the Quantum Inspire backend with full-
                     state projection histogram output.
         :param measurements: The dictionary contains a measured qubits/classical bits map (list) and the
                           number of classical bits (int).
@@ -423,7 +423,7 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
                                                                                                    List[str]]:
         """Conver result data
 
-        The quantum inspire backend returns the single shot values as raw data. This function
+        The Quantum Inspire backend returns the single shot values as raw data. This function
         converts this list of single shot values to hexadecimal memory data according the Qiskit spec.
         From this memory data the counts histogram is constructed by counting the single shot values.
 
@@ -446,7 +446,7 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
 
                 When random is in the range [0.7, 1) the last value of the probability histogram is taken (0x6).
 
-        :param result: The result output from the quantum inspire backend with full-
+        :param result: The result output from the Quantum Inspire backend with full-
                     state projection histogram output.
         :param measurements: The dictionary contains a measured qubits/classical bits map (list) and the
                           number of classical bits (int).

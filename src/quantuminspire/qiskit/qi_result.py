@@ -26,8 +26,8 @@ class QIResult(Result):  # type: ignore
     """
     A result object returned by QIJob:
         qi_backend = QI.get_backend('QX single-node simulator')
-        qi_job = qi_backend.retrieve_job(job_id)
-        qi_result = qi_job.result()
+        job = qi_backend.retrieve_job(job_id)
+        qi_result = job.result()
     """
     def __init__(self, backend_name: str, backend_version: str, qobj_id: str, job_id: str, success: bool,
                  results: List[ExperimentResult], date: Any = None, status: Any = None, header: Any = None,

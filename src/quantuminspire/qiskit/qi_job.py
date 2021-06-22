@@ -29,25 +29,52 @@ from quantuminspire.version import __version__ as quantum_inspire_version
 
 class QIJob(BaseJob):  # type: ignore
     """
-    A job that is to be executed on the Quantum-inspire platform. A QIJob is normally created by calling run on the
-    QuantumInspireBackend but can also be recreated using a job_id:
+    A Qiskit job that is executed on the Quantum Inspire platform. A QIJob is normally created by calling
+    ``execute`` (which triggers a `run` on the QuantumInspireBackend ``qi_backend``).
+
+    .. code::
+
+        qc = QuantumCircuit(5, 5)
+        qc.h(0)
+        qc.cx(0, range(1, 5))
+        qc.measure_all()
+
+        job = execute(qc, qi_backend, shots=1024)
+        result = job.result()
+
+    The return value of ``execute`` is an instance of QIJob (Qiskit job) and is the equivalent to the Quantum
+    Inspire project. It is a container to handle one or more (asynchronous) Qiskit circuits or experiments.
+    A Qiskit circuit is equivalent to a Quantum Inspire job.
+
+    To get the Quantum Inspire project-id from ``job`` do:
+
+    .. code::
+
+        qi_project_id = job.job_id()
+
+    To get the list of Quantum Inspire jobs (in dictionary format) from ``job`` do:
+
+    .. code::
+
+        qi_jobs = job.get_jobs()
+
+    QIJob can also be recreated using a ``job_id``, being a Quantum Inspire project-id:
 
     .. code::
 
         qi_backend = QI.get_backend('QX single-node simulator')
         job = qi_backend.retrieve_job(job_id)
-        result = job.result()
 
     """
 
     def __init__(self, backend: Any, job_id: str, api: QuantumInspireAPI, qobj: Optional[QasmQobj] = None) -> None:
         """
-        Construct a new QIJob object. Not normally called directly, use a backend object to create/retrieve jobs.
+        A QIJob object is normally not constructed directly.
 
-        :param backend: A quantum-inspire backend.
-        :param job_id: Id of the job as provided by the quantum-inspire api.
-        :param api: A quantum-inspire api.
-        :param qobj: A qiskit quantum object.
+        :param backend: A Quantum Inspire backend.
+        :param job_id: Id of the job as provided by the Quantum Inspire API.
+        :param api: A Quantum Inspire API.
+        :param qobj: A Qiskit quantum object.
         """
         self._api: QuantumInspireAPI = api
         super().__init__(backend, job_id)
@@ -62,6 +89,7 @@ class QIJob(BaseJob):  # type: ignore
 
     def set_job_id(self, job_id: str) -> None:
         """ Overwrite the job_id with a new id.
+
         :param job_id: New id for the QIJob. Used in the use case for linking the job to the user-given QI project that
         must contain the job.
         """
@@ -69,7 +97,7 @@ class QIJob(BaseJob):  # type: ignore
 
     def submit(self) -> None:
         """
-        Submit a job to the quantum-inspire platform.
+        Submit a job to the Quantum Inspire platform.
 
         :raises JobError: An error if the job has already been submitted.
         """
@@ -83,7 +111,7 @@ class QIJob(BaseJob):  # type: ignore
 
         :param result_function: backend function for fetching the requested results.
         :param timeout: Timeout in seconds.
-        :param wait: Wait time between queries to the quantum-inspire platform.
+        :param wait: Wait time between queries to the Quantum Inspire platform.
 
         :return:
             Result object containing results from the experiments.
@@ -106,7 +134,7 @@ class QIJob(BaseJob):  # type: ignore
         """ Return the result for the experiments in the latest run for this project.
 
         :param timeout: Timeout in seconds.
-        :param wait: Wait time between queries to the quantum-inspire platform.
+        :param wait: Wait time between queries to the Quantum Inspire platform.
 
         :return:
             QIResult object containing the result.
@@ -120,7 +148,7 @@ class QIJob(BaseJob):  # type: ignore
         """ Return the result for the experiments for all the existing jobs in the project.
 
         :param timeout: Timeout in seconds.
-        :param wait: Wait time between queries to the quantum-inspire platform.
+        :param wait: Wait time between queries to the Quantum Inspire platform.
 
         :return:
             QIResult object containing the result.
@@ -135,7 +163,7 @@ class QIJob(BaseJob):  # type: ignore
         self._api.delete_project(int(self._job_id))
 
     def get_jobs(self) -> List[Dict[str, Any]]:
-        """ Gets the jobs that were submitted in the latest run. These job were added with add_job.
+        """ Gets the Quantum Inspire jobs that were submitted in the latest run. These job were added with add_job.
 
         :return:
             List of jobs with their properties for the jobs that were added for the experiments submitted when running
@@ -148,7 +176,7 @@ class QIJob(BaseJob):  # type: ignore
         return ret
 
     def add_job(self, job: QuantumInspireJob) -> None:
-        """ Add a quantum inspire job to the list. The list contains the (quantum inspire) jobs created for the
+        """ Add a Quantum Inspire job to the list. The list contains the (Quantum Inspire) jobs created for the
         submitted experiments in this particular QIJob.
 
         :param job: QuatumInspireJob (submitted) that has to be added to the list of jobs created for the experiments
