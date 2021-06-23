@@ -19,7 +19,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.result import postprocess, Result
 from qiskit.result.models import ExperimentResult
 
-from quantuminspire.exceptions import QisKitBackendError
+from quantuminspire.exceptions import QiskitBackendError
 
 
 class QIResult(Result):  # type: ignore
@@ -60,7 +60,7 @@ class QIResult(Result):  # type: ignore
         :return:
             One or more dictionaries which holds the states and probabilities for each result.
 
-        :raises QisKitBackendError: raised if there are no probabilities in a result for the experiment(s).
+        :raises QiskitBackendError: raised if there are no probabilities in a result for the experiment(s).
         """
         if experiment is None:
             exp_keys = range(len(self.results))
@@ -79,7 +79,7 @@ class QIResult(Result):  # type: ignore
             if probabilities is not None:
                 dict_list.append(postprocess.format_counts(self._get_experiment(key).data.probabilities, header))
             else:
-                raise QisKitBackendError('No probabilities for experiment "{0}"'.format(key))
+                raise QiskitBackendError('No probabilities for experiment "{0}"'.format(key))
 
         # Return first item of dict_list if size is 1
         if len(dict_list) == 1:

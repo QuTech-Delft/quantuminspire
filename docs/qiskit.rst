@@ -1,5 +1,5 @@
-Module qiskit
-============================
+Module Qiskit
+=============
 
 .. toctree::
    :maxdepth: 2

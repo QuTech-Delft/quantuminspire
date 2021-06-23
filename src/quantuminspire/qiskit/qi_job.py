@@ -91,7 +91,8 @@ class QIJob(BaseJob):  # type: ignore
         """ Overwrite the job_id with a new id.
 
         :param job_id: New id for the QIJob. Used in the use case for linking the job to the user-given QI project that
-        must contain the job.
+            must contain the job.
+
         """
         self._job_id = job_id
 
@@ -117,7 +118,7 @@ class QIJob(BaseJob):  # type: ignore
             Result object containing results from the experiments.
 
         :raises JobTimeoutError: If timeout is reached.
-        :raises QisKitBackendError: If an error occurs during simulation.
+        :raises QiskitBackendError: If an error occurs during simulation.
         """
         start_time = time.time()
         while self.status() not in JOB_FINAL_STATES:
@@ -140,7 +141,7 @@ class QIJob(BaseJob):  # type: ignore
             QIResult object containing the result.
 
         :raises JobTimeoutError: If timeout is reached.
-        :raises QisKitBackendError: If an error occurs during simulation.
+        :raises QiskitBackendError: If an error occurs during simulation.
         """
         return self._result(self._backend.get_experiment_results_from_latest_run, timeout, wait)
 
@@ -154,7 +155,7 @@ class QIJob(BaseJob):  # type: ignore
             QIResult object containing the result.
 
         :raises JobTimeoutError: If timeout is reached.
-        :raises QisKitBackendError: If an error occurs during simulation.
+        :raises QiskitBackendError: If an error occurs during simulation.
         """
         return self._result(self._backend.get_experiment_results_from_all_jobs, timeout, wait)
 

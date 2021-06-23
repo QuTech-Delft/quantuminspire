@@ -30,7 +30,7 @@ from qiskit.result.models import ExperimentResult, ExperimentResultData
 from qiskit.qobj import QobjExperimentHeader
 
 from quantuminspire.api import QuantumInspireAPI
-from quantuminspire.exceptions import QisKitBackendError, ApiError
+from quantuminspire.exceptions import QiskitBackendError, ApiError
 from quantuminspire.job import QuantumInspireJob
 from quantuminspire.qiskit.circuit_parser import CircuitToString
 from quantuminspire.qiskit.qi_job import QIJob
@@ -127,7 +127,7 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
                     self.__api.delete_project(int(project['id']))
                     project = None
                     job.set_job_id(str(job_for_experiment.get_project_identifier()))
-        except (ApiError, QisKitBackendError) as error:
+        except (ApiError, QiskitBackendError) as error:
             # delete the empty project
             if project is not None:
                 self.__api.delete_project(int(project['id']))
@@ -144,12 +144,12 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
         :return:
             The job that has been retrieved.
 
-        :raises QisKitBackendError: If job not found or error occurs during retrieval of the job.
+        :raises QiskitBackendError: If job not found or error occurs during retrieval of the job.
         """
         try:
             self.__api.get_project(int(job_id))
         except (ApiError, ValueError):
-            raise QisKitBackendError("Could not retrieve job with job_id '{}' ".format(job_id))
+            raise QiskitBackendError("Could not retrieve job with job_id '{}' ".format(job_id))
         return QIJob(self, job_id, self.__api)
 
     @staticmethod
@@ -192,7 +192,7 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
 
         :param jobs: A list of jobs
 
-        :raises QisKitBackendError: If an error occurred while executing the job on the Quantum Inspire backend.
+        :raises QiskitBackendError: If an error occurred while executing the job on the Quantum Inspire backend.
 
         :return:
             A list of experiment results; containing the data, execution time, status, etc. for the list of jobs.
@@ -201,7 +201,7 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
         experiment_results = []
         for result, job in zip(results, jobs):
             if not result.get('histogram', {}):
-                raise QisKitBackendError(
+                raise QiskitBackendError(
                     'Result from backend contains no histogram data!\n{}'.format(result.get('raw_text')))
 
             user_data = json.loads(str(job.get('user_data')))
@@ -245,11 +245,11 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
 
         :param job: The quantum job with the Qiskit algorithm and Quantum Inspire backend.
 
-        :raises QisKitBackendError: When the value is not correct.
+        :raises QiskitBackendError: When the value is not correct.
         """
         number_of_shots = job.config.shots
         if number_of_shots < 1 or number_of_shots > self.__backend['max_number_of_shots']:
-            raise QisKitBackendError('Invalid shots (number_of_shots={})'.format(number_of_shots))
+            raise QiskitBackendError('Invalid shots (number_of_shots={})'.format(number_of_shots))
 
     def __validate_number_of_clbits(self, experiment: QasmQobjExperiment) -> None:
         """ Validate the number of classical bits
@@ -274,17 +274,17 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
 
         :param experiment: The experiment with gate operations and header.
 
-        :raises QisKitBackendError: When the value is not correct.
+        :raises QiskitBackendError: When the value is not correct.
         """
         number_of_clbits = experiment.header.memory_slots
         if number_of_clbits < 1:
-            raise QisKitBackendError("Invalid amount of classical bits ({})!".format(number_of_clbits))
+            raise QiskitBackendError("Invalid amount of classical bits ({})!".format(number_of_clbits))
 
         measurements = self._collect_measurements(experiment)
         number_of_classical_bits = measurements['number_of_clbits']
         max_measurement_index = max(measurement[1] for measurement in measurements['measurements'])
         if max_measurement_index >= number_of_classical_bits:
-            raise QisKitBackendError(f"Number of classical bits ({number_of_classical_bits}) is not sufficient for "
+            raise QiskitBackendError(f"Number of classical bits ({number_of_classical_bits}) is not sufficient for "
                                      f"storing the outcomes of the experiment")
 
         if BaseBackend.configuration(self).conditional:
@@ -293,7 +293,7 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
                 # no problem when there are no conditional gate operations
                 for instruction in experiment.instructions:
                     if hasattr(instruction, 'conditional'):
-                        raise QisKitBackendError("Number of classical bits must be less than or equal to the"
+                        raise QiskitBackendError("Number of classical bits must be less than or equal to the"
                                                  " number of qubits when using conditional gate operations")
 
     @staticmethod
@@ -330,17 +330,17 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
 
         :param experiment: The experiment with gate operations and header.
 
-        :raises QisKitBackendError: When the circuit contains an invalid non-FSP measurement
+        :raises QiskitBackendError: When the circuit contains an invalid non-FSP measurement
         """
         measurements: List[List[int]] = []
         for instruction in experiment.instructions:
             if instruction.name == 'measure':
                 for q, m in measurements:
                     if q == instruction.qubits[0] and m != instruction.memory[0]:
-                        raise QisKitBackendError('Measurement of qubit {} to different classical registers '
+                        raise QiskitBackendError('Measurement of qubit {} to different classical registers '
                                                  'is not supported'.format(q))
                     if q != instruction.qubits[0] and m == instruction.memory[0]:
-                        raise QisKitBackendError('Measurement of different qubits to the same classical register {0} '
+                        raise QiskitBackendError('Measurement of different qubits to the same classical register {0} '
                                                  'is not supported'.format(m))
                 measurements.append([instruction.qubits[0], instruction.memory[0]])
 

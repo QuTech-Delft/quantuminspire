@@ -21,7 +21,7 @@ Module exceptions
 """
 
 
-class QisKitBackendError(Exception):
+class QiskitBackendError(Exception):
     """ Exception for SDK errors related to the qiskit backend."""
 
 
