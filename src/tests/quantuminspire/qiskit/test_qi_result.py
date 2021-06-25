@@ -18,7 +18,7 @@ import unittest
 
 from qiskit.qobj import QobjHeader
 from qiskit.result.models import ExperimentResult, ExperimentResultData
-from quantuminspire.exceptions import QisKitBackendError
+from quantuminspire.exceptions import QiskitBackendError
 from quantuminspire.qiskit.qi_result import QIResult
 
 
@@ -90,5 +90,5 @@ class TestQIResult(unittest.TestCase):
         success = True
         experiment_result = [self.experiment_result_3]
         qi_result = QIResult(backend_name, backend_version, qobj_id, job_id, success, experiment_result)
-        self.assertRaisesRegex(QisKitBackendError, 'No probabilities for experiment "0"',
+        self.assertRaisesRegex(QiskitBackendError, 'No probabilities for experiment "0"',
                                qi_result.get_probabilities, 0)

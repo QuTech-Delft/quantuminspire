@@ -143,7 +143,7 @@ class QIBackend(BasicEngine):  # type: ignore
         return self._three_qubit_gates
 
     def cqasm(self) -> str:
-        """ Return cqasm code that is generated last. """
+        """ Return cQASM code that is generated last. """
         return self._cqasm
 
     @property
@@ -211,14 +211,14 @@ class QIBackend(BasicEngine):  # type: ignore
 
         :attr:`_allocation_map` is the store in which the administration
         is done for assigning physical qubits that are used
-        with in ProjectQ to the simulation qubits, this is as they appear in the cqasm.
+        with in ProjectQ to the simulation qubits, this is as they appear in the cQASM.
         :attr:`_allocation_map` stores the assignments as tuples (simulation_bit, physical_bit)
         where 'physical_bit' is requested by ProjectQ and simulation_bit is the assignment to a bit in the simulator.
         A de-allocated physical bit is registered as -1, which means the corresponding simulation bit can be re-used.
 
         We strive for x-to-x allocation for qubits, which means we want to allocate a physical qubit to its
         corresponding simulation qubit. We do this to respect as much as possible the qubits of the original algorithm
-        in the generated cqasm for readability.
+        in the generated cQASM for readability.
 
         Only when the requested physical bit is higher than the max number of bits supported by the backend, we try
         to search for an de-allocatd ancilla bit to re-use. When an ancilla is re-used, we have to reset the qubit

@@ -21,12 +21,12 @@ Module exceptions
 """
 
 
-class QisKitBackendError(Exception):
-    """ Exception for SDK errors related to the qiskit backend."""
+class QiskitBackendError(Exception):
+    """ Exception for SDK errors related to the Qiskit backend."""
 
 
 class ProjectQBackendError(Exception):
-    """ Exception for SDK errors related to the projectq backend."""
+    """ Exception for SDK errors related to the ProjectQ backend."""
 
 
 class AuthenticationError(Exception):

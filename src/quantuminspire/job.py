@@ -31,7 +31,7 @@ class QuantumInspireJob:
     def __init__(self, api: Any, job_identifier: int) -> None:
         """ Encapsulation of a job.
 
-        The QuantumInspire Job class encapsulates the base job of the API and has
+        The :py:class:`QuantumInspireJob` class encapsulates the base job of the API and has
         methods to check the status and retrieve the results from the API.
 
         :param api: An instance to the API.
@@ -48,7 +48,7 @@ class QuantumInspireJob:
         :param api: An instance to the API.
         :param job_identifier: The job identification number.
 
-        :raises ValueError: When the api is not a QuantumInspireApi or when the
+        :raises ValueError: When the api is not a :py:class:`QuantumInspireAPI` or when the
             job identifier is not found.
         """
         if type(api).__name__ != 'QuantumInspireAPI':

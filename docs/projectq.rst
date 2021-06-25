@@ -1,4 +1,4 @@
-Module projectq
+Module ProjectQ
 ===============
 
 .. toctree::

@@ -420,7 +420,7 @@ class CircuitToString:
     def _u(stream: StringIO, instruction: QasmQobjInstruction) -> None:
         """ Translates the U element to U3.
 
-        The u element is used by qiskit for the u_base gate and when a u0-gate
+        The u element is used by Qiskit for the u_base gate and when a u0-gate
         is used in the circuit but not supported as a basis gate for the backend.
 
         :param stream: The string-io stream to where the resulting cQASM is written.
