@@ -246,4 +246,4 @@ class TestQuantumInspireProvider(unittest.TestCase):
             project_name = 'This_is_my_first_project_name'
             quantum_inpire_provider.set_authentication(authentication, project_name = project_name)
             actual_api = quantum_inpire_provider.get_api()
-            self.assertNotEqual(actual_api, None)
+            self.assertIsNotNone(actual_api)
