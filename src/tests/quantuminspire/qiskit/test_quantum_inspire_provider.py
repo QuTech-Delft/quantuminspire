@@ -20,7 +20,7 @@ from unittest import mock
 from coreapi.auth import BasicAuthentication, TokenAuthentication
 from qiskit.providers import QiskitBackendNotFoundError
 
-from quantuminspire.exceptions import ApiError
+from quantuminspire.exceptions import QiskitBackendError
 from quantuminspire.qiskit.quantum_inspire_provider import QuantumInspireProvider, QI_URL
 
 
@@ -67,7 +67,7 @@ class TestQuantumInspireProvider(unittest.TestCase):
     def test_backends(self):
         with mock.patch('quantuminspire.qiskit.quantum_inspire_provider.QuantumInspireAPI') as api:
             quantum_inpire_provider = QuantumInspireProvider()
-            with self.assertRaises(ApiError):
+            with self.assertRaises(QiskitBackendError):
                 quantum_inpire_provider.backends(name='quantum-inspire')
             email = 'bla@bla.bla'
             secret = 'secret'
@@ -84,7 +84,7 @@ class TestQuantumInspireProvider(unittest.TestCase):
     def test_simulator_backend(self):
         with mock.patch('quantuminspire.qiskit.quantum_inspire_provider.QuantumInspireAPI') as api:
             quantum_inpire_provider = QuantumInspireProvider()
-            with self.assertRaises(ApiError):
+            with self.assertRaises(QiskitBackendError):
                 quantum_inpire_provider.backends(name='quantum-inspire')
             email = 'bla@bla.bla'
             secret = 'secret'
@@ -108,7 +108,7 @@ class TestQuantumInspireProvider(unittest.TestCase):
     def test_hardware_backend(self):
         with mock.patch('quantuminspire.qiskit.quantum_inspire_provider.QuantumInspireAPI') as api:
             quantum_inpire_provider = QuantumInspireProvider()
-            with self.assertRaises(ApiError):
+            with self.assertRaises(QiskitBackendError):
                 quantum_inpire_provider.backends(name='quantum-inspire')
             email = 'bla@bla.bla'
             secret = 'secret'
@@ -131,7 +131,7 @@ class TestQuantumInspireProvider(unittest.TestCase):
     def test_hardware_backend2(self):
         with mock.patch('quantuminspire.qiskit.quantum_inspire_provider.QuantumInspireAPI') as api:
             quantum_inpire_provider = QuantumInspireProvider()
-            with self.assertRaises(ApiError):
+            with self.assertRaises(QiskitBackendError):
                 quantum_inpire_provider.backends(name='quantum-inspire')
             email = 'bla@bla.bla'
             secret = 'secret'
@@ -155,7 +155,7 @@ class TestQuantumInspireProvider(unittest.TestCase):
     def test_set_authentication_details(self):
         with mock.patch('quantuminspire.qiskit.quantum_inspire_provider.QuantumInspireAPI') as api:
             quantum_inpire_provider = QuantumInspireProvider()
-            with self.assertRaises(ApiError):
+            with self.assertRaises(QiskitBackendError):
                 quantum_inpire_provider.backends(name='quantum-inspire')
             email = 'bla@bla.bla'
             secret = 'secret'
@@ -169,7 +169,7 @@ class TestQuantumInspireProvider(unittest.TestCase):
     def test_set_basic_authentication(self):
         with mock.patch('quantuminspire.qiskit.quantum_inspire_provider.QuantumInspireAPI') as api:
             quantum_inpire_provider = QuantumInspireProvider()
-            with self.assertRaises(ApiError):
+            with self.assertRaises(QiskitBackendError):
                 quantum_inpire_provider.backends(name='quantum-inspire')
             email = 'bla@bla.bla'
             secret = 'secret'
@@ -184,7 +184,7 @@ class TestQuantumInspireProvider(unittest.TestCase):
         with mock.patch('quantuminspire.qiskit.quantum_inspire_provider.QuantumInspireAPI') as api:
             api.get_backend_types.return_value = [self.simulator_backend_type]
             quantum_inpire_provider = QuantumInspireProvider()
-            with self.assertRaises(ApiError):
+            with self.assertRaises(QiskitBackendError):
                 quantum_inpire_provider.backends(name='quantum-inspire')
             email = 'bla@bla.bla'
             secret = 'secret'
@@ -196,7 +196,7 @@ class TestQuantumInspireProvider(unittest.TestCase):
     def test_set_token_authentication(self):
         with mock.patch('quantuminspire.qiskit.quantum_inspire_provider.QuantumInspireAPI') as api:
             quantum_inpire_provider = QuantumInspireProvider()
-            with self.assertRaises(ApiError):
+            with self.assertRaises(QiskitBackendError):
                 quantum_inpire_provider.backends(name='quantum-inspire')
             token = 'This_is_a_nice_looking_token'
             quantum_inpire_provider.set_token_authentication(token)
@@ -205,7 +205,7 @@ class TestQuantumInspireProvider(unittest.TestCase):
     def test_set_authentication(self):
         with mock.patch('quantuminspire.qiskit.quantum_inspire_provider.QuantumInspireAPI') as api:
             quantum_inpire_provider = QuantumInspireProvider()
-            with self.assertRaises(ApiError):
+            with self.assertRaises(QiskitBackendError):
                 quantum_inpire_provider.backends(name='quantum-inspire')
             token = 'This_is_a_nice_looking_token'
             authentication = TokenAuthentication(token, scheme="token")
@@ -232,3 +232,18 @@ class TestQuantumInspireProvider(unittest.TestCase):
         expected = 'QI'
         actual = str(quantum_inpire_provider)
         self.assertEqual(expected, actual)
+
+    def test_get_api_not_set(self):
+        quantum_inpire_provider = QuantumInspireProvider()
+        with self.assertRaises(QiskitBackendError):
+            api = quantum_inpire_provider.get_api()
+
+    def test_get_api(self):
+        with mock.patch('quantuminspire.qiskit.quantum_inspire_provider.QuantumInspireAPI') as api:
+            quantum_inpire_provider = QuantumInspireProvider()
+            token = 'This_is_a_nice_looking_token'
+            authentication = TokenAuthentication(token, scheme="token")
+            project_name = 'This_is_my_first_project_name'
+            quantum_inpire_provider.set_authentication(authentication, project_name = project_name)
+            actual_api = quantum_inpire_provider.get_api()
+            self.assertIsNotNone(actual_api)
