@@ -23,7 +23,7 @@ from qiskit.providers.models import QasmBackendConfiguration
 
 from quantuminspire.api import QuantumInspireAPI
 from quantuminspire.credentials import get_token_authentication, get_basic_authentication
-from quantuminspire.exceptions import ApiError
+from quantuminspire.exceptions import QiskitBackendError
 from quantuminspire.qiskit.backend_qx import QuantumInspireBackend
 
 QI_URL = 'https://api.quantum-inspire.com'
@@ -40,6 +40,17 @@ class QuantumInspireProvider(BaseProvider):  # type: ignore
     def __str__(self) -> str:
         return 'QI'
 
+    def get_api(self) -> QuantumInspireAPI:
+        """ Provides the authenticated Quantum Inspire API.
+
+        :return:
+            The authenticated API.
+        """
+        if self._api is None:
+            raise QiskitBackendError('Authentication details have not been set.')
+
+        return self._api
+
     def backends(self, name: Optional[str] = None, **kwargs: Any) -> List[QuantumInspireBackend]:
         """ Provides a list of backends.
 
@@ -50,7 +61,7 @@ class QuantumInspireProvider(BaseProvider):  # type: ignore
             List of backends that meet the filter requirements.
         """
         if self._api is None:
-            raise ApiError('Authentication details have not been set.')
+            raise QiskitBackendError('Authentication details have not been set.')
 
         available_backends = self._api.get_backend_types()
         if name is not None:
