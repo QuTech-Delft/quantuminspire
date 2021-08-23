@@ -104,6 +104,7 @@ class TestQIJob(unittest.TestCase):
         results = job.result()
 
         self.assertTrue(results.success)
+        self.assertEqual(results.time_taken, 0.54)
         self.assertDictEqual({'counts': {'0x0': 42}}, results.data(0))
         self.assertDictEqual({'counts': {'0x1': 42}}, results.data(1))
         self.assertDictEqual({'0': 42}, results.get_counts(0))
@@ -164,6 +165,24 @@ class TestQIJob(unittest.TestCase):
         job = QIJob(backend, job_id, api)
         job.cancel()
         api.delete_project.assert_called_with(42)
+
+    def test_queue_position(self):
+        api = Mock()
+        api.get_job.side_effect = [{'name': 'test_job', 'status': 'NEW'},
+                                   {'name': 'other_job', 'status': 'NEW'}]
+        job_id = '42'
+        backend = Mock()
+        quantuminspire_job = Mock()
+        quantuminspire_job.get_job_identifier.side_effect = [1, 2]
+        qijob = QIJob(backend, job_id, api)
+        qijob.add_job(quantuminspire_job)
+        qijob.add_job(quantuminspire_job)
+        status = qijob.status()
+        self.assertEqual(JobStatus.QUEUED, status)
+        queue_position = qijob.queue_position(True)
+        self.assertIsNone(queue_position)
+        queue_position = qijob.queue_position()
+        self.assertIsNone(queue_position)
 
     def test_status(self):
         api = Mock()

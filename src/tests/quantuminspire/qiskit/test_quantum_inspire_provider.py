@@ -118,8 +118,8 @@ class TestQuantumInspireProvider(unittest.TestCase):
             quantum_inpire_provider._api.get_backend_types.return_value = [self.hardware_backend_type]
             backend = quantum_inpire_provider.get_backend(name='qi_hardware')
             self.assertEqual('qi_hardware', backend.name())
-            self.assertEqual(backend.configuration().coupling_map, [(0, 2), (1, 2), (2, 0), (2, 1),
-                                                                    (2, 3), (2, 4), (3, 2), (4, 2)])
+            self.assertEqual(backend.configuration().coupling_map, [[0, 2], [1, 2], [2, 0], [2, 1],
+                                                                    [2, 3], [2, 4], [3, 2], [4, 2]])
             self.assertFalse(backend.configuration().simulator)
             self.assertEqual(5, backend.configuration().n_qubits)
             self.assertTrue(backend.configuration().memory)
@@ -141,7 +141,7 @@ class TestQuantumInspireProvider(unittest.TestCase):
             quantum_inpire_provider._api.get_backend_types.return_value = [self.hardware_backend_type2]
             backend = quantum_inpire_provider.get_backend(name='qi_hardware')
             self.assertEqual('qi_hardware', backend.name())
-            self.assertEqual(backend.configuration().coupling_map, [(0, 1), (1, 0)])
+            self.assertEqual(backend.configuration().coupling_map, [[0, 1], [1, 0]])
             self.assertFalse(backend.configuration().simulator)
             self.assertEqual(2, backend.configuration().n_qubits)
             self.assertTrue(backend.configuration().memory)

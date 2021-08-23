@@ -114,7 +114,7 @@ class QuantumInspireProvider(BaseProvider):  # type: ignore
         coupling_map = []
         for i in range(len(backend['topology']['edges'])):
             for j in backend['topology']['edges'][i]:
-                coupling_map.append((i, j))
+                coupling_map.append([i, j])
         config.coupling_map = None if len(coupling_map) == 0 else coupling_map
 
     def set_authentication_details(self, email: str, password: str, qi_url: str = QI_URL) -> None:
