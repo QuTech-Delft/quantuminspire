@@ -128,7 +128,6 @@ class QIJob(BaseJob):  # type: ignore
             time.sleep(wait)
 
         experiment_results = result_function(self)
-        total_time_taken = 0.0
         total_time_taken = sum(getattr(experiment_result, "time_taken", 0.0) for
                                experiment_result in experiment_results)
 
