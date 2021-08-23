@@ -31,7 +31,7 @@ class QIResult(Result):  # type: ignore
     """
     def __init__(self, backend_name: str, backend_version: str, qobj_id: str, job_id: str, success: bool,
                  results: List[ExperimentResult], date: Any = None, status: Any = None, header: Any = None,
-                 **kwargs: str) -> None:
+                 **kwargs: Any) -> None:
         """
         Construct a new QIResult object. Not normally called directly, use a QIJob to get the QIResult.
 
