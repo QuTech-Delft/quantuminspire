@@ -86,3 +86,15 @@ class QIResult(Result):  # type: ignore
             return dict_list[0]
 
         return dict_list
+
+    def get_calibration(self, api) -> Dict[str, Any]:
+        """ Return the calibration data for this result
+
+        :return:
+            The calibration data as a dictionary. Exact format depends on the backend.
+        """
+        project_id=self.job_id
+        jobs=api.get_jobs_from_project(project_id)
+        qi_result=api.get_result_from_job(jobs[0]['id'])
+        calibration =  api.get_calibration_from_result(qi_result['id'])
+        return calibration
