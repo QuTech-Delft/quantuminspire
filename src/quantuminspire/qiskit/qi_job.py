@@ -128,8 +128,12 @@ class QIJob(BaseJob):  # type: ignore
             time.sleep(wait)
 
         experiment_results = result_function(self)
+        total_time_taken = sum(getattr(experiment_result, "time_taken", 0.0) for
+                               experiment_result in experiment_results)
+
         return QIResult(backend_name=self._backend.backend_name, backend_version=quantum_inspire_version,
-                        job_id=self.job_id(), qobj_id=self.job_id(), success=True, results=experiment_results)
+                        job_id=self.job_id(), qobj_id=self.job_id(), success=True, results=experiment_results,
+                        status=self.status(), time_taken=total_time_taken)
 
     def result(self, timeout: Optional[float] = None, wait: float = 0.5) -> QIResult:
         """ Return the result for the experiments in the latest run for this project.
@@ -184,6 +188,16 @@ class QIJob(BaseJob):  # type: ignore
          in QIJob.
         """
         self.jobs.append(job)
+
+    def queue_position(self, refresh: bool = False) -> Optional[int]:
+        """
+        Return the position for this Job in the Quantum Inspire queue (when in status QUEUED).
+        Currently we don't have this info available.
+
+        :return:
+            The queue position of the job. Currently None (not available).
+        """
+        return None
 
     def status(self) -> JobStatus:
         """
