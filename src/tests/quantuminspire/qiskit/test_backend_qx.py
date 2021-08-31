@@ -139,6 +139,21 @@ class TestQiSimulatorPy(unittest.TestCase):
         )
         self.assertDictEqual(configuration.to_dict(), expected_configuration.to_dict())
 
+    def test_backend_status(self):
+        api = Mock()
+        type(api).__name__ = 'QuantumInspireAPI'
+        backend_type = {'max_number_of_shots': 4096,
+                        'status': 'OFFLINE',
+                        'status_message': 'This backend is offline.'}
+        api.get_backend_type_by_name.return_value = backend_type
+        simulator = QuantumInspireBackend(api, Mock())
+        status=simulator.status()
+        self.assertEqual(status.backend_name, 'qi_simulator')
+        self.assertEqual(status.status_msg, backend_type['status_message'])
+        self.assertEqual(status.backend_version, quantum_inspire_version)
+        self.assertFalse(status.operational)
+        self.assertEqual(status.pending_jobs, 0)
+
     def test_run_returns_correct_result(self):
         api = Mock()
         type(api).__name__ = 'QuantumInspireAPI'
