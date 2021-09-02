@@ -16,7 +16,6 @@ limitations under the License.
 """
 from unittest import TestCase
 from unittest.mock import Mock
-from collections import OrderedDict
 from coreapi.exceptions import ErrorMessage
 
 from quantuminspire.job import QuantumInspireJob
@@ -48,20 +47,20 @@ class TestQuantumInspireJob(TestCase):
         self.assertEqual(expected, actual)
 
     def test_retrieve_result(self):
-        expected = OrderedDict([('id', 502),
-                                ('url', 'https,//api.quantum-inspire.com/results/502/'),
-                                ('job', 'https,//api.quantum-inspire.com/jobs/10/'),
-                                ('created_at', '1900-01-01T01:00:00:00000Z'),
-                                ('number_of_qubits', 2),
-                                ('seconds', 0.0),
-                                ('raw_text', ''),
-                                ('raw_data_url', 'https,//api.quantum-inspire.com/results/502/raw-data/f2b6/'),
-                                ('histogram', {'3', 0.5068359375, '0', 0.4931640625}),
-                                ('histogram_url', 'https,//api.quantum-inspire.com/results/502/histogram/f2b6/'),
-                                ('measurement_mask', 0),
-                                ('quantum_states_url',
-                                 'https,//api.quantum-inspire.com/results/502/quantum-states/f2b6d/'),
-                                ('measurement_register_url', 'https,//api.quantum-inspire.com/results/502/f2b6d/')])
+        expected = dict([('id', 502),
+                         ('url', 'https,//api.quantum-inspire.com/results/502/'),
+                         ('job', 'https,//api.quantum-inspire.com/jobs/10/'),
+                         ('created_at', '1900-01-01T01:00:00:00000Z'),
+                         ('number_of_qubits', 2),
+                         ('seconds', 0.0),
+                         ('raw_text', ''),
+                         ('raw_data_url', 'https,//api.quantum-inspire.com/results/502/raw-data/f2b6/'),
+                         ('histogram', {'3', 0.5068359375, '0', 0.4931640625}),
+                         ('histogram_url', 'https,//api.quantum-inspire.com/results/502/histogram/f2b6/'),
+                         ('measurement_mask', 0),
+                         ('quantum_states_url',
+                          'https,//api.quantum-inspire.com/results/502/quantum-states/f2b6d/'),
+                         ('measurement_register_url', 'https,//api.quantum-inspire.com/results/502/f2b6d/')])
         api = Mock()
         api.get_result_from_job.return_value = expected
         type(api).__name__ = 'QuantumInspireAPI'
