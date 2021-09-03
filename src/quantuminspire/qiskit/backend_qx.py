@@ -17,7 +17,7 @@
 import io
 import json
 import uuid
-from collections import defaultdict, OrderedDict, Counter
+from collections import defaultdict, Counter
 from typing import Dict, List, Tuple, Optional, Any
 
 import numpy as np
@@ -479,5 +479,4 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
                     break
 
         sorted_histogram_data: List[Tuple[str, int]] = sorted(histogram_data.items(), key=lambda kv: int(kv[0], 16))
-        histogram_obj = OrderedDict(sorted_histogram_data)
-        return dict(histogram_obj), memory_data
+        return dict(sorted_histogram_data), memory_data

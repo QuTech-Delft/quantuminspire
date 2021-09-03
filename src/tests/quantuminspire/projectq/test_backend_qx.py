@@ -20,7 +20,6 @@ import unittest
 import warnings
 import json
 import coreapi
-from collections import OrderedDict
 from unittest.mock import MagicMock, patch
 
 from projectq.meta import LogicalQubitIDTag
@@ -38,24 +37,24 @@ class MockApiClient:
     def __init__(self):
         result = {'histogram': {'00': 0.49, '11': 0.51}, 'results': 'dummy'}
         self.execute_qasm = MagicMock(return_value=result)
-        self.get_backend_type = MagicMock(return_value=OrderedDict({'is_hardware_backend': False,
-                                                                    'is_allowed': True,
-                                                                    'allowed_operations': {
-                                                                        'display': ['display', 'display_binary'],
-                                                                        'measure': ['measure_x', 'measure_y',
-                                                                                    'measure_z', 'measure'],
-                                                                        'measure_all': ['measure_all'],
-                                                                        'parameterized_single_gates': ['rx', 'ry',
-                                                                                                       'rz'],
-                                                                        'prep': ['prep_x', 'prep_y', 'prep_z', 'prep'],
-                                                                        'single_gates': ['mx90', 'my90', 'x90', 'y90',
-                                                                                         't', 'tdag', 's', 'sdag',
-                                                                                         'x', 'y', 'z', 'h', 'i'],
-                                                                        'dual_gates': ['cz', 'cnot', 'swap', 'cr'],
-                                                                        'triple_gates': ['toffoli']
-                                                                    },
-                                                                    'max_number_of_shots': 4096,
-                                                                    'number_of_qubits': 26}))
+        self.get_backend_type = MagicMock(return_value=dict({'is_hardware_backend': False,
+                                                             'is_allowed': True,
+                                                             'allowed_operations': {
+                                                                 'display': ['display', 'display_binary'],
+                                                                 'measure': ['measure_x', 'measure_y',
+                                                                             'measure_z', 'measure'],
+                                                                 'measure_all': ['measure_all'],
+                                                                 'parameterized_single_gates': ['rx', 'ry',
+                                                                                                'rz'],
+                                                                 'prep': ['prep_x', 'prep_y', 'prep_z', 'prep'],
+                                                                 'single_gates': ['mx90', 'my90', 'x90', 'y90',
+                                                                                  't', 'tdag', 's', 'sdag',
+                                                                                  'x', 'y', 'z', 'h', 'i'],
+                                                                 'dual_gates': ['cz', 'cnot', 'swap', 'cr'],
+                                                                 'triple_gates': ['toffoli']
+                                                             },
+                                                             'max_number_of_shots': 4096,
+                                                             'number_of_qubits': 26}))
 
 
 class QIBackendNonProtected(QIBackend):
@@ -153,27 +152,27 @@ class QIBackendNonProtected(QIBackend):
 class TestProjectQBackend(unittest.TestCase):
 
     def setUp(self):
-        self.hardware_backend_type = OrderedDict({'is_hardware_backend': True,
-                                                  'is_allowed': True,
-                                                  'allowed_operations': {
-                                                     'measure': ['measure_z', 'measure'],
-                                                     'measure_all': ['measure_all'],
-                                                     'parameterized_single_gates': ['rx', 'ry', 'rz'],
-                                                     'single_gates': ['x', 'y', 'z', 'h', 'i'],
-                                                     'dual_gates': ['cz', 'cnot', 'swap']
-                                                  },
-                                                  'max_number_of_shots': 4096,
-                                                  'max_number_of_simultaneous_jobs': 1,
-                                                  'topology': {'edges': []},
-                                                  'number_of_qubits': 3})
+        self.hardware_backend_type = dict({'is_hardware_backend': True,
+                                           'is_allowed': True,
+                                           'allowed_operations': {
+                                              'measure': ['measure_z', 'measure'],
+                                              'measure_all': ['measure_all'],
+                                              'parameterized_single_gates': ['rx', 'ry', 'rz'],
+                                              'single_gates': ['x', 'y', 'z', 'h', 'i'],
+                                              'dual_gates': ['cz', 'cnot', 'swap']
+                                           },
+                                           'max_number_of_shots': 4096,
+                                           'max_number_of_simultaneous_jobs': 1,
+                                           'topology': {'edges': []},
+                                           'number_of_qubits': 3})
 
-        self.simulator_backend_type = OrderedDict({'is_hardware_backend': False,
-                                                   'is_allowed': True,
-                                                   'allowed_operations': {},
-                                                   'max_number_of_shots': 4096,
-                                                   'max_number_of_simultaneous_jobs': 3,
-                                                   'topology': {'edges': []},
-                                                   'number_of_qubits': 5})
+        self.simulator_backend_type = dict({'is_hardware_backend': False,
+                                            'is_allowed': True,
+                                            'allowed_operations': {},
+                                            'max_number_of_shots': 4096,
+                                            'max_number_of_simultaneous_jobs': 3,
+                                            'topology': {'edges': []},
+                                            'number_of_qubits': 5})
 
         warnings.filterwarnings("ignore", category=PendingDeprecationWarning)
 

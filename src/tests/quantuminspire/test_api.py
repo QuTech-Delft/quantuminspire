@@ -21,7 +21,6 @@ import json
 import io
 import re
 from coreapi.exceptions import CoreAPIException, ErrorMessage
-from collections import OrderedDict
 from functools import partial
 from unittest import mock, TestCase
 from unittest.mock import Mock, patch, call, MagicMock, mock_open
@@ -145,48 +144,48 @@ class TestQuantumInspireAPI(TestCase):
                                            overrides=None, action=None, encoding=None, transform=None):
         self.assertEqual(keys[1], 'default')
         self.assertEqual(keys[2], 'list')
-        return OrderedDict([('url', 'https://api.quantum-inspire.com/backendtypes/1/'),
-                            ('name', 'QX Single-node Simulator'),
-                            ('is_hardware_backend', False),
-                            ('required_permission', 'can_simulate_single_node_qutech'),
-                            ('number_of_qubits', 26),
-                            ('description', 'Dummy'),
-                            ('topology', '{"edges": []}'),
-                            ('is_allowed', True)])
+        return dict([('url', 'https://api.quantum-inspire.com/backendtypes/1/'),
+                     ('name', 'QX Single-node Simulator'),
+                     ('is_hardware_backend', False),
+                     ('required_permission', 'can_simulate_single_node_qutech'),
+                     ('number_of_qubits', 26),
+                     ('description', 'Dummy'),
+                     ('topology', '{"edges": []}'),
+                     ('is_allowed', True)])
 
     def __mock_backendtypes_handler(self, mock_api, document, keys, params=None, validate=None,
                                     overrides=None, action=None, encoding=None, transform=None):
         self.assertEqual(keys[1], 'list')
-        return [OrderedDict([('url', 'https://api.quantum-inspire.com/backendtypes/1/'),
-                             ('name', 'QX Single-node Simulator'),
-                             ('is_hardware_backend', False),
-                             ('required_permission', 'can_simulate_single_node_qutech'),
-                             ('number_of_qubits', 26),
-                             ('description', 'Single-node running on a 4GB Hetzner VPS.'),
-                             ('topology', '{"edges": []}'),
-                             ('is_allowed', True)]),
-                OrderedDict([('url', 'https://api.quantum-inspire.com/backendtypes/2/'),
-                             ('name', 'QX Single-node Simulator SurfSara'),
-                             ('is_hardware_backend', False),
-                             ('required_permission', 'can_simulate_single_node_cartesius'),
-                             ('number_of_qubits', 31),
-                             ('description', 'Single node simulator on Cartesius supercomputer.'),
-                             ('topology', '{"edges": []}'),
-                             ('is_allowed', True)])]
+        return [dict([('url', 'https://api.quantum-inspire.com/backendtypes/1/'),
+                      ('name', 'QX Single-node Simulator'),
+                      ('is_hardware_backend', False),
+                      ('required_permission', 'can_simulate_single_node_qutech'),
+                      ('number_of_qubits', 26),
+                      ('description', 'Single-node running on a 4GB Hetzner VPS.'),
+                      ('topology', '{"edges": []}'),
+                      ('is_allowed', True)]),
+                dict([('url', 'https://api.quantum-inspire.com/backendtypes/2/'),
+                      ('name', 'QX Single-node Simulator SurfSara'),
+                      ('is_hardware_backend', False),
+                      ('required_permission', 'can_simulate_single_node_cartesius'),
+                      ('number_of_qubits', 31),
+                      ('description', 'Single node simulator on Cartesius supercomputer.'),
+                      ('topology', '{"edges": []}'),
+                      ('is_allowed', True)])]
 
     def __mock_backendtype_handler(self, mock_api, document, keys, params=None, validate=None,
                                    overrides=None, action=None, encoding=None, transform=None):
         self.assertEqual(keys[1], 'read')
         if params['id'] != 1:
             raise ErrorMessage('Not found')
-        return OrderedDict([('url', 'https://api.quantum-inspire.com/backendtypes/1/'),
-                            ('name', 'QX Single-node Simulator'),
-                            ('is_hardware_backend', False),
-                            ('required_permission', 'can_simulate_single_node_qutech'),
-                            ('number_of_qubits', 26),
-                            ('description', 'Single-node running on a 4GB Hetzner VPS.'),
-                            ('topology', '{"edges": []}'),
-                            ('is_allowed', True)])
+        return dict([('url', 'https://api.quantum-inspire.com/backendtypes/1/'),
+                    ('name', 'QX Single-node Simulator'),
+                    ('is_hardware_backend', False),
+                    ('required_permission', 'can_simulate_single_node_qutech'),
+                    ('number_of_qubits', 26),
+                    ('description', 'Single-node running on a 4GB Hetzner VPS.'),
+                    ('topology', '{"edges": []}'),
+                    ('is_allowed', True)])
 
     def test_list_backend_types_has_correct_input_and_output(self):
         self.coreapi_client.handlers['backendtypes'] = self.__mock_backendtypes_handler
@@ -235,7 +234,7 @@ class TestQuantumInspireAPI(TestCase):
         expected = self.__mock_default_backendtype_handler(None, None, ['backendtypes', 'default', 'list'])
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
         actual = api.get_default_backend_type()
-        self.assertIsInstance(actual, OrderedDict)
+        self.assertIsInstance(actual, dict)
         self.assertDictEqual(actual, expected)
 
     def test_get_backend_type_raises_value_error(self):
@@ -247,22 +246,22 @@ class TestQuantumInspireAPI(TestCase):
     def __mock_list_projects_handler(self, mock_api, document, keys, params=None, validate=None,
                                      overrides=None, action=None, encoding=None, transform=None):
         self.assertEqual(keys[1], 'list')
-        return [OrderedDict([('url', 'https://api.quantum-inspire.com/projects/11/'),
-                             ('id', 11),
-                             ('name', 'Grover algorithm - 1900-01-01 10:00'),
-                             ('owner', 'https://api.quantum-inspire.com/users/1/'),
-                             ('assets', 'https://api.quantum-inspire.com/projects/11/assets/'),
-                             ('backend_type', 'https://api.quantum-inspire.com/backendtypes/1/'),
-                             ('default_number_of_shots', 1),
-                             ('user_data', '')]),
-                OrderedDict([('url', 'https://api.quantum-inspire.com/projects/12/'),
-                             ('id', 12),
-                             ('name', 'Grover algorithm - 1900-01-01 11:00'),
-                             ('owner', 'https://api.quantum-inspire.com/users/2/'),
-                             ('assets', 'https://api.quantum-inspire.com/projects/12/assets/'),
-                             ('backend_type', 'https://api.quantum-inspire.com/backendtypes/2/'),
-                             ('default_number_of_shots', 2),
-                             ('user_data', '')])]
+        return [dict([('url', 'https://api.quantum-inspire.com/projects/11/'),
+                      ('id', 11),
+                      ('name', 'Grover algorithm - 1900-01-01 10:00'),
+                      ('owner', 'https://api.quantum-inspire.com/users/1/'),
+                      ('assets', 'https://api.quantum-inspire.com/projects/11/assets/'),
+                      ('backend_type', 'https://api.quantum-inspire.com/backendtypes/1/'),
+                      ('default_number_of_shots', 1),
+                      ('user_data', '')]),
+                dict([('url', 'https://api.quantum-inspire.com/projects/12/'),
+                      ('id', 12),
+                      ('name', 'Grover algorithm - 1900-01-01 11:00'),
+                      ('owner', 'https://api.quantum-inspire.com/users/2/'),
+                      ('assets', 'https://api.quantum-inspire.com/projects/12/assets/'),
+                      ('backend_type', 'https://api.quantum-inspire.com/backendtypes/2/'),
+                      ('default_number_of_shots', 2),
+                      ('user_data', '')])]
 
     def __mock_project_handler(self, input_params, input_key, mock_api, document, keys, params=None,
                                validate=None, overrides=None, action=None, encoding=None, transform=None):
@@ -271,13 +270,13 @@ class TestQuantumInspireAPI(TestCase):
         if input_key == 'read' or input_key == 'delete':
             if params['id'] != 11:
                 raise ErrorMessage('Not found')
-        return OrderedDict([('url', 'https://api.quantum-inspire.com/projects/11/'),
-                            ('id', 11),
-                            ('name', 'Grover algorithm - 1900-01-01 10:00'),
-                            ('owner', 'https://api.quantum-inspire.com/users/1/'),
-                            ('assets', 'https://api.quantum-inspire.com/projects/11/assets/'),
-                            ('backend_type', 'https://api.quantum-inspire.com/backendtypes/1/'),
-                            ('default_number_of_shots', 1)])
+        return dict([('url', 'https://api.quantum-inspire.com/projects/11/'),
+                     ('id', 11),
+                     ('name', 'Grover algorithm - 1900-01-01 10:00'),
+                     ('owner', 'https://api.quantum-inspire.com/users/1/'),
+                     ('assets', 'https://api.quantum-inspire.com/projects/11/assets/'),
+                     ('backend_type', 'https://api.quantum-inspire.com/backendtypes/1/'),
+                     ('default_number_of_shots', 1)])
 
     def test_list_projects_has_correct_input_and_output(self):
         self.coreapi_client.handlers['projects'] = self.__mock_list_projects_handler
@@ -337,27 +336,27 @@ class TestQuantumInspireAPI(TestCase):
     def __mock_list_jobs_handler(self, mock_api, document, keys, params=None, validate=None,
                                  overrides=None, action=None, encoding=None, transform=None):
         self.assertEqual(keys[1], 'list')
-        return [OrderedDict([('url', 'https,//api.quantum-inspire.com/jobs/530/'),
-                             ('name', 'qi-sdk-job-5852eb68-a794-11e8-9447-a44cc848f1f2'),
-                             ('id', 530),
-                             ('status', 'COMPLETE'),
-                             ('input', 'https,//api.quantum-inspire.com/assets/629/'),
-                             ('backend', 'https,//api.quantum-inspire.com/backends/1/'),
-                             ('backend_type', 'https,//api.quantum-inspire.com/backendtypes/1/'),
-                             ('results', 'https,//api.quantum-inspire.com/jobs/530/result/'),
-                             ('queued_at', '2018-08-24T11:53:41:352732Z'),
-                             ('number_of_shots', 1024)]),
-                OrderedDict([('url', 'https,//api.quantum-inspire.com/jobs/509/'),
-                             ('name', 'qi-sdk-job-7e37c8fa-a76b-11e8-b5a0-a44cc848f1f2'),
-                             ('id', 509),
-                             ('status', 'COMPLETE'),
-                             ('input', 'https,//api.quantum-inspire.com/assets/607/'),
-                             ('backend', 'https,//api.quantum-inspire.com/backends/1/'),
-                             ('backend_type', 'https,//api.quantum-inspire.com/backendtypes/1/'),
-                             ('results', 'https,//api.quantum-inspire.com/jobs/509/result/'),
-                             ('queued_at', '2018-08-24T07:01:21:257557Z'),
-                             ('number_of_shots', 1024),
-                             ('user_data', '')])]
+        return [dict([('url', 'https,//api.quantum-inspire.com/jobs/530/'),
+                      ('name', 'qi-sdk-job-5852eb68-a794-11e8-9447-a44cc848f1f2'),
+                      ('id', 530),
+                      ('status', 'COMPLETE'),
+                      ('input', 'https,//api.quantum-inspire.com/assets/629/'),
+                      ('backend', 'https,//api.quantum-inspire.com/backends/1/'),
+                      ('backend_type', 'https,//api.quantum-inspire.com/backendtypes/1/'),
+                      ('results', 'https,//api.quantum-inspire.com/jobs/530/result/'),
+                      ('queued_at', '2018-08-24T11:53:41:352732Z'),
+                      ('number_of_shots', 1024)]),
+                dict([('url', 'https,//api.quantum-inspire.com/jobs/509/'),
+                      ('name', 'qi-sdk-job-7e37c8fa-a76b-11e8-b5a0-a44cc848f1f2'),
+                      ('id', 509),
+                      ('status', 'COMPLETE'),
+                      ('input', 'https,//api.quantum-inspire.com/assets/607/'),
+                      ('backend', 'https,//api.quantum-inspire.com/backends/1/'),
+                      ('backend_type', 'https,//api.quantum-inspire.com/backendtypes/1/'),
+                      ('results', 'https,//api.quantum-inspire.com/jobs/509/result/'),
+                      ('queued_at', '2018-08-24T07:01:21:257557Z'),
+                      ('number_of_shots', 1024),
+                      ('user_data', '')])]
 
     def __mock_job_handler(self, input_params, input_key, mock_api, document, keys, params=None,
                            validate=None, overrides=None, action=None, encoding=None, transform=None,
@@ -370,17 +369,17 @@ class TestQuantumInspireAPI(TestCase):
         if input_key == 'create':
             if params['name'] == 'CreateJobFail':
                 raise ErrorMessage('Not created')
-        return OrderedDict([('url', 'https,//api.quantum-inspire.com/jobs/509/'),
-                            ('name', 'qi-sdk-job-7e37c8fa-a76b-11e8-b5a0-a44cc848f1f2'),
-                            ('id', 509),
-                            ('status', status),
-                            ('input', 'https,//api.quantum-inspire.com/assets/171/'),
-                            ('backend', 'https,//api.quantum-inspire.com/backends/1/'),
-                            ('backend_type', 'https,//api.quantum-inspire.com/backendtypes/1/'),
-                            ('results', 'https,//api.quantum-inspire.com/jobs/509/result/'),
-                            ('queued_at', '2018-08-24T07:01:21:257557Z'),
-                            ('number_of_shots', 1024),
-                            ('user_data', '')])
+        return dict([('url', 'https,//api.quantum-inspire.com/jobs/509/'),
+                     ('name', 'qi-sdk-job-7e37c8fa-a76b-11e8-b5a0-a44cc848f1f2'),
+                     ('id', 509),
+                     ('status', status),
+                     ('input', 'https,//api.quantum-inspire.com/assets/171/'),
+                     ('backend', 'https,//api.quantum-inspire.com/backends/1/'),
+                     ('backend_type', 'https,//api.quantum-inspire.com/backendtypes/1/'),
+                     ('results', 'https,//api.quantum-inspire.com/jobs/509/result/'),
+                     ('queued_at', '2018-08-24T07:01:21:257557Z'),
+                     ('number_of_shots', 1024),
+                     ('user_data', '')])
 
     def __mock_assets_jobs_handler(self, input_params, input_key, mock_api, document, keys, params=None,
                                    validate=None, overrides=None, action=None, encoding=None, transform=None):
@@ -389,27 +388,27 @@ class TestQuantumInspireAPI(TestCase):
         if input_key == 'read' or input_key == 'delete' or input_key == 'jobs':
             if params['id'] != 171:
                 raise ErrorMessage('Not found')
-        return [OrderedDict([('url', 'https,//api.quantum-inspire.com/jobs/530/'),
-                             ('name', 'qi-sdk-job-5852eb68-a794-11e8-9447-a44cc848f1f2'),
-                             ('id', 530),
-                             ('status', 'COMPLETE'),
-                             ('input', 'https,//api.quantum-inspire.com/assets/629/'),
-                             ('backend', 'https,//api.quantum-inspire.com/backends/1/'),
-                             ('backend_type', 'https,//api.quantum-inspire.com/backendtypes/1/'),
-                             ('results', 'https,//api.quantum-inspire.com/jobs/530/result/'),
-                             ('queued_at', '2018-08-24T11:53:41:352732Z'),
-                             ('number_of_shots', 1024)]),
-                OrderedDict([('url', 'https,//api.quantum-inspire.com/jobs/509/'),
-                             ('name', 'qi-sdk-job-7e37c8fa-a76b-11e8-b5a0-a44cc848f1f2'),
-                             ('id', 509),
-                             ('status', 'COMPLETE'),
-                             ('input', 'https,//api.quantum-inspire.com/assets/607/'),
-                             ('backend', 'https,//api.quantum-inspire.com/backends/1/'),
-                             ('backend_type', 'https,//api.quantum-inspire.com/backendtypes/1/'),
-                             ('results', 'https,//api.quantum-inspire.com/jobs/509/result/'),
-                             ('queued_at', '2018-08-24T07:01:21:257557Z'),
-                             ('number_of_shots', 1024),
-                             ('user_data', '')])]
+        return [dict([('url', 'https,//api.quantum-inspire.com/jobs/530/'),
+                      ('name', 'qi-sdk-job-5852eb68-a794-11e8-9447-a44cc848f1f2'),
+                      ('id', 530),
+                      ('status', 'COMPLETE'),
+                      ('input', 'https,//api.quantum-inspire.com/assets/629/'),
+                      ('backend', 'https,//api.quantum-inspire.com/backends/1/'),
+                      ('backend_type', 'https,//api.quantum-inspire.com/backendtypes/1/'),
+                      ('results', 'https,//api.quantum-inspire.com/jobs/530/result/'),
+                      ('queued_at', '2018-08-24T11:53:41:352732Z'),
+                      ('number_of_shots', 1024)]),
+                dict([('url', 'https,//api.quantum-inspire.com/jobs/509/'),
+                      ('name', 'qi-sdk-job-7e37c8fa-a76b-11e8-b5a0-a44cc848f1f2'),
+                      ('id', 509),
+                      ('status', 'COMPLETE'),
+                      ('input', 'https,//api.quantum-inspire.com/assets/607/'),
+                      ('backend', 'https,//api.quantum-inspire.com/backends/1/'),
+                      ('backend_type', 'https,//api.quantum-inspire.com/backendtypes/1/'),
+                      ('results', 'https,//api.quantum-inspire.com/jobs/509/result/'),
+                      ('queued_at', '2018-08-24T07:01:21:257557Z'),
+                      ('number_of_shots', 1024),
+                      ('user_data', '')])]
 
     def test_list_jobs_has_correct_input_and_output(self):
         self.coreapi_client.handlers['jobs'] = self.__mock_list_jobs_handler
@@ -610,33 +609,33 @@ class TestQuantumInspireAPI(TestCase):
     def __mock_list_results_handler(self, mock_api, document, keys, params=None, validate=None,
                                     overrides=None, action=None, encoding=None, transform=None):
         self.assertEqual(keys[1], 'list')
-        return [OrderedDict([('id', 502),
-                             ('url', 'https,//api.quantum-inspire.com/results/502/'),
-                             ('job', 'https,//api.quantum-inspire.com/jobs/10/'),
-                             ('created_at', '1900-01-01T01:00:00:00000Z'),
-                             ('number_of_qubits', 2),
-                             ('seconds', 0.0),
-                             ('raw_text', ''),
-                             ('raw_data_url', 'https,//api.quantum-inspire.com/results/502/raw-data/f2b6/'),
-                             ('histogram', {'3', 0.5068359375, '0', 0.4931640625}),
-                             ('histogram_url', 'https,//api.quantum-inspire.com/results/502/histogram/f2b6/'),
-                             ('measurement_mask', 0),
-                             ('quantum_states_url',
-                              'https,//api.quantum-inspire.com/results/502/quantum-states/f2b6d/'),
-                             ('measurement_register_url', 'https,//api.quantum-inspire.com/results/502/f2b6d/')]),
-                OrderedDict([('id', 485),
-                             ('url', 'https,//api.quantum-inspire.com/results/485/'),
-                             ('job', 'https,//api.quantum-inspire.com/jobs/20/'),
-                             ('created_at', '1900-01-01T01:00:00:00000Z'),
-                             ('number_of_qubits', 2),
-                             ('seconds', 0.0),
-                             ('raw_text', ''),
-                             ('raw_data_url', 'https,//api.quantum-inspire.com/results/485/raw-data/162c/'),
-                             ('histogram', {'0', 0.5029296875, '3', 0.4970703125}),
-                             ('histogram_url', 'https,//api.quantum-inspire.com/results/485/histogram/162c/'),
-                             ('measurement_mask', 0),
-                             ('quantum_states_url', 'https,//api.quantum-inspire.com/results/485/quantum-states/162c/'),
-                             ('measurement_register_url', 'https,//api.quantum-inspire.com/results/485/162c/')])]
+        return [dict([('id', 502),
+                      ('url', 'https,//api.quantum-inspire.com/results/502/'),
+                      ('job', 'https,//api.quantum-inspire.com/jobs/10/'),
+                      ('created_at', '1900-01-01T01:00:00:00000Z'),
+                      ('number_of_qubits', 2),
+                      ('seconds', 0.0),
+                      ('raw_text', ''),
+                      ('raw_data_url', 'https,//api.quantum-inspire.com/results/502/raw-data/f2b6/'),
+                      ('histogram', {'3', 0.5068359375, '0', 0.4931640625}),
+                      ('histogram_url', 'https,//api.quantum-inspire.com/results/502/histogram/f2b6/'),
+                      ('measurement_mask', 0),
+                      ('quantum_states_url',
+                       'https,//api.quantum-inspire.com/results/502/quantum-states/f2b6d/'),
+                      ('measurement_register_url', 'https,//api.quantum-inspire.com/results/502/f2b6d/')]),
+                dict([('id', 485),
+                      ('url', 'https,//api.quantum-inspire.com/results/485/'),
+                      ('job', 'https,//api.quantum-inspire.com/jobs/20/'),
+                      ('created_at', '1900-01-01T01:00:00:00000Z'),
+                      ('number_of_qubits', 2),
+                      ('seconds', 0.0),
+                      ('raw_text', ''),
+                      ('raw_data_url', 'https,//api.quantum-inspire.com/results/485/raw-data/162c/'),
+                      ('histogram', {'0', 0.5029296875, '3', 0.4970703125}),
+                      ('histogram_url', 'https,//api.quantum-inspire.com/results/485/histogram/162c/'),
+                      ('measurement_mask', 0),
+                      ('quantum_states_url', 'https,//api.quantum-inspire.com/results/485/quantum-states/162c/'),
+                      ('measurement_register_url', 'https,//api.quantum-inspire.com/results/485/162c/')])]
 
     def __mock_result_handler(self, input_params, input_key, mock_api, document, keys, params=None,
                               validate=None, overrides=None, action=None, encoding=None, transform=None):
@@ -646,21 +645,21 @@ class TestQuantumInspireAPI(TestCase):
             if params['id'] != 485:
                 raise ErrorMessage('Not found')
         if keys[1] == 'read':
-            return OrderedDict([('id', 485),
-                                ('url', 'https,//api.quantum-inspire.com/results/485/'),
-                                ('job', 'https,//api.quantum-inspire.com/jobs/20/'),
-                                ('created_at', '1900-01-01T01:00:00:00000Z'),
-                                ('number_of_qubits', 2),
-                                ('seconds', 0.0),
-                                ('raw_text', ''),
-                                ('raw_data_url', 'https,//api.quantum-inspire.com/results/485/raw-data/162c/'),
-                                ('histogram', {'0', 0.5029296875, '3', 0.4970703125}),
-                                ('histogram_url', 'https,//api.quantum-inspire.com/results/485/histogram/162c/'),
-                                ('measurement_mask', 0),
-                                ('quantum_states_url',
-                                 'https,//api.quantum-inspire.com/results/485/quantum-states/qstates/'),
-                                ('measurement_register_url', 'https,//api.quantum-inspire.com/results/485/mreg/'),
-                                ('calibration', 'https,//api.quantum-inspire.com/results/485/584/')])
+            return dict([('id', 485),
+                         ('url', 'https,//api.quantum-inspire.com/results/485/'),
+                         ('job', 'https,//api.quantum-inspire.com/jobs/20/'),
+                         ('created_at', '1900-01-01T01:00:00:00000Z'),
+                         ('number_of_qubits', 2),
+                         ('seconds', 0.0),
+                         ('raw_text', ''),
+                         ('raw_data_url', 'https,//api.quantum-inspire.com/results/485/raw-data/162c/'),
+                         ('histogram', {'0', 0.5029296875, '3', 0.4970703125}),
+                         ('histogram_url', 'https,//api.quantum-inspire.com/results/485/histogram/162c/'),
+                         ('measurement_mask', 0),
+                         ('quantum_states_url',
+                          'https,//api.quantum-inspire.com/results/485/quantum-states/qstates/'),
+                         ('measurement_register_url', 'https,//api.quantum-inspire.com/results/485/mreg/'),
+                         ('calibration', 'https,//api.quantum-inspire.com/results/485/584/')])
         elif keys[1] == 'raw-data':
             if params['token'] != '162c':
                 raise ErrorMessage('Not found')
@@ -682,19 +681,19 @@ class TestQuantumInspireAPI(TestCase):
         if input_key == 'list':
             if params['id'] != 509:
                 raise ErrorMessage('Not found')
-        return OrderedDict([('id', 485),
-                            ('url', 'https,//api.quantum-inspire.com/results/485/'),
-                            ('job', 'https,//api.quantum-inspire.com/jobs/20/'),
-                            ('created_at', '1900-01-01T01:00:00:00000Z'),
-                            ('number_of_qubits', 2),
-                            ('seconds', 0.0),
-                            ('raw_text', ''),
-                            ('raw_data_url', 'https,//api.quantum-inspire.com/results/485/raw-data/162c/'),
-                            ('histogram', {'0', 0.5029296875, '3', 0.4970703125}),
-                            ('histogram_url', 'https,//api.quantum-inspire.com/results/485/histogram/162c/'),
-                            ('measurement_mask', 0),
-                            ('quantum_states_url', 'https,//api.quantum-inspire.com/results/485/quantum-states/162c/'),
-                            ('measurement_register_url', 'https,//api.quantum-inspire.com/results/485/162c/')])
+        return dict([('id', 485),
+                     ('url', 'https,//api.quantum-inspire.com/results/485/'),
+                     ('job', 'https,//api.quantum-inspire.com/jobs/20/'),
+                     ('created_at', '1900-01-01T01:00:00:00000Z'),
+                     ('number_of_qubits', 2),
+                     ('seconds', 0.0),
+                     ('raw_text', ''),
+                     ('raw_data_url', 'https,//api.quantum-inspire.com/results/485/raw-data/162c/'),
+                     ('histogram', {'0', 0.5029296875, '3', 0.4970703125}),
+                     ('histogram_url', 'https,//api.quantum-inspire.com/results/485/histogram/162c/'),
+                     ('measurement_mask', 0),
+                     ('quantum_states_url', 'https,//api.quantum-inspire.com/results/485/quantum-states/162c/'),
+                     ('measurement_register_url', 'https,//api.quantum-inspire.com/results/485/162c/')])
 
     def __mock_errors_in_result_handler(self, input_params, input_key, mock_api, document, keys, params=None,
                                         validate=None, overrides=None, action=None, encoding=None, transform=None):
@@ -702,37 +701,37 @@ class TestQuantumInspireAPI(TestCase):
         self.assertTrue(keys[1] == input_key or keys[2] == input_key)
         if keys[1] == 'read':
             if params['id'] == 485:
-                return OrderedDict([('id', 485),
-                                    ('url', 'https,//api.quantum-inspire.com/results/485/'),
-                                    ('job', 'https,//api.quantum-inspire.com/jobs/20/'),
-                                    ('created_at', '1900-01-01T01:00:00:00000Z'),
-                                    ('number_of_qubits', 2),
-                                    ('seconds', 0.0),
-                                    ('raw_text', ''),
-                                    ('raw_data_url', ''),
-                                    ('histogram', {'0', 0.5029296875, '3', 0.4970703125}),
-                                    ('histogram_url', 'https,//api.quantum-inspire.com/results/485/histogram/162c/'),
-                                    ('measurement_mask', 0),
-                                    ('quantum_states_url', ''),
-                                    ('measurement_register_url', ''),
-                                    ('calibration', '')])
+                return dict([('id', 485),
+                             ('url', 'https,//api.quantum-inspire.com/results/485/'),
+                             ('job', 'https,//api.quantum-inspire.com/jobs/20/'),
+                             ('created_at', '1900-01-01T01:00:00:00000Z'),
+                             ('number_of_qubits', 2),
+                             ('seconds', 0.0),
+                             ('raw_text', ''),
+                             ('raw_data_url', ''),
+                             ('histogram', {'0', 0.5029296875, '3', 0.4970703125}),
+                             ('histogram_url', 'https,//api.quantum-inspire.com/results/485/histogram/162c/'),
+                             ('measurement_mask', 0),
+                             ('quantum_states_url', ''),
+                             ('measurement_register_url', ''),
+                             ('calibration', '')])
             else:
                 self.assertEqual(params['id'], 486)
-                return OrderedDict([('id', 486),
-                                    ('url', 'https,//api.quantum-inspire.com/results/485/'),
-                                    ('job', 'https,//api.quantum-inspire.com/jobs/20/'),
-                                    ('created_at', '1900-01-01T01:00:00:00000Z'),
-                                    ('number_of_qubits', 2),
-                                    ('seconds', 0.0),
-                                    ('raw_text', ''),
-                                    ('raw_data_url', 'https,//api.quantum-inspire.com/results/485/raw-data/999/'),
-                                    ('histogram', {'0', 0.5029296875, '3', 0.4970703125}),
-                                    ('histogram_url', 'https,//api.quantum-inspire.com/results/485/histogram/162c/'),
-                                    ('measurement_mask', 0),
-                                    ('quantum_states_url',
-                                     'https,//api.quantum-inspire.com/results/485/quantum-states/999/'),
-                                    ('measurement_register_url', 'https,//api.quantum-inspire.com/results/485/999/'),
-                                    ('calibration', 'https,//api.quantum-inspire.com/results/485/999/')])
+                return dict([('id', 486),
+                             ('url', 'https,//api.quantum-inspire.com/results/485/'),
+                             ('job', 'https,//api.quantum-inspire.com/jobs/20/'),
+                             ('created_at', '1900-01-01T01:00:00:00000Z'),
+                             ('number_of_qubits', 2),
+                             ('seconds', 0.0),
+                             ('raw_text', ''),
+                             ('raw_data_url', 'https,//api.quantum-inspire.com/results/485/raw-data/999/'),
+                             ('histogram', {'0', 0.5029296875, '3', 0.4970703125}),
+                             ('histogram_url', 'https,//api.quantum-inspire.com/results/485/histogram/162c/'),
+                             ('measurement_mask', 0),
+                             ('quantum_states_url',
+                              'https,//api.quantum-inspire.com/results/485/quantum-states/999/'),
+                             ('measurement_register_url', 'https,//api.quantum-inspire.com/results/485/999/'),
+                             ('calibration', 'https,//api.quantum-inspire.com/results/485/999/')])
         elif keys[1] == 'raw-data':
             if params['token'] != '162c':
                 raise ErrorMessage('Not found')
@@ -754,9 +753,9 @@ class TestQuantumInspireAPI(TestCase):
             if params['id'] != '584':
                 raise ErrorMessage('Not found')
         if keys[1] == 'read':
-            return OrderedDict([('url', 'https://fake.quantum-inspire.com/calibration/584/'),
-                                ('backend', 'backend'),
-                                ('parameters', 'parameters')])
+            return dict([('url', 'https://fake.quantum-inspire.com/calibration/584/'),
+                         ('backend', 'backend'),
+                         ('parameters', 'parameters')])
         else:
             self.assertTrue(False)
 
@@ -945,20 +944,20 @@ class TestQuantumInspireAPI(TestCase):
         if keys[0] == 'projects':
             if params['id'] != 11:
                 raise ErrorMessage('Not found')
-        return [OrderedDict([('url', 'https,//api.quantum-inspire.com/assets/31/'),
-                             ('id', 31),
-                             ('name', 'Grover algorithm - 2018-07-18 13,32'),
-                             ('contentType', 'text/plain'),
-                             ('content', 'version 1.0\n\nqubits 9\n\n\n# Grover search algorithm\n  display'),
-                             ('project', 'https,//api.quantum-inspire.com/projects/11/'),
-                             ('project_id', 11)]),
-                OrderedDict([('url', 'https,//api.quantum-inspire.com/assets/171/'),
-                             ('id', 171),
-                             ('name', 'Grover algorithm - 2018-07-18 13,32'),
-                             ('contentType', 'text/plain'),
-                             ('content', 'version 1.0\n\nqubits 9\n\n\n# Grover search algorithm\n  display'),
-                             ('project', 'https,//api.quantum-inspire.com/projects/11/'),
-                             ('project_id', 11)])]
+        return [dict([('url', 'https,//api.quantum-inspire.com/assets/31/'),
+                      ('id', 31),
+                      ('name', 'Grover algorithm - 2018-07-18 13,32'),
+                      ('contentType', 'text/plain'),
+                      ('content', 'version 1.0\n\nqubits 9\n\n\n# Grover search algorithm\n  display'),
+                      ('project', 'https,//api.quantum-inspire.com/projects/11/'),
+                      ('project_id', 11)]),
+                dict([('url', 'https,//api.quantum-inspire.com/assets/171/'),
+                      ('id', 171),
+                      ('name', 'Grover algorithm - 2018-07-18 13,32'),
+                      ('contentType', 'text/plain'),
+                      ('content', 'version 1.0\n\nqubits 9\n\n\n# Grover search algorithm\n  display'),
+                      ('project', 'https,//api.quantum-inspire.com/projects/11/'),
+                      ('project_id', 11)])]
 
     def __mock_asset_handler(self, input_params, input_key, mock_api, document, keys, params=None,
                              validate=None, overrides=None, action=None, encoding=None, transform=None):
@@ -967,13 +966,13 @@ class TestQuantumInspireAPI(TestCase):
         if input_key == 'read' or input_key == 'delete':
             if params['id'] != 171:
                 raise ErrorMessage('Not found')
-        return OrderedDict([('url', 'https,//api.quantum-inspire.com/assets/171/'),
-                            ('id', 171),
-                            ('name', 'Grover algorithm - 2018-07-18 13,32'),
-                            ('contentType', 'text/plain'),
-                            ('content', 'version 1.0\n\nqubits 9\n\n\n# Grover search algorithm\n  display'),
-                            ('project', 'https,//api.quantum-inspire.com/projects/11/'),
-                            ('project_id', 11)])
+        return dict([('url', 'https,//api.quantum-inspire.com/assets/171/'),
+                     ('id', 171),
+                     ('name', 'Grover algorithm - 2018-07-18 13,32'),
+                     ('contentType', 'text/plain'),
+                     ('content', 'version 1.0\n\nqubits 9\n\n\n# Grover search algorithm\n  display'),
+                     ('project', 'https,//api.quantum-inspire.com/projects/11/'),
+                     ('project_id', 11)])
 
     def __mock_asset_from_job_handler(self, input_params, input_key, mock_api, document, keys, params=None,
                                       validate=None, overrides=None, action=None, encoding=None, transform=None,
@@ -981,29 +980,29 @@ class TestQuantumInspireAPI(TestCase):
         self.assertDictEqual(params, input_params)
         self.assertEqual(keys[1], input_key)
         if params['id'] == 509:
-            return OrderedDict([('url', 'https,//api.quantum-inspire.com/jobs/509/'),
-                                ('name', 'qi-sdk-job-7e37c8fa-a76b-11e8-b5a0-a44cc848f1f2'),
-                                ('id', 509),
-                                ('status', status),
-                                ('input', 'https,//api.quantum-inspire.com/assets/999/'),
-                                ('backend', 'https,//api.quantum-inspire.com/backends/1/'),
-                                ('backend_type', 'https,//api.quantum-inspire.com/backendtypes/1/'),
-                                ('results', 'https,//api.quantum-inspire.com/jobs/509/result/'),
-                                ('queued_at', '2018-08-24T07:01:21:257557Z'),
-                                ('number_of_shots', 1024),
-                                ('user_data', '')])
+            return dict([('url', 'https,//api.quantum-inspire.com/jobs/509/'),
+                         ('name', 'qi-sdk-job-7e37c8fa-a76b-11e8-b5a0-a44cc848f1f2'),
+                         ('id', 509),
+                         ('status', status),
+                         ('input', 'https,//api.quantum-inspire.com/assets/999/'),
+                         ('backend', 'https,//api.quantum-inspire.com/backends/1/'),
+                         ('backend_type', 'https,//api.quantum-inspire.com/backendtypes/1/'),
+                         ('results', 'https,//api.quantum-inspire.com/jobs/509/result/'),
+                         ('queued_at', '2018-08-24T07:01:21:257557Z'),
+                         ('number_of_shots', 1024),
+                         ('user_data', '')])
         elif params['id'] == 510:
-            return OrderedDict([('url', 'https,//api.quantum-inspire.com/jobs/509/'),
-                                ('name', 'qi-sdk-job-7e37c8fa-a76b-11e8-b5a0-a44cc848f1f2'),
-                                ('id', 510),
-                                ('status', status),
-                                ('input', 'https,//api.quantum-inspire.com/assets/nine_nine_nine/'),
-                                ('backend', 'https,//api.quantum-inspire.com/backends/1/'),
-                                ('backend_type', 'https,//api.quantum-inspire.com/backendtypes/1/'),
-                                ('results', 'https,//api.quantum-inspire.com/jobs/509/result/'),
-                                ('queued_at', '2018-08-24T07:01:21:257557Z'),
-                                ('number_of_shots', 1024),
-                                ('user_data', '')])
+            return dict([('url', 'https,//api.quantum-inspire.com/jobs/509/'),
+                         ('name', 'qi-sdk-job-7e37c8fa-a76b-11e8-b5a0-a44cc848f1f2'),
+                         ('id', 510),
+                         ('status', status),
+                         ('input', 'https,//api.quantum-inspire.com/assets/nine_nine_nine/'),
+                         ('backend', 'https,//api.quantum-inspire.com/backends/1/'),
+                         ('backend_type', 'https,//api.quantum-inspire.com/backendtypes/1/'),
+                         ('results', 'https,//api.quantum-inspire.com/jobs/509/result/'),
+                         ('queued_at', '2018-08-24T07:01:21:257557Z'),
+                         ('number_of_shots', 1024),
+                         ('user_data', '')])
 
     def test_list_assets_has_correct_output(self):
         self.coreapi_client.handlers['assets'] = self.__mock_list_assets_handler
@@ -1148,103 +1147,103 @@ class TestQuantumInspireAPI(TestCase):
         else:
             backend_type_id = params.get('id', 1)
         if keys[1] == 'list':
-            return [OrderedDict([('url', 'https://api.quantum-inspire.com/backendtypes/1/'),
-                                 ('name', 'QX Single-node Simulator'),
-                                 ('is_hardware_backend', False),
-                                 ('required_permission', 'can_simulate_single_node_qutech'),
-                                 ('number_of_qubits', 26),
-                                 ('default_number_of_shots', 4096),
-                                 ('description', 'Single-node running on a 4GB Hetzner VPS.'),
-                                 ('topology', '{"edges": []}'),
-                                 ('is_allowed', True)]),
-                    OrderedDict([('url', 'https://api.quantum-inspire.com/backendtypes/2/'),
-                                 ('name', 'QX Single-node Simulator'),
-                                 ('is_hardware_backend', False),
-                                 ('required_permission', 'can_simulate_single_node_qutech'),
-                                 ('number_of_qubits', 26),
-                                 ('default_number_of_shots', 2048),
-                                 ('description', 'Single-node running on a 4GB Hetzner VPS.'),
-                                 ('topology', '{"edges": []}'),
-                                 ('is_allowed', True)])]
+            return [dict([('url', 'https://api.quantum-inspire.com/backendtypes/1/'),
+                          ('name', 'QX Single-node Simulator'),
+                          ('is_hardware_backend', False),
+                          ('required_permission', 'can_simulate_single_node_qutech'),
+                          ('number_of_qubits', 26),
+                          ('default_number_of_shots', 4096),
+                          ('description', 'Single-node running on a 4GB Hetzner VPS.'),
+                          ('topology', '{"edges": []}'),
+                          ('is_allowed', True)]),
+                    dict([('url', 'https://api.quantum-inspire.com/backendtypes/2/'),
+                          ('name', 'QX Single-node Simulator'),
+                          ('is_hardware_backend', False),
+                          ('required_permission', 'can_simulate_single_node_qutech'),
+                          ('number_of_qubits', 26),
+                          ('default_number_of_shots', 2048),
+                          ('description', 'Single-node running on a 4GB Hetzner VPS.'),
+                          ('topology', '{"edges": []}'),
+                          ('is_allowed', True)])]
         else:
             # return specified id
-            return OrderedDict([('url', 'https://api.quantum-inspire.com/backendtypes/%d/' % backend_type_id),
-                                ('name', 'QX Single-node Simulator'),
-                                ('is_hardware_backend', False),
-                                ('required_permission', 'can_simulate_single_node_qutech'),
-                                ('number_of_qubits', 26),
-                                ('default_number_of_shots', 4321),
-                                ('description', 'Single-node running on a 4GB Hetzner VPS.'),
-                                ('topology', '{"edges": []}'),
-                                ('is_allowed', True)])
+            return dict([('url', 'https://api.quantum-inspire.com/backendtypes/%d/' % backend_type_id),
+                         ('name', 'QX Single-node Simulator'),
+                         ('is_hardware_backend', False),
+                         ('required_permission', 'can_simulate_single_node_qutech'),
+                         ('number_of_qubits', 26),
+                         ('default_number_of_shots', 4321),
+                         ('description', 'Single-node running on a 4GB Hetzner VPS.'),
+                         ('topology', '{"edges": []}'),
+                         ('is_allowed', True)])
 
     def __fake_project_handler(self, mock_api, document, keys, params=None, validate=None,
                                overrides=None, action=None, encoding=None, transform=None, call_mock=None):
         if call_mock:
             call_mock(keys[1])
-        return OrderedDict([('url', 'https://api.quantum-inspire.com/projects/1/'),
-                            ('id', 11),
-                            ('name', 'Grover algorithm - 1900-01-01 10:00'),
-                            ('owner', 'https://api.quantum-inspire.com/users/1/'),
-                            ('assets', 'https://api.quantum-inspire.com/projects/1/assets/'),
-                            ('backend_type', 'https://api.quantum-inspire.com/backendtypes/1/'),
-                            ('number_of_shots', 1)])
+        return dict([('url', 'https://api.quantum-inspire.com/projects/1/'),
+                     ('id', 11),
+                     ('name', 'Grover algorithm - 1900-01-01 10:00'),
+                     ('owner', 'https://api.quantum-inspire.com/users/1/'),
+                     ('assets', 'https://api.quantum-inspire.com/projects/1/assets/'),
+                     ('backend_type', 'https://api.quantum-inspire.com/backendtypes/1/'),
+                     ('number_of_shots', 1)])
 
     def __fake_project_handler_params(self, mock_api, document, keys, params=None, validate=None,
                                       overrides=None, action=None, encoding=None, transform=None, call_mock=None):
         if call_mock:
             call_mock(keys[1], params=params)
-        return OrderedDict([('url', 'https://api.quantum-inspire.com/projects/1/'),
-                            ('id', 11),
-                            ('name', 'Grover algorithm - 1900-01-01 10:00'),
-                            ('owner', 'https://api.quantum-inspire.com/users/1/'),
-                            ('assets', 'https://api.quantum-inspire.com/projects/1/assets/'),
-                            ('backend_type', 'https://api.quantum-inspire.com/backendtypes/1/'),
-                            ('number_of_shots', 1)])
+        return dict([('url', 'https://api.quantum-inspire.com/projects/1/'),
+                     ('id', 11),
+                     ('name', 'Grover algorithm - 1900-01-01 10:00'),
+                     ('owner', 'https://api.quantum-inspire.com/users/1/'),
+                     ('assets', 'https://api.quantum-inspire.com/projects/1/assets/'),
+                     ('backend_type', 'https://api.quantum-inspire.com/backendtypes/1/'),
+                     ('number_of_shots', 1)])
 
     def __fake_asset_handler(self, mock_api, document, keys, params=None, validate=None,
                              overrides=None, action=None, encoding=None, transform=None, call_mock=None):
         if call_mock:
             call_mock(keys[1], params=params)
-        return OrderedDict([('url', 'https//api.quantum-inspire.com/assets/1/'),
-                            ('id', 171),
-                            ('name', 'Grover algorithm - 2018-07-18 13,32'),
-                            ('contentType', 'text/plain'),
-                            ('content', 'version 1.0\n\nqubits 9\n\n\n# Grover search algorithm\n  display'),
-                            ('project', 'https//api.quantum-inspire.com/projects/1/'),
-                            ('project_id', 1),
-                            ('input', {'project_id': 1})])
+        return dict([('url', 'https//api.quantum-inspire.com/assets/1/'),
+                     ('id', 171),
+                     ('name', 'Grover algorithm - 2018-07-18 13,32'),
+                     ('contentType', 'text/plain'),
+                     ('content', 'version 1.0\n\nqubits 9\n\n\n# Grover search algorithm\n  display'),
+                     ('project', 'https//api.quantum-inspire.com/projects/1/'),
+                     ('project_id', 1),
+                     ('input', {'project_id': 1})])
 
     def __fake_job_handler(self, mock_api, document, keys, params=None, validate=None,
                            overrides=None, action=None, encoding=None, transform=None, call_mock=None):
         if call_mock:
             call_mock(keys[1], params)
-        return OrderedDict([('url', 'https//api.quantum-inspire.com/jobs/509/'),
-                            ('name', 'qi-sdk-job-7e37c8fa-a76b-11e8-b5a0-a44cc848f1f2'),
-                            ('id', 509),
-                            ('status', 'COMPLETE'),
-                            ('full_state_projection', True),
-                            ('input', 'https//api.quantum-inspire.com/assets/171/'),
-                            ('backend', 'https//api.quantum-inspire.com/backends/1/'),
-                            ('backend_type', 'https//api.quantum-inspire.com/backendtypes/1/'),
-                            ('results', 'mocked_job'),
-                            ('queued_at', '2018-08-24T07:01:21:257557Z'),
-                            ('number_of_shots', 4096)])
+        return dict([('url', 'https//api.quantum-inspire.com/jobs/509/'),
+                     ('name', 'qi-sdk-job-7e37c8fa-a76b-11e8-b5a0-a44cc848f1f2'),
+                     ('id', 509),
+                     ('status', 'COMPLETE'),
+                     ('full_state_projection', True),
+                     ('input', 'https//api.quantum-inspire.com/assets/171/'),
+                     ('backend', 'https//api.quantum-inspire.com/backends/1/'),
+                     ('backend_type', 'https//api.quantum-inspire.com/backendtypes/1/'),
+                     ('results', 'mocked_job'),
+                     ('queued_at', '2018-08-24T07:01:21:257557Z'),
+                     ('number_of_shots', 4096)])
 
     def __fake_no_results_job_handler(self, mock_api, document, keys, params=None, validate=None,
                                       overrides=None, action=None, encoding=None, transform=None, call_mock=None):
         if call_mock:
             call_mock(keys[1])
-        return OrderedDict([('url', 'https//api.quantum-inspire.com/jobs/509/'),
-                            ('name', 'qi-sdk-job-7e37c8fa-a76b-11e8-b5a0-a44cc848f1f2'),
-                            ('id', 509),
-                            ('status', 'CANCELLED'),
-                            ('input', 'https//api.quantum-inspire.com/assets/607/'),
-                            ('backend', 'https//api.quantum-inspire.com/backends/1/'),
-                            ('backend_type', 'https//api.quantum-inspire.com/backendtypes/1/'),
-                            ('results', ''),
-                            ('queued_at', '2018-08-24T07:01:21:257557Z'),
-                            ('number_of_shots', 1)])
+        return dict([('url', 'https//api.quantum-inspire.com/jobs/509/'),
+                     ('name', 'qi-sdk-job-7e37c8fa-a76b-11e8-b5a0-a44cc848f1f2'),
+                     ('id', 509),
+                     ('status', 'CANCELLED'),
+                     ('input', 'https//api.quantum-inspire.com/assets/607/'),
+                     ('backend', 'https//api.quantum-inspire.com/backends/1/'),
+                     ('backend_type', 'https//api.quantum-inspire.com/backendtypes/1/'),
+                     ('results', ''),
+                     ('queued_at', '2018-08-24T07:01:21:257557Z'),
+                     ('number_of_shots', 1)])
 
     def __error_job_handler(self, mock_api, document, keys, params=None, validate=None,
                             overrides=None, action=None, encoding=None, transform=None, call_mock=None):

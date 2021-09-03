@@ -18,7 +18,6 @@ limitations under the License.
 
 import json
 import unittest
-from collections import OrderedDict
 from unittest.mock import Mock, patch
 
 import numpy as np
@@ -70,20 +69,20 @@ class TestQiSimulatorPy(unittest.TestCase):
                                        'header': {'backend_name': 'QX single-node simulator'},
                                        'type': 'QASM', 'schema_version': '1.0.0'}
 
-        self._basic_job_dictionary = OrderedDict([('url', 'http://saevar-qutech-nginx/api/jobs/24/'),
-                                                  ('name', 'circuit0'),
-                                                  ('id', 24),
-                                                  ('status', 'COMPLETE'),
-                                                  ('input', 'http://saevar-qutech-nginx/api/assets/26/'),
-                                                  ('backend', 'http://saevar-qutech-nginx/api/backends/1/'),
-                                                  ('backend_type',
-                                                   'http://saevar-qutech-nginx/api/backendtypes/1/'),
-                                                  ('results', 'http://saevar-qutech-nginx/api/jobs/24/result/'),
-                                                  ('queued_at', '2018-12-07T09:11:45.976617Z'),
-                                                  ('number_of_shots', 100),
-                                                  ('full_state_projection', True),
-                                                  ('user_data', '')
-                                                  ])
+        self._basic_job_dictionary = dict([('url', 'http://saevar-qutech-nginx/api/jobs/24/'),
+                                           ('name', 'circuit0'),
+                                           ('id', 24),
+                                           ('status', 'COMPLETE'),
+                                           ('input', 'http://saevar-qutech-nginx/api/assets/26/'),
+                                           ('backend', 'http://saevar-qutech-nginx/api/backends/1/'),
+                                           ('backend_type',
+                                            'http://saevar-qutech-nginx/api/backendtypes/1/'),
+                                           ('results', 'http://saevar-qutech-nginx/api/jobs/24/result/'),
+                                           ('queued_at', '2018-12-07T09:11:45.976617Z'),
+                                           ('number_of_shots', 100),
+                                           ('full_state_projection', True),
+                                           ('user_data', '')
+                                           ])
 
     @staticmethod
     def _instructions_to_two_qubit_experiment(instructions):
@@ -627,20 +626,20 @@ class TestQiSimulatorPyHistogram(unittest.TestCase):
         self.mock_api = ApiMock(spec=QuantumInspireAPI)
         self.mock_provider = Mock(spec=QuantumInspireProvider)
         self.simulator = QuantumInspireBackend(self.mock_api, self.mock_provider)
-        self._basic_job_dictionary = OrderedDict([('url', 'http://saevar-qutech-nginx/api/jobs/24/'),
-                                                  ('name', 'BLA_BLU'),
-                                                  ('id', 24),
-                                                  ('status', 'COMPLETE'),
-                                                  ('input', 'http://saevar-qutech-nginx/api/assets/26/'),
-                                                  ('backend', 'http://saevar-qutech-nginx/api/backends/1/'),
-                                                  ('backend_type',
-                                                   'http://saevar-qutech-nginx/api/backendtypes/1/'),
-                                                  ('results', 'http://saevar-qutech-nginx/api/jobs/24/result/'),
-                                                  ('queued_at', '2018-12-07T09:11:45.976617Z'),
-                                                  ('number_of_shots', 1000),
-                                                  ('full_state_projection', True),
-                                                  ('user_data', '')
-                                                  ])
+        self._basic_job_dictionary = dict([('url', 'http://saevar-qutech-nginx/api/jobs/24/'),
+                                           ('name', 'BLA_BLU'),
+                                           ('id', 24),
+                                           ('status', 'COMPLETE'),
+                                           ('input', 'http://saevar-qutech-nginx/api/assets/26/'),
+                                           ('backend', 'http://saevar-qutech-nginx/api/backends/1/'),
+                                           ('backend_type',
+                                            'http://saevar-qutech-nginx/api/backendtypes/1/'),
+                                           ('results', 'http://saevar-qutech-nginx/api/jobs/24/result/'),
+                                           ('queued_at', '2018-12-07T09:11:45.976617Z'),
+                                           ('number_of_shots', 1000),
+                                           ('full_state_projection', True),
+                                           ('user_data', '')
+                                           ])
 
     def run_histogram_test(self, single_experiment, mock_result1, mock_result2, expected_histogram,
                            expected_histogram_prob, expected_memory):
