@@ -208,9 +208,11 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
             measurements = user_data.pop('measurements')
             histogram_obj, memory_data = self.__convert_result_data(result, measurements)
             full_state_histogram_obj = self.__convert_histogram(result, measurements)
+            calibration = self.__api.get_calibration_from_result(result['id'])
             experiment_result_data = ExperimentResultData(counts=histogram_obj,
-                                                          memory=memory_data)
-            experiment_result_data.probabilities = full_state_histogram_obj
+                                                          memory=memory_data,
+                                                          probabilities=full_state_histogram_obj,
+                                                          calibration=calibration)
             header = QobjExperimentHeader.from_dict(user_data)
             experiment_result_dictionary = {'name': job.get('name'), 'seed': 42, 'shots': job.get('number_of_shots'),
                                             'data': experiment_result_data, 'status': 'DONE', 'success': True,

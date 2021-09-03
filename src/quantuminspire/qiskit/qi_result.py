@@ -14,7 +14,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-from typing import List, Union, Dict, Any
+from typing import Any, Dict, List, Optional, Union
 from qiskit.exceptions import QiskitError
 from qiskit.result import postprocess, Result
 from qiskit.result.models import ExperimentResult
@@ -75,11 +75,45 @@ class QIResult(Result):  # type: ignore
             except (AttributeError, QiskitError):  # header is not available
                 header = None
 
-            probabilities = getattr(self._get_experiment(key).data, 'probabilities', None)
-            if probabilities is not None:
-                dict_list.append(postprocess.format_counts(self._get_experiment(key).data.probabilities, header))
+            if "probabilities" in self.data(key).keys():
+                probabilities = self.data(key)["probabilities"]
+                dict_list.append(postprocess.format_counts(probabilities, header))
             else:
                 raise QiskitBackendError('No probabilities for experiment "{0}"'.format(key))
+
+        # Return first item of dict_list if size is 1
+        if len(dict_list) == 1:
+            return dict_list[0]
+
+        return dict_list
+
+    def get_calibration(self, experiment: Any = None) -> Optional[Union[Dict[str, Any], List[Dict[str, Any]]]]:
+        """Get the calibration data of an experiment. The calibration data is added as a separate result item by
+        Quantum Inspire backend. Based on Qiskit get_count method from Result.
+
+        :param experiment (str or QuantumCircuit or Schedule or int or None): the index of the
+                experiment, as specified by ``get_data()``.
+
+        :return:
+            One or more dictionaries which holds the calibration data for each result.
+            Exact format depends on the backend. A simulator backend has no calibration data (None is returned)
+
+        :raises QiskitBackendError: raised if there is no calibration data in a result for the experiment(s).
+        """
+        if experiment is None:
+            exp_keys = range(len(self.results))
+        else:
+            exp_keys = [experiment]  # type: ignore
+
+        dict_list: List[Dict[str, float]] = []
+        for key in exp_keys:
+            exp = self._get_experiment(key)
+
+            if "calibration" in self.data(key).keys():
+                calibration = self.data(key)["calibration"]
+                dict_list.append(calibration)
+            else:
+                raise QiskitBackendError('No calibration data for experiment "{0}"'.format(key))
 
         # Return first item of dict_list if size is 1
         if len(dict_list) == 1:
