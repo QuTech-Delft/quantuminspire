@@ -25,6 +25,7 @@ from coreapi.exceptions import ErrorMessage
 from qiskit.providers import BaseBackend
 from qiskit.providers.models import QasmBackendConfiguration
 from qiskit.providers.models.backendconfiguration import GateConfig
+from qiskit.providers.models.backendstatus import BackendStatus
 from qiskit.qobj import QasmQobj, QasmQobjExperiment
 from qiskit.result.models import ExperimentResult, ExperimentResultData
 from qiskit.qobj import QobjExperimentHeader
@@ -135,6 +136,21 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
 
         job.experiments = experiments
         return job
+
+    def status(self) -> BackendStatus:
+        """ Return the backend status. Pending jobs is always 0. This information is currently not known.
+
+        Returns:
+            BackendStatus: the status of the backend. Pending jobs is always 0.
+        """
+        backend: Dict[str, Any] = self.__api.get_backend_type_by_name(self.name())
+        return BackendStatus(
+            backend_name=self.name(),
+            backend_version=quantum_inspire_version,
+            operational=backend["status"] != "OFFLINE",
+            pending_jobs=0,
+            status_msg=backend["status_message"],
+        )
 
     def retrieve_job(self, job_id: str) -> QIJob:
         """ Retrieve a specified job by its job_id.
