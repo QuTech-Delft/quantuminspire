@@ -1009,9 +1009,9 @@ class QuantumInspireAPI:
             project = self.create_project(project_name, default_number_of_shots, backend_type)
 
         if backend_type['url'] != project['backend_type']:
-            logger.warning(f"The backend for which the project was created is different "
-                           f"from the backend type given: {backend_type['name']}. The experiment is run on backend "
-                           f"{backend_type['name']}.")
+            logger.warning("The backend for which the project was created is different "
+                           "from the backend type given: %s. The experiment is run on backend %s.",
+                           backend_type['name'], backend_type['name'])
 
         qasm = qasm.lstrip()
         qasm = re.sub(r'[ \t]*\n[ \t]*', r'\n', qasm)

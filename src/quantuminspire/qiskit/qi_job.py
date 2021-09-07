@@ -17,17 +17,18 @@
 import time
 from typing import List, Optional, Any, Dict, Callable
 
-from qiskit.providers import BaseJob, JobError, JobTimeoutError
+from qiskit.providers import JobError, JobTimeoutError, JobV1 as Job
+from qiskit.providers.backend import Backend
 from qiskit.providers.jobstatus import JobStatus, JOB_FINAL_STATES
 from qiskit.result.models import ExperimentResult
 from qiskit.qobj import QasmQobj, QasmQobjExperiment
-from quantuminspire.qiskit.qi_result import QIResult
 from quantuminspire.api import QuantumInspireAPI
 from quantuminspire.job import QuantumInspireJob
+from quantuminspire.qiskit.qi_result import QIResult
 from quantuminspire.version import __version__ as quantum_inspire_version
 
 
-class QIJob(BaseJob):  # type: ignore
+class QIJob(Job):  # type: ignore
     """
     A Qiskit job that is executed on the Quantum Inspire platform. A QIJob is normally created by calling
     ``execute`` (which triggers a `run` on the QuantumInspireBackend ``qi_backend``).
@@ -67,7 +68,7 @@ class QIJob(BaseJob):  # type: ignore
 
     """
 
-    def __init__(self, backend: Any, job_id: str, api: QuantumInspireAPI, qobj: Optional[QasmQobj] = None) -> None:
+    def __init__(self, backend: Backend, job_id: str, api: QuantumInspireAPI, qobj: Optional[QasmQobj] = None) -> None:
         """
         A QIJob object is normally not constructed directly.
 
@@ -106,7 +107,7 @@ class QIJob(BaseJob):  # type: ignore
             raise JobError('Job has already been submitted!')
         self._job_id = self._backend.run(self._qobj)
 
-    def _result(self, result_function: Callable[[BaseJob], List[ExperimentResult]], timeout: Optional[float] = None,
+    def _result(self, result_function: Callable[[Job], List[ExperimentResult]], timeout: Optional[float] = None,
                 wait: float = 0.5) -> QIResult:
         """ Return the result for the experiments.
 
@@ -193,6 +194,9 @@ class QIJob(BaseJob):  # type: ignore
         """
         Return the position for this Job in the Quantum Inspire queue (when in status QUEUED).
         Currently we don't have this info available.
+
+        :param refresh: If ``True``, re-query the server to get the latest value.
+                Otherwise return the cached value, when available. Not used.
 
         :return:
             The queue position of the job. Currently None (not available).

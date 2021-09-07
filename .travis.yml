@@ -4,16 +4,13 @@ matrix:
     - name: python 3.7
       python: 3.7
       if: branch = dev
-      sudo: true
       dist: xenial
     - name: python 3.8
       python: 3.8
       if: branch = dev
-      sudo: true
       dist: xenial
     - name: python 3.9
       python: 3.9
-      sudo: true
       dist: xenial
 install:
 - pip install --upgrade .[qiskit,projectq,dev] coveralls
