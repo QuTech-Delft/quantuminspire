@@ -18,8 +18,8 @@ from copy import copy
 from typing import List, Optional, Any, Dict
 
 import coreapi
-from qiskit.providers import BaseProvider
 from qiskit.providers.models import QasmBackendConfiguration
+from qiskit.providers.provider import ProviderV1 as Provider
 
 from quantuminspire.api import QuantumInspireAPI
 from quantuminspire.credentials import get_token_authentication, get_basic_authentication
@@ -29,7 +29,7 @@ from quantuminspire.qiskit.backend_qx import QuantumInspireBackend
 QI_URL = 'https://api.quantum-inspire.com'
 
 
-class QuantumInspireProvider(BaseProvider):  # type: ignore
+class QuantumInspireProvider(Provider):  # type: ignore
     """ Provides a backend and an api for a single Quantum Inspire account. """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:

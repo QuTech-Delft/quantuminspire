@@ -14,21 +14,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import copy
 import io
 import json
 import uuid
-from collections import defaultdict, Counter
-from typing import Dict, List, Tuple, Optional, Any
+import warnings
+from collections import defaultdict, OrderedDict, Counter
+from typing import Any, Dict, List, Tuple, Optional, Union
 
 import numpy as np
-from coreapi.exceptions import ErrorMessage
-from qiskit.providers import BaseBackend
+from qiskit.circuit import QuantumCircuit
+from qiskit.compiler import assemble
+from qiskit.providers import Options, BackendV1 as Backend
 from qiskit.providers.models import QasmBackendConfiguration
 from qiskit.providers.models.backendconfiguration import GateConfig
 from qiskit.providers.models.backendstatus import BackendStatus
-from qiskit.qobj import QasmQobj, QasmQobjExperiment
+from qiskit.qobj import QasmQobj, QasmQobjExperiment, QobjExperimentHeader
 from qiskit.result.models import ExperimentResult, ExperimentResultData
-from qiskit.qobj import QobjExperimentHeader
 
 from quantuminspire.api import QuantumInspireAPI
 from quantuminspire.exceptions import QiskitBackendError, ApiError
@@ -38,7 +40,7 @@ from quantuminspire.qiskit.qi_job import QIJob
 from quantuminspire.version import __version__ as quantum_inspire_version
 
 
-class QuantumInspireBackend(BaseBackend):  # type: ignore
+class QuantumInspireBackend(Backend):  # type: ignore
     DEFAULT_CONFIGURATION = QasmBackendConfiguration(
         backend_name='qi_simulator',
         backend_version=quantum_inspire_version,
@@ -55,6 +57,7 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
         max_experiments=1,
         coupling_map=None
     )
+    qobj_warning_issued = False
 
     def __init__(self, api: QuantumInspireAPI, provider: Any,
                  configuration: Optional[QasmBackendConfiguration] = None) -> None:
@@ -84,7 +87,7 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
                 ``memory``          bool          Backend supports memory. True.
                 ``max_shots``       int           Maximum number of shots supported.
                 ``max_experiments`` int           Optional: Maximum number of experiments (circuits) per job.
-                ``coupling_map``    (list(tuple)) Define the edges.
+                ``coupling_map``    list[list]    Define the edges.
                 =================== ============= =====================================================================
         """
         super().__init__(configuration=(configuration or
@@ -93,20 +96,73 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
         self.__backend: Dict[str, Any] = api.get_backend_type_by_name(self.name())
         self.__api: QuantumInspireAPI = api
 
+    @classmethod
+    def _default_options(cls) -> Options:
+        """ Returns default runtime options. Only the options that are relevant to Quantum Inspire backends are added.
+        """
+        return Options(shots=1024, memory=True)
+
+    def _get_run_config(self, **kwargs: Any) -> Dict[str, Any]:
+        """ Return the consolidated runtime configuration. Run arguments overwrite the values of the default runtime
+        options. Run arguments (not None) that are not defined as options are added to the runtime configuration.
+
+        :param kwargs: The runtime arguments (arguments given with the run method).
+
+        :return:
+            A dictionary of runtime arguments for the run.
+        """
+        run_config_dict: Dict[str, Any] = copy.copy(self.options.__dict__)
+        for key, val in kwargs.items():
+            if val is not None:
+                run_config_dict[key] = val
+        return run_config_dict
+
     @property
     def backend_name(self) -> str:
         return self.name()  # type: ignore
 
-    def run(self, qobj: QasmQobj) -> QIJob:
+    def run(self,
+            circuits: Union[QasmQobj, QuantumCircuit, List[QuantumCircuit]],
+            shots: Optional[int] = None,
+            memory: Optional[bool] = None,
+            **run_config: Dict[str, Any]
+            ) -> QIJob:
         """ Submits a quantum job to the Quantum Inspire platform.
 
-        :param qobj: The quantum job with the Qiskit algorithm and Quantum Inspire backend.
+        The execution is asynchronous, and a handle to a job instance is returned.
+
+        :param circuits: An individual or a list of :class:`~qiskit.circuits.QuantumCircuit` objects to run
+                on the backend. A :class:`~qiskit.qobj.QasmQobj` object is also supported but is deprecated.
+        :param shots: Number of repetitions of each circuit, for sampling. Default: 1024
+                or ``max_shots`` from the backend configuration, whichever is smaller.
+        :param memory: If ``True``, per-shot measurement bitstrings are returned
+        :param **run_config: Extra arguments used to configure the run.
 
         :return:
             A job that has been submitted.
+
+        Raises:
+            ApiError: If an unexpected error occurred while submitting the job to the backend.
+            QiskitBackendError: If the circuit is invalid for the Quantum Inspire backend.
         """
-        self.__validate_number_of_shots(qobj)
+        run_config_dict = self._get_run_config(
+            shots=shots,
+            memory=memory,
+            **run_config)
+
+        if isinstance(circuits, QasmQobj):
+            if not self.qobj_warning_issued:
+                warnings.warn("Passing a Qobj to QuantumInspireBackend.run is deprecated and will "
+                              "be removed in a future release. Please pass in circuits "
+                              "instead.", DeprecationWarning,
+                              stacklevel=3)
+                self.qobj_warning_issued = True
+            qobj = circuits
+        else:
+            qobj = assemble(circuits, self, **run_config_dict)
+
         number_of_shots = qobj.config.shots
+        self.__validate_number_of_shots(number_of_shots)
 
         identifier = uuid.uuid1()
         project_name = 'qi-sdk-project-{}'.format(identifier)
@@ -117,8 +173,8 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
             job = QIJob(self, str(project['id']), self.__api)
             for experiment in experiments:
                 self.__validate_number_of_clbits(experiment)
-                full_state_projection = BaseBackend.configuration(self).simulator and \
-                                        self.__validate_full_state_projection(experiment)
+                full_state_projection = Backend.configuration(self).simulator and \
+                    self.__validate_full_state_projection(experiment)
                 if not full_state_projection:
                     QuantumInspireBackend.__validate_unsupported_measurements(experiment)
                 job_for_experiment = self._submit_experiment(experiment, number_of_shots, project=project,
@@ -258,14 +314,13 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
         jobs = self.__api.get_jobs_from_project(int(qi_job.job_id()))
         return self._get_experiment_results(jobs)
 
-    def __validate_number_of_shots(self, job: QasmQobj) -> None:
+    def __validate_number_of_shots(self, number_of_shots: int) -> None:
         """ Checks whether the number of shots has a valid value.
 
         :param job: The quantum job with the Qiskit algorithm and Quantum Inspire backend.
 
         :raises QiskitBackendError: When the value is not correct.
         """
-        number_of_shots = job.config.shots
         if number_of_shots < 1 or number_of_shots > self.__backend['max_number_of_shots']:
             raise QiskitBackendError('Invalid shots (number_of_shots={})'.format(number_of_shots))
 
@@ -305,7 +360,7 @@ class QuantumInspireBackend(BaseBackend):  # type: ignore
             raise QiskitBackendError(f"Number of classical bits ({number_of_classical_bits}) is not sufficient for "
                                      f"storing the outcomes of the experiment")
 
-        if BaseBackend.configuration(self).conditional:
+        if Backend.configuration(self).conditional:
             number_of_qubits = experiment.header.n_qubits
             if number_of_clbits > number_of_qubits:
                 # no problem when there are no conditional gate operations
