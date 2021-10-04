@@ -24,6 +24,7 @@ import numpy as np
 import qiskit
 from coreapi.exceptions import ErrorMessage
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.compiler import assemble
 from qiskit.providers.models import QasmBackendConfiguration
 from qiskit.providers.models.backendconfiguration import GateConfig
 from qiskit.qobj import QasmQobjExperiment, QasmQobj
@@ -46,30 +47,6 @@ class TestQiSimulatorPy(unittest.TestCase):
 
     def setUp(self):
         operations = []
-        self._basic_experiment_dictionary = {'instructions': operations,
-                                             'header': {'n_qubits': 2, 'memory_slots': 2,
-                                                        'name': 'test',
-                                                        'compiled_circuit_qasm': 'dummy',
-                                                        'creg_sizes': [['c1', 2]]},
-                                             'config': {'coupling_map': 'all-to-all',
-                                                        'basis_gates': 'x,y,z,h,rx,ry,rz,s,cx,ccx,'
-                                                                       'u1,u2,u3,id,snapshot',
-                                                        'n_qubits': 2}}
-        self._basic_qobj_dictionary = {'qobj_id': 'f9f944f5-9c9e-439e-a396-851d064cee29',
-                                       'config': {'shots': 25, 'memory_slots': 2, 'max_credits': 10,
-                                                  'number_qubits': 2},
-                                       'experiments': [{'instructions': operations,
-                                                        'header': {'n_qubits': 2, 'memory_slots': 2,
-                                                                   'name': 'test',
-                                                                   'compiled_circuit_qasm': 'dummy',
-                                                                   'creg_sizes': [['c1', 2]]},
-                                                        'config': {'coupling_map': 'all-to-all',
-                                                                   'basis_gates': 'x,y,z,h,rx,ry,rz,s,cx,ccx,'
-                                                                                  'u1,u2,u3,id,snapshot',
-                                                                   'n_qubits': 2}}],
-                                       'header': {'backend_name': 'QX single-node simulator'},
-                                       'type': 'QASM', 'schema_version': '1.0.0'}
-
         self._basic_job_dictionary = dict([('url', 'http://saevar-qutech-nginx/api/jobs/24/'),
                                            ('name', 'circuit0'),
                                            ('id', 24),
@@ -86,30 +63,32 @@ class TestQiSimulatorPy(unittest.TestCase):
                                            ])
 
     @staticmethod
-    def _instructions_to_two_qubit_experiment(instructions):
-        experiment_dict = {'instructions': instructions,
-                           'header': {'n_qubits': 2,
-                                      'memory_slots': 2,
-                                      'name': 'circuit0',
-                                      'compiled_circuit_qasm': ''},
-                           'config': {'coupling_map': 'all-to-all',
-                                      'basis_gates': 'x,y,z,h,rx,ry,rz,s,cx,ccx,u1,u2,u3,id,snapshot',
-                                      'n_qubits': 2}}
-        experiment = qiskit.qobj.QasmQobjExperiment.from_dict(experiment_dict)
-        return experiment
+    def _circuit_to_qobj(circuit):
+        run_config_dict = {'shots': 25, 'memory': True}
+        backend = QuantumInspireBackend(Mock(), Mock())
+        qobj = assemble(circuit, backend, **run_config_dict)
+        return qobj
 
-    def test__collect_measurements(self):
-        instructions = [{'name': 'cx', 'qubits': [0, 1]},
-                        {'name': 'measure', 'qubits': [0], 'memory': [1]},
-                        {'name': 'measure', 'qubits': [1], 'memory': [0]}]
-        experiment = self._instructions_to_two_qubit_experiment(instructions)
+    def _circuit_to_experiment(self, circuit):
+        qobj = self._circuit_to_qobj(circuit)
+        return qobj.experiments[0]
+
+    def test_collect_measurements(self):
+        qc = QuantumCircuit(2, 2)
+        qc.cx(0, 1)
+        qc.measure(0, 1)
+        qc.measure(1, 0)
+
+        experiment = self._circuit_to_experiment(qc)
 
         measurements = QuantumInspireBackend._collect_measurements(experiment)
         self.assertDictEqual(measurements, {'measurements': [[1, 0], [0, 1]], 'number_of_clbits': 2})
 
-    def test__collect_measurements_without_measurements(self):
-        instructions = [{'name': 'cx', 'qubits': [0, 1]}]
-        experiment = self._instructions_to_two_qubit_experiment(instructions)
+    def test_collect_measurements_without_measurements(self):
+        qc = QuantumCircuit(2, 2)
+        qc.cx(0, 1)
+
+        experiment = self._circuit_to_experiment(qc)
 
         measurements = QuantumInspireBackend._collect_measurements(experiment)
         self.assertDictEqual(measurements, {'measurements': [[0, 0], [1, 1]], 'number_of_clbits': 2})
@@ -183,12 +162,14 @@ class TestQiSimulatorPy(unittest.TestCase):
         self.assertEqual(('Result from backend contains no histogram data!\nError',), error.exception.args)
 
     def test_get_experiment_results_returns_correct_value_from_project(self):
+        qc = QuantumCircuit(2, 2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure(1, 1)
+        qc.measure(0, 0)
+
         number_of_shots = 100
-        instructions = [{'name': 'h', 'qubits': [0]},
-                        {'name': 'cx', 'qubits': [0, 1]},
-                        {'name': 'measure', 'qubits': [1], 'memory': [1]},
-                        {'name': 'measure', 'qubits': [0], 'memory': [0]}]
-        experiment = self._instructions_to_two_qubit_experiment(instructions)
+        experiment = self._circuit_to_experiment(qc)
         api = Mock()
         api.get_result_from_job.return_value = {'id': 1, 'histogram': {'1': 0.6, '3': 0.4},
                                                 'execution_time_in_seconds': 2.1, 'number_of_qubits': 2,
@@ -214,12 +195,15 @@ class TestQiSimulatorPy(unittest.TestCase):
         self.assertEqual(experiment_result.shots, number_of_shots)
 
     def test_get_experiment_results_returns_correct_value_from_latest_run(self):
+        qc = QuantumCircuit(2, 2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure(1, 1)
+        qc.measure(0, 0)
+
         number_of_shots = 100
-        instructions = [{'name': 'h', 'qubits': [0]},
-                        {'name': 'cx', 'qubits': [0, 1]},
-                        {'name': 'measure', 'qubits': [1], 'memory': [1]},
-                        {'name': 'measure', 'qubits': [0], 'memory': [0]}]
-        experiment = self._instructions_to_two_qubit_experiment(instructions)
+        experiment = self._circuit_to_experiment(qc)
+
         api = Mock()
         api.get_result_from_job.return_value = {'id': 1, 'histogram': {'1': 0.6, '3': 0.4},
                                                 'execution_time_in_seconds': 2.1, 'number_of_qubits': 2,
@@ -288,12 +272,11 @@ class TestQiSimulatorPy(unittest.TestCase):
         api.get_backend_type_by_name.return_value = {'max_number_of_shots': 4096}
         simulator = QuantumInspireBackend(api, Mock())
 
-        instructions = [{'memory': [0], 'name': 'measure', 'qubits': [1]}]
-        qobj_dict = self._basic_qobj_dictionary
-        qobj_dict['experiments'][0]['instructions'] = instructions
-        qobj_dict['experiments'][0]['header']['memory_slots'] = 0
-        qobj = QasmQobj.from_dict(qobj_dict)
+        qc = QuantumCircuit(2, 2)
+        qc.measure(1, 0)
 
+        qobj = self._circuit_to_qobj(qc)
+        qobj.experiments[0].header.memory_slots = 0
         self.assertRaisesRegex(QiskitBackendError, 'Invalid amount of classical bits \(0\)!',
                                simulator.run, qobj)
         api.delete_project.assert_called_with(default_project_number)
@@ -301,11 +284,15 @@ class TestQiSimulatorPy(unittest.TestCase):
     def test_get_experiment_results_returns_single_shot(self):
         number_of_shots = 1
         self._basic_job_dictionary['number_of_shots'] = number_of_shots
-        instructions = [{'name': 'h', 'qubits': [0]},
-                        {'name': 'cx', 'qubits': [0, 1]},
-                        {'name': 'measure', 'qubits': [1], 'memory': [1]},
-                        {'name': 'measure', 'qubits': [0], 'memory': [0]}]
-        experiment = self._instructions_to_two_qubit_experiment(instructions)
+
+        qc = QuantumCircuit(2, 2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure(1, 1)
+        qc.measure(0, 0)
+
+        experiment = self._circuit_to_experiment(qc)
+
         api = Mock()
         api.get_result_from_job.return_value = {'id': 1, 'histogram': {'0': 0.5, '3': 0.5},
                                                 'execution_time_in_seconds': 2.1, 'number_of_qubits': 2,
@@ -341,11 +328,14 @@ class TestQiSimulatorPy(unittest.TestCase):
         for i in range(10000):
             number_of_shots = 1
             self._basic_job_dictionary['number_of_shots'] = number_of_shots
-            instructions = [{'name': 'h', 'qubits': [0]},
-                            {'name': 'cx', 'qubits': [0, 1]},
-                            {'name': 'measure', 'qubits': [1], 'memory': [1]},
-                            {'name': 'measure', 'qubits': [0], 'memory': [0]}]
-            experiment = self._instructions_to_two_qubit_experiment(instructions)
+
+            qc = QuantumCircuit(2, 2)
+            qc.h(0)
+            qc.cx(0, 1)
+            qc.measure(1, 1)
+            qc.measure(0, 0)
+
+            experiment = self._circuit_to_experiment(qc)
             api = Mock()
             api.get_result_from_job.return_value = {'id': 1, 'histogram': {'0': 0.2, '1': 0.3, '2': 0.4, '3': 0.1},
                                                     'execution_time_in_seconds': 2.1, 'number_of_qubits': 2,
@@ -379,10 +369,15 @@ class TestQiSimulatorPy(unittest.TestCase):
         api.get_backend_type_by_name.return_value = {'max_number_of_shots': 4096}
         simulator = QuantumInspireBackend(api, Mock())
 
-        job_dict = self._basic_qobj_dictionary
-        job_dict['config']['shots'] = 1                 # first set shots to 1 to satisfy Qiskit model validation
-        job = qiskit.qobj.QasmQobj.from_dict(job_dict)  # Qiskit validation is satisfied
-        job.config.shots = 0                            # now set the number of shots to 0 to trigger our validation
+        qc = QuantumCircuit(2, 2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure(1, 1)
+        qc.measure(0, 0)
+
+        job = self._circuit_to_qobj(qc)
+
+        job.config.shots = 0                            # set the number of shots to 0 to trigger our validation
         self.assertRaisesRegex(QiskitBackendError, "Invalid shots \(number_of_shots=0\)", simulator.run, job)
         job.config.shots = 4097                         # now set the number of shots to a too high value
         self.assertRaisesRegex(QiskitBackendError, "Invalid shots \(number_of_shots=4097\)", simulator.run, job)
@@ -393,10 +388,11 @@ class TestQiSimulatorPy(unittest.TestCase):
         api.execute_qasm_async.return_value = 42
         api.get_backend_type_by_name.return_value = {'max_number_of_shots': 4096}
         simulator = QuantumInspireBackend(api, Mock())
-        job_dict = self._basic_qobj_dictionary
-        job_dict['experiments'][0]['instructions'] = []
-        job_dict['experiments'][0]['header']['memory_slots'] = 0
-        job = qiskit.qobj.QasmQobj.from_dict(job_dict)
+
+        qc = QuantumCircuit(2, 2)
+
+        job = self._circuit_to_qobj(qc)
+        job.experiments[0].header.memory_slots = 0
         self.assertRaisesRegex(QiskitBackendError, 'Invalid amount of classical bits \(0\)!',
                                simulator.run, job)
 
@@ -441,18 +437,13 @@ class TestQiSimulatorPy(unittest.TestCase):
             api.get_backend_type_by_name.return_value = {'max_number_of_shots': 4096}
             simulator = QuantumInspireBackend(api, Mock())
 
-            instructions = [{'name': 'cx', 'qubits': [0, 1]},
-                            {'memory': [0], 'name': 'measure', 'qubits': [0]},
-                            {'name': 'x', 'qubits': [0]}]
+            qc = QuantumCircuit(2, 2)
+            qc.cx(0, 1)
+            qc.measure(0, 0)
+            qc.x(0)
 
-            experiment = self._basic_experiment_dictionary
-            experiment['instructions'] = instructions
-            qjob_dict = self._basic_qobj_dictionary
-            qjob_dict['experiments'][0] = experiment
-            qobj = QasmQobj.from_dict(qjob_dict)
-            experiment = qobj.experiments[0]
-
-            simulator.run(qobj)
+            simulator.run(qc, 25)
+            experiment = self._circuit_to_experiment(qc)
         result_experiment.assert_called_once_with(experiment, 25, project=project, full_state_projection=False)
 
     def test_for_non_fsp_measurements_at_begin_and_end(self):
@@ -463,17 +454,15 @@ class TestQiSimulatorPy(unittest.TestCase):
             api.execute_qasm_async.return_value = 42
             api.get_backend_type_by_name.return_value = {'max_number_of_shots': 4096}
             simulator = QuantumInspireBackend(api, Mock())
-            instructions = [{'memory': [0], 'name': 'measure', 'qubits': [0]},
-                            {'name': 'cx', 'qubits': [0, 1]},
-                            {'name': 'x', 'qubits': [0]},
-                            {'memory': [1], 'name': 'measure', 'qubits': [1]}]
-            experiment = self._basic_experiment_dictionary
-            experiment['instructions'] = instructions
-            qjob_dict = self._basic_qobj_dictionary
-            qjob_dict['experiments'][0] = experiment
-            qobj = QasmQobj.from_dict(qjob_dict)
-            experiment = qobj.experiments[0]
-            simulator.run(qobj)
+
+            qc = QuantumCircuit(2, 2)
+            qc.measure(0, 0)
+            qc.cx(0, 1)
+            qc.x(0)
+            qc.measure(1, 1)
+
+            simulator.run(qc, 25)
+            experiment = self._circuit_to_experiment(qc)
         result_experiment.assert_called_once_with(experiment, 25, project=project, full_state_projection=False)
 
     def test_for_fsp_measurements_at_end_only(self):
@@ -484,16 +473,14 @@ class TestQiSimulatorPy(unittest.TestCase):
             api.execute_qasm_async.return_value = 42
             api.get_backend_type_by_name.return_value = {'max_number_of_shots': 4096}
             simulator = QuantumInspireBackend(api, Mock())
-            instructions = [{'name': 'cx', 'qubits': [0, 1]},
-                            {'name': 'x', 'qubits': [0]},
-                            {'memory': [0], 'name': 'measure', 'qubits': [1]}]
-            experiment = self._basic_experiment_dictionary
-            experiment['instructions'] = instructions
-            qjob_dict = self._basic_qobj_dictionary
-            qjob_dict['experiments'][0] = experiment
-            qobj = QasmQobj.from_dict(qjob_dict)
-            experiment = qobj.experiments[0]
-            simulator.run(qobj)
+
+            qc = QuantumCircuit(2, 2)
+            qc.cx(0, 1)
+            qc.x(0)
+            qc.measure(0, 1)
+
+            simulator.run(qc, 25)
+            experiment = self._circuit_to_experiment(qc)
         result_experiment.assert_called_once_with(experiment, 25, project=project, full_state_projection=True)
 
     def test_for_fsp_no_measurements(self):
@@ -504,15 +491,13 @@ class TestQiSimulatorPy(unittest.TestCase):
             api.execute_qasm_async.return_value = 42
             api.get_backend_type_by_name.return_value = {'max_number_of_shots': 4096}
             simulator = QuantumInspireBackend(api, Mock())
-            instructions = [{'name': 'cx', 'qubits': [0, 1]},
-                            {'name': 'x', 'qubits': [0]}]
-            experiment = self._basic_experiment_dictionary
-            experiment['instructions'] = instructions
-            qjob_dict = self._basic_qobj_dictionary
-            qjob_dict['experiments'][0] = experiment
-            qobj = QasmQobj.from_dict(qjob_dict)
-            experiment = qobj.experiments[0]
-            simulator.run(qobj)
+
+            qc = QuantumCircuit(2, 2)
+            qc.cx(0, 1)
+            qc.x(0)
+
+            simulator.run(qc, 25)
+            experiment = self._circuit_to_experiment(qc)
         result_experiment.assert_called_once_with(experiment, 25, project=project, full_state_projection=True)
 
     def test_for_non_fsp_hardware_backend(self):
@@ -526,15 +511,13 @@ class TestQiSimulatorPy(unittest.TestCase):
             config.backend_name = 'qi_hardware'
             config.simulator = False
             simulator = QuantumInspireBackend(api, config)
-            instructions = [{'name': 'cx', 'qubits': [0, 1]},
-                            {'name': 'x', 'qubits': [0]}]
-            experiment = self._basic_experiment_dictionary
-            experiment['instructions'] = instructions
-            qjob_dict = self._basic_qobj_dictionary
-            qjob_dict['experiments'][0] = experiment
-            qobj = QasmQobj.from_dict(qjob_dict)
-            experiment = qobj.experiments[0]
-            simulator.run(qobj)
+
+            qc = QuantumCircuit(2, 2)
+            qc.cx(0, 1)
+            qc.x(0)
+
+            simulator.run(qc, 25)
+            experiment = self._circuit_to_experiment(qc)
         result_experiment.assert_called_once_with(experiment, 25, project=project, full_state_projection=False)
 
     def test_measurement_2_qubits_to_1_classical_bit(self):
@@ -545,17 +528,15 @@ class TestQiSimulatorPy(unittest.TestCase):
             api.execute_qasm_async.return_value = 42
             api.get_backend_type_by_name.return_value = {'max_number_of_shots': 4096}
             simulator = QuantumInspireBackend(api, Mock())
-            instructions = [{'name': 'cx', 'qubits': [0, 1]},
-                            {'memory': [0], 'name': 'measure', 'qubits': [0]},
-                            {'name': 'x', 'qubits': [0]},
-                            {'memory': [0], 'name': 'measure', 'qubits': [1]}]
-            experiment = self._basic_experiment_dictionary
-            experiment['instructions'] = instructions
-            qjob_dict = self._basic_qobj_dictionary
-            qjob_dict['experiments'][0] = experiment
-            qobj = QasmQobj.from_dict(qjob_dict)
+
+            qc = QuantumCircuit(2, 2)
+            qc.cx(0, 1)
+            qc.measure(0, 0)
+            qc.x(0)
+            qc.measure(1, 0)
+
             self.assertRaisesRegex(QiskitBackendError, 'Measurement of different qubits to the same classical '
-                                                       'register 0 is not supported', simulator.run, qobj)
+                                                       'register 0 is not supported', simulator.run, qc)
 
     def test_measurement_1_qubit_to_2_classical_bits(self):
         with patch.object(QuantumInspireBackend, "_submit_experiment", return_value=Mock()):
@@ -565,18 +546,16 @@ class TestQiSimulatorPy(unittest.TestCase):
             api.execute_qasm_async.return_value = 42
             api.get_backend_type_by_name.return_value = {'max_number_of_shots': 4096}
             simulator = QuantumInspireBackend(api, Mock())
-            instructions = [{'name': 'cx', 'qubits': [0, 1]},
-                            {'memory': [1], 'name': 'measure', 'qubits': [1]},
-                            {'memory': [0], 'name': 'measure', 'qubits': [0]},
-                            {'name': 'x', 'qubits': [0]},
-                            {'memory': [0], 'name': 'measure', 'qubits': [1]}]
-            experiment = self._basic_experiment_dictionary
-            experiment['instructions'] = instructions
-            qjob_dict = self._basic_qobj_dictionary
-            qjob_dict['experiments'][0] = experiment
-            qobj = QasmQobj.from_dict(qjob_dict)
+
+            qc = QuantumCircuit(2, 2)
+            qc.cx(0, 1)
+            qc.measure(1, 1)
+            qc.measure(0, 0)
+            qc.x(0)
+            qc.measure(1, 0)
+
             self.assertRaisesRegex(QiskitBackendError, 'Measurement of qubit 1 to different classical registers '
-                                                       'is not supported', simulator.run, qobj)
+                                                       'is not supported', simulator.run, qc)
 
     def test_valid_non_fsp_measurement_qubit_to_classical(self):
         api = Mock()
@@ -587,18 +566,22 @@ class TestQiSimulatorPy(unittest.TestCase):
         api.execute_qasm_async.return_value = quantum_inspire_job
         api.get_backend_type_by_name.return_value = {'max_number_of_shots': 4096}
         simulator = QuantumInspireBackend(api, Mock())
-        instructions = [{'name': 'h', 'qubits': [0]},
-                        {'name': 'h', 'qubits': [2]},
-                        {'memory': [0], 'name': 'measure', 'qubits': [1]},
-                        {'memory': [1], 'name': 'measure', 'qubits': [0]},
-                        {'mask': '0x2', 'name': 'bfunc', 'register': 7, 'relation': '==', 'val': '0x2'},
-                        {'conditional': 7, 'name': 'h', 'qubits': [1]},
-                        {'memory': [1], 'name': 'measure', 'qubits': [0]},
-                        {'memory': [0], 'name': 'measure', 'qubits': [1]}]
-        qobj_dict = self._basic_qobj_dictionary
-        qobj_dict['experiments'][0]['instructions'] = instructions
-        qobj = QasmQobj.from_dict(qobj_dict)
-        job = simulator.run(qobj)
+
+        q = QuantumRegister(3, "q")
+        c1 = ClassicalRegister(1, "c1")
+        c2 = ClassicalRegister(1, "c2")
+
+        qc = QuantumCircuit(q, c1, c2, name="test")
+
+        qc.h(0)
+        qc.h(2)
+        qc.measure(1, 0)
+        qc.measure(0, 1)
+        qc.h(1).c_if(c2, 1)
+        qc.measure(0, 1)
+        qc.measure(1, 0)
+
+        job = simulator.run(qc)
         self.assertEqual('42', job.job_id())
 
     def test_retrieve_job(self):
