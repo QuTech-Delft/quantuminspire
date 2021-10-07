@@ -69,8 +69,9 @@ class TestQiSimulatorPy(unittest.TestCase):
         qobj = assemble(circuit, backend, **run_config_dict)
         return qobj
 
-    def _circuit_to_experiment(self, circuit):
-        qobj = self._circuit_to_qobj(circuit)
+    @staticmethod
+    def _circuit_to_experiment(circuit):
+        qobj = TestQiSimulatorPy._circuit_to_qobj(circuit)
         return qobj.experiments[0]
 
     def test_collect_measurements(self):
@@ -127,7 +128,7 @@ class TestQiSimulatorPy(unittest.TestCase):
                         'status_message': 'This backend is offline.'}
         api.get_backend_type_by_name.return_value = backend_type
         simulator = QuantumInspireBackend(api, Mock())
-        status=simulator.status()
+        status = simulator.status()
         self.assertEqual(status.backend_name, 'qi_simulator')
         self.assertEqual(status.status_msg, backend_type['status_message'])
         self.assertEqual(status.backend_version, quantum_inspire_version)
