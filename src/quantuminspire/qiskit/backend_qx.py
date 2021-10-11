@@ -136,7 +136,7 @@ class QuantumInspireBackend(Backend):  # type: ignore
         :param shots: Number of repetitions of each circuit, for sampling. Default: 1024
                 or ``max_shots`` from the backend configuration, whichever is smaller.
         :param memory: If ``True``, per-shot measurement bitstrings are returned
-        :param **run_config: Extra arguments used to configure the run.
+        :param run_config: Extra arguments used to configure the run.
 
         :return:
             A job that has been submitted.
