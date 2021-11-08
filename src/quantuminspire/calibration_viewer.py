@@ -14,7 +14,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-from typing import Any
+from typing import Any, Dict
 
 import json
 import numpy as np
@@ -27,7 +27,7 @@ except ImportError:
 
 class CalibrationViewer:
 
-    def __init__(self, calibration_dictionary: dict):
+    def __init__(self, calibration_dictionary: Dict[str, Any]) -> None:
         """
         Object to view and nicely print backend calibration data returned by the API.
 
@@ -37,14 +37,14 @@ class CalibrationViewer:
         return
 
     @property
-    def calibration(self):
+    def calibration(self) -> Dict[str, Any]:
         return self._calibration
 
     @property
-    def timestamp(self):
-        return self.calibration['parameters']['system']['last_calibration_date']['value']
+    def timestamp(self) -> str:
+        return str(self.calibration['parameters']['system']['last_calibration_date']['value'])
 
-    def show_system_parameters(self):
+    def show_system_parameters(self) -> None:
         """Print system calibration parameters."""
         system = self.calibration['parameters']['system']
         rprint(f'[green]System[/green]:')
@@ -61,7 +61,7 @@ class CalibrationViewer:
             else:
                 rprint(f"Unknown structure '{key}' in system calibration.")
 
-    def show_qubit_parameters(self):
+    def show_qubit_parameters(self) -> None:
         """Print qubit calibration parameters."""
         qdata = self.calibration['parameters']['qubits']
 
@@ -117,9 +117,9 @@ class CalibrationViewer:
 
         return cal
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<calibration of backend {self.calibration['backend']} from time {self.timestamp}>"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return json.dumps(self.calibration)
 
