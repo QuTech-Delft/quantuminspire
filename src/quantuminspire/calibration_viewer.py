@@ -78,7 +78,7 @@ class CalibrationViewer:
 
     def get_calibration_field(self, field: str) -> Any:
         """
-        Safely gets field `field` from system calibration.
+        Safely gets field `field` from system calibration. 
 
         :raises KeyError: If key `field` does not exist in system calibration dictionary.
 
