@@ -25,7 +25,7 @@ script:
 - MYPYPATH=./src mypy --strict --ignore-missing-imports -p quantuminspire
 - echo "running pylint"
 - pylint quantuminspire || true
-- if [ $TRAVIS_PULL_REQUEST == "false" ] || [ $TRAVIS_BRANCH == "dev" ]; then
+- if [ $TRAVIS_PULL_REQUEST == "false" ]; then
     echo "running examples";
     python ./docs/examples/example_projectq_entangle.py;
     python ./docs/examples/example_projectq_grover.py;
