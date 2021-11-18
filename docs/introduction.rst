@@ -155,7 +155,8 @@ API wrapper directly:
 
     H q[0]
     CNOT q[0], q[1]
-    display
+
+    Measure q[0,1]
     '''
 
     backend_type = qi.get_backend_type_by_name('QX single-node simulator')
