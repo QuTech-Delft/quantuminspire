@@ -32,8 +32,8 @@ jobs:
         upgrade: true
     - name: Run examples
       run: |
-        python ./docs/example_qiskit_entangle.py
-        python ./docs/example_qiskit_conditional.py
+        python ./docs/examples/example_qiskit_entangle.py
+        python ./docs/examples/example_qiskit_conditional.py
       env:
         QI_EMAIL: ${{ secrets.QI_EMAIL }}
         QI_PASSWORD: ${{ secrets.QI_PASSWORD }}
