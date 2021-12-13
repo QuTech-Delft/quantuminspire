@@ -85,7 +85,7 @@ class CalibrationViewer:
         :return: The system calibration content of `field`.
         """
         if field not in self.calibration['parameters']['system']:
-            raise KeyError(f"Calibration field '{field}' does not exist in calibration dictionary.")
+            raise KeyError(f"Calibration field '{field}' does not exist in system calibration dictionary.")
 
         return self.calibration['parameters']['system'][field]
 
@@ -101,14 +101,13 @@ class CalibrationViewer:
         rprint(f'[green]Calibration[/green]: {field}')
         try:
             rprint(f"\t{cal['value']}")
-        except KeyError:
+        except (KeyError, TypeError):
             rprint(f"\t{cal}.")
 
         for key in simple_keys:
             try:
                 rprint(f"\t[green]{key}[/green]: {cal[key]}")
-            except KeyError:
-                # print(f"Simple key '{key}' not in calibration dictionary.")
+            except (KeyError, TypeError):
                 pass
 
         other_fields = set(cal.keys()) - set(simple_keys)
