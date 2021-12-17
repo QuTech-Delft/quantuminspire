@@ -35,6 +35,5 @@ jobs:
         python ./docs/examples/example_qiskit_entangle.py
         python ./docs/examples/example_qiskit_conditional.py
       env:
-        QI_EMAIL: ${{ secrets.QI_EMAIL }}
-        QI_PASSWORD: ${{ secrets.QI_PASSWORD }}
+        QI_TOKEN: ${{ secrets.QI_TOKEN }}
         API_URL: https://api.quantum-inspire.com
