@@ -38,14 +38,16 @@ class CalibrationViewer:
 
     @property
     def calibration(self) -> Dict[str, Any]:
+        """The property containing the calibration dictionary to be used."""
         return self._calibration
 
     @property
     def timestamp(self) -> str:
+        """Timestamp of the last calibration of the current calibration dictionary."""
         return str(self.calibration['parameters']['system']['last_calibration_date']['value'])
 
     def show_system_parameters(self) -> None:
-        """Print system calibration parameters."""
+        """Print system calibration parameters of the calibration dictionary."""
         system = self.calibration['parameters']['system']
         rprint(f'[green]System[/green]:')
 
@@ -62,7 +64,7 @@ class CalibrationViewer:
                 rprint(f"Unknown structure '{key}' in system calibration.")
 
     def show_qubit_parameters(self) -> None:
-        """Print qubit calibration parameters."""
+        """Print qubit calibration parameters of the calibration dictionary."""
         qdata = self.calibration['parameters']['qubits']
 
         for qubit, data in qdata.items():
@@ -78,7 +80,9 @@ class CalibrationViewer:
 
     def get_calibration_field(self, field: str) -> Any:
         """
-        Safely gets field `field` from system calibration. 
+        Safely get value of key `field` from system calibration.
+
+        :param field: The entry (dict key) of the system calibration dictionary whose value should be returned.
 
         :raises KeyError: If key `field` does not exist in system calibration dictionary.
 
@@ -92,7 +96,9 @@ class CalibrationViewer:
     def show_calibration_field(self, field: str) -> Any:
         """
         Print calibration for a specific key `field` and return the content.
-        Also prints standard subfields 'timestamp' and 'status', if they are available.
+        Also prints standard subfields 'timestamp' and 'status' if they are available.
+
+        :param field: The entry (dict key) of the system calibration dictionary whose value should be printed.
 
         :return: The system calibration content of `field`.
         """
