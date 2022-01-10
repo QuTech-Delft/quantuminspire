@@ -463,21 +463,17 @@ class QuantumInspireAPI:
         ret: List[Dict[str, Any]] = jobs
         return ret
 
-    def delete_job(self, job_id: int) -> Dict[str, Any]:
+    def delete_job(self, job_id: int) -> None:
         """ Deletes the job identified by `job_id`.
 
         Only jobs can be deleted that are registered for the user the API is currently authenticated for.
 
         :param job_id: The job identification number.
 
-        :return:
-            The deleted job indicated by the job identification number.
-            See :meth:`~.get_job` for a description of the job properties.
-
         :raises ApiError: If the job identified by `job_id` does not exist.
         """
         try:
-            return dict(self._action(['jobs', 'delete'], params={'id': job_id}))
+            self._action(['jobs', 'delete'], params={'id': job_id})
         except ErrorMessage as err_msg:
             raise ApiError(f'Job with id {job_id} does not exist!') from err_msg
 
