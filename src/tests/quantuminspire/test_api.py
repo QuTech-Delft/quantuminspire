@@ -475,11 +475,9 @@ class TestQuantumInspireAPI(TestCase):
     def test_delete_job_has_correct_in_and_output(self):
         identity = 509
         expected_payload = {'id': identity}
-        expected = self.__mock_job_handler(expected_payload, 'delete', None, None, ['test', 'delete'], expected_payload)
         self.coreapi_client.handlers['jobs'] = partial(self.__mock_job_handler, expected_payload, 'delete')
         api = QuantumInspireAPI('FakeURL', self.authentication, coreapi_client_class=self.coreapi_client)
-        actual = api.delete_job(job_id=identity)
-        self.assertEqual(actual, expected)
+        self.assertIsNone(api.delete_job(job_id=identity))
 
     def test_delete_job_raises_api_error(self):
         identity = 999
