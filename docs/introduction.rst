@@ -77,6 +77,9 @@ To install the necessary packages to perform documentation activities:
 
     pip install .[rtd]
 
+The documentation generation process is dependent on pandoc. When you want to generate the
+documentation and pandoc is not yet installed on your system navigate
+to `Pandoc <https://pandoc.org/installing.html>`__ and follow the instructions found there to install pandoc.
 To build the 'readthedocs' documentation do:
 
 .. code-block:: console
