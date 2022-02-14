@@ -23,17 +23,20 @@ import numpy as np
 
 from qiskit.qobj import QasmQobjInstruction
 from quantuminspire.exceptions import ApiError
+from quantuminspire.qiskit.measurements import Measurements
 
 
 class CircuitToString:
     """ Contains the translational elements to convert the Qiskit circuits to cQASM code."""
 
-    def __init__(self, full_state_projection: bool = True) -> None:
+    def __init__(self, measurements: Measurements, full_state_projection: bool = True) -> None:
         """
+        :param measurements: The measured qubits/classical bits and the number of qubits and classical bits.
         :param full_state_projection: Whether or not to use full state projection.
         """
         self.bfunc_instructions: List[QasmQobjInstruction] = []
         self.full_state_projection = full_state_projection
+        self.measurements = measurements
 
     @staticmethod
     def _gate_not_supported(_stream: StringIO, instruction: QasmQobjInstruction, _binary_control: Optional[str] = None)\
@@ -474,6 +477,28 @@ class CircuitToString:
         CircuitToString._c_u3(stream, temp_instruction, binary_control)
 
     @staticmethod
+    def _p(stream: StringIO, instruction: QasmQobjInstruction) -> None:
+        """ Translates the p element to u1.
+
+        :param stream: The string-io stream to where the resulting cQASM is written.
+        :param instruction: The Qiskit instruction to translate to cQASM.
+
+        """
+        CircuitToString._u1(stream, instruction)
+
+    @staticmethod
+    def _c_p(stream: StringIO, instruction: QasmQobjInstruction, binary_control: str) -> None:
+        """ Translates the c-p element to c-u1.
+
+        :param stream: The string-io stream to where the resulting cQASM is written.
+        :param instruction: The Qiskit instruction to translate to cQASM.
+        :param binary_control: The multi-bits control string. The gate is executed when all specified classical bits
+        are 1.
+
+        """
+        CircuitToString._c_u1(stream, instruction, binary_control)
+
+    @staticmethod
     def _u2(stream: StringIO, instruction: QasmQobjInstruction) -> None:
         """ Translates the U2(phi, lambda) element to U3(pi/2, phi, lambda).
 
@@ -657,14 +682,16 @@ class CircuitToString:
         negate_zeroes_line = ''
         if masked_val != mask:
             negate_zeroes_line = 'not b[' + ','.join(
-                str(i) for i in range(lowest_mask_bit, lowest_mask_bit + mask_length)
-                if not (masked_val & (1 << i))) + ']\n'
+                str(self.measurements.get_qreg_for_conditional_creg(i)) for i in
+                range(lowest_mask_bit, lowest_mask_bit + mask_length) if not (masked_val & (1 << i))) + ']\n'
 
         if mask_length == 1:
-            binary_control = f'b[{lowest_mask_bit}], '
+            binary_control = f'b[{self.measurements.get_qreg_for_conditional_creg(lowest_mask_bit)}], '
         else:
             # form multi bits control - qasm-single-gate-multiple-qubits
-            binary_control = f'b[{lowest_mask_bit}:{lowest_mask_bit + mask_length - 1}], '
+            binary_control = f'b[' + ','.join(str(self.measurements.get_qreg_for_conditional_creg(i)) for i in
+                                              range(lowest_mask_bit, lowest_mask_bit + mask_length)) + '], '
+            # binary_control = f'b[{lowest_mask_bit}:{lowest_mask_bit + mask_length - 1}], '
 
         with StringIO() as gate_stream:
             # add the gate

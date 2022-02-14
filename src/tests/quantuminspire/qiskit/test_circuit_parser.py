@@ -24,6 +24,7 @@ from qiskit.compiler import assemble
 from qiskit.circuit import Instruction
 from quantuminspire.qiskit.circuit_parser import CircuitToString
 from quantuminspire.qiskit.backend_qx import QuantumInspireBackend
+from quantuminspire.qiskit.measurements import Measurements
 from quantuminspire.exceptions import ApiError
 
 
@@ -35,8 +36,10 @@ class TestQiCircuitToString(unittest.TestCase):
         backend = QuantumInspireBackend(Mock(), Mock())
         qobj = assemble(circuit, backend, **run_config_dict)
         experiment = qobj.experiments[0]
+        measurements = Measurements()
+        measurements.collect_measurements(experiment)
         simulator = QuantumInspireBackend(Mock(), Mock())
-        result = simulator._generate_cqasm(experiment, full_state_projection)
+        result = simulator._generate_cqasm(experiment, measurements, full_state_projection)
         return result
 
     @staticmethod
@@ -44,10 +47,10 @@ class TestQiCircuitToString(unittest.TestCase):
         """ Needed to create invalid qiskit circuits for triggering Exceptions """
         experiment_dict = {'instructions': instructions,
                            'header': {'n_qubits': number_of_qubits,
-                                      'number_of_clbits': number_of_qubits,
+                                      'memory_slots': number_of_qubits,
                                       'compiled_circuit_qasm': ''},
                            'config': {'coupling_map': 'all-to-all',
-                                      'basis_gates': 'x,y,z,h,rx,ry,rz,s,cx,ccx,u1,u2,u3,id,snapshot',
+                                      'basis_gates': 'x,y,z,h,rx,ry,rz,s,cx,ccx,u1,p,u2,u3,id,snapshot',
                                       'n_qubits': number_of_qubits}}
         experiment = qiskit.qobj.QasmQobjExperiment.from_dict(experiment_dict)
         for instruction in experiment.instructions:
@@ -56,8 +59,10 @@ class TestQiCircuitToString(unittest.TestCase):
                 qiskit_instruction = Instruction('dummy', 0, 0, instruction.params)
                 instruction.params = qiskit_instruction.params
 
+        measurements = Measurements()
+        measurements.collect_measurements(experiment)
         simulator = QuantumInspireBackend(Mock(), Mock())
-        result = simulator._generate_cqasm(experiment, full_state_projection)
+        result = simulator._generate_cqasm(experiment, measurements, full_state_projection)
         return result
 
     def test_generate_cqasm_with_entangle_algorithm(self):
@@ -91,7 +96,7 @@ class TestQiCircuitToString(unittest.TestCase):
         qc = QuantumCircuit(q, c, name="test")
         qc.cz(0, 1).c_if(c, 14)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[0]\nC-CZ b[0:3], q[0], q[1]\nnot b[0]\n' in result)
+        self.assertTrue('not b[0]\nC-CZ b[0,1,2,3], q[0], q[1]\nnot b[0]\n' in result)
 
     def test_generate_cqasm_correct_output_controlled_not(self):
         qc = QuantumCircuit(2, 2)
@@ -105,7 +110,7 @@ class TestQiCircuitToString(unittest.TestCase):
         qc = QuantumCircuit(q, c, name="test")
         qc.cx(0, 1).c_if(c, 14)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[0]\nC-CNOT b[0:3], q[0], q[1]\nnot b[0]\n' in result)
+        self.assertTrue('not b[0]\nC-CNOT b[0,1,2,3], q[0], q[1]\nnot b[0]\n' in result)
 
     def test_generate_cqasm_correct_output_toffoli(self):
         qc = QuantumCircuit(3, 3)
@@ -119,7 +124,7 @@ class TestQiCircuitToString(unittest.TestCase):
         qc = QuantumCircuit(q, c, name="test")
         qc.ccx(0, 1, 2).c_if(c, 14)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[0,4,5,6,7]\nC-Toffoli b[0:7], q[0], q[1], q[2]\nnot b[0,4,5,6,7]\n' in result)
+        self.assertTrue('not b[0,4,5,6,7]\nC-Toffoli b[0,1,2,3,4,5,6,7], q[0], q[1], q[2]\nnot b[0,4,5,6,7]\n' in result)
 
     def test_generate_cqasm_correct_output_measure(self):
         qc = QuantumCircuit(2, 2)
@@ -154,7 +159,7 @@ class TestQiCircuitToString(unittest.TestCase):
         qc = QuantumCircuit(q, c, name="test")
         qc.h(0).c_if(c, 14)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[0,4,5,6,7]\nC-H b[0:7], q[0]\nnot b[0,4,5,6,7]\n' in result)
+        self.assertTrue('not b[0,4,5,6,7]\nC-H b[0,1,2,3,4,5,6,7], q[0]\nnot b[0,4,5,6,7]\n' in result)
 
     def test_generate_cqasm_correct_output_barrier(self):
         qc = QuantumCircuit(2, 2)
@@ -179,14 +184,14 @@ class TestQiCircuitToString(unittest.TestCase):
         qc = QuantumCircuit(q, c, name="test")
         qc.i(0).c_if(c, 14)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[0,4,5,6,7]\nC-I b[0:7], q[0]\nnot b[0,4,5,6,7]\n' in result)
+        self.assertTrue('not b[0,4,5,6,7]\nC-I b[0,1,2,3,4,5,6,7], q[0]\nnot b[0,4,5,6,7]\n' in result)
 
         q = QuantumRegister(8, "q")
         c = ClassicalRegister(8, "c")
         qc = QuantumCircuit(q, c, name="test")
         qc.id(0).c_if(c, 14)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[0,4,5,6,7]\nC-I b[0:7], q[0]\nnot b[0,4,5,6,7]\n' in result)
+        self.assertTrue('not b[0,4,5,6,7]\nC-I b[0,1,2,3,4,5,6,7], q[0]\nnot b[0,4,5,6,7]\n' in result)
 
     def test_generate_cqasm_correct_output_gate_s(self):
         qc = QuantumCircuit(2, 2)
@@ -200,7 +205,7 @@ class TestQiCircuitToString(unittest.TestCase):
         qc = QuantumCircuit(q, c, name="test")
         qc.s(2).c_if(c, 11)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[2,4,5,6,7,8]\nC-S b[0:8], q[2]\nnot b[2,4,5,6,7,8]\n' in result)
+        self.assertTrue('not b[2,4,5,6,7,8]\nC-S b[0,1,2,3,4,5,6,7,8], q[2]\nnot b[2,4,5,6,7,8]\n' in result)
 
     def test_generate_cqasm_correct_output_gate_sdag(self):
         qc = QuantumCircuit(3, 3)
@@ -214,7 +219,7 @@ class TestQiCircuitToString(unittest.TestCase):
         qc = QuantumCircuit(q, c, name="test")
         qc.sdg(0).c_if(c, 14)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[0]\nC-Sdag b[0:3], q[0]\nnot b[0]\n' in result)
+        self.assertTrue('not b[0]\nC-Sdag b[0,1,2,3], q[0]\nnot b[0]\n' in result)
 
     def test_generate_cqasm_correct_output_gate_swap(self):
         qc = QuantumCircuit(4, 4)
@@ -228,7 +233,7 @@ class TestQiCircuitToString(unittest.TestCase):
         qc = QuantumCircuit(q, c, name="test")
         qc.swap(0, 1).c_if(c, 14)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[0]\nC-SWAP b[0:3], q[0], q[1]\nnot b[0]\n' in result)
+        self.assertTrue('not b[0]\nC-SWAP b[0,1,2,3], q[0], q[1]\nnot b[0]\n' in result)
 
     def test_generate_cqasm_correct_output_gate_t(self):
         qc = QuantumCircuit(3, 3)
@@ -242,7 +247,7 @@ class TestQiCircuitToString(unittest.TestCase):
         qc = QuantumCircuit(q, c, name="test")
         qc.t(1).c_if(c, 11)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[2,4,5,6,7,8]\nC-T b[0:8], q[1]\nnot b[2,4,5,6,7,8]\n' in result)
+        self.assertTrue('not b[2,4,5,6,7,8]\nC-T b[0,1,2,3,4,5,6,7,8], q[1]\nnot b[2,4,5,6,7,8]\n' in result)
 
     def test_generate_cqasm_correct_output_gate_tdag(self):
         qc = QuantumCircuit(3, 3)
@@ -256,7 +261,7 @@ class TestQiCircuitToString(unittest.TestCase):
         qc = QuantumCircuit(q, c, name="test")
         qc.tdg(0).c_if(c, 14)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[0]\nC-Tdag b[0:3], q[0]\nnot b[0]\n' in result)
+        self.assertTrue('not b[0]\nC-Tdag b[0,1,2,3], q[0]\nnot b[0]\n' in result)
 
     def test_generate_cqasm_correct_output_gate_x(self):
         qc = QuantumCircuit(2, 2)
@@ -270,7 +275,7 @@ class TestQiCircuitToString(unittest.TestCase):
         qc = QuantumCircuit(q, c, name="test")
         qc.x(0).c_if(c, 14)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[0]\nC-X b[0:3], q[0]\nnot b[0]\n' in result)
+        self.assertTrue('not b[0]\nC-X b[0,1,2,3], q[0]\nnot b[0]\n' in result)
 
     def test_generate_cqasm_correct_output_gate_y(self):
         qc = QuantumCircuit(2, 2)
@@ -284,7 +289,7 @@ class TestQiCircuitToString(unittest.TestCase):
         qc = QuantumCircuit(q, c, name="test")
         qc.y(0).c_if(c, 1)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[1,2,3]\nC-Y b[0:3], q[0]\nnot b[1,2,3]\n' in result)
+        self.assertTrue('not b[1,2,3]\nC-Y b[0,1,2,3], q[0]\nnot b[1,2,3]\n' in result)
 
     def test_generate_cqasm_correct_output_gate_z(self):
         qc = QuantumCircuit(2, 2)
@@ -298,7 +303,7 @@ class TestQiCircuitToString(unittest.TestCase):
         qc = QuantumCircuit(q, c, name="test")
         qc.z(0).c_if(c, 3)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[2,3]\nC-Z b[0:3], q[0]\nnot b[2,3]\n' in result)
+        self.assertTrue('not b[2,3]\nC-Z b[0,1,2,3], q[0]\nnot b[2,3]\n' in result)
 
     def test_generate_cqasm_correct_output_gate_u(self):
         qc = QuantumCircuit(2, 2)
@@ -327,21 +332,21 @@ class TestQiCircuitToString(unittest.TestCase):
         qc = QuantumCircuit(q, c, name="test")
         qc.u(0, 0, np.pi / 2, 0).c_if(c, 3)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[2,3]\nC-Rz b[0:3], q[0], 1.570796\nnot b[2,3]\n' in result)
+        self.assertTrue('not b[2,3]\nC-Rz b[0,1,2,3], q[0], 1.570796\nnot b[2,3]\n' in result)
 
         q = QuantumRegister(4, "q")
         c = ClassicalRegister(4, "c")
         qc = QuantumCircuit(q, c, name="test")
         qc.u(-np.pi / 2, 0, 0, 0).c_if(c, 3)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[2,3]\nC-Ry b[0:3], q[0], -1.570796\nnot b[2,3]' in result)
+        self.assertTrue('not b[2,3]\nC-Ry b[0,1,2,3], q[0], -1.570796\nnot b[2,3]' in result)
 
         q = QuantumRegister(4, "q")
         c = ClassicalRegister(4, "c")
         qc = QuantumCircuit(q, c, name="test")
         qc.u(np.pi / 4, np.pi / 2, -np.pi / 2, 0).c_if(c, 3)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[2,3]\nC-Rz b[0:3], q[0], -1.570796\nC-Ry b[0:3], q[0], 0.785398\nC-Rz b[0:3],'
+        self.assertTrue('not b[2,3]\nC-Rz b[0,1,2,3], q[0], -1.570796\nC-Ry b[0,1,2,3], q[0], 0.785398\nC-Rz b[0,1,2,3],'
                         ' q[0], 1.570796\nnot b[2,3]\n' in result)
 
         q = QuantumRegister(4, "q")
@@ -349,11 +354,12 @@ class TestQiCircuitToString(unittest.TestCase):
         qc = QuantumCircuit(q, c, name="test")
         qc.u(0.123456, 0.654321, -0.333333, 1).c_if(c, 3)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[2,3]\nC-Rz b[0:3], q[1], -0.333333\nC-Ry b[0:3], q[1], 0.123456\nC-Rz b[0:3],'
+        self.assertTrue('not b[2,3]\nC-Rz b[0,1,2,3], q[1], -0.333333\nC-Ry b[0,1,2,3], q[1], 0.123456\nC-Rz b[0,1,2,3],'
                         ' q[1], 0.654321\nnot b[2,3]\n' in result)
 
-    def test_generate_cqasm_correct_output_gate_u1(self):
+    def test_generate_cqasm_correct_output_gate_u1_deprecated(self):
         # Qiskit u1 is deprecated from 0.16.0. u1 -> p
+        # As long as it is available we need to support it.
         qc = QuantumCircuit(2, 2)
         qc.u1(np.pi / 2, 0)
         result = self._generate_cqasm_from_circuit(qc)
@@ -379,39 +385,103 @@ class TestQiCircuitToString(unittest.TestCase):
         result = self._generate_cqasm_from_circuit(qc)
         self.assertFalse('q[0]' in result)
 
-    def test_generate_cqasm_correct_output_conditional_gate_u1(self):
+    def test_generate_cqasm_correct_output_conditional_gate_u1_deprecated(self):
+        # Qiskit u1 is deprecated from 0.16.0. u1 -> p
+        # As long as it is available we need to support it.
         q = QuantumRegister(4, "q")
         c = ClassicalRegister(4, "c")
         qc = QuantumCircuit(q, c, name="test")
         qc.u1(np.pi / 2, 0).c_if(c, 3)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[2,3]\nC-Rz b[0:3], q[0], 1.570796\nnot b[2,3]\n' in result)
+        self.assertTrue('not b[2,3]\nC-Rz b[0,1,2,3], q[0], 1.570796\nnot b[2,3]\n' in result)
 
         q = QuantumRegister(4, "q")
         c = ClassicalRegister(4, "c")
         qc = QuantumCircuit(q, c, name="test")
         qc.u1(np.pi / 4, 1).c_if(c, 3)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[2,3]\nC-Rz b[0:3], q[1], 0.785398\nnot b[2,3]\n' in result)
+        self.assertTrue('not b[2,3]\nC-Rz b[0,1,2,3], q[1], 0.785398\nnot b[2,3]\n' in result)
 
         q = QuantumRegister(4, "q")
         c = ClassicalRegister(4, "c")
         qc = QuantumCircuit(q, c, name="test")
         qc.u1(-np.pi / 4, 2).c_if(c, 3)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[2,3]\nC-Rz b[0:3], q[2], -0.785398\nnot b[2,3]\n' in result)
+        self.assertTrue('not b[2,3]\nC-Rz b[0,1,2,3], q[2], -0.785398\nnot b[2,3]\n' in result)
 
         q = QuantumRegister(4, "q")
         c = ClassicalRegister(4, "c")
         qc = QuantumCircuit(q, c, name="test")
         qc.u1(0.123456, 2).c_if(c, 3)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[2,3]\nC-Rz b[0:3], q[2], 0.123456\nnot b[2,3]\n' in result)
+        self.assertTrue('not b[2,3]\nC-Rz b[0,1,2,3], q[2], 0.123456\nnot b[2,3]\n' in result)
 
         q = QuantumRegister(4, "q")
         c = ClassicalRegister(4, "c")
         qc = QuantumCircuit(q, c, name="test")
         qc.u1(0, 0).c_if(c, 3)
+        result = self._generate_cqasm_from_circuit(qc)
+        self.assertFalse('q[0]' in result)
+
+    def test_generate_cqasm_correct_output_gate_p(self):
+        qc = QuantumCircuit(2, 2)
+        qc.p(np.pi / 2, 0)
+        result = self._generate_cqasm_from_circuit(qc)
+        self.assertTrue('Rz q[0], 1.570796\n' in result)
+
+        qc = QuantumCircuit(2, 2)
+        qc.p(np.pi / 4, 1)
+        result = self._generate_cqasm_from_circuit(qc)
+        self.assertTrue('Rz q[1], 0.785398\n' in result)
+
+        qc = QuantumCircuit(3, 3)
+        qc.p(-np.pi / 4, 2)
+        result = self._generate_cqasm_from_circuit(qc)
+        self.assertTrue('Rz q[2], -0.785398\n' in result)
+
+        qc = QuantumCircuit(3, 3)
+        qc.p(0.123456, 2)
+        result = self._generate_cqasm_from_circuit(qc)
+        self.assertTrue('Rz q[2], 0.123456\n' in result)
+
+        qc = QuantumCircuit(2, 2)
+        qc.p(0, 0)
+        result = self._generate_cqasm_from_circuit(qc)
+        self.assertFalse('q[0]' in result)
+
+    def test_generate_cqasm_correct_output_conditional_gate_p(self):
+        q = QuantumRegister(4, "q")
+        c = ClassicalRegister(4, "c")
+        qc = QuantumCircuit(q, c, name="test")
+        qc.p(np.pi / 2, 0).c_if(c, 3)
+        result = self._generate_cqasm_from_circuit(qc)
+        self.assertTrue('not b[2,3]\nC-Rz b[0,1,2,3], q[0], 1.570796\nnot b[2,3]\n' in result)
+
+        q = QuantumRegister(4, "q")
+        c = ClassicalRegister(4, "c")
+        qc = QuantumCircuit(q, c, name="test")
+        qc.p(np.pi / 4, 1).c_if(c, 3)
+        result = self._generate_cqasm_from_circuit(qc)
+        self.assertTrue('not b[2,3]\nC-Rz b[0,1,2,3], q[1], 0.785398\nnot b[2,3]\n' in result)
+
+        q = QuantumRegister(4, "q")
+        c = ClassicalRegister(4, "c")
+        qc = QuantumCircuit(q, c, name="test")
+        qc.p(-np.pi / 4, 2).c_if(c, 3)
+        result = self._generate_cqasm_from_circuit(qc)
+        self.assertTrue('not b[2,3]\nC-Rz b[0,1,2,3], q[2], -0.785398\nnot b[2,3]\n' in result)
+
+        q = QuantumRegister(4, "q")
+        c = ClassicalRegister(4, "c")
+        qc = QuantumCircuit(q, c, name="test")
+        qc.p(0.123456, 2).c_if(c, 3)
+        result = self._generate_cqasm_from_circuit(qc)
+        self.assertTrue('not b[2,3]\nC-Rz b[0,1,2,3], q[2], 0.123456\nnot b[2,3]\n' in result)
+
+        q = QuantumRegister(4, "q")
+        c = ClassicalRegister(4, "c")
+        qc = QuantumCircuit(q, c, name="test")
+        qc.p(0, 0).c_if(c, 3)
         result = self._generate_cqasm_from_circuit(qc)
         self.assertFalse('q[0]' in result)
 
@@ -444,7 +514,7 @@ class TestQiCircuitToString(unittest.TestCase):
         qc = QuantumCircuit(q, c, name="test")
         qc.u(np.pi / 2, np.pi, np.pi / 2, 0).c_if(c, 3)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[2,3]\nC-Rz b[0:3], q[0], 1.570796\nC-Ry b[0:3], q[0], 1.570796\nC-Rz b[0:3], q[0],'
+        self.assertTrue('not b[2,3]\nC-Rz b[0,1,2,3], q[0], 1.570796\nC-Ry b[0,1,2,3], q[0], 1.570796\nC-Rz b[0,1,2,3], q[0],'
                         ' 3.141593\nnot b[2,3]\n' in result)
 
         q = QuantumRegister(4, "q")
@@ -452,14 +522,14 @@ class TestQiCircuitToString(unittest.TestCase):
         qc = QuantumCircuit(q, c, name="test")
         qc.u(np.pi / 2, 0, np.pi, 1).c_if(c, 3)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[2,3]\nC-Rz b[0:3], q[1], 3.141593\nC-Ry b[0:3], q[1], 1.570796\nnot b[2,3]\n' in result)
+        self.assertTrue('not b[2,3]\nC-Rz b[0,1,2,3], q[1], 3.141593\nC-Ry b[0,1,2,3], q[1], 1.570796\nnot b[2,3]\n' in result)
 
         q = QuantumRegister(4, "q")
         c = ClassicalRegister(4, "c")
         qc = QuantumCircuit(q, c, name="test")
         qc.u(np.pi / 2, 0.123456, -0.654321, 2).c_if(c, 3)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[2,3]\nC-Rz b[0:3], q[2], -0.654321\nC-Ry b[0:3], q[2], 1.570796\nC-Rz b[0:3], q[2],'
+        self.assertTrue('not b[2,3]\nC-Rz b[0,1,2,3], q[2], -0.654321\nC-Ry b[0,1,2,3], q[2], 1.570796\nC-Rz b[0,1,2,3], q[2],'
                         ' 0.123456\nnot b[2,3]\n' in result)
 
         q = QuantumRegister(4, "q")
@@ -467,7 +537,7 @@ class TestQiCircuitToString(unittest.TestCase):
         qc = QuantumCircuit(q, c, name="test")
         qc.u(np.pi / 2, 0, 0, 0).c_if(c, 3)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[2,3]\nC-Ry b[0:3], q[0], 1.570796\nnot b[2,3]\n' in result)
+        self.assertTrue('not b[2,3]\nC-Ry b[0,1,2,3], q[0], 1.570796\nnot b[2,3]\n' in result)
 
     def test_generate_cqasm_correct_output_gate_u2_deprecated(self):
         # Qiskit u2 is deprecated from 0.16.0. u2(a, b) -> u(pi/2, a, b)
@@ -500,7 +570,7 @@ class TestQiCircuitToString(unittest.TestCase):
         qc = QuantumCircuit(q, c, name="test")
         qc.u2(np.pi, np.pi / 2, 0).c_if(c, 3)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[2,3]\nC-Rz b[0:3], q[0], 1.570796\nC-Ry b[0:3], q[0], 1.570796\nC-Rz b[0:3], q[0],'
+        self.assertTrue('not b[2,3]\nC-Rz b[0,1,2,3], q[0], 1.570796\nC-Ry b[0,1,2,3], q[0], 1.570796\nC-Rz b[0,1,2,3], q[0],'
                         ' 3.141593\nnot b[2,3]\n' in result)
 
         q = QuantumRegister(4, "q")
@@ -508,14 +578,14 @@ class TestQiCircuitToString(unittest.TestCase):
         qc = QuantumCircuit(q, c, name="test")
         qc.u2(0, np.pi, 1).c_if(c, 3)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[2,3]\nC-Rz b[0:3], q[1], 3.141593\nC-Ry b[0:3], q[1], 1.570796\nnot b[2,3]\n' in result)
+        self.assertTrue('not b[2,3]\nC-Rz b[0,1,2,3], q[1], 3.141593\nC-Ry b[0,1,2,3], q[1], 1.570796\nnot b[2,3]\n' in result)
 
         q = QuantumRegister(4, "q")
         c = ClassicalRegister(4, "c")
         qc = QuantumCircuit(q, c, name="test")
         qc.u2(0.123456, -0.654321, 2).c_if(c, 3)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[2,3]\nC-Rz b[0:3], q[2], -0.654321\nC-Ry b[0:3], q[2], 1.570796\nC-Rz b[0:3], q[2],'
+        self.assertTrue('not b[2,3]\nC-Rz b[0,1,2,3], q[2], -0.654321\nC-Ry b[0,1,2,3], q[2], 1.570796\nC-Rz b[0,1,2,3], q[2],'
                         ' 0.123456\nnot b[2,3]\n' in result)
 
         q = QuantumRegister(4, "q")
@@ -523,7 +593,7 @@ class TestQiCircuitToString(unittest.TestCase):
         qc = QuantumCircuit(q, c, name="test")
         qc.u2(0, 0, 0).c_if(c, 3)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[2,3]\nC-Ry b[0:3], q[0], 1.570796\nnot b[2,3]\n' in result)
+        self.assertTrue('not b[2,3]\nC-Ry b[0,1,2,3], q[0], 1.570796\nnot b[2,3]\n' in result)
 
     def test_generate_cqasm_correct_output_gate_u3(self):
         # Qiskit u3 is deprecated from 0.16.0. u3 -> u
@@ -559,7 +629,7 @@ class TestQiCircuitToString(unittest.TestCase):
         qc = QuantumCircuit(q, c, name="test")
         qc.u(1, 2, 3, 0).c_if(c, 3)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[2,3]\nC-Rz b[0:3], q[0], 3.000000\nC-Ry b[0:3], q[0], 1.000000\nC-Rz b[0:3], q[0],'
+        self.assertTrue('not b[2,3]\nC-Rz b[0,1,2,3], q[0], 3.000000\nC-Ry b[0,1,2,3], q[0], 1.000000\nC-Rz b[0,1,2,3], q[0],'
                         ' 2.000000\nnot b[2,3]\n' in result)
 
         q = QuantumRegister(4, "q")
@@ -567,7 +637,7 @@ class TestQiCircuitToString(unittest.TestCase):
         qc = QuantumCircuit(q, c, name="test")
         qc.u(0.123456, 0.654321, -0.333333, 1).c_if(c, 3)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[2,3]\nC-Rz b[0:3], q[1], -0.333333\nC-Ry b[0:3], q[1], 0.123456\nC-Rz b[0:3], q[1],'
+        self.assertTrue('not b[2,3]\nC-Rz b[0,1,2,3], q[1], -0.333333\nC-Ry b[0,1,2,3], q[1], 0.123456\nC-Rz b[0,1,2,3], q[1],'
                         ' 0.654321\nnot b[2,3]\n' in result)
 
         q = QuantumRegister(4, "q")
@@ -575,14 +645,14 @@ class TestQiCircuitToString(unittest.TestCase):
         qc = QuantumCircuit(q, c, name="test")
         qc.u(0, 0.654321, 0, 1).c_if(c, 3)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[2,3]\nC-Rz b[0:3], q[1], 0.654321\nnot b[2,3]\n' in result)
+        self.assertTrue('not b[2,3]\nC-Rz b[0,1,2,3], q[1], 0.654321\nnot b[2,3]\n' in result)
 
         q = QuantumRegister(4, "q")
         c = ClassicalRegister(4, "c")
         qc = QuantumCircuit(q, c, name="test")
         qc.u(0.654321, 0, 0, 2).c_if(c, 3)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[2,3]\nC-Ry b[0:3], q[2], 0.654321\nnot b[2,3]\n' in result)
+        self.assertTrue('not b[2,3]\nC-Ry b[0,1,2,3], q[2], 0.654321\nnot b[2,3]\n' in result)
 
         q = QuantumRegister(4, "q")
         c = ClassicalRegister(4, "c")
@@ -627,7 +697,7 @@ class TestQiCircuitToString(unittest.TestCase):
         qc = QuantumCircuit(q, c, name="test")
         qc.u3(1, 2, 3, 0).c_if(c, 3)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[2,3]\nC-Rz b[0:3], q[0], 3.000000\nC-Ry b[0:3], q[0], 1.000000\nC-Rz b[0:3], q[0],'
+        self.assertTrue('not b[2,3]\nC-Rz b[0,1,2,3], q[0], 3.000000\nC-Ry b[0,1,2,3], q[0], 1.000000\nC-Rz b[0,1,2,3], q[0],'
                         ' 2.000000\nnot b[2,3]\n' in result)
 
         q = QuantumRegister(4, "q")
@@ -635,7 +705,7 @@ class TestQiCircuitToString(unittest.TestCase):
         qc = QuantumCircuit(q, c, name="test")
         qc.u3(0.123456, 0.654321, -0.333333, 1).c_if(c, 3)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[2,3]\nC-Rz b[0:3], q[1], -0.333333\nC-Ry b[0:3], q[1], 0.123456\nC-Rz b[0:3], q[1],'
+        self.assertTrue('not b[2,3]\nC-Rz b[0,1,2,3], q[1], -0.333333\nC-Ry b[0,1,2,3], q[1], 0.123456\nC-Rz b[0,1,2,3], q[1],'
                         ' 0.654321\nnot b[2,3]\n' in result)
 
         q = QuantumRegister(4, "q")
@@ -643,14 +713,14 @@ class TestQiCircuitToString(unittest.TestCase):
         qc = QuantumCircuit(q, c, name="test")
         qc.u3(0, 0.654321, 0, 1).c_if(c, 3)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[2,3]\nC-Rz b[0:3], q[1], 0.654321\nnot b[2,3]\n' in result)
+        self.assertTrue('not b[2,3]\nC-Rz b[0,1,2,3], q[1], 0.654321\nnot b[2,3]\n' in result)
 
         q = QuantumRegister(4, "q")
         c = ClassicalRegister(4, "c")
         qc = QuantumCircuit(q, c, name="test")
         qc.u3(0.654321, 0, 0, 2).c_if(c, 3)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[2,3]\nC-Ry b[0:3], q[2], 0.654321\nnot b[2,3]\n' in result)
+        self.assertTrue('not b[2,3]\nC-Ry b[0,1,2,3], q[2], 0.654321\nnot b[2,3]\n' in result)
 
         q = QuantumRegister(4, "q")
         c = ClassicalRegister(4, "c")
@@ -707,14 +777,14 @@ class TestQiCircuitToString(unittest.TestCase):
         qc = QuantumCircuit(q, c, name="test")
         qc.rx(np.pi / 2, 0).c_if(c, 14)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[0,4,5,6,7]\nC-Rx b[0:7], q[0], 1.570796\nnot b[0,4,5,6,7]\n' in result)
+        self.assertTrue('not b[0,4,5,6,7]\nC-Rx b[0,1,2,3,4,5,6,7], q[0], 1.570796\nnot b[0,4,5,6,7]\n' in result)
 
         q = QuantumRegister(8, "q")
         c = ClassicalRegister(8, "c")
         qc = QuantumCircuit(q, c, name="test")
         qc.rx(0.123456, 1).c_if(c, 14)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[0,4,5,6,7]\nC-Rx b[0:7], q[1], 0.123456\nnot b[0,4,5,6,7]\n' in result)
+        self.assertTrue('not b[0,4,5,6,7]\nC-Rx b[0,1,2,3,4,5,6,7], q[1], 0.123456\nnot b[0,4,5,6,7]\n' in result)
 
     def test_generate_cqasm_correct_output_rotation_y(self):
         qc = QuantumCircuit(2, 2)
@@ -733,14 +803,14 @@ class TestQiCircuitToString(unittest.TestCase):
         qc = QuantumCircuit(q, c, name="test")
         qc.ry(np.pi / 2, 0).c_if(c, 3)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[2,3]\nC-Ry b[0:3], q[0], 1.570796\nnot b[2,3]\n' in result)
+        self.assertTrue('not b[2,3]\nC-Ry b[0,1,2,3], q[0], 1.570796\nnot b[2,3]\n' in result)
 
         q = QuantumRegister(4, "q")
         c = ClassicalRegister(4, "c")
         qc = QuantumCircuit(q, c, name="test")
         qc.ry(0.654321, 1).c_if(c, 3)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[2,3]\nC-Ry b[0:3], q[1], 0.654321\nnot b[2,3]\n' in result)
+        self.assertTrue('not b[2,3]\nC-Ry b[0,1,2,3], q[1], 0.654321\nnot b[2,3]\n' in result)
 
     def test_generate_cqasm_correct_output_rotation_z(self):
         qc = QuantumCircuit(2, 2)
@@ -759,14 +829,14 @@ class TestQiCircuitToString(unittest.TestCase):
         qc = QuantumCircuit(q, c, name="test")
         qc.rz(np.pi / 2, 0).c_if(c, 1)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[1,2,3]\nC-Rz b[0:3], q[0], 1.570796\nnot b[1,2,3]\n' in result)
+        self.assertTrue('not b[1,2,3]\nC-Rz b[0,1,2,3], q[0], 1.570796\nnot b[1,2,3]\n' in result)
 
         q = QuantumRegister(4, "q")
         c = ClassicalRegister(4, "c")
         qc = QuantumCircuit(q, c, name="test")
         qc.rz(-np.pi / 2, 1).c_if(c, 1)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[1,2,3]\nC-Rz b[0:3], q[1], -1.570796\nnot b[1,2,3]\n' in result)
+        self.assertTrue('not b[1,2,3]\nC-Rz b[0,1,2,3], q[1], -1.570796\nnot b[1,2,3]\n' in result)
 
     def test_generate_cqasm_correct_output_unknown_gate(self):
         instructions = [{'name': 'bla', 'qubits': [1], 'params': [-np.pi / 2]}]
@@ -785,7 +855,7 @@ class TestQiCircuitToString(unittest.TestCase):
         qc = QuantumCircuit(q, c, name="test")
         qc.rx(-np.pi / 2, 1).c_if(c, 15)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('C-Rx b[0:3], q[1], -1.570796\n' in result)
+        self.assertTrue('C-Rx b[0,1,2,3], q[1], -1.570796\n' in result)
         self.assertFalse('not\n' in result)
 
     def test_generate_cqasm_correct_output_one_bit_condition(self):
@@ -836,7 +906,7 @@ class TestQiCircuitToString(unittest.TestCase):
         qc = QuantumCircuit(q1, q2, c1, c2, name="test")
         qc.y(2).c_if(c2, 3)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[5]\nC-Y b[3:5], q[2]\nnot b[5]\n' in result)
+        self.assertTrue('not b[5]\nC-Y b[3,4,5], q[2]\nnot b[5]\n' in result)
 
         q1 = QuantumRegister(1, "q1")
         q2 = QuantumRegister(7, "q2")
@@ -845,7 +915,7 @@ class TestQiCircuitToString(unittest.TestCase):
         qc = QuantumCircuit(q1, q2, c1, c2, name="test")
         qc.y(2).c_if(c2, 12)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[1,2,5,6,7]\nC-Y b[1:7], q[2]\nnot b[1,2,5,6,7]\n' in result)
+        self.assertTrue('not b[1,2,5,6,7]\nC-Y b[1,2,3,4,5,6,7], q[2]\nnot b[1,2,5,6,7]\n' in result)
 
         q1 = QuantumRegister(1, "q1")
         q2 = QuantumRegister(7, "q2")
@@ -854,7 +924,7 @@ class TestQiCircuitToString(unittest.TestCase):
         qc = QuantumCircuit(q1, q2, c1, c2, name="test")
         qc.y(2).c_if(c2, 27)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[3,6,7]\nC-Y b[1:7], q[2]\nnot b[3,6,7]\n' in result)
+        self.assertTrue('not b[3,6,7]\nC-Y b[1,2,3,4,5,6,7], q[2]\nnot b[3,6,7]\n' in result)
 
         q1 = QuantumRegister(5, "q1")
         q2 = QuantumRegister(2, "q2")
@@ -863,7 +933,7 @@ class TestQiCircuitToString(unittest.TestCase):
         qc = QuantumCircuit(q1, q2, c1, c2, name="test")
         qc.y(2).c_if(c2, 2)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[5]\nC-Y b[5:6], q[2]\nnot b[5]\n' in result)
+        self.assertTrue('not b[5]\nC-Y b[5,6], q[2]\nnot b[5]\n' in result)
 
     def test_generate_cqasm_correct_output_unknown_type(self):
         instructions = [{'mask': '0xF', 'name': 'bfunc', 'register': 18, 'relation': '!=', 'val': '0x1'},
