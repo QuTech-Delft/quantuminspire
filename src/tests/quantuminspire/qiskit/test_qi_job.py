@@ -93,15 +93,26 @@ class TestQIJob(unittest.TestCase):
 
     def test_result(self):
         api = Mock()
-        api.get_jobs_from_project.return_value = [{'name': 'Test1', 'status': 'COMPLETE'},
-                                                  {'name': 'Test2', 'status': 'COMPLETE'}]
+        api.get_job.side_effect = [{'name': 'Test1', 'status': 'COMPLETE'},
+                                   {'name': 'Test2', 'status': 'COMPLETE'},
+                                   {'name': 'Test1', 'status': 'COMPLETE'},
+                                   {'name': 'Test2', 'status': 'COMPLETE'}]
         job_id = '42'
         backend = Mock()
         backend.get_experiment_results_from_latest_run.return_value = \
             [self.experiment_result_1, self.experiment_result_2]
         backend.backend_name = 'some backend'
-        job = QIJob(backend, job_id, api)
-        results = job.result()
+
+        quantuminspire_job = Mock()
+        quantuminspire_job.get_job_identifier.side_effect = [1, 2, 1, 2]
+
+        qijob = QIJob(backend, job_id, api)
+        qijob.add_job(quantuminspire_job)
+        qijob.add_job(quantuminspire_job)
+        results = qijob.result()
+        results_dict = results.to_dict()
+
+        self.assertEqual(results_dict["status"], "JobStatus.DONE")
 
         self.assertTrue(results.success)
         self.assertEqual(results.time_taken, 0.54)
@@ -110,13 +121,12 @@ class TestQIJob(unittest.TestCase):
         self.assertDictEqual({'0': 42}, results.get_counts(0))
         self.assertDictEqual({'1': 42}, results.get_counts(1))
         self.assertEqual('42', results.job_id)
+        self.assertEqual(results.status, "JobStatus.DONE")
         self.assertListEqual(['Test1', 'Test2'], [r.name for r in results.results])
         self.assertListEqual(['DONE', 'DONE'], [r.status for r in results.results])
 
     def test_result_all_jobs_run(self):
         api = Mock()
-        api.get_jobs_from_project.return_value = [{'name': 'Test1', 'status': 'COMPLETE'},
-                                                  {'name': 'Test2', 'status': 'COMPLETE'}]
         job_id = '42'
         backend = Mock()
         backend.get_experiment_results_from_all_jobs.return_value = [self.experiment_result_1, self.experiment_result_2]
@@ -158,8 +168,6 @@ class TestQIJob(unittest.TestCase):
 
     def test_cancel(self):
         api = Mock()
-        api.get_jobs_from_project.return_value = [{'name': 'test_job', 'status': 'COMPLETE'},
-                                                  {'name': 'other_job', 'status': 'RUNNING'}]
         job_id = '42'
         backend = Mock()
         job = QIJob(backend, job_id, api)
