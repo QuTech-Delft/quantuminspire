@@ -112,7 +112,7 @@ class TestQIJob(unittest.TestCase):
         results = qijob.result()
         results_dict = results.to_dict()
 
-        self.assertEqual(results_dict["status"], "JobStatus.DONE")
+        self.assertEqual(results_dict["status"], 'DONE')
 
         self.assertTrue(results.success)
         self.assertEqual(results.time_taken, 0.54)
@@ -121,7 +121,7 @@ class TestQIJob(unittest.TestCase):
         self.assertDictEqual({'0': 42}, results.get_counts(0))
         self.assertDictEqual({'1': 42}, results.get_counts(1))
         self.assertEqual('42', results.job_id)
-        self.assertEqual(results.status, "JobStatus.DONE")
+        self.assertEqual(results.status, 'DONE')
         self.assertListEqual(['Test1', 'Test2'], [r.name for r in results.results])
         self.assertListEqual(['DONE', 'DONE'], [r.status for r in results.results])
 
