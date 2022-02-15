@@ -134,7 +134,7 @@ class QIJob(Job):  # type: ignore
 
         return QIResult(backend_name=self._backend.backend_name, backend_version=quantum_inspire_version,
                         job_id=self.job_id(), qobj_id=self.job_id(), success=True, results=experiment_results,
-                        status=self.status(), time_taken=total_time_taken)
+                        status=self.status().name, time_taken=total_time_taken)
 
     def result(self, timeout: Optional[float] = None, wait: float = 0.5) -> QIResult:
         """ Return the result for the experiments in the latest run for this project.
