@@ -14,13 +14,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
+
 import copy
 import io
 import json
 import uuid
 import warnings
-from collections import defaultdict, OrderedDict, Counter
-from typing import Any, Dict, List, Tuple, Optional, Union
+from collections import defaultdict, Counter
+from typing import Any, Dict, List, Tuple, Optional, Union, TYPE_CHECKING
 
 import numpy as np
 from qiskit.circuit import QuantumCircuit
@@ -38,6 +40,9 @@ from quantuminspire.job import QuantumInspireJob
 from quantuminspire.qiskit.circuit_parser import CircuitToString
 from quantuminspire.qiskit.qi_job import QIJob
 from quantuminspire.version import __version__ as quantum_inspire_version
+
+if TYPE_CHECKING:
+    from quantum_inspire_provider import QuantumInspireProvider
 
 
 class QuantumInspireBackend(Backend):  # type: ignore
@@ -59,7 +64,7 @@ class QuantumInspireBackend(Backend):  # type: ignore
     )
     qobj_warning_issued = False
 
-    def __init__(self, api: QuantumInspireAPI, provider: Any,
+    def __init__(self, api: QuantumInspireAPI, provider: QuantumInspireProvider,
                  configuration: Optional[QasmBackendConfiguration] = None) -> None:
         """ Python implementation of a quantum simulator using Quantum Inspire API.
 
