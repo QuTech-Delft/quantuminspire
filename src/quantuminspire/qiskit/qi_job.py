@@ -20,7 +20,6 @@ import time
 from typing import List, Optional, Any, Dict, Callable, TYPE_CHECKING
 
 from qiskit.providers import JobError, JobTimeoutError, JobV1 as Job
-from qiskit.providers.backend import Backend
 from qiskit.providers.jobstatus import JobStatus, JOB_FINAL_STATES
 from qiskit.result.models import ExperimentResult
 from qiskit.qobj import QasmQobj, QasmQobjExperiment
@@ -31,6 +30,7 @@ from quantuminspire.version import __version__ as quantum_inspire_version
 
 if TYPE_CHECKING:
     from backend_qx import QuantumInspireBackend
+
 
 class QIJob(Job):  # type: ignore
     """
