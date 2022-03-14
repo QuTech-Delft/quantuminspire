@@ -132,6 +132,24 @@ class TestQuantumInspireAPI(TestCase):
         api._load_schema()
         self.assertEqual(expected, api.document)
 
+    def test_base_url_with_trailing_slash(self):
+        expected = 'schema/'
+        base_url = 'https://api.mock.test.com/v1/'
+        url = ''.join([base_url, expected])
+        self.coreapi_client.getters[url] = expected
+        api = QuantumInspireAPI(base_url, self.token_authentication, coreapi_client_class=self.coreapi_client)
+        api._load_schema()
+        self.assertEqual(expected, api.document)
+
+    def test_base_url_without_trailing_slash(self):
+        expected = 'schema/'
+        base_url = 'https://api.mock.test.com/v1'
+        url = ''.join([base_url, '/', expected])
+        self.coreapi_client.getters[url] = expected
+        api = QuantumInspireAPI(base_url, self.token_authentication, coreapi_client_class=self.coreapi_client)
+        api._load_schema()
+        self.assertEqual(expected, api.document)
+
     def test_zload_schema_raises_exception(self):
         def raises_error(self, url):
             raise CoreAPIException
