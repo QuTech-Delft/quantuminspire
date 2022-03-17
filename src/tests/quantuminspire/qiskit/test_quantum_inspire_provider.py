@@ -102,7 +102,7 @@ class TestQuantumInspireProvider(unittest.TestCase):
             self.assertEqual(3, backend.configuration().max_experiments)
             self.assertTrue(backend.configuration().conditional)
             self.assertEqual(backend.configuration().basis_gates, ['x', 'y', 'z', 'h', 'rx', 'ry', 'rz', 's', 'sdg',
-                                                                   't', 'tdg', 'cx', 'ccx', 'u1', 'u2', 'u3', 'id',
+                                                                   't', 'tdg', 'cx', 'ccx', 'u1', 'p', 'u2', 'u3', 'id',
                                                                    'swap', 'cz', 'snapshot'])
 
     def test_hardware_backend(self):

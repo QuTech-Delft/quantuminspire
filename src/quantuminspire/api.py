@@ -99,7 +99,7 @@ class QuantumInspireAPI:
                 raise AuthenticationError('No credentials have been provided or found on disk')
         self.__client = coreapi_client_class(auth=authentication)
         self.project_name = project_name
-        self.base_uri = base_uri if base_uri[-1] is '/' else base_uri + '/'
+        self.base_uri = base_uri if base_uri[-1] == '/' else base_uri + '/'
         self.enable_fsp_warning = True
         try:
             self._load_schema()
