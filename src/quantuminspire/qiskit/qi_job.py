@@ -14,11 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
+
 import time
-from typing import List, Optional, Any, Dict, Callable
+from typing import List, Optional, Any, Dict, Callable, TYPE_CHECKING
 
 from qiskit.providers import JobError, JobTimeoutError, JobV1 as Job
-from qiskit.providers.backend import Backend
 from qiskit.providers.jobstatus import JobStatus, JOB_FINAL_STATES
 from qiskit.result.models import ExperimentResult
 from qiskit.qobj import QasmQobj, QasmQobjExperiment
@@ -26,6 +27,9 @@ from quantuminspire.api import QuantumInspireAPI
 from quantuminspire.job import QuantumInspireJob
 from quantuminspire.qiskit.qi_result import QIResult
 from quantuminspire.version import __version__ as quantum_inspire_version
+
+if TYPE_CHECKING:
+    from backend_qx import QuantumInspireBackend
 
 
 class QIJob(Job):  # type: ignore
@@ -68,7 +72,8 @@ class QIJob(Job):  # type: ignore
 
     """
 
-    def __init__(self, backend: Backend, job_id: str, api: QuantumInspireAPI, qobj: Optional[QasmQobj] = None) -> None:
+    def __init__(self, backend: QuantumInspireBackend, job_id: str, api: QuantumInspireAPI,
+                 qobj: Optional[QasmQobj] = None) -> None:
         """
         A QIJob object is normally not constructed directly.
 

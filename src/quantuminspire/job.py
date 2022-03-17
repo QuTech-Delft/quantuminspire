@@ -22,13 +22,18 @@ Module job
    :members:
 """
 
-from typing import Dict, Any
+from __future__ import annotations
+
+from typing import Dict, Any, TYPE_CHECKING
 from coreapi.exceptions import ErrorMessage
+
+if TYPE_CHECKING:
+    from api import QuantumInspireAPI
 
 
 class QuantumInspireJob:
 
-    def __init__(self, api: Any, job_identifier: int) -> None:
+    def __init__(self, api: QuantumInspireAPI, job_identifier: int) -> None:
         """ Encapsulation of a job.
 
         The :py:class:`QuantumInspireJob` class encapsulates the base job of the API and has
@@ -39,10 +44,10 @@ class QuantumInspireJob:
         """
         QuantumInspireJob.__check_arguments(api, job_identifier)
         self.__job_identifier: int = job_identifier
-        self.__api: Any = api
+        self.__api: QuantumInspireAPI = api
 
     @staticmethod
-    def __check_arguments(api: Any, job_identifier: int) -> None:
+    def __check_arguments(api: QuantumInspireAPI, job_identifier: int) -> None:
         """ Checks whether the supplied arguments are of correct type.
 
         :param api: An instance to the API.
