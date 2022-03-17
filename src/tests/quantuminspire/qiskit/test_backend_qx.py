@@ -155,8 +155,7 @@ class TestQiSimulatorPy(unittest.TestCase):
                                                 'raw_data_url': 'http://saevar-qutech-nginx/api/results/24/raw-data/'}
         api.get_raw_data_from_result.return_value = [1] * 60 + [3] * 40
         jobs = self._basic_job_dictionary
-        measurements = Measurements()
-        measurements.collect_measurements(experiment)
+        measurements = Measurements.from_experiment(experiment)
         user_data = {'name': 'name', 'memory_slots': 2,
                      'creg_sizes': [['c1', 2]], 'measurements': measurements.to_dict()}
         jobs['user_data'] = json.dumps(user_data)
@@ -190,8 +189,7 @@ class TestQiSimulatorPy(unittest.TestCase):
                                                 'raw_data_url': 'http://saevar-qutech-nginx/api/results/24/raw-data/'}
         api.get_raw_data_from_result.return_value = [1] * 60 + [3] * 40
         job = self._basic_job_dictionary
-        measurements = Measurements()
-        measurements.collect_measurements(experiment)
+        measurements = Measurements.from_experiment(experiment)
         user_data = {'name': 'name', 'memory_slots': 2,
                      'creg_sizes': [['c1', 2]], 'measurements': measurements.to_dict()}
         job['user_data'] = json.dumps(user_data)
@@ -258,7 +256,7 @@ class TestQiSimulatorPy(unittest.TestCase):
 
         qobj = self._circuit_to_qobj(qc)
         qobj.experiments[0].header.memory_slots = 0
-        self.assertRaisesRegex(QiskitBackendError, 'Invalid amount of classical bits \(0\)!',
+        self.assertRaisesRegex(QiskitBackendError, 'Invalid number of classical bits \(0\)!',
                                simulator.run, qobj)
         api.delete_project.assert_called_with(default_project_number)
 
@@ -281,8 +279,7 @@ class TestQiSimulatorPy(unittest.TestCase):
         api.get_raw_data_from_result.return_value = []
         api.get_backend_type_by_name.return_value = {'max_number_of_shots': 4096}
         jobs = self._basic_job_dictionary
-        measurements = Measurements()
-        measurements.collect_measurements(experiment)
+        measurements = Measurements.from_experiment(experiment)
         user_data = {'name': 'name', 'memory_slots': 2,
                      'creg_sizes': [['c1', 2]], 'measurements': measurements.to_dict()}
         jobs['user_data'] = json.dumps(user_data)
@@ -325,8 +322,7 @@ class TestQiSimulatorPy(unittest.TestCase):
                                                         'http://saevar-qutech-nginx/api/results/24/raw-data/'}
             api.get_raw_data_from_result.return_value = []
             jobs = self._basic_job_dictionary
-            measurements = Measurements()
-            measurements.collect_measurements(experiment)
+            measurements = Measurements.from_experiment(experiment)
             user_data = {'name': 'name', 'memory_slots': 2,
                          'creg_sizes': [['c1', 2]], 'measurements': measurements.to_dict()}
             jobs['user_data'] = json.dumps(user_data)
@@ -376,7 +372,7 @@ class TestQiSimulatorPy(unittest.TestCase):
 
         job = self._circuit_to_qobj(qc)
         job.experiments[0].header.memory_slots = 0
-        self.assertRaisesRegex(QiskitBackendError, 'Invalid amount of classical bits \(0\)!',
+        self.assertRaisesRegex(QiskitBackendError, 'Invalid number of classical bits \(0\)!',
                                simulator.run, job)
 
     def test_validate_nr_classical_qubits_less_than_nr_qubits_conditional_gate(self):
@@ -412,7 +408,6 @@ class TestQiSimulatorPy(unittest.TestCase):
             simulator.run(qc, 25)
             experiment = self._circuit_to_experiment(qc)
 
-            measurements = Mock()
         result_experiment.assert_called_once_with(experiment, 25, ANY, project=project,
                                                   full_state_projection=False)
 
@@ -586,8 +581,7 @@ class TestQiSimulatorPyHistogram(unittest.TestCase):
                            expected_histogram_prob, expected_memory):
         self.mock_api.set(mock_result1, mock_result2)
         jobs = self._basic_job_dictionary
-        measurements = Measurements()
-        measurements.collect_measurements(QasmQobjExperiment.from_dict(single_experiment))
+        measurements = Measurements.from_experiment(QasmQobjExperiment.from_dict(single_experiment))
         user_data = {'name': 'name', 'memory_slots': 2,
                      'creg_sizes': [['c1', 2]], 'measurements': measurements.to_dict()}
         jobs['user_data'] = json.dumps(user_data)

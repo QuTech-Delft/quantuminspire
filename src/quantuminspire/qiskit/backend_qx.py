@@ -178,8 +178,7 @@ class QuantumInspireBackend(Backend):  # type: ignore
             experiments = qobj.experiments
             job = QIJob(self, str(project['id']), self.__api)
             for experiment in experiments:
-                measurements = Measurements()
-                measurements.collect_measurements(experiment)
+                measurements = Measurements.from_experiment(experiment)
                 if Backend.configuration(self).conditional:
                     self.__validate_nr_of_clbits_conditional_gates(experiment)
                 full_state_projection = Backend.configuration(self).simulator and \
@@ -288,8 +287,7 @@ class QuantumInspireBackend(Backend):  # type: ignore
                     'Result from backend contains no histogram data!\n{}'.format(result.get('raw_text')))
 
             user_data = json.loads(str(job.get('user_data')))
-            measurements = Measurements()
-            measurements.from_dict(user_data.pop('measurements'))
+            measurements = Measurements.from_dict(user_data.pop('measurements'))
             histogram_obj, memory_data = self.__convert_result_data(result, measurements)
             full_state_histogram_obj = self.__convert_histogram(result, measurements)
             calibration = self.__api.get_calibration_from_result(result['id'])
@@ -363,11 +361,10 @@ class QuantumInspireBackend(Backend):  # type: ignore
         number_of_clbits = header.memory_slots
 
         if number_of_clbits > number_of_qubits:
-            for instruction in experiment.instructions:
-                if hasattr(instruction, 'conditional'):
-                    # no problem when there are no conditional gate operations
-                    raise QiskitBackendError("Number of classical bits must be less than or equal to the"
-                                             " number of qubits when using conditional gate operations")
+            if any(hasattr(instruction, 'conditional') for instruction in experiment.instructions):
+                # no problem when there are no conditional gate operations
+                raise QiskitBackendError('Number of classical bits must be less than or equal to the'
+                                         ' number of qubits when using conditional gate operations')
 
     @staticmethod
     def __validate_full_state_projection(experiment: QasmQobjExperiment) -> bool:

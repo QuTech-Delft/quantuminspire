@@ -36,8 +36,7 @@ class TestQiCircuitToString(unittest.TestCase):
         backend = QuantumInspireBackend(Mock(), Mock())
         qobj = assemble(circuit, backend, **run_config_dict)
         experiment = qobj.experiments[0]
-        measurements = Measurements()
-        measurements.collect_measurements(experiment)
+        measurements = Measurements.from_experiment(experiment)
         simulator = QuantumInspireBackend(Mock(), Mock())
         result = simulator._generate_cqasm(experiment, measurements, full_state_projection)
         return result
@@ -59,8 +58,7 @@ class TestQiCircuitToString(unittest.TestCase):
                 qiskit_instruction = Instruction('dummy', 0, 0, instruction.params)
                 instruction.params = qiskit_instruction.params
 
-        measurements = Measurements()
-        measurements.collect_measurements(experiment)
+        measurements = Measurements.from_experiment(experiment)
         simulator = QuantumInspireBackend(Mock(), Mock())
         result = simulator._generate_cqasm(experiment, measurements, full_state_projection)
         return result

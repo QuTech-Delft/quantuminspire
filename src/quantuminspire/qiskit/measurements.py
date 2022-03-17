@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
+
 from typing import Any, Dict, List
 
 from qiskit.qobj import QasmQobjExperiment
@@ -50,8 +52,9 @@ class Measurements:
         """
         return self._number_of_clbits
 
-    def collect_measurements(self, experiment: QasmQobjExperiment) -> None:
-        """ Determines the measured qubits and classical bits.
+    @classmethod
+    def from_experiment(cls, experiment: QasmQobjExperiment) -> Measurements:
+        """ Determines the measured qubits and classical bits for an experiment.
 
         The full-state measured qubits is returned when no measurements are present in the compiled circuit.
 
@@ -70,23 +73,27 @@ class Measurements:
 
         :param experiment: The experiment with gate operations and header.
 
+        :return: Instance of Measurements with collected measurements from experiment
         """
+        instance = cls()
         header = experiment.header
-        self._number_of_qubits = header.n_qubits
-        self._number_of_clbits = header.memory_slots
+        instance._number_of_qubits = header.n_qubits
+        instance._number_of_clbits = header.memory_slots
 
         for instruction in experiment.instructions:
             if instruction.name == 'measure':
-                self._measurements_reg.append([instruction.qubits[0], instruction.memory[0]])
-                self._measurements_state.append([self._number_of_qubits - 1 - instruction.qubits[0],
-                                                 self._number_of_clbits - 1 - instruction.memory[0]])
+                instance._measurements_reg.append([instruction.qubits[0], instruction.memory[0]])
+                instance._measurements_state.append([instance._number_of_qubits - 1 - instruction.qubits[0],
+                                                     instance._number_of_clbits - 1 - instruction.memory[0]])
 
-        if not self._measurements_reg:
-            self._measurements_reg = [[index, index] for index in range(self._number_of_qubits)]
-            self._measurements_state = self._measurements_reg
+        if not instance._measurements_reg:
+            instance._measurements_reg = [[index, index] for index in range(instance._number_of_qubits)]
+            instance._measurements_state = instance._measurements_reg
 
         # do some validations
-        self._validate_number_of_clbits()
+        instance._validate_number_of_clbits()
+
+        return instance
 
     @property
     def max_measurement_index(self) -> int:
@@ -99,7 +106,7 @@ class Measurements:
         """
         This method returns the qubit register that was measured to be stored in the classical register given
 
-            1. Try to find a measurement where the classical bit creg is used as storgae -> return the qubit index of
+            1. Try to find a measurement where the classical bit creg is used as storage -> return the qubit index of
             this measurement.
             2. When no measurement is found for this classical bit, we assume the equivalent qubit (same index) is used
             First check if a measurement is found for this qubit to another classical register, we raise an error.
@@ -133,16 +140,22 @@ class Measurements:
                 'number_of_qubits': self._number_of_qubits,
                 'number_of_clbits': self._number_of_clbits}
 
-    def from_dict(self, measurement_input: Dict[str, Any]) -> None:
+    @classmethod
+    def from_dict(cls, measurement_input: Dict[str, Any]) -> Measurements:
         """
-        Translate the input dictionary to the class instance variables
+        Translate the input dictionary to an instance of class Measurements
 
         :param measurement_input: A dictionary with the measurement information. See method to_dict
+
+        :return: Instance of Measurements with input from dictionary
         """
-        self._measurements_state = measurement_input['measurements_state']
-        self._measurements_reg = measurement_input['measurements_reg']
-        self._number_of_qubits = measurement_input['number_of_qubits']
-        self._number_of_clbits = measurement_input['number_of_clbits']
+        instance = cls()
+        instance._measurements_state = measurement_input['measurements_state']
+        instance._measurements_reg = measurement_input['measurements_reg']
+        instance._number_of_qubits = measurement_input['number_of_qubits']
+        instance._number_of_clbits = measurement_input['number_of_clbits']
+
+        return instance
 
     def _validate_number_of_clbits(self) -> None:
         """ Validate the (number of) classical bits used in the measurements are valid for the algorithm
@@ -154,7 +167,7 @@ class Measurements:
             error is raised.
         """
         if self._number_of_clbits < 1:
-            raise QiskitBackendError(f"Invalid amount of classical bits ({self._number_of_clbits})!")
+            raise QiskitBackendError(f"Invalid number of classical bits ({self._number_of_clbits})!")
 
         if self.max_measurement_index >= self._number_of_clbits:
             raise QiskitBackendError(f"Number of classical bits ({self._number_of_clbits}) is not sufficient for "

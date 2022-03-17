@@ -691,7 +691,6 @@ class CircuitToString:
             # form multi bits control - qasm-single-gate-multiple-qubits
             binary_control = f'b[' + ','.join(str(self.measurements.get_qreg_for_conditional_creg(i)) for i in
                                               range(lowest_mask_bit, lowest_mask_bit + mask_length)) + '], '
-            # binary_control = f'b[{lowest_mask_bit}:{lowest_mask_bit + mask_length - 1}], '
 
         with StringIO() as gate_stream:
             # add the gate
