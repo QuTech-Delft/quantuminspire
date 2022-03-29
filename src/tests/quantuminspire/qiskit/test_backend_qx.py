@@ -27,7 +27,7 @@ from qiskit.providers.models import QasmBackendConfiguration
 from qiskit.providers.models.backendconfiguration import GateConfig
 from qiskit.qobj import QasmQobjExperiment
 
-from quantuminspire.api import QuantumInspireAPI
+from quantuminspire.api import QuantumInspireAPI, V1_MEASUREMENT_BLOCK_INDEX
 from quantuminspire.exceptions import QiskitBackendError, ApiError
 from quantuminspire.qiskit.backend_qx import QuantumInspireBackend
 from quantuminspire.qiskit.qi_job import QIJob
@@ -167,15 +167,17 @@ class TestQiSimulatorPy(unittest.TestCase):
         experiment_result = simulator.get_experiment_results_from_all_jobs(job)[0]
         self.assertEqual(experiment_result.data.counts['0x1'], 60)
         self.assertEqual(experiment_result.data.counts['0x3'], 40)
-        self.assertEqual(experiment_result.data.counts, experiment_result.data.multi_measurement_counts[-1])
+        self.assertEqual(experiment_result.data.counts,
+                         experiment_result.data.multi_measurement_counts[V1_MEASUREMENT_BLOCK_INDEX])
         self.assertEqual(experiment_result.data.probabilities['0x1'], 0.6)
         self.assertEqual(experiment_result.data.probabilities['0x3'], 0.4)
         self.assertEqual(experiment_result.data.probabilities,
-                         experiment_result.data.multi_measurement_probabilities[-1])
+                         experiment_result.data.multi_measurement_probabilities[V1_MEASUREMENT_BLOCK_INDEX])
         self.assertEqual(len(experiment_result.data.memory), 100)
         self.assertEqual(experiment_result.data.memory.count('0x1'), 60)
         self.assertEqual(experiment_result.data.memory.count('0x3'), 40)
-        self.assertEqual(experiment_result.data.memory, experiment_result.data.multi_measurement_memory[-1])
+        self.assertEqual(experiment_result.data.memory,
+                         experiment_result.data.multi_measurement_memory[V1_MEASUREMENT_BLOCK_INDEX])
         self.assertEqual(experiment_result.name, 'circuit0')
         self.assertEqual(experiment_result.shots, number_of_shots)
 
@@ -210,15 +212,17 @@ class TestQiSimulatorPy(unittest.TestCase):
         experiment_result = simulator.get_experiment_results_from_latest_run(qijob)[0]
         self.assertEqual(experiment_result.data.counts['0x1'], 60)
         self.assertEqual(experiment_result.data.counts['0x3'], 40)
-        self.assertEqual(experiment_result.data.counts, experiment_result.data.multi_measurement_counts[-1])
+        self.assertEqual(experiment_result.data.counts,
+                         experiment_result.data.multi_measurement_counts[V1_MEASUREMENT_BLOCK_INDEX])
         self.assertEqual(experiment_result.data.probabilities['0x1'], 0.6)
         self.assertEqual(experiment_result.data.probabilities['0x3'], 0.4)
         self.assertEqual(experiment_result.data.probabilities,
-                         experiment_result.data.multi_measurement_probabilities[-1])
+                         experiment_result.data.multi_measurement_probabilities[V1_MEASUREMENT_BLOCK_INDEX])
         self.assertEqual(len(experiment_result.data.memory), 100)
         self.assertEqual(experiment_result.data.memory.count('0x1'), 60)
         self.assertEqual(experiment_result.data.memory.count('0x3'), 40)
-        self.assertEqual(experiment_result.data.memory, experiment_result.data.multi_measurement_memory[-1])
+        self.assertEqual(experiment_result.data.memory,
+                         experiment_result.data.multi_measurement_memory[V1_MEASUREMENT_BLOCK_INDEX])
         self.assertEqual(experiment_result.name, 'circuit0')
         self.assertEqual(experiment_result.shots, number_of_shots)
 
@@ -603,11 +607,11 @@ class TestQiSimulatorPyHistogram(unittest.TestCase):
         self.assertEqual(1, len(result))
         first_experiment = first_item(result)
         actual = first_experiment.data.counts
-        self.assertDictEqual(actual, expected_histogram[-1])
+        self.assertDictEqual(actual, expected_histogram[V1_MEASUREMENT_BLOCK_INDEX])
         self.assertEqual(expected_histogram, first_experiment.data.multi_measurement_counts)
         self.assertTrue(len(first_experiment.data.memory) == number_of_shots)
         memory = first_experiment.data.memory
-        self.assertListEqual(memory, expected_memory[-1])
+        self.assertListEqual(memory, expected_memory[V1_MEASUREMENT_BLOCK_INDEX])
         self.assertEqual(expected_memory, first_experiment.data.multi_measurement_memory)
         for experiment_index in range(len(result)):
             probabilities = first_experiment.data.multi_measurement_probabilities[experiment_index]

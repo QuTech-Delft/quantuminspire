@@ -34,7 +34,7 @@ from qiskit.providers.models.backendstatus import BackendStatus
 from qiskit.qobj import QasmQobj, QasmQobjExperiment, QobjExperimentHeader
 from qiskit.result.models import ExperimentResult, ExperimentResultData
 
-from quantuminspire.api import QuantumInspireAPI
+from quantuminspire.api import QuantumInspireAPI, V1_MEASUREMENT_BLOCK_INDEX
 from quantuminspire.exceptions import QiskitBackendError, ApiError
 from quantuminspire.job import QuantumInspireJob
 from quantuminspire.qiskit.circuit_parser import CircuitToString
@@ -296,13 +296,14 @@ class QuantumInspireBackend(Backend):  # type: ignore
             histogram_obj, memory_data = self.__convert_result_data(result, measurements)
             full_state_histogram_obj = self.__convert_histogram(result, measurements)
             calibration = self.__api.get_calibration_from_result(result['id'])
-            experiment_result_data = ExperimentResultData(counts=histogram_obj[-1],
-                                                          memory=memory_data[-1],
-                                                          probabilities=full_state_histogram_obj[-1],
-                                                          multi_measurement_counts=histogram_obj,
-                                                          multi_measurement_memory=memory_data,
-                                                          multi_measurement_probabilities=full_state_histogram_obj,
-                                                          calibration=calibration)
+            experiment_result_data =\
+                ExperimentResultData(counts=histogram_obj[V1_MEASUREMENT_BLOCK_INDEX],
+                                     memory=memory_data[V1_MEASUREMENT_BLOCK_INDEX],
+                                     probabilities=full_state_histogram_obj[V1_MEASUREMENT_BLOCK_INDEX],
+                                     multi_measurement_counts=histogram_obj,
+                                     multi_measurement_memory=memory_data,
+                                     multi_measurement_probabilities=full_state_histogram_obj,
+                                     calibration=calibration)
             header = QobjExperimentHeader.from_dict(user_data)
             experiment_result_dictionary = {'name': job.get('name'), 'seed': 42, 'shots': job.get('number_of_shots'),
                                             'data': experiment_result_data, 'status': 'DONE', 'success': True,

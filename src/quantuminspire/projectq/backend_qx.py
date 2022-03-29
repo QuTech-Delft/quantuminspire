@@ -31,12 +31,11 @@ from projectq.ops import (NOT, Allocate, Barrier, Deallocate, FlushGate, H,
                           Measure, Ph, Rx, Ry, Rz, S, Sdag, Swap, T, Tdag, X,
                           Y, Z, Command, CZ, C, R, CNOT, Toffoli)
 from projectq.types import Qubit
-from quantuminspire.api import QuantumInspireAPI
+from quantuminspire.api import QuantumInspireAPI, V1_MEASUREMENT_BLOCK_INDEX
 from quantuminspire.exceptions import AuthenticationError
 from quantuminspire.exceptions import ProjectQBackendError
 # shortcut for Controlled Phase-shift gate (CR)
 CR = C(R)
-V1_MEASUREMENT_BLOCK_INDEX = -1  # -1 for last block
 
 
 class QIBackend(BasicEngine):  # type: ignore

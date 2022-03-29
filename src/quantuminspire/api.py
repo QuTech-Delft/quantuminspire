@@ -40,6 +40,7 @@ from quantuminspire.exceptions import ApiError, AuthenticationError
 from quantuminspire.job import QuantumInspireJob
 
 logger = logging.getLogger(__name__)
+V1_MEASUREMENT_BLOCK_INDEX = -1  # -1 for last block
 QI_URL = 'https://api.quantum-inspire.com'
 
 
