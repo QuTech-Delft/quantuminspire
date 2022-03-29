@@ -6,7 +6,7 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#    https://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -29,11 +29,16 @@ from quantuminspire.qiskit.measurements import Measurements
 class CircuitToString:
     """ Contains the translational elements to convert the Qiskit circuits to cQASM code."""
 
-    def __init__(self, measurements: Measurements, full_state_projection: bool = True) -> None:
+    def __init__(self, basis_gates: List[str], measurements: Measurements, full_state_projection: bool = True) -> None:
         """
+        :param basis_gates: List of basis gates from the configuration
         :param measurements: The measured qubits/classical bits and the number of qubits and classical bits.
         :param full_state_projection: Whether or not to use full state projection.
         """
+        self.basis_gates = basis_gates.copy()
+        if len(self.basis_gates) > 0:
+            self.basis_gates.append("measure")
+            self.basis_gates.append("u")
         self.bfunc_instructions: List[QasmQobjInstruction] = []
         self.full_state_projection = full_state_projection
         self.measurements = measurements
@@ -49,9 +54,9 @@ class CircuitToString:
 
         """
         if hasattr(instruction, 'conditional'):
-            raise ApiError(f'Conditional gate c-{instruction.name.lower()} not supported')
+            raise ApiError(f"Conditional gate 'c-{instruction.name.lower()}' not supported")
 
-        raise ApiError(f'Gate {instruction.name.lower()} not supported')
+        raise ApiError(f"Gate '{instruction.name.lower()}' not supported")
 
     @staticmethod
     def _cz(stream: StringIO, instruction: QasmQobjInstruction) -> None:
@@ -575,12 +580,13 @@ class CircuitToString:
 
     @staticmethod
     def _barrier(stream: StringIO, instruction: QasmQobjInstruction) -> None:
-        """ Translates the | element. No cQASM is added for this gate.
+        """ Translates the | element for a variable number of qubits.
 
         :param stream: The string-io stream to where the resulting cQASM is written.
         :param instruction: The Qiskit instruction to translate to cQASM.
 
         """
+        stream.write('barrier q[{0}]\n'.format(','.join(map(str, instruction.qubits))))
 
     @staticmethod
     def _c_barrier(stream: StringIO, instruction: QasmQobjInstruction, binary_control: str) -> None:
@@ -592,6 +598,23 @@ class CircuitToString:
         are 1.
 
         """
+
+    @staticmethod
+    def _delay(stream: StringIO, instruction: QasmQobjInstruction) -> None:
+        """ Translates the delay element for a qubit. In cQasm wait parameter is int. Actually only the default unit
+        "dt" will work correctly with cQasm, i.e. integer time unit depending on the target backend.
+
+        In qiskit/circuit/delay.py multiple units are defined.
+        In qiskit/circuit/instruction.py assemble() method looses the unit of the delay instruction. Only the
+        parameter (which is the value of the delay) is taken, not the unit (bug?!)
+        So after assemble delay 1.1 s is the same as delay 1.1 ms!
+
+        :param stream: The string-io stream to where the resulting cQASM is written.
+        :param instruction: The Qiskit instruction to translate to cQASM.
+
+        """
+        wait_period = int(instruction.params[0])
+        stream.write('wait q[{0}], {1}\n'.format(*instruction.qubits, wait_period))
 
     def _measure(self, stream: StringIO, instruction: QasmQobjInstruction) -> None:
         """ Translates the measure element. No cQASM is added for this gate when FSP is used.
@@ -721,6 +744,8 @@ class CircuitToString:
         """
         if instruction.name == 'bfunc':
             self.bfunc_instructions.append(instruction)
+        elif len(self.basis_gates) > 0 and instruction.name.lower() not in self.basis_gates:
+            self._gate_not_supported(stream, instruction)
         elif hasattr(instruction, 'conditional'):
             self._parse_bin_ctrl_gate(stream, instruction)
         else:

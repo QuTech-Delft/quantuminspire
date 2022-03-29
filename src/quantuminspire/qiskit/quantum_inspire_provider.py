@@ -6,7 +6,7 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#    https://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,12 +21,10 @@ import coreapi
 from qiskit.providers.models import QasmBackendConfiguration
 from qiskit.providers.provider import ProviderV1 as Provider
 
-from quantuminspire.api import QuantumInspireAPI
+from quantuminspire.api import QuantumInspireAPI, QI_URL
 from quantuminspire.credentials import get_token_authentication, get_basic_authentication
 from quantuminspire.exceptions import QiskitBackendError
 from quantuminspire.qiskit.backend_qx import QuantumInspireBackend
-
-QI_URL = 'https://api.quantum-inspire.com'
 
 
 class QuantumInspireProvider(Provider):  # type: ignore
@@ -54,11 +52,11 @@ class QuantumInspireProvider(Provider):  # type: ignore
     def backends(self, name: Optional[str] = None, **kwargs: Any) -> List[QuantumInspireBackend]:
         """ Provides a list of backends.
 
-        :param name: Name of the requested backend.
+        :param name: Name of the requested backend. When None we take all available backends
         :param kwargs: Used for filtering, not implemented.
 
         :return:
-            List of backends that meet the filter requirements.
+            List of backends that meet the filter requirements (is_allow == True).
         """
         if self._api is None:
             raise QiskitBackendError('Authentication details have not been set.')
@@ -89,10 +87,12 @@ class QuantumInspireProvider(Provider):  # type: ignore
             config.basis_gates = []
             for keys in backend['allowed_operations']:
                 if keys in ['single_gates', 'parameterized_single_gates', 'dual_gates',
-                            'parameterized_dual_gates', 'triple_gates']:
+                            'parameterized_dual_gates', 'triple_gates', 'wait', 'barrier']:
                     for gate in backend['allowed_operations'][keys]:
-                        if gate in ['x', 'y', 'z', 'h', 's', 't', 'rx', 'ry', 'rz', 'swap', 'cz']:
+                        if gate in ['x', 'y', 'z', 'h', 's', 't', 'rx', 'ry', 'rz', 'swap', 'cz', 'barrier']:
                             config.basis_gates += [gate]
+                        elif gate == 'wait':
+                            config.basis_gates += ['delay']
                         elif gate == 'i':
                             config.basis_gates += ['id']
                         elif gate == 'sdag':
@@ -116,6 +116,8 @@ class QuantumInspireProvider(Provider):  # type: ignore
             for j in backend['topology']['edges'][i]:
                 coupling_map.append([i, j])
         config.coupling_map = None if len(coupling_map) == 0 else coupling_map
+        config.multiple_measurements = "flags" in backend and "multiple_measurement" in backend["flags"]
+        config.parallel_computing = "flags" in backend and "parallel_computing" in backend["flags"]
 
     def set_authentication_details(self, email: str, password: str, qi_url: str = QI_URL) -> None:
         """Set a single authentication for Quantum Inspire.

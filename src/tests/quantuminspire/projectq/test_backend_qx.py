@@ -6,7 +6,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-   http://www.apache.org/licenses/LICENSE-2.0
+   https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -35,7 +35,7 @@ from quantuminspire.projectq.backend_qx import QIBackend
 class MockApiClient:
 
     def __init__(self):
-        result = {'histogram': {'00': 0.49, '11': 0.51}, 'results': 'dummy'}
+        result = {'histogram': [{'00': 0.49, '11': 0.51}], 'results': 'dummy'}
         self.execute_qasm = MagicMock(return_value=result)
         self.get_backend_type = MagicMock(return_value=dict({'is_hardware_backend': False,
                                                              'is_allowed': True,
@@ -51,8 +51,11 @@ class MockApiClient:
                                                                                   't', 'tdag', 's', 'sdag',
                                                                                   'x', 'y', 'z', 'h', 'i'],
                                                                  'dual_gates': ['cz', 'cnot', 'swap', 'cr'],
-                                                                 'triple_gates': ['toffoli']
+                                                                 'triple_gates': ['toffoli'],
+                                                                 'barrier': ['barrier'],
+                                                                 'wait': ['wait']
                                                              },
+                                                             'flags': ['multiple_measurement'],
                                                              'max_number_of_shots': 4096,
                                                              'number_of_qubits': 26}))
 
@@ -257,15 +260,18 @@ class TestProjectQBackend(unittest.TestCase):
         self.assertTrue(self.qi_backend.clear)
 
     @patch('quantuminspire.projectq.backend_qx.get_control_count')
-    def __store_function_assert_equal(self, identity, gate, qasm, function_mock, count=0, verbose=0):
+    def __store_function_assert_equal(self, identity, gate, qasm, function_mock, count=0, nr_of_qubits=1, verbose=0):
+        self.assertLessEqual(count + nr_of_qubits, 3)
         api = MockApiClient()
         function_mock.return_value = count
         backend = QIBackend(quantum_inspire_api=api, verbose=verbose)
-        command_alloc0 = MagicMock(gate=Allocate, qubits=[[MagicMock(id=identity - 1)]])
-        command_alloc1 = MagicMock(gate=Allocate, qubits=[[MagicMock(id=identity)]])
-        command_alloc2 = MagicMock(gate=Allocate, qubits=[[MagicMock(id=identity + 1)]])
-        command = MagicMock(gate=gate, qubits=[[MagicMock(id=identity)], [MagicMock(id=identity + 1)]],
-                            control_qubits=[MagicMock(id=identity - 1), MagicMock(id=identity)])
+        command_alloc0 = MagicMock(gate=Allocate, qubits=[[MagicMock(id=0)]])
+        command_alloc1 = MagicMock(gate=Allocate, qubits=[[MagicMock(id=1)]])
+        command_alloc2 = MagicMock(gate=Allocate, qubits=[[MagicMock(id=2)]])
+        qubits_list = [[MagicMock(id=identity+x)] for x in range(nr_of_qubits)]
+        control_qubits_list = [MagicMock(id=x) for x in range(count)]
+        command = MagicMock(gate=gate, qubits=qubits_list,
+                            control_qubits=control_qubits_list)
         command_list = [command_alloc0, command_alloc1, command_alloc2, command]
         backend.receive(command_list)
         self.assertEqual(backend.qasm, qasm)
@@ -284,10 +290,12 @@ class TestProjectQBackend(unittest.TestCase):
         angle = 0.1
         self.__store_function_assert_equal(0, NOT, "\nx q[0]")
         self.__store_function_assert_equal(1, NOT, "\ncnot q[0], q[1]", count=1)
-        self.__store_function_assert_equal(0, Swap, "\nswap q[0], q[1]")
-        self.__store_function_assert_equal(1, X, "\ntoffoli q[0], q[1], q[1]", count=2)
+        self.__store_function_assert_equal(0, Swap, "\nswap q[0], q[1]", nr_of_qubits=2)
         self.__store_function_assert_equal(1, Z, "\ncz q[0], q[1]", count=1)
-        self.__store_function_assert_equal(0, Barrier, "\n# barrier gate q[0], q[1];")
+        self.__store_function_assert_equal(2, X, "\ntoffoli q[0], q[1], q[2]", count=2)
+        self.__store_function_assert_equal(0, Barrier, "\nbarrier q[0]")
+        self.__store_function_assert_equal(0, Barrier, "\nbarrier q[0,1]", nr_of_qubits=2)
+        self.__store_function_assert_equal(0, Barrier, "\nbarrier q[0,1,2]", nr_of_qubits=3)
         self.__store_function_assert_equal(1, Rz(angle), "\ncr q[0],q[1],{0:.12f}".format(angle), count=1)
         self.__store_function_assert_equal(1, R(angle), "\ncr q[0],q[1],{0:.12f}".format(angle), count=1)
         self.__store_function_assert_equal(1, Rx(angle), "\nrx q[1],{0}".format(angle))

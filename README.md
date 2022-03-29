@@ -139,7 +139,6 @@ qubits 2
 
 H q[0]
 CNOT q[0], q[1]
-
 Measure q[0,1]
 '''
 
@@ -218,9 +217,9 @@ qi = QuantumInspireAPI()
 To create a token authentication object yourself using the stored token you do:
 ```python
 from quantuminspire.credentials import get_authentication
-auth = get_authentication()
+authentication = get_authentication()
 ```
-This `auth` can then be used to initialize the Quantum Inspire API object.
+This `authentication` can then be used to initialize the Quantum Inspire API object.
 
 ## Testing
 

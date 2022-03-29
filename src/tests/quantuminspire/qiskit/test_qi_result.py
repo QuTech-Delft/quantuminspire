@@ -6,7 +6,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-   http://www.apache.org/licenses/LICENSE-2.0
+   https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -25,18 +25,26 @@ from quantuminspire.qiskit.qi_result import QIResult
 class TestQIResult(unittest.TestCase):
     def setUp(self):
         experiment_result_data_1 = ExperimentResultData.from_dict({'counts': {'0x0': 42, '0x3': 58},
-                                                                   'probabilities' :{'0x0': 0.42, '0x3': 0.58},
-                                                                   'calibration' : {'fridge_temperature': 26.9,
-                                                                                    'unit': 'mK'}})
+                                                                   'probabilities': {'0x0': 0.42, '0x3': 0.58},
+                                                                   'multi_measurement_probabilities': [{'0x0': 0.42,
+                                                                                                        '0x3': 0.58}
+                                                                                                       ],
+                                                                   'calibration': {'fridge_temperature': 26.9,
+                                                                                   'unit': 'mK'}})
         experiment_result_data_2 = ExperimentResultData.from_dict({'counts': {'0x0': 24, '0x1': 25,
                                                                               '0x2': 23, '0x3': 28},
-                                                                   'probabilities' : {'0x0': 0.24, '0x1': 0.25,
-                                                                                      '0x2': 0.23, '0x3': 0.28},
-                                                                   'calibration' : {'fridge_temperature': 25.0,
-                                                                                    'unit': 'mK'}})
+                                                                   'probabilities': {'0x0': 0.24, '0x1': 0.25,
+                                                                                     '0x2': 0.23, '0x3': 0.28},
+                                                                   'multi_measurement_probabilities': [{'0x0': 0.24,
+                                                                                                        '0x1': 0.25,
+                                                                                                        '0x2': 0.23,
+                                                                                                        '0x3': 0.28}
+                                                                                                       ],
+                                                                   'calibration': {'fridge_temperature': 25.0,
+                                                                                   'unit': 'mK'}})
         experiment_result_data_3 = ExperimentResultData.from_dict({'counts': {'0x0': 24, '0x1': 25,
                                                                               '0x2': 23, '0x3': 28},
-                                                                   'calibration' : None})
+                                                                   'calibration': None})
 
         experiment_result_data_4 = ExperimentResultData.from_dict({'counts': {'0x0': 24, '0x1': 25,
                                                                               '0x2': 23, '0x3': 28}})
@@ -95,6 +103,17 @@ class TestQIResult(unittest.TestCase):
         probabilities = qi_result.get_probabilities()
         self.assertListEqual(probabilities, [{'00': 0.42, '11': 0.58},
                                              {'000': 0.24, '001': 0.25, '010': 0.23, '011': 0.28}])
+
+        probabilities = qi_result.get_probabilities_multi_measurement('Test1')
+        self.assertListEqual(probabilities, [{'00': 0.42, '11': 0.58}])
+        probabilities = qi_result.get_probabilities_multi_measurement('Test2')
+        self.assertListEqual(probabilities, [{'000': 0.24, '001': 0.25, '010': 0.23, '011': 0.28}])
+        probabilities = qi_result.get_probabilities_multi_measurement(1)
+        self.assertListEqual(probabilities, [{'000': 0.24, '001': 0.25, '010': 0.23, '011': 0.28}])
+        probabilities = qi_result.get_probabilities_multi_measurement()
+        self.assertListEqual(probabilities, [[{'00': 0.42, '11': 0.58}],
+                                             [{'000': 0.24, '001': 0.25, '010': 0.23, '011': 0.28}]])
+
         calibration = qi_result.get_calibration('Test1')
         self.assertDictEqual(calibration, {'fridge_temperature': 26.9, 'unit': 'mK'})
         calibration = qi_result.get_calibration('Test2')
@@ -137,3 +156,32 @@ class TestQIResult(unittest.TestCase):
         qi_result = QIResult(backend_name, backend_version, qobj_id, job_id, success, experiment_result)
         self.assertRaisesRegex(QiskitBackendError, 'No calibration data for experiment "0"',
                                qi_result.get_calibration, 0)
+
+    def test_no_probabilities_multi_measurement_data(self):
+        backend_name = 'test_backend'
+        backend_version = '1.2.0'
+        qobj_id = '42'
+        job_id = '42'
+        success = True
+        experiment_result = [self.experiment_result_4]
+        qi_result = QIResult(backend_name, backend_version, qobj_id, job_id, success, experiment_result)
+        self.assertRaisesRegex(QiskitBackendError, 'No multi_measurement_probabilities for experiment "0"',
+                               qi_result.get_probabilities_multi_measurement, 0)
+
+    def test_raw_results(self):
+        backend_name = 'test_backend'
+        backend_version = '1.2.0'
+        qobj_id = '42'
+        job_id = '42'
+        success = True
+        experiment_result = [self.experiment_result_1, self.experiment_result_2]
+        qi_result = QIResult(backend_name, backend_version, qobj_id, job_id, success, experiment_result)
+
+        probabilities = qi_result.get_raw_result('probabilities', 'Test1')
+        self.assertListEqual(probabilities, [{'0x0': 0.42, '0x3': 0.58}])
+        probabilities = qi_result.get_raw_result('probabilities')
+        self.assertListEqual(probabilities, [{'0x0': 0.42, '0x3': 0.58},
+                                             {'0x0': 0.24, '0x1': 0.25, '0x2': 0.23, '0x3': 0.28}])
+
+        self.assertRaisesRegex(QiskitBackendError, 'Result does not contain fake_field data for experiment "0"',
+                               qi_result.get_raw_result, 'fake_field', 0)

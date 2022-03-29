@@ -10,7 +10,7 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#    https://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -36,6 +36,7 @@ from quantuminspire.exceptions import AuthenticationError
 from quantuminspire.exceptions import ProjectQBackendError
 # shortcut for Controlled Phase-shift gate (CR)
 CR = C(R)
+V1_MEASUREMENT_BLOCK_INDEX = -1  # -1 for last block
 
 
 class QIBackend(BasicEngine):  # type: ignore
@@ -85,16 +86,23 @@ class QIBackend(BasicEngine):  # type: ignore
         self._one_qubit_gates: Tuple[Any, ...] = self._get_one_qubit_gates()
         self._two_qubit_gates: Tuple[Any, ...] = self._get_two_qubit_gates()
         self._three_qubit_gates: Tuple[Any, ...] = self._get_three_qubit_gates()
+        self._multiple_measurements = "flags" in self._backend_type and "multiple_measurement" in \
+                                      self._backend_type["flags"]
+        self._parallel_computing = "flags" in self._backend_type and "parallel_computing" in \
+                                   self._backend_type["flags"]
 
     def _get_one_qubit_gates(self) -> Tuple[Any, ...]:
         allowed_operations = self._backend_type['allowed_operations']
         if len(allowed_operations) > 0:
             one_qubit_gates = []
-            for gate_set in ['single_gates', 'parameterized_single_gates']:
+            for gate_set in ['single_gates', 'parameterized_single_gates', 'wait', 'barrier']:
                 if gate_set in allowed_operations:
                     for gate in allowed_operations[gate_set]:
-                        if gate in ['x', 'y', 'z', 'h', 's', 'sdag', 't', 'tdag', 'rx', 'ry', 'rz']:
+                        if gate in ['x', 'y', 'z', 'h', 's', 'sdag', 't', 'tdag', 'rx', 'ry', 'rz', 'barrier']:
                             one_qubit_gates += [getattr(sys.modules[__name__], gate.capitalize())]
+                        if gate == 'wait':
+                            if self._verbose >= 3:
+                                print(f"ProjectQ doesn't have an equivalent gate for cQASM gate {gate})")
         else:
             one_qubit_gates = [X, Y, Z, H, S, Sdag, T, Tdag, Rx, Ry, Rz]
         return tuple(one_qubit_gates)
@@ -163,8 +171,6 @@ class QIBackend(BasicEngine):  # type: ignore
         g = cmd.gate
         if self._verbose >= 3:
             print(f'call to is_available with cmd {cmd} (gate {g})')
-        if g in (Measure, Allocate, Deallocate, Barrier):
-            return True
         if g == NOT and count == 2:
             return Toffoli in self.three_qubit_gates
         if g == NOT and count == 1:
@@ -175,6 +181,10 @@ class QIBackend(BasicEngine):  # type: ignore
             return CR in self.two_qubit_gates
         if count != 0:
             return False
+        if g in (Measure, Allocate, Deallocate):
+            return True
+        if g == Barrier:
+            return Barrier in self.one_qubit_gates
         if g == Swap:
             return g in self.two_qubit_gates
         if g in (T, Tdag, S, Sdag, H, X, Y, Z):
@@ -397,8 +407,13 @@ class QIBackend(BasicEngine):  # type: ignore
             self._measured_ids += [logical_id]
             # do not add the measurement statement when fsp is possible
             if not self._full_state_projection:
-                if self._is_simulation_backend:
-                    self._qasm += f"\nmeasure q[{sim_qubit_id}]"
+                self._qasm += f"\nmeasure q[{sim_qubit_id}]"
+            return
+
+        if gate == Barrier:
+            qb_pos_list = [qb.id for qr in cmd.qubits for qb in qr]
+            qb_str = ','.join([f'{self._physical_to_simulated(x)}' for x in qb_pos_list])
+            self._qasm += f"\nbarrier q[{qb_str}]"
             return
 
         # when we find a gate after measurements we don't have fsp
@@ -424,10 +439,6 @@ class QIBackend(BasicEngine):  # type: ignore
             ctrl_pos = self._physical_to_simulated(cmd.control_qubits[0].id)
             qb_pos = self._physical_to_simulated(cmd.qubits[0][0].id)
             self._qasm += f"\ncz q[{ctrl_pos}], q[{qb_pos}]"
-        elif gate == Barrier:
-            qb_pos_list = [qb.id for qr in cmd.qubits for qb in qr]
-            qb_str = ', '.join([f'q[{self._physical_to_simulated(x)}]' for x in qb_pos_list])
-            self._qasm += f"\n# barrier gate {qb_str};"
         elif isinstance(gate, (Rz, R)) and get_control_count(cmd) == 1:
             ctrl_pos = self._physical_to_simulated(cmd.control_qubits[0].id)
             qb_pos = self._physical_to_simulated(cmd.qubits[0][0].id)
@@ -446,7 +457,7 @@ class QIBackend(BasicEngine):  # type: ignore
         elif gate == Sdag and get_control_count(cmd) == 0:
             qb_pos = self._physical_to_simulated(cmd.qubits[0][0].id)
             self._qasm += f"\nsdag q[{qb_pos}]"
-        elif isinstance(gate, tuple(type(gate) for gate in (X, Y, Z, H, S, T))):
+        elif isinstance(gate, tuple(type(gate_in_set) for gate_in_set in (X, Y, Z, H, S, T))):
             assert get_control_count(cmd) == 0
             gate_str = str(gate).lower()
             qb_pos = self._physical_to_simulated(cmd.qubits[0][0].id)
@@ -543,7 +554,7 @@ class QIBackend(BasicEngine):  # type: ignore
         if self._qasm == "":
             return
 
-        # Finally: add measurement commands for all measured qubits if no measurements are given.
+        # Finally: add measurement commands for all qubits if no measurements are given.
         # Only for simulation backends, measurements after all gate operations will perform properly in FSP.
         if not self._measured_ids and self._is_simulation_backend:
             self.__add_measure_all_qubits()
@@ -578,7 +589,7 @@ class QIBackend(BasicEngine):  # type: ignore
             full_state_projection=self._full_state_projection
         )
 
-        if not self._quantum_inspire_result.get('histogram', {}):
+        if not self._quantum_inspire_result.get('histogram', []):
             raw_text = self._quantum_inspire_result.get('raw_text', 'no raw_text in result structure')
             raise ProjectQBackendError(
                 f'Result structure does not contain proper histogram. raw_text field: {raw_text}')
@@ -586,11 +597,12 @@ class QIBackend(BasicEngine):  # type: ignore
     def _filter_result_by_measured_qubits(self) -> None:
         """ Filters the raw result by collapsing states so that unmeasured qubits are ignored.
 
-        Populates :attr:`_measured_states` by filtering :attr:`_quantum_inspire_result['histogram']` based on
-        :attr:`_measured_ids` (which are supposed to be logical qubit id's).
+        Populates :attr:`_measured_states` by filtering :attr:`_quantum_inspire_result['histogram']` of the last
+        measurement block based on :attr:`_measured_ids` (which are supposed to be logical qubit id's).
         """
         mask_bits = map(lambda bit: self._physical_to_simulated(self._logical_to_physical(bit)), self._measured_ids)
-        histogram: Dict[int, float] = {int(k): v for k, v in self._quantum_inspire_result['histogram'].items()}
+        histogram: Dict[int, float] = {int(k): v for k, v in
+                                       self._quantum_inspire_result['histogram'][V1_MEASUREMENT_BLOCK_INDEX].items()}
         self._measured_states = QIBackend._filter_histogram(histogram, mask_bits)
 
     @staticmethod

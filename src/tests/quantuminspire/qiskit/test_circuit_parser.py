@@ -6,7 +6,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-   http://www.apache.org/licenses/LICENSE-2.0
+   https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -163,7 +163,95 @@ class TestQiCircuitToString(unittest.TestCase):
         qc = QuantumCircuit(2, 2)
         qc.barrier(0)
         result = self._generate_cqasm_from_circuit(qc)
-        self.assertFalse('barrier' in result)
+        self.assertTrue('barrier q[0]\n' in result)
+
+    def test_generate_cqasm_correct_output_barrier_multiple_qubits(self):
+        q1 = QuantumRegister(2, "q1")
+        q2 = QuantumRegister(4, "q2")
+        c1 = ClassicalRegister(2, "c1")
+        c2 = ClassicalRegister(4, "c2")
+        qc = QuantumCircuit(q1, q2, c1, c2, name="test")
+
+        qc.barrier(q1)
+        result = self._generate_cqasm_from_circuit(qc)
+        self.assertTrue('barrier q[0,1]\n' in result)
+
+        qc.barrier(q2)
+        result = self._generate_cqasm_from_circuit(qc)
+        self.assertTrue('barrier q[2,3,4,5]\n' in result)
+
+    def test_generate_cqasm_correct_output_barrier_all_qubits(self):
+        q1 = QuantumRegister(2, "q1")
+        q2 = QuantumRegister(4, "q2")
+        c1 = ClassicalRegister(2, "c1")
+        c2 = ClassicalRegister(4, "c2")
+        qc = QuantumCircuit(q1, q2, c1, c2, name="test")
+
+        qc.barrier()
+        result = self._generate_cqasm_from_circuit(qc)
+        self.assertTrue('barrier q[0,1,2,3,4,5]\n' in result)
+
+    def test_generate_cqasm_correct_output_delay_all_qubits(self):
+        q1 = QuantumRegister(1, "q1")
+        q2 = QuantumRegister(2, "q2")
+        c1 = ClassicalRegister(1, "c1")
+        c2 = ClassicalRegister(2, "c2")
+        qc = QuantumCircuit(q1, q2, c1, c2, name="test")
+
+        qc.delay(1.0)
+        result = self._generate_cqasm_from_circuit(qc)
+        self.assertTrue('wait q[0], 1\n' in result)
+        self.assertTrue('wait q[1], 1\n' in result)
+        self.assertTrue('wait q[2], 1\n' in result)
+
+    def test_generate_cqasm_correct_output_delay_qarg(self):
+        q1 = QuantumRegister(1, "q1")
+        q2 = QuantumRegister(2, "q2")
+        c1 = ClassicalRegister(1, "c1")
+        c2 = ClassicalRegister(2, "c2")
+        qc = QuantumCircuit(q1, q2, c1, c2, name="test")
+
+        qc.delay(1, q2)
+        result = self._generate_cqasm_from_circuit(qc)
+        self.assertTrue('wait q[1], 1\n' in result)
+        self.assertTrue('wait q[2], 1\n' in result)
+
+        # float is translated to int
+        qc.delay(2.0, q1)
+        result = self._generate_cqasm_from_circuit(qc)
+        self.assertTrue('wait q[0], 2\n' in result)
+
+    def test_generate_cqasm_correct_output_delay_units(self):
+        q1 = QuantumRegister(2, "q1")
+        q2 = QuantumRegister(2, "q2")
+        c1 = ClassicalRegister(2, "c1")
+        c2 = ClassicalRegister(2, "c2")
+        qc = QuantumCircuit(q1, q2, c1, c2, name="test")
+
+        qc.delay(1.0, q1, unit="dt")
+        result = self._generate_cqasm_from_circuit(qc)
+        self.assertTrue('wait q[0], 1\n' in result)
+        self.assertTrue('wait q[1], 1\n' in result)
+
+        qc.delay(2, q1, unit="dt")
+        result = self._generate_cqasm_from_circuit(qc)
+        self.assertTrue('wait q[0], 2\n' in result)
+        self.assertTrue('wait q[1], 2\n' in result)
+
+        qc.delay(1.1, q1, "ms")
+        result = self._generate_cqasm_from_circuit(qc)
+        self.assertTrue('wait q[0], 1\n' in result)
+        self.assertTrue('wait q[1], 1\n' in result)
+
+        qc.delay(0.9, q2, "ns")
+        result = self._generate_cqasm_from_circuit(qc)
+        self.assertTrue('wait q[2], 0\n' in result)
+        self.assertTrue('wait q[3], 0\n' in result)
+
+        qc.delay(1.0, unit="s")
+        result = self._generate_cqasm_from_circuit(qc)
+        self.assertTrue('wait q[2], 1\n' in result)
+        self.assertTrue('wait q[3], 1\n' in result)
 
     def test_generate_cqasm_correct_output_identity(self):
         qc = QuantumCircuit(2, 2)
@@ -838,13 +926,13 @@ class TestQiCircuitToString(unittest.TestCase):
 
     def test_generate_cqasm_correct_output_unknown_gate(self):
         instructions = [{'name': 'bla', 'qubits': [1], 'params': [-np.pi / 2]}]
-        self.assertRaisesRegex(ApiError, 'Gate bla not supported', self._generate_cqasm_from_instructions,
+        self.assertRaisesRegex(ApiError, "Gate 'bla' not supported", self._generate_cqasm_from_instructions,
                                instructions, 2)
 
     def test_generate_cqasm_correct_output_unknown_controlled_gate(self):
         instructions = [{'mask': '0xF', 'name': 'bfunc', 'register': 17, 'relation': '==', 'val': '0x1'},
                         {'conditional': 17, 'name': 'bla', 'qubits': [1], 'params': [-np.pi / 2]}]
-        self.assertRaisesRegex(ApiError, 'Conditional gate c-bla not supported',
+        self.assertRaisesRegex(ApiError, "Conditional gate 'c-bla' not supported",
                                self._generate_cqasm_from_instructions, instructions, 2)
 
     def test_generate_cqasm_correct_output_no_bit_negation(self):

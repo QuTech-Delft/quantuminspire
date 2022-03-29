@@ -6,7 +6,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-   http://www.apache.org/licenses/LICENSE-2.0
+   https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -55,9 +55,9 @@ class TestQuantumInspireJob(TestCase):
                          ('seconds', 0.0),
                          ('raw_text', ''),
                          ('raw_data_url', 'https,//api.quantum-inspire.com/results/502/raw-data/f2b6/'),
-                         ('histogram', {'3', 0.5068359375, '0', 0.4931640625}),
+                         ('histogram', [{'3', 0.5068359375, '0', 0.4931640625}]),
                          ('histogram_url', 'https,//api.quantum-inspire.com/results/502/histogram/f2b6/'),
-                         ('measurement_mask', 0),
+                         ('measurement_mask', [[1, 1]]),
                          ('quantum_states_url',
                           'https,//api.quantum-inspire.com/results/502/quantum-states/f2b6d/'),
                          ('measurement_register_url', 'https,//api.quantum-inspire.com/results/502/f2b6d/')])
