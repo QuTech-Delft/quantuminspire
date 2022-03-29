@@ -85,7 +85,7 @@ class TestQiSimulatorPy(unittest.TestCase):
             backend_version=quantum_inspire_version,
             n_qubits=26,
             basis_gates=['x', 'y', 'z', 'h', 'rx', 'ry', 'rz', 's', 'sdg', 't', 'tdg', 'cx', 'ccx', 'u1', 'p', 'u2',
-                         'u3', 'id', 'swap', 'cz', 'snapshot'],
+                         'u3', 'id', 'swap', 'cz', 'snapshot', 'delay', 'barrier'],
             gates=[GateConfig(name='NotUsed', parameters=['NaN'], qasm_def='NaN')],
             conditional=True,
             simulator=True,
@@ -347,7 +347,7 @@ class TestQiSimulatorPy(unittest.TestCase):
 
         qobj = self._circuit_to_qobj(qc)
         qobj.experiments[0].header.memory_slots = 0
-        self.assertRaisesRegex(QiskitBackendError, 'Invalid amount of classical bits \(0\)!',
+        self.assertRaisesRegex(QiskitBackendError, 'Invalid number of classical bits \(0\)!',
                                simulator.run, qobj)
         api.delete_project.assert_called_with(default_project_number)
 

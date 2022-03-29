@@ -412,12 +412,10 @@ class QuantumInspireBackend(Backend):  # type: ignore
             The resulting full state histogram with probabilities.
         """
         result_histogram_probabilities: List[Dict[str, float]] = []
-        number_of_qubits = result['number_of_qubits']
         for state_probability in result['histogram']:
             output_histogram_probabilities: Dict[str, float] = defaultdict(lambda: 0)
             for qubit_register, probability in state_probability.items():
-                classical_state_hex = QuantumInspireBackend.__qubit_to_classical_hex(qubit_register, measurements,
-                                                                                     number_of_qubits)
+                classical_state_hex = measurements.qubit_to_classical_hex(qubit_register)
                 output_histogram_probabilities[classical_state_hex] += probability
 
             sorted_histogram_probabilities: List[Tuple[str, float]] = sorted(output_histogram_probabilities.items(),
