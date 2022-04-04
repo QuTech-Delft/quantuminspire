@@ -142,6 +142,18 @@ class TestQiSimulatorPy(unittest.TestCase):
             simulator.get_experiment_results_from_all_jobs(job)
         self.assertEqual(('Result from backend contains no histogram data!\nError',), error.exception.args)
 
+    def test_get_experiment_results_raises_simulation_error_when_no_user_data(self):
+        api = Mock()
+        api.get_jobs_from_project.return_value = [{'id': 42, 'results': '{}', 'user_data': ''}]
+        api.get_result_from_job.return_value = {'histogram': [{'0': 1.0}], 'raw_text': ''}
+        job = Mock()
+        job.job_id.return_value = '42'
+        simulator = QuantumInspireBackend(api, Mock())
+        with self.assertRaises(QiskitBackendError) as error:
+            simulator.get_experiment_results_from_all_jobs(job)
+        self.assertEqual(("Job '42' from backend contains no user data. This job was not submitted by the SDK",),
+                         error.exception.args)
+
     def test_get_experiment_results_returns_correct_value_from_project(self):
         qc = QuantumCircuit(2, 2)
         qc.h(0)

@@ -291,6 +291,11 @@ class QuantumInspireBackend(Backend):  # type: ignore
                 raise QiskitBackendError(
                     'Result from backend contains no histogram data!\n{}'.format(result.get('raw_text')))
 
+            if not job.get('user_data'):
+                raise QiskitBackendError(
+                    "Job '{}' from backend contains no user data. "
+                    "This job was not submitted by the SDK".format(job.get('id')))
+
             user_data = json.loads(str(job.get('user_data')))
             measurements = Measurements.from_dict(user_data.pop('measurements'))
             histogram_obj, memory_data = self.__convert_result_data(result, measurements)
