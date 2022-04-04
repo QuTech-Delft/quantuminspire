@@ -104,7 +104,7 @@ class QuantumInspireProvider(Provider):  # type: ignore
                         elif gate == 'toffoli':
                             config.basis_gates += ['ccx']
             if 'rz' in config.basis_gates and 'ry' in config.basis_gates:
-                config.basis_gates += ['u1', 'u2', 'u3']
+                config.basis_gates += ['u1', 'p', 'u2', 'u3']
 
         config.simulator = not backend['is_hardware_backend']
         config.conditional = not backend['is_hardware_backend']

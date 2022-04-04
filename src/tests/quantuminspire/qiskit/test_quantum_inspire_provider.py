@@ -161,7 +161,7 @@ class TestQuantumInspireProvider(unittest.TestCase):
             self.assertFalse(backend.configuration().parallel_computing)
             self.assertEqual(backend.configuration().basis_gates, ['rx', 'ry', 'rz', 'x', 'y', 'z', 'h', 'id', 't',
                                                                    'tdg', 's', 'sdg', 'cz', 'cx', 'swap',
-                                                                   'ccx', 'barrier', 'delay', 'u1', 'u2', 'u3'])
+                                                                   'ccx', 'barrier', 'delay', 'u1', 'p', 'u2', 'u3'])
 
     def test_set_authentication_details(self):
         with mock.patch('quantuminspire.qiskit.quantum_inspire_provider.QuantumInspireAPI') as api:
