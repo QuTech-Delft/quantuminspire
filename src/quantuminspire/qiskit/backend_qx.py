@@ -291,7 +291,7 @@ class QuantumInspireBackend(Backend):  # type: ignore
                 raise QiskitBackendError(
                     'Result from backend contains no histogram data!\n{}'.format(result.get('raw_text')))
 
-            if not job.get('user_data'):
+            if not job.get('user_data', ''):
                 raise QiskitBackendError(
                     "Job '{}' from backend contains no user data. "
                     "This job was not submitted by the SDK".format(job.get('id')))
