@@ -26,7 +26,7 @@ class TestQIResult(unittest.TestCase):
     def setUp(self):
         experiment_result_data_1 = ExperimentResultData.from_dict({'counts': {'0x0': 42, '0x3': 58},
                                                                    'probabilities': {'0x0': 0.42, '0x3': 0.58},
-                                                                   'multi_measurement_probabilities': [{'0x0': 0.42,
+                                                                   'probabilities_multi_measurement': [{'0x0': 0.42,
                                                                                                         '0x3': 0.58}
                                                                                                        ],
                                                                    'calibration': {'fridge_temperature': 26.9,
@@ -35,7 +35,7 @@ class TestQIResult(unittest.TestCase):
                                                                               '0x2': 23, '0x3': 28},
                                                                    'probabilities': {'0x0': 0.24, '0x1': 0.25,
                                                                                      '0x2': 0.23, '0x3': 0.28},
-                                                                   'multi_measurement_probabilities': [{'0x0': 0.24,
+                                                                   'probabilities_multi_measurement': [{'0x0': 0.24,
                                                                                                         '0x1': 0.25,
                                                                                                         '0x2': 0.23,
                                                                                                         '0x3': 0.28}
@@ -165,7 +165,7 @@ class TestQIResult(unittest.TestCase):
         success = True
         experiment_result = [self.experiment_result_4]
         qi_result = QIResult(backend_name, backend_version, qobj_id, job_id, success, experiment_result)
-        self.assertRaisesRegex(QiskitBackendError, 'No multi_measurement_probabilities for experiment "0"',
+        self.assertRaisesRegex(QiskitBackendError, 'No probabilities_multi_measurement for experiment "0"',
                                qi_result.get_probabilities_multi_measurement, 0)
 
     def test_raw_results(self):

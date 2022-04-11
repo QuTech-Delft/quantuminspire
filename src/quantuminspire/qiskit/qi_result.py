@@ -51,6 +51,7 @@ class QIResult(Result):  # type: ignore
                          results, date, status, header, **kwargs)
 
     def get_raw_result(self, field_name: str, experiment: Any = None) -> Union[List[Dict[str, Any]],
+                                                                               List[List[List[str]]],
                                                                                List[List[Dict[str, float]]]]:
         """
         Get the specific and unprocessed result data of an experiment.
@@ -58,13 +59,13 @@ class QIResult(Result):  # type: ignore
 
         :param field_name: the specific result that is requested
             Can be one of 'calibration', 'counts', 'memory', 'probabilities' or the multi measurement results
-            'multi_measurement_counts', 'multi_measurement_memory', 'multi_measurement_probabilities'
+            'counts_multi_measurement', 'memory_multi_measurement', 'probabilities_multi_measurement'
 
         :param experiment: the index of the experiment (str or QuantumCircuit or Schedule or int or None),
         as specified by ``get_data()``.
 
         :return:
-            A list (for each experiment) with one or more dictionaries which holds the specific unprocessed result.
+            A list with result structures which holds the specific unprocessed result for each experiment.
 
         :raises QiskitBackendError: raised if the results requested are not in the results for the experiment(s).
         """
@@ -93,7 +94,8 @@ class QIResult(Result):  # type: ignore
         as specified by ``get_data()``.
 
         :return:
-            One or more dictionaries which holds the states and probabilities for each result.
+            A single or a list of dictionaries which holds the states and probabilities for respectively 1 or more
+            experiment result.
 
         :raises QiskitBackendError: raised if there are no probabilities in a result for the experiment(s).
         """
@@ -133,9 +135,10 @@ class QIResult(Result):  # type: ignore
 
         :return:
             One list or a list of list of dictionaries which holds the states and probabilities for each measurement
-            block in the result.
+            block for respectively 1 or more experiment result.
 
-        :raises QiskitBackendError: raised if there are no probabilities in a result for the experiment(s).
+        :raises QiskitBackendError: raised if there are no multi measurement probabilities in a result for the
+        experiment(s).
         """
         if experiment is None:
             exp_keys = range(len(self.results))
@@ -151,12 +154,13 @@ class QIResult(Result):  # type: ignore
             except (AttributeError, QiskitError):  # header is not available
                 header = None
 
-            if "multi_measurement_probabilities" in self.data(key).keys():
-                for probabilities in self.data(key)["multi_measurement_probabilities"]:
-                    dict_list: List[Dict[str, float]] = [postprocess.format_counts(probabilities, header)]
-                    list_of_dict_list.append(dict_list)
+            if "probabilities_multi_measurement" in self.data(key).keys():
+                dict_list: List[Dict[str, float]] = []
+                for probabilities in self.data(key)["probabilities_multi_measurement"]:
+                    dict_list.append(postprocess.format_counts(probabilities, header))
+                list_of_dict_list.append(dict_list)
             else:
-                raise QiskitBackendError('No multi_measurement_probabilities for experiment "{0}"'.format(key))
+                raise QiskitBackendError('No probabilities_multi_measurement for experiment "{0}"'.format(key))
 
         # Return first item of list_dict_list if size is 1
         if len(list_of_dict_list) == 1:
@@ -172,7 +176,7 @@ class QIResult(Result):  # type: ignore
                 experiment can be: str or QuantumCircuit or Schedule or int or None
 
         :return:
-            One or more dictionaries which holds the calibration data for each result.
+            Single or a list of dictionaries which holds the calibration data for respectively 1 or more experiment(s).
             Exact format depends on the backend. A simulator backend has no calibration data (None is returned)
 
         :raises QiskitBackendError: raised if there is no calibration data in a result for the experiment(s).

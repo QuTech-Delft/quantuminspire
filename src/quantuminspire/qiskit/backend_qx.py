@@ -305,9 +305,9 @@ class QuantumInspireBackend(Backend):  # type: ignore
                 ExperimentResultData(counts=histogram_obj[V1_MEASUREMENT_BLOCK_INDEX],
                                      memory=memory_data[V1_MEASUREMENT_BLOCK_INDEX],
                                      probabilities=full_state_histogram_obj[V1_MEASUREMENT_BLOCK_INDEX],
-                                     multi_measurement_counts=histogram_obj,
-                                     multi_measurement_memory=memory_data,
-                                     multi_measurement_probabilities=full_state_histogram_obj,
+                                     counts_multi_measurement=histogram_obj,
+                                     memory_multi_measurement=memory_data,
+                                     probabilities_multi_measurement=full_state_histogram_obj,
                                      calibration=calibration)
             header = QobjExperimentHeader.from_dict(user_data)
             experiment_result_dictionary = {'name': job.get('name'), 'seed': 42, 'shots': job.get('number_of_shots'),
