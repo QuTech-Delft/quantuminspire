@@ -130,7 +130,7 @@ class QuantumInspireBackend(Backend):  # type: ignore
         return self.name()  # type: ignore
 
     def run(self,
-            circuits: Union[QasmQobj, QuantumCircuit, List[QuantumCircuit]],
+            run_input: Union[QasmQobj, QuantumCircuit, List[QuantumCircuit]],
             shots: Optional[int] = None,
             memory: Optional[bool] = None,
             **run_config: Dict[str, Any]
@@ -139,7 +139,7 @@ class QuantumInspireBackend(Backend):  # type: ignore
 
         The execution is asynchronous, and a handle to a job instance is returned.
 
-        :param circuits: An individual or a list of :class:`~qiskit.circuits.QuantumCircuit` objects to run
+        :param run_input: An individual or a list of :class:`~qiskit.circuits.QuantumCircuit` objects to run
                 on the backend. A :class:`~qiskit.qobj.QasmQobj` object is also supported but is deprecated.
         :param shots: Number of repetitions of each circuit, for sampling. Default: 1024
                 or ``max_shots`` from the backend configuration, whichever is smaller.
@@ -158,16 +158,16 @@ class QuantumInspireBackend(Backend):  # type: ignore
             memory=memory,
             **run_config)
 
-        if isinstance(circuits, QasmQobj):
+        if isinstance(run_input, QasmQobj):
             if not self.qobj_warning_issued:
                 warnings.warn("Passing a Qobj to QuantumInspireBackend.run is deprecated and will "
                               "be removed in a future release. Please pass in circuits "
                               "instead.", DeprecationWarning,
                               stacklevel=3)
                 self.qobj_warning_issued = True
-            qobj = circuits
+            qobj = run_input
         else:
-            qobj = assemble(circuits, self, **run_config_dict)
+            qobj = assemble(run_input, self, **run_config_dict)
 
         number_of_shots = qobj.config.shots
         self.__validate_number_of_shots(number_of_shots)
@@ -560,8 +560,6 @@ class QuantumInspireBackend(Backend):  # type: ignore
             The result consists of two formats for the result. The first result is the histogram with count data,
             the second result is a list with converted hexadecimal memory values for each shot.
         """
-        histogram_data: Dict[str, int]
-        sorted_histogram_data: List[Tuple[str, int]]
         raw_data_list = self.__api.get_raw_data_from_result(result['id'])
         if raw_data_list:
             result_histogram_data, result_memory_data = self.__convert_result_multiple_shots(result, measurements,
