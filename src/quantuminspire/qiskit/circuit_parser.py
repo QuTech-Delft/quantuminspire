@@ -601,13 +601,14 @@ class CircuitToString:
 
     @staticmethod
     def _delay(stream: StringIO, instruction: QasmQobjInstruction) -> None:
-        """ Translates the delay element for a qubit. In cQasm wait parameter is int. Actually only the default unit
-        "dt" will work correctly with cQasm, i.e. integer time unit depending on the target backend.
+        """ Translates the delay element for a qubit. In cQASM wait parameter is int and the unit is hardware cycles.
+        Only the Qiskit default unit "dt" will work correctly with cQASM, i.e. integer time unit depending on the
+        target backend.
 
-        In qiskit/circuit/delay.py multiple units are defined.
-        In qiskit/circuit/instruction.py assemble() method looses the unit of the delay instruction. Only the
-        parameter (which is the value of the delay) is taken, not the unit (bug?!)
-        So after assemble delay 1.1 s is the same as delay 1.1 ms!
+        In qiskit/circuit/delay.py multiple units are defined for delay instruction.
+        In qiskit/circuit/instruction.py assemble() method the unit of the delay instruction is not passed. Only the
+        parameter (which is the value of the delay instruction) is taken.
+        Here we cannot convert delays originally in another unit than dt to dt, which is the unit for wait in cQASM.
 
         :param stream: The string-io stream to where the resulting cQASM is written.
         :param instruction: The Qiskit instruction to translate to cQASM.

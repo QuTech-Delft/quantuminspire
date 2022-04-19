@@ -225,11 +225,12 @@ class TestProjectQBackend(unittest.TestCase):
         command = MagicMock()
         command.gate = CNOT
         api = MockApiClient()
-        backend = QIBackend(quantum_inspire_api=api, verbose=3)
         with patch('sys.stdout', new_callable=io.StringIO) as mock_stdout:
+            backend = QIBackend(quantum_inspire_api=api, verbose=3)
             _ = backend.is_available(command)
             std_output = mock_stdout.getvalue()
-        self.assertTrue(std_output.startswith('call to is_available with cmd'))
+        self.assertTrue(std_output.startswith("ProjectQ doesn't have an equivalent gate for cQASM gate 'wait'"))
+        self.assertTrue('call to is_available with cmd ' in std_output)
 
     @patch('quantuminspire.projectq.backend_qx.get_control_count')
     def __is_available_assert_equal(self, gate, expected, function_mock, count=0):
@@ -261,7 +262,8 @@ class TestProjectQBackend(unittest.TestCase):
 
     @patch('quantuminspire.projectq.backend_qx.get_control_count')
     def __store_function_assert_equal(self, identity, gate, qasm, function_mock, count=0, nr_of_qubits=1, verbose=0):
-        self.assertLessEqual(count + nr_of_qubits, 3)
+        if count + nr_of_qubits > 3:
+            raise ValueError("Invalid testcase: count + nr_of_qubits > 3")
         api = MockApiClient()
         function_mock.return_value = count
         backend = QIBackend(quantum_inspire_api=api, verbose=verbose)
@@ -377,6 +379,7 @@ class TestProjectQBackend(unittest.TestCase):
             self.__store_function(backend, 0, Allocate)
             self.assertEqual(backend.qasm, "")
             std_output = mock_stdout.getvalue()
+
         self.assertTrue('   _allocation_map [(0, 0)]' in std_output)
         self.assertTrue('_store: Allocate gate (0,)' in std_output)
 
@@ -388,6 +391,7 @@ class TestProjectQBackend(unittest.TestCase):
             self.__store_function(backend, 0, Allocate)
             self.assertEqual(backend.qasm, "")
             std_output = mock_stdout.getvalue()
+        self.assertTrue(std_output.startswith("ProjectQ doesn't have an equivalent gate for cQASM gate 'wait'"))
         self.assertTrue('_store ' in std_output)
         self.assertTrue(': cmd ' in std_output)
 

@@ -45,7 +45,13 @@ QI_URL = 'https://api.quantum-inspire.com'
 
 
 class VersionedAPITransport(HTTPTransport):  # type: ignore[misc]
-    """ Api is versioned. Currently SDK uses 2.0 version of API """
+    """ VersionedAPITransport makes it possible to address a specific version of the API of quantum inspire.
+
+    The API version that is used by SDK version 1.8.0 and higher defaults to 2.0.
+    Version 2.0 is introduced for serving backends that support multiple-measurement algorithms.
+    Backends that support multiple-measurement algorithms have a flag defined called 'multiple_measurement' in their
+    backend type structure (See :meth:`~.get_default_backend_type`).
+    """
     def __init__(self, api_version: str = '2.0', auth: AuthBase = None) -> None:
         self._api_version = api_version
         super().__init__(auth=auth, headers=self.headers)
@@ -631,15 +637,14 @@ class QuantumInspireAPI:
                 [[None, 1], [0, 1]],
             ],
         In this example in the first measurement block only qubit[1] is measured, in the second measurement block
-        qubit[0 and qubit[1] are measured.
+        qubit[0] and qubit[1] are measured.
 
         :param result_id: The identification number of the result.
 
-        :raises ApiError: If the raw data url in result is invalid
-            or the request for the raw data using the url failed.
+        :raises ApiError: If the raw data url in result is invalid or the request for the raw data using the url failed.
 
         :return:
-            The raw data as a list of structures. A list with an empty list is returned when there is no raw data.
+            The raw data as a list of structures. A list with an empty list is returned when raw data has no elements.
         """
         result = self.get_result(result_id)
         raw_data_url = str(result.get('raw_data_url'))
@@ -664,8 +669,9 @@ class QuantumInspireAPI:
             for the quantum states using the url failed.
 
         :return:
-            A list of quantum states. The quantum states consists of a list of quantum state values.
-            An empty list is returned when there is no data.
+            A list of quantum states. The quantum states consists of a list of quantum state values and
+            their corresponding probability.
+            An empty list is returned when the backend does not return quantum states.
         """
         result = self.get_result(result_id)
         quantum_states_url = str(result.get('quantum_states_url'))

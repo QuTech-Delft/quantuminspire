@@ -59,7 +59,7 @@ class QIResult(Result):  # type: ignore
 
         :param field_name: the specific result that is requested
             Can be one of 'calibration', 'counts', 'memory', 'probabilities' or the multi measurement results
-            'counts_multi_measurement', 'memory_multi_measurement', 'probabilities_multi_measurement'
+            'counts_multiple_measurement', 'memory_multiple_measurement', 'probabilities_multiple_measurement'
 
         :param experiment: the index of the experiment (str or QuantumCircuit or Schedule or int or None),
         as specified by ``get_data()``.
@@ -124,8 +124,8 @@ class QIResult(Result):  # type: ignore
 
         return dict_list
 
-    def get_probabilities_multi_measurement(self, experiment: Any = None) -> Union[List[Dict[str, float]],
-                                                                                   List[List[Dict[str, float]]]]:
+    def get_probabilities_multiple_measurement(self, experiment: Any = None) -> Union[List[Dict[str, float]],
+                                                                                      List[List[Dict[str, float]]]]:
         """
         Get the probability data of an experiment for all measurement blocks.
         The probability data is added as a separate result by Quantum Inspire backend.
@@ -154,13 +154,13 @@ class QIResult(Result):  # type: ignore
             except (AttributeError, QiskitError):  # header is not available
                 header = None
 
-            if "probabilities_multi_measurement" in self.data(key).keys():
+            if "probabilities_multiple_measurement" in self.data(key).keys():
                 dict_list: List[Dict[str, float]] = []
-                for probabilities in self.data(key)["probabilities_multi_measurement"]:
+                for probabilities in self.data(key)["probabilities_multiple_measurement"]:
                     dict_list.append(postprocess.format_counts(probabilities, header))
                 list_of_dict_list.append(dict_list)
             else:
-                raise QiskitBackendError('No probabilities_multi_measurement for experiment "{0}"'.format(key))
+                raise QiskitBackendError('No probabilities_multiple_measurement for experiment "{0}"'.format(key))
 
         # Return first item of list_dict_list if size is 1
         if len(list_of_dict_list) == 1:

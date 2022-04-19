@@ -180,16 +180,16 @@ class TestQiSimulatorPy(unittest.TestCase):
         self.assertEqual(experiment_result.data.counts['0x1'], 60)
         self.assertEqual(experiment_result.data.counts['0x3'], 40)
         self.assertEqual(experiment_result.data.counts,
-                         experiment_result.data.counts_multi_measurement[V1_MEASUREMENT_BLOCK_INDEX])
+                         experiment_result.data.counts_multiple_measurement[V1_MEASUREMENT_BLOCK_INDEX])
         self.assertEqual(experiment_result.data.probabilities['0x1'], 0.6)
         self.assertEqual(experiment_result.data.probabilities['0x3'], 0.4)
         self.assertEqual(experiment_result.data.probabilities,
-                         experiment_result.data.probabilities_multi_measurement[V1_MEASUREMENT_BLOCK_INDEX])
+                         experiment_result.data.probabilities_multiple_measurement[V1_MEASUREMENT_BLOCK_INDEX])
         self.assertEqual(len(experiment_result.data.memory), 100)
         self.assertEqual(experiment_result.data.memory.count('0x1'), 60)
         self.assertEqual(experiment_result.data.memory.count('0x3'), 40)
         self.assertEqual(experiment_result.data.memory,
-                         experiment_result.data.memory_multi_measurement[V1_MEASUREMENT_BLOCK_INDEX])
+                         experiment_result.data.memory_multiple_measurement[V1_MEASUREMENT_BLOCK_INDEX])
         self.assertEqual(experiment_result.name, 'circuit0')
         self.assertEqual(experiment_result.shots, number_of_shots)
 
@@ -225,16 +225,16 @@ class TestQiSimulatorPy(unittest.TestCase):
         self.assertEqual(experiment_result.data.counts['0x1'], 60)
         self.assertEqual(experiment_result.data.counts['0x3'], 40)
         self.assertEqual(experiment_result.data.counts,
-                         experiment_result.data.counts_multi_measurement[V1_MEASUREMENT_BLOCK_INDEX])
+                         experiment_result.data.counts_multiple_measurement[V1_MEASUREMENT_BLOCK_INDEX])
         self.assertEqual(experiment_result.data.probabilities['0x1'], 0.6)
         self.assertEqual(experiment_result.data.probabilities['0x3'], 0.4)
         self.assertEqual(experiment_result.data.probabilities,
-                         experiment_result.data.probabilities_multi_measurement[V1_MEASUREMENT_BLOCK_INDEX])
+                         experiment_result.data.probabilities_multiple_measurement[V1_MEASUREMENT_BLOCK_INDEX])
         self.assertEqual(len(experiment_result.data.memory), 100)
         self.assertEqual(experiment_result.data.memory.count('0x1'), 60)
         self.assertEqual(experiment_result.data.memory.count('0x3'), 40)
         self.assertEqual(experiment_result.data.memory,
-                         experiment_result.data.memory_multi_measurement[V1_MEASUREMENT_BLOCK_INDEX])
+                         experiment_result.data.memory_multiple_measurement[V1_MEASUREMENT_BLOCK_INDEX])
         self.assertEqual(experiment_result.name, 'circuit0')
         self.assertEqual(experiment_result.shots, number_of_shots)
 
@@ -620,13 +620,13 @@ class TestQiSimulatorPyHistogram(unittest.TestCase):
         first_experiment = first_item(result)
         actual = first_experiment.data.counts
         self.assertDictEqual(actual, expected_histogram[V1_MEASUREMENT_BLOCK_INDEX])
-        self.assertEqual(expected_histogram, first_experiment.data.counts_multi_measurement)
+        self.assertEqual(expected_histogram, first_experiment.data.counts_multiple_measurement)
         self.assertTrue(len(first_experiment.data.memory) == number_of_shots)
         memory = first_experiment.data.memory
         self.assertListEqual(memory, expected_memory[V1_MEASUREMENT_BLOCK_INDEX])
-        self.assertEqual(expected_memory, first_experiment.data.memory_multi_measurement)
+        self.assertEqual(expected_memory, first_experiment.data.memory_multiple_measurement)
         for experiment_index in range(len(result)):
-            probabilities = first_experiment.data.probabilities_multi_measurement[experiment_index]
+            probabilities = first_experiment.data.probabilities_multiple_measurement[experiment_index]
             self.assertTrue(len(expected_histogram_prob[experiment_index].keys() - probabilities.keys()) == 0)
             for key in set(probabilities.keys()) & set(expected_histogram_prob[experiment_index].keys()):
                 self.assertTrue(np.isclose(expected_histogram_prob[experiment_index][key], probabilities[key]))

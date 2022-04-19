@@ -231,7 +231,7 @@ class QuantumInspireBackend(Backend):  # type: ignore
         try:
             self.__api.get_project(int(job_id))
         except (ApiError, ValueError):
-            raise QiskitBackendError("Could not retrieve job with job_id '{}' ".format(job_id))
+            raise QiskitBackendError(f"Could not retrieve job with job_id '{job_id}' ")
         return QIJob(self, job_id, self.__api)
 
     def _generate_cqasm(self, experiment: QasmQobjExperiment, measurements: Measurements,
@@ -289,12 +289,12 @@ class QuantumInspireBackend(Backend):  # type: ignore
         for result, job in zip(results, jobs):
             if not result.get('histogram', []):
                 raise QiskitBackendError(
-                    'Result from backend contains no histogram data!\n{}'.format(result.get('raw_text')))
+                    f"Result from backend contains no histogram data!\n{result.get('raw_text')}")
 
             if not job.get('user_data', ''):
                 raise QiskitBackendError(
-                    "Job '{}' from backend contains no user data. "
-                    "This job was not submitted by the SDK".format(job.get('id')))
+                    f"Job '{job.get('id')}' from backend contains no user data. "
+                    f"This job was not submitted by the SDK")
 
             user_data = json.loads(str(job.get('user_data')))
             measurements = Measurements.from_dict(user_data.pop('measurements'))
@@ -305,9 +305,9 @@ class QuantumInspireBackend(Backend):  # type: ignore
                 ExperimentResultData(counts=histogram_obj[V1_MEASUREMENT_BLOCK_INDEX],
                                      memory=memory_data[V1_MEASUREMENT_BLOCK_INDEX],
                                      probabilities=full_state_histogram_obj[V1_MEASUREMENT_BLOCK_INDEX],
-                                     counts_multi_measurement=histogram_obj,
-                                     memory_multi_measurement=memory_data,
-                                     probabilities_multi_measurement=full_state_histogram_obj,
+                                     counts_multiple_measurement=histogram_obj,
+                                     memory_multiple_measurement=memory_data,
+                                     probabilities_multiple_measurement=full_state_histogram_obj,
                                      calibration=calibration)
             header = QobjExperimentHeader.from_dict(user_data)
             experiment_result_dictionary = {'name': job.get('name'), 'seed': 42, 'shots': job.get('number_of_shots'),
@@ -346,7 +346,7 @@ class QuantumInspireBackend(Backend):  # type: ignore
         :raises QiskitBackendError: When the value is not correct.
         """
         if number_of_shots < 1 or number_of_shots > self.__backend['max_number_of_shots']:
-            raise QiskitBackendError('Invalid shots (number_of_shots={})'.format(number_of_shots))
+            raise QiskitBackendError(f'Invalid shots (number_of_shots={number_of_shots})')
 
     def __validate_nr_of_clbits_conditional_gates(self, experiment: QasmQobjExperiment) -> None:
         """ Validate the number of classical bits in the algorithm when conditional gates are used
@@ -443,8 +443,10 @@ class QuantumInspireBackend(Backend):  # type: ignore
 
         return raw_data_value
 
-    def __convert_result_data(self, result: Dict[str, Any], measurements: Measurements) -> Tuple[List[Dict[str, int]],
-                                                                                                 List[List[str]]]:
+    @staticmethod
+    def __convert_result_single_shot(result: Dict[str, Any],
+                                     measurements: Measurements) -> Tuple[List[Dict[str, int]],
+                                                                          List[List[str]]]:
         """Convert result data
 
         The Quantum Inspire backend returns the single shot values as raw data. This function
@@ -480,41 +482,91 @@ class QuantumInspireBackend(Backend):  # type: ignore
         """
         result_memory_data = []
         result_histogram_data: List[Dict[str, int]] = []
+
+        random_probability = np.random.rand()
+        for state_probabilities in result['histogram']:
+            memory_data = []
+            histogram_data = defaultdict(lambda: 0)
+            sum_probability = 0.0
+            for qubit_register, probability in state_probabilities.items():
+                sum_probability += probability
+                if random_probability < sum_probability:
+                    classical_state_hex = measurements.qubit_to_classical_hex(qubit_register)
+                    memory_data.append(classical_state_hex)
+                    histogram_data[classical_state_hex] = 1
+                    break
+            sorted_histogram_data = sorted(histogram_data.items(),
+                                           key=lambda kv: int(kv[0], 16))
+            result_histogram_data.append(dict(sorted_histogram_data))
+            result_memory_data.append(memory_data)
+        return result_histogram_data, result_memory_data
+
+    def __convert_result_multiple_shots(self, result: Dict[str, Any], measurements: Measurements,
+                                        raw_data_list: List[List[Any]]) -> Tuple[List[Dict[str, int]],
+                                                                                 List[List[str]]]:
+        """Convert result data
+
+        The Quantum Inspire backend returns the single shot values as raw data. This function
+        converts this list of single shot values to hexadecimal memory data according the Qiskit spec.
+        From this memory data the counts histogram is constructed by counting the single shot values.
+
+        :param result: The result output from the Quantum Inspire backend with full-
+                       state projection histogram output.
+        :param measurements: The measurement instance containing measurement information and measurement functionality.
+        :param raw_data_list: The raw data from the result for this experiment.
+
+        :return:
+            The result consists of two formats for the result. The first result is the histogram with count data,
+            the second result is a list with converted hexadecimal memory values for each shot.
+        """
+        result_memory_data = []
+        result_histogram_data: List[Dict[str, int]] = []
+        number_of_qubits: int = result['number_of_qubits']
+
+        nr_of_measurement_blocks = len(raw_data_list[0])
+        for measurement_block_index in range(nr_of_measurement_blocks):
+            memory_data = []
+            for raw_data in raw_data_list:
+                raw_qubit_register = raw_data[measurement_block_index]
+                raw_data_value = self.__raw_qubit_register_to_raw_data_value(raw_qubit_register,
+                                                                             number_of_qubits)
+                classical_state_hex = measurements.qubit_to_classical_hex(str(raw_data_value))
+                memory_data.append(classical_state_hex)
+            histogram_data = {elem: count for elem, count in Counter(memory_data).items()}
+            sorted_histogram_data = sorted(histogram_data.items(),
+                                           key=lambda kv: int(kv[0], 16))
+            result_histogram_data.append(dict(sorted_histogram_data))
+            result_memory_data.append(memory_data)
+
+        return result_histogram_data, result_memory_data
+
+    def __convert_result_data(self, result: Dict[str, Any], measurements: Measurements) -> Tuple[List[Dict[str, int]],
+                                                                                                 List[List[str]]]:
+        """Convert result data
+
+        The Quantum Inspire backend returns the single shot values as raw data. The method
+        __convert_result_multiple_shots converts this list of single shot values to hexadecimal memory data according
+        the Qiskit spec.
+        From this memory data the counts histogram is constructed by counting the single shot values.
+
+        When shots = 1, the backend returns an empty list as raw_data. This is a special case handled in method
+        __convert_result_single_shot.
+
+        :param result: The result output from the Quantum Inspire backend with full-
+                       state projection histogram output.
+        :param measurements: The measurement instance containing measurement information and measurement functionality.
+
+        :return:
+            The result consists of two formats for the result. The first result is the histogram with count data,
+            the second result is a list with converted hexadecimal memory values for each shot.
+        """
         histogram_data: Dict[str, int]
         sorted_histogram_data: List[Tuple[str, int]]
-        number_of_qubits: int = result['number_of_qubits']
         raw_data_list = self.__api.get_raw_data_from_result(result['id'])
         if raw_data_list:
-            nr_of_measurement_blocks = len(raw_data_list[0])
-            for measurement_block_index in range(nr_of_measurement_blocks):
-                memory_data = []
-                for raw_data in raw_data_list:
-                    raw_qubit_register = raw_data[measurement_block_index]
-                    raw_data_value = self.__raw_qubit_register_to_raw_data_value(raw_qubit_register,
-                                                                                 number_of_qubits)
-                    classical_state_hex = measurements.qubit_to_classical_hex(str(raw_data_value))
-                    memory_data.append(classical_state_hex)
-                histogram_data = {elem: count for elem, count in Counter(memory_data).items()}
-                sorted_histogram_data = sorted(histogram_data.items(),
-                                               key=lambda kv: int(kv[0], 16))
-                result_histogram_data.append(dict(sorted_histogram_data))
-                result_memory_data.append(memory_data)
+            result_histogram_data, result_memory_data = self.__convert_result_multiple_shots(result, measurements,
+                                                                                             raw_data_list)
         else:
-            random_probability = np.random.rand()
-            for state_probabilities in result['histogram']:
-                memory_data = []
-                histogram_data = defaultdict(lambda: 0)
-                sum_probability = 0.0
-                for qubit_register, probability in state_probabilities.items():
-                    sum_probability += probability
-                    if random_probability < sum_probability:
-                        classical_state_hex = measurements.qubit_to_classical_hex(qubit_register)
-                        memory_data.append(classical_state_hex)
-                        histogram_data[classical_state_hex] = 1
-                        break
-                sorted_histogram_data = sorted(histogram_data.items(),
-                                               key=lambda kv: int(kv[0], 16))
-                result_histogram_data.append(dict(sorted_histogram_data))
-                result_memory_data.append(memory_data)
+            result_histogram_data, result_memory_data = self.__convert_result_single_shot(result, measurements)
 
         return result_histogram_data, result_memory_data
