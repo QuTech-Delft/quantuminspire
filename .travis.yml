@@ -18,6 +18,7 @@ matrix:
       dist: focal
 install:
 - python -m pip install -U pip setuptools
+- pip list
 - pip install --upgrade .[qiskit,projectq,dev] coveralls
 env:
 - API_URL=https://staging.quantum-inspire.com
