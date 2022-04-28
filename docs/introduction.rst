@@ -158,7 +158,6 @@ API wrapper directly:
 
     H q[0]
     CNOT q[0], q[1]
-
     Measure q[0,1]
     '''
 
@@ -256,9 +255,9 @@ you do:
 .. code:: python
 
     from quantuminspire.credentials import get_authentication
-    auth = get_authentication()
+    authentication = get_authentication()
 
-This ``auth`` can then be used to initialize the Quantum Inspire API
+This ``authentication`` can then be used to initialize the Quantum Inspire API
 object.
 
 Testing

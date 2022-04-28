@@ -45,12 +45,54 @@ class Measurements:
         """
         return self._number_of_qubits
 
+    @nr_of_qubits.setter
+    def nr_of_qubits(self, nr_of_qubits: int) -> None:
+        """
+        Setter for _number_of_qubits
+        """
+        self._number_of_qubits = nr_of_qubits
+
     @property
     def nr_of_clbits(self) -> int:
         """
         :return: Return number of classical bits in the algorithm
         """
         return self._number_of_clbits
+
+    @nr_of_clbits.setter
+    def nr_of_clbits(self, nr_of_clbits: int) -> None:
+        """
+        Setter for _number_of_clbits
+        """
+        self._number_of_clbits = nr_of_clbits
+
+    @property
+    def measurements_reg(self) -> List[List[int]]:
+        """
+        :return: Return the bit indices of the qubit and classical bit as used in the algorithm
+        """
+        return self._measurements_reg
+
+    @measurements_reg.setter
+    def measurements_reg(self, measurements_reg: List[List[int]]) -> None:
+        """
+        Setter for _measurements_reg
+        """
+        self._measurements_reg = measurements_reg
+
+    @property
+    def measurements_state(self) -> List[List[int]]:
+        """
+        :return: Return the positional indexes in the resulting qubit_state and classical_state arrays
+        """
+        return self._measurements_state
+
+    @measurements_state.setter
+    def measurements_state(self, measurements_state: List[List[int]]) -> None:
+        """
+        Setter for _measurements_state
+        """
+        self._measurements_state = measurements_state
 
     @classmethod
     def from_experiment(cls, experiment: QasmQobjExperiment) -> Measurements:
@@ -77,21 +119,21 @@ class Measurements:
         """
         instance = cls()
         header = experiment.header
-        instance._number_of_qubits = header.n_qubits
-        instance._number_of_clbits = header.memory_slots
+        instance.nr_of_qubits = header.n_qubits
+        instance.nr_of_clbits = header.memory_slots
 
         for instruction in experiment.instructions:
             if instruction.name == 'measure':
-                instance._measurements_reg.append([instruction.qubits[0], instruction.memory[0]])
-                instance._measurements_state.append([instance._number_of_qubits - 1 - instruction.qubits[0],
-                                                     instance._number_of_clbits - 1 - instruction.memory[0]])
+                instance.measurements_reg.append([instruction.qubits[0], instruction.memory[0]])
+                instance.measurements_state.append([instance.nr_of_qubits - 1 - instruction.qubits[0],
+                                                    instance.nr_of_clbits - 1 - instruction.memory[0]])
 
-        if not instance._measurements_reg:
-            instance._measurements_reg = [[index, index] for index in range(instance._number_of_qubits)]
-            instance._measurements_state = instance._measurements_reg
+        if not instance.measurements_reg:
+            instance.measurements_reg = [[index, index] for index in range(instance.nr_of_qubits)]
+            instance.measurements_state = instance.measurements_reg
 
         # do some validations
-        instance._validate_number_of_clbits()
+        instance.validate_number_of_clbits()
 
         return instance
 
@@ -150,14 +192,14 @@ class Measurements:
         :return: Instance of Measurements with input from dictionary
         """
         instance = cls()
-        instance._measurements_state = measurement_input['measurements_state']
-        instance._measurements_reg = measurement_input['measurements_reg']
-        instance._number_of_qubits = measurement_input['number_of_qubits']
-        instance._number_of_clbits = measurement_input['number_of_clbits']
+        instance.measurements_state = measurement_input['measurements_state']
+        instance.measurements_reg = measurement_input['measurements_reg']
+        instance.nr_of_qubits = measurement_input['number_of_qubits']
+        instance.nr_of_clbits = measurement_input['number_of_clbits']
 
         return instance
 
-    def _validate_number_of_clbits(self) -> None:
+    def validate_number_of_clbits(self) -> None:
         """ Validate the (number of) classical bits used in the measurements are valid for the algorithm
 
         Checks whether the number of classical bits has a value cQASM can support.

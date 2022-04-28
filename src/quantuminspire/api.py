@@ -6,7 +6,7 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#    https://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -29,23 +29,45 @@ import time
 import uuid
 from typing import Type, List, Dict, Union, Optional, Any, Tuple
 from urllib.parse import urljoin
-import coreapi
-from coreapi.auth import TokenAuthentication
+
+from coreapi.auth import TokenAuthentication, AuthBase
+from coreapi.client import Client
 from coreapi.exceptions import CoreAPIException, ErrorMessage
+from coreapi.transports import HTTPTransport
 
 from quantuminspire.credentials import load_account
 from quantuminspire.exceptions import ApiError, AuthenticationError
 from quantuminspire.job import QuantumInspireJob
 
-QI_URL = 'https://api.quantum-inspire.com'
 logger = logging.getLogger(__name__)
+V1_MEASUREMENT_BLOCK_INDEX = -1  # -1 for last block
+QI_URL = 'https://api.quantum-inspire.com'
+
+
+class VersionedAPITransport(HTTPTransport):  # type: ignore[misc]
+    """ VersionedAPITransport makes it possible to address a specific version of the API of quantum inspire.
+
+    The API version that is used by SDK version 1.8.0 and higher defaults to 2.0.
+    Version 2.0 is introduced for serving backends that support multiple-measurement algorithms.
+    Backends that support multiple-measurement algorithms have a flag defined called 'multiple_measurement' in their
+    backend type structure (See :meth:`~.get_default_backend_type`).
+    """
+    def __init__(self, api_version: str = '2.0', auth: AuthBase = None) -> None:
+        self._api_version = api_version
+        super().__init__(auth=auth, headers=self.headers)
+
+    @property
+    def headers(self) -> Dict[str, str]:
+        """ Return accept string for versioned transport """
+        return {
+            'accept': f'application/coreapi+json, application/vnd.coreapi+json, */*; version={self._api_version};'
+        }
 
 
 class QuantumInspireAPI:
-
-    def __init__(self, base_uri: str = QI_URL, authentication: Optional[coreapi.auth.AuthBase] = None,
+    def __init__(self, base_uri: str = QI_URL, authentication: Optional[AuthBase] = None,
                  project_name: Optional[str] = None,
-                 coreapi_client_class: Type[coreapi.Client] = coreapi.Client) -> None:
+                 coreapi_client_class: Type[Client] = Client) -> None:
         """ Python interface to the Quantum Inspire API (Application Programmer Interface).
 
         The Quantum Inspire API supplies an interface for executing programs and can be used to access the
@@ -97,7 +119,8 @@ class QuantumInspireAPI:
                 authentication = TokenAuthentication(token, scheme="token")
             else:
                 raise AuthenticationError('No credentials have been provided or found on disk')
-        self.__client = coreapi_client_class(auth=authentication)
+
+        self.__client = coreapi_client_class(transports=[VersionedAPITransport(auth=authentication)])
         self.project_name = project_name
         self.base_uri = base_uri if base_uri[-1] == '/' else base_uri + '/'
         self.enable_fsp_warning = True
@@ -197,6 +220,8 @@ class QuantumInspireAPI:
             ``operations_count``                dict        The maximum number of gates that is allowed in an experiment
                                                             for each qubit separately and for the experiment in total
                                                             (0 = no limit).
+            ``flags``                           list[str]   flags defining capabilities of the backends. E.g.
+                                                            'multiple_measurement', 'parallel_computing'
             =================================== =========== ============================================================
 
         """
@@ -549,18 +574,20 @@ class QuantumInspireAPI:
             ``raw_text``                  str         Text string filled when an error occurred, else empty.
             ``raw_data_url``              str         Url to get the raw data of the result. The raw data exists of a
                                                       list of integer values depicting the state for each shot.
-            ``histogram``                 dict        The histogram as a list of tuples with state (str) and
+            ``histogram``                 list(dict)  The histograms as a list of dicts with tuples with state (str) and
                                                       its probability (float).
             ``histogram_url``             str         Url to get the histogram with probabilities. This results in the
                                                       dict as found in property ``histogram`` of result.
-            ``measurement_mask``          int         (deprecated, unused) The measurement mask.
-            ``quantum_states_url``        str         Url to get a list of quantum states.
-            ``measurement_register_url``  str         Url to get a list of measurement register.
+            ``measurement_mask``          list(list)  For each measurement block a list of 0/1 (not measured/measured)
+                                                      for all the qubits in the cQASM program.
+            ``quantum_states_url``        str         Url to get a list of quantum states for each measurement block.
+            ``measurement_register_url``  str         Url to get a list of measurement registers for each measurement
+                                                      block.
             ``calibration``               str         Url to get calibration information.
             ============================= =========== ==================================================================
         """
         try:
-            result = self._action(['results', 'read'], params={'id': result_id})
+            result = self._action(['results', 'read'], params={'id': result_id, })
         except ErrorMessage as err_msg:
             raise ApiError(f'Result with id {result_id} does not exist!') from err_msg
         return dict(result)
@@ -592,20 +619,32 @@ class QuantumInspireAPI:
             raise ApiError(f'Job with id {job_id} does not exist!') from err_msg
         return dict(result)
 
-    def get_raw_data_from_result(self, result_id: int) -> List[int]:
+    def get_raw_data_from_result(self, result_id: int) -> List[List[Any]]:
         """ Gets the raw data from the result.
 
         Gets the raw data from the result of the executed job, given the result_id.
-        The raw data consists of a list with integer state values for each shot of the experiment (see
-        job.number_of_shots).
+        The raw data consists of a list of measurements for each shot (job.number_of_shots).
+        The measurements contains a list of data for each measurement in the job (len(measurement_mask))
+        The data consist of integer state values for each measured qubit, else None (see measurement_mask).
+        Actual type is: List[List[List[Optional[int]]]] with least significant qubit first
+        Example for "measurement_mask": [[0, 1], [1, 1]]:
+            "raw_data": [
+                [[None, 1], [0, 1]],
+                [[None, 1], [1, 0]],
+                [[None, 0], [1, 1]],
+                [[None, 0], [1, 1]],
+                [[None, 0], [0, 0]],
+                [[None, 1], [0, 1]],
+            ],
+        In this example in the first measurement block only qubit[1] is measured, in the second measurement block
+        qubit[0] and qubit[1] are measured.
 
         :param result_id: The identification number of the result.
 
-        :raises ApiError: If the raw data url in result is invalid
-            or the request for the raw data using the url failed.
+        :raises ApiError: If the raw data url in result is invalid or the request for the raw data using the url failed.
 
         :return:
-            The raw data as a list of integer values. An empty list is returned when there is no raw data.
+            The raw data as a list of structures. A list with an empty list is returned when raw data has no elements.
         """
         result = self.get_result(result_id)
         raw_data_url = str(result.get('raw_data_url'))
@@ -614,14 +653,15 @@ class QuantumInspireAPI:
         except IndexError as err_msg:
             raise ApiError(f'Invalid raw data url for result with id {result_id}!') from err_msg
         try:
-            raw_data: List[int] = self._action(['results', 'raw-data', 'read'], params={'id': result_id,
-                                                                                        'token': token})
+            raw_data: List[List[Any]] = self._action(['results', 'raw-data', 'read'],
+                                                     params={'id': result_id,
+                                                             'token': token})
         except ErrorMessage as err_msg:
             raise ApiError(f'Raw data for result with id {result_id} does not exist!') from err_msg
         return raw_data
 
-    def get_quantum_states_from_result(self, result_id: int) -> List[Any]:
-        """ Gets the quantum states from the result of the executed job, given the result_id.
+    def get_quantum_states_from_result(self, result_id: int) -> List[List[Any]]:
+        """ Gets the quantum states for each measurement block from the result of the executed job, given the result_id.
 
         :param result_id: The identification number of the result.
 
@@ -629,8 +669,9 @@ class QuantumInspireAPI:
             for the quantum states using the url failed.
 
         :return:
-            The quantum states consists of a list of quantum state values.
-            An empty list is returned when there is no data.
+            A list of quantum states. The quantum states consists of a list of quantum state values and
+            their corresponding probability.
+            An empty list is returned when the backend does not return quantum states.
         """
         result = self.get_result(result_id)
         quantum_states_url = str(result.get('quantum_states_url'))
@@ -639,14 +680,15 @@ class QuantumInspireAPI:
         except IndexError as err_msg:
             raise ApiError(f'Invalid quantum states url for result with id {result_id}!') from err_msg
         try:
-            quantum_states: List[Any] = self._action(['results', 'quantum-states', 'read'], params={'id': result_id,
-                                                                                                    'token': token})
+            quantum_states: List[List[Any]] = self._action(['results', 'quantum-states', 'read'],
+                                                           params={'id': result_id, 'token': token})
         except ErrorMessage as err_msg:
             raise ApiError(f'Quantum states for result with id {result_id} does not exist!') from err_msg
         return quantum_states
 
-    def get_measurement_register_from_result(self, result_id: int) -> List[Any]:
-        """ Gets the measurement register from the result of the executed code, given the result_id.
+    def get_measurement_register_from_result(self, result_id: int) -> List[List[Any]]:
+        """ Gets the measurement register for each measurement block from the result of the executed code,
+        given the result_id.
 
         :param result_id: The identification number of the result.
 
@@ -654,7 +696,7 @@ class QuantumInspireAPI:
             or the request for the measurement register using the url failed.
 
         :return:
-            The measurement register consists of a list of measurement register values.
+            A list of measurement registers. The measurement register consists of a list of measurement register values.
             An empty list is returned when there is no data.
         """
         result = self.get_result(result_id)
@@ -664,9 +706,8 @@ class QuantumInspireAPI:
         except IndexError as err_msg:
             raise ApiError(f'Invalid measurement register url for result with id {result_id}!') from err_msg
         try:
-            measurement_register: List[Any] = self._action(['results', 'measurement-register', 'read'],
-                                                           params={'id': result_id,
-                                                                   'token': token})
+            measurement_register: List[List[Any]] = self._action(['results', 'measurement-register', 'read'],
+                                                                 params={'id': result_id, 'token': token})
         except ErrorMessage as err_msg:
             raise ApiError(f'Measurement register for result with id {result_id} does not exist!') from err_msg
         return measurement_register
@@ -727,8 +768,8 @@ class QuantumInspireAPI:
                                                 'text/plain'.
             ``content``             str         The content itself.
                                                 For example a cQASM program when linked to a job.
-            ``measurement_mask``    int         A mask for the measured bits in the cQASM program. The measurement_mask
-                                                is calculated when the asset is assigned to a job.
+            ``measurement_mask``    list(list)  For each measurement block a list of 0/1 (not measured/measured) for
+                                                all the qubits in the cQASM program.
             ``project``             str         Url to get the project properties for which
                                                 this asset was created.
             ``project_id``          int         The project id of the project for which this asset was created.
@@ -852,7 +893,7 @@ class QuantumInspireAPI:
             Result object containing an empty histogram and an error message
         """
         result_obj = {
-            'histogram': {},
+            'histogram': [],
             'raw_text': message
         }
         return result_obj
@@ -860,8 +901,7 @@ class QuantumInspireAPI:
     def execute_qasm(self, qasm: str, backend_type: Optional[Union[Dict[str, Any], int, str]] = None,
                      number_of_shots: Optional[int] = None, collect_tries: Optional[int] = None,
                      default_number_of_shots: Optional[int] = None, identifier: Optional[str] = None,
-                     full_state_projection: bool = False,
-                     user_data : str = '') -> Dict[str, Any]:
+                     full_state_projection: bool = False, user_data: str = '') -> Dict[str, Any]:
         """ With this method a cQASM program is executed, and the result is returned when the job is completed.
 
         The method :meth:`~.execute_qasm_async` is called which returns a QuantumInspireJob directly without waiting
@@ -899,7 +939,7 @@ class QuantumInspireAPI:
                                                           default_number_of_shots=default_number_of_shots,
                                                           identifier=identifier,
                                                           full_state_projection=full_state_projection,
-                                                          user_data = user_data)
+                                                          user_data=user_data)
 
             has_results, message = self._wait_for_completed_job(quantum_inspire_job, collect_tries)
             return dict(quantum_inspire_job.retrieve_results()) if has_results else \
@@ -985,7 +1025,7 @@ class QuantumInspireAPI:
         """
         if not isinstance(backend_type, dict):
             if backend_type is None:
-                backend_type = self.get_backend_type(None)
+                backend_type = self.get_backend_type()
             elif isinstance(backend_type, int):
                 backend_type = self.get_backend_type(int(backend_type))
             elif isinstance(backend_type, str):

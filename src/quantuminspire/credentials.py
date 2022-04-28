@@ -6,7 +6,7 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#    https://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -180,13 +180,13 @@ def get_authentication() -> Union[TokenAuthentication, BasicAuthentication]:
     token = load_account()
     if token is not None:
         return get_token_authentication(token)
-    else:
-        email = os.environ.get('QI_EMAIL', None)
-        password = os.environ.get('QI_PASSWORD', None)
-        if email is None or password is None:
-            print('Enter email:')
-            email = input()
-            print('Enter password')
-            password = getpass()
 
-        return get_basic_authentication(email, password)
+    email = os.environ.get('QI_EMAIL', None)
+    password = os.environ.get('QI_PASSWORD', None)
+    if email is None or password is None:
+        print('Enter email:')
+        email = input()
+        print('Enter password')
+        password = getpass()
+
+    return get_basic_authentication(email, password)

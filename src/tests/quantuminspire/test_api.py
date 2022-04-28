@@ -6,7 +6,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-   http://www.apache.org/licenses/LICENSE-2.0
+   https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -54,9 +54,10 @@ class MockApiClient:
     handlers = dict()
     getters = dict()
 
-    def __init__(self, auth=None):
+    def __init__(self, auth=None, transports=None):
         """ Basic mock for coreapi.Client."""
         self.authentication = auth
+        self.transports = transports
         self.getters[''.join([BASE_URL, 'schema/'])] = ''
 
     def get(self, url):
@@ -634,9 +635,9 @@ class TestQuantumInspireAPI(TestCase):
                       ('seconds', 0.0),
                       ('raw_text', ''),
                       ('raw_data_url', 'https,//api.quantum-inspire.com/results/502/raw-data/f2b6/'),
-                      ('histogram', {'3', 0.5068359375, '0', 0.4931640625}),
+                      ('histogram', [{'3', 0.5068359375, '0', 0.4931640625}]),
                       ('histogram_url', 'https,//api.quantum-inspire.com/results/502/histogram/f2b6/'),
-                      ('measurement_mask', 0),
+                      ('measurement_mask', [[1, 1]]),
                       ('quantum_states_url',
                        'https,//api.quantum-inspire.com/results/502/quantum-states/f2b6d/'),
                       ('measurement_register_url', 'https,//api.quantum-inspire.com/results/502/f2b6d/')]),
@@ -648,9 +649,9 @@ class TestQuantumInspireAPI(TestCase):
                       ('seconds', 0.0),
                       ('raw_text', ''),
                       ('raw_data_url', 'https,//api.quantum-inspire.com/results/485/raw-data/162c/'),
-                      ('histogram', {'0', 0.5029296875, '3', 0.4970703125}),
+                      ('histogram', [{'0', 0.5029296875, '3', 0.4970703125}]),
                       ('histogram_url', 'https,//api.quantum-inspire.com/results/485/histogram/162c/'),
-                      ('measurement_mask', 0),
+                      ('measurement_mask', [[1, 1]]),
                       ('quantum_states_url', 'https,//api.quantum-inspire.com/results/485/quantum-states/162c/'),
                       ('measurement_register_url', 'https,//api.quantum-inspire.com/results/485/162c/')])]
 
@@ -670,9 +671,9 @@ class TestQuantumInspireAPI(TestCase):
                          ('seconds', 0.0),
                          ('raw_text', ''),
                          ('raw_data_url', 'https,//api.quantum-inspire.com/results/485/raw-data/162c/'),
-                         ('histogram', {'0', 0.5029296875, '3', 0.4970703125}),
+                         ('histogram', [{'0', 0.5029296875, '3', 0.4970703125}]),
                          ('histogram_url', 'https,//api.quantum-inspire.com/results/485/histogram/162c/'),
-                         ('measurement_mask', 0),
+                         ('measurement_mask', [[1, 1]]),
                          ('quantum_states_url',
                           'https,//api.quantum-inspire.com/results/485/quantum-states/qstates/'),
                          ('measurement_register_url', 'https,//api.quantum-inspire.com/results/485/mreg/'),
@@ -680,7 +681,7 @@ class TestQuantumInspireAPI(TestCase):
         elif keys[1] == 'raw-data':
             if params['token'] != '162c':
                 raise ErrorMessage('Not found')
-            return [0, 3, 3, 0]
+            return [[[0, 0], [1, 1], [1, 1], [0, 0]]]
         elif keys[1] == 'quantum-states':
             if params['token'] != 'qstates':
                 raise ErrorMessage('Not found')
@@ -706,9 +707,9 @@ class TestQuantumInspireAPI(TestCase):
                      ('seconds', 0.0),
                      ('raw_text', ''),
                      ('raw_data_url', 'https,//api.quantum-inspire.com/results/485/raw-data/162c/'),
-                     ('histogram', {'0', 0.5029296875, '3', 0.4970703125}),
+                     ('histogram', [{'0', 0.5029296875, '3', 0.4970703125}]),
                      ('histogram_url', 'https,//api.quantum-inspire.com/results/485/histogram/162c/'),
-                     ('measurement_mask', 0),
+                     ('measurement_mask', [[1, 1]]),
                      ('quantum_states_url', 'https,//api.quantum-inspire.com/results/485/quantum-states/162c/'),
                      ('measurement_register_url', 'https,//api.quantum-inspire.com/results/485/162c/')])
 
@@ -726,9 +727,9 @@ class TestQuantumInspireAPI(TestCase):
                              ('seconds', 0.0),
                              ('raw_text', ''),
                              ('raw_data_url', ''),
-                             ('histogram', {'0', 0.5029296875, '3', 0.4970703125}),
+                             ('histogram', [{'0', 0.5029296875, '3', 0.4970703125}]),
                              ('histogram_url', 'https,//api.quantum-inspire.com/results/485/histogram/162c/'),
-                             ('measurement_mask', 0),
+                             ('measurement_mask', [[1, 1]]),
                              ('quantum_states_url', ''),
                              ('measurement_register_url', ''),
                              ('calibration', '')])
@@ -742,9 +743,9 @@ class TestQuantumInspireAPI(TestCase):
                              ('seconds', 0.0),
                              ('raw_text', ''),
                              ('raw_data_url', 'https,//api.quantum-inspire.com/results/485/raw-data/999/'),
-                             ('histogram', {'0', 0.5029296875, '3', 0.4970703125}),
+                             ('histogram', [{'0', 0.5029296875, '3', 0.4970703125}]),
                              ('histogram_url', 'https,//api.quantum-inspire.com/results/485/histogram/162c/'),
-                             ('measurement_mask', 0),
+                             ('measurement_mask', [[1, 1]]),
                              ('quantum_states_url',
                               'https,//api.quantum-inspire.com/results/485/quantum-states/999/'),
                              ('measurement_register_url', 'https,//api.quantum-inspire.com/results/485/999/'),
@@ -752,7 +753,7 @@ class TestQuantumInspireAPI(TestCase):
         elif keys[1] == 'raw-data':
             if params['token'] != '162c':
                 raise ErrorMessage('Not found')
-            return [0, 3, 3, 0]
+            return [[[0, 0], [1, 1], [1, 1], [0, 0]]]
         elif keys[1] == 'quantum-states':
             if params['token'] != 'qstates':
                 raise ErrorMessage('Not found')
@@ -1297,7 +1298,7 @@ class TestQuantumInspireAPI(TestCase):
         qasm = 'version 1.0...'
         number_of_shots = 1024
         results = api.execute_qasm(qasm, number_of_shots=number_of_shots, backend_type=1)
-        self.assertEqual(results['histogram'], {})
+        self.assertEqual(results['histogram'], [])
         self.assertEqual(results['raw_text'], 'Failed getting result: job cancelled.')
 
     def test_execute_qasm_different_backend(self):
@@ -1437,7 +1438,7 @@ class TestQuantumInspireAPI(TestCase):
         qasm = 'version 1.0'
         results = api.execute_qasm(qasm)
 
-        self.assertEqual(results['histogram'], {})
+        self.assertEqual(results['histogram'], [])
         s = results['raw_text']
         self.assertTrue(
             re.match(r'Error raised while executing qasm: Job with name (.*?) not created: Type is not correct', s))

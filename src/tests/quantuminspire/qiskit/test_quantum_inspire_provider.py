@@ -6,7 +6,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-   http://www.apache.org/licenses/LICENSE-2.0
+   https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -29,6 +29,7 @@ class TestQuantumInspireProvider(unittest.TestCase):
                               'name': 'qi_simulator',
                               'is_allowed': True,
                               'allowed_operations': {},
+                              'flags': ['multiple_measurement'],
                               'max_number_of_shots': 4096,
                               'max_number_of_simultaneous_jobs': 3,
                               'topology': {'edges': []},
@@ -43,6 +44,7 @@ class TestQuantumInspireProvider(unittest.TestCase):
                                  'single_gates': ['x', 's', 'z', 'h', 'tdag'],
                                  'dual_gates': ['cz'],
                              },
+                             'flags': [],
                              'max_number_of_shots': 2048,
                              'max_number_of_simultaneous_jobs': 1,
                              'topology': {'edges': [[2], [2], [0, 1, 3, 4], [2], [2]]},
@@ -58,7 +60,10 @@ class TestQuantumInspireProvider(unittest.TestCase):
                                   'single_gates': ['x', 'y', 'z', 'h', 'i', 't', 'tdag', 's', 'sdag'],
                                   'dual_gates': ['cz', 'cr', 'cnot', 'swap'],
                                   'triple_gates': ['toffoli'],
+                                  'barrier': ['barrier'],
+                                  'wait': ['wait']
                               },
+                              'flags': ['multiple_measurement'],
                               'max_number_of_shots': 4096,
                               'max_number_of_simultaneous_jobs': 1,
                               'topology': {'edges': [[1], [0]]},
@@ -101,9 +106,11 @@ class TestQuantumInspireProvider(unittest.TestCase):
             self.assertEqual(4096, backend.configuration().max_shots)
             self.assertEqual(3, backend.configuration().max_experiments)
             self.assertTrue(backend.configuration().conditional)
+            self.assertTrue(backend.configuration().multiple_measurements)
+            self.assertFalse(backend.configuration().parallel_computing)
             self.assertEqual(backend.configuration().basis_gates, ['x', 'y', 'z', 'h', 'rx', 'ry', 'rz', 's', 'sdg',
                                                                    't', 'tdg', 'cx', 'ccx', 'u1', 'p', 'u2', 'u3', 'id',
-                                                                   'swap', 'cz', 'snapshot'])
+                                                                   'swap', 'cz', 'snapshot', 'delay', 'barrier'])
 
     def test_hardware_backend(self):
         with mock.patch('quantuminspire.qiskit.quantum_inspire_provider.QuantumInspireAPI') as api:
@@ -126,6 +133,8 @@ class TestQuantumInspireProvider(unittest.TestCase):
             self.assertEqual(2048, backend.configuration().max_shots)
             self.assertEqual(1, backend.configuration().max_experiments)
             self.assertFalse(backend.configuration().conditional)
+            self.assertFalse(backend.configuration().multiple_measurements)
+            self.assertFalse(backend.configuration().parallel_computing)
             self.assertEqual(backend.configuration().basis_gates, ['rx', 'rz', 'x', 's', 'z', 'h', 'tdg', 'cz'])
 
     def test_hardware_backend2(self):
@@ -148,9 +157,11 @@ class TestQuantumInspireProvider(unittest.TestCase):
             self.assertEqual(4096, backend.configuration().max_shots)
             self.assertEqual(1, backend.configuration().max_experiments)
             self.assertFalse(backend.configuration().conditional)
+            self.assertTrue(backend.configuration().multiple_measurements)
+            self.assertFalse(backend.configuration().parallel_computing)
             self.assertEqual(backend.configuration().basis_gates, ['rx', 'ry', 'rz', 'x', 'y', 'z', 'h', 'id', 't',
-                                                                   'tdg', 's', 'sdg', 'cz', 'cx', 'swap', 'ccx',
-                                                                   'u1', 'u2', 'u3'])
+                                                                   'tdg', 's', 'sdg', 'cz', 'cx', 'swap',
+                                                                   'ccx', 'barrier', 'delay', 'u1', 'p', 'u2', 'u3'])
 
     def test_set_authentication_details(self):
         with mock.patch('quantuminspire.qiskit.quantum_inspire_provider.QuantumInspireAPI') as api:

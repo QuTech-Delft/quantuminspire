@@ -6,7 +6,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-   http://www.apache.org/licenses/LICENSE-2.0
+   https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,7 +14,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Union
 from qiskit.exceptions import QiskitError
 from qiskit.result import postprocess, Result
 from qiskit.result.models import ExperimentResult
@@ -34,6 +34,7 @@ class QIResult(Result):  # type: ignore
                  **kwargs: Any) -> None:
         """
         Construct a new QIResult object. Not normally called directly, use a QIJob to get the QIResult.
+        Based on Qiskit Result.
 
         :param backend_name: backend name.
         :param backend_version: backend version, in the form X.Y.Z.
@@ -49,16 +50,52 @@ class QIResult(Result):  # type: ignore
         super().__init__(backend_name, backend_version, qobj_id, job_id, success,
                          results, date, status, header, **kwargs)
 
+    def get_raw_result(self, field_name: str, experiment: Any = None) -> Union[List[Dict[str, Any]],
+                                                                               List[List[List[str]]],
+                                                                               List[List[Dict[str, float]]]]:
+        """
+        Get the specific and unprocessed result data of an experiment.
+        Can handle single and multi measurement results.
+
+        :param field_name: the specific result that is requested
+            Can be one of 'calibration', 'counts', 'memory', 'probabilities' or the multi measurement results
+            'counts_multiple_measurement', 'memory_multiple_measurement', 'probabilities_multiple_measurement'
+
+        :param experiment: the index of the experiment (str or QuantumCircuit or Schedule or int or None),
+        as specified by ``get_data()``.
+
+        :return:
+            A list with result structures which holds the specific unprocessed result for each experiment.
+
+        :raises QiskitBackendError: raised if the results requested are not in the results for the experiment(s).
+        """
+        results_list = []
+
+        if experiment is None:
+            exp_keys = range(len(self.results))
+        else:
+            exp_keys = [experiment]  # type: ignore
+
+        for key in exp_keys:
+            if field_name in self.data(key).keys():
+                result_values = self.data(key)[field_name]
+                results_list.append(result_values)
+            else:
+                raise QiskitBackendError('Result does not contain {0} data for experiment "{1}"'.format(field_name,
+                                                                                                        key))
+        return results_list
+
     def get_probabilities(self, experiment: Any = None) -> Union[Dict[str, float], List[Dict[str, float]]]:
 
         """Get the probability data of an experiment. The probability data is added as a separate result by
-        Quantum Inspire backend. Based on Qiskit get_count method from Result.
+        Quantum Inspire backend.
 
-        :param experiment (str or QuantumCircuit or Schedule or int or None): the index of the
-                experiment, as specified by ``get_data()``.
+        :param experiment: the index of the experiment (str or QuantumCircuit or Schedule or int or None),
+        as specified by ``get_data()``.
 
         :return:
-            One or more dictionaries which holds the states and probabilities for each result.
+            A single or a list of dictionaries which holds the states and probabilities for respectively 1 or more
+            experiment result.
 
         :raises QiskitBackendError: raised if there are no probabilities in a result for the experiment(s).
         """
@@ -87,15 +124,59 @@ class QIResult(Result):  # type: ignore
 
         return dict_list
 
-    def get_calibration(self, experiment: Any = None) -> Optional[Union[Dict[str, Any], List[Dict[str, Any]]]]:
-        """Get the calibration data of an experiment. The calibration data is added as a separate result item by
-        Quantum Inspire backend. Based on Qiskit get_count method from Result.
+    def get_probabilities_multiple_measurement(self, experiment: Any = None) -> Union[List[Dict[str, float]],
+                                                                                      List[List[Dict[str, float]]]]:
+        """
+        Get the probability data of an experiment for all measurement blocks.
+        The probability data is added as a separate result by Quantum Inspire backend.
 
-        :param experiment (str or QuantumCircuit or Schedule or int or None): the index of the
-                experiment, as specified by ``get_data()``.
+        :param experiment: the index of the experiment (str or QuantumCircuit or Schedule or int or None),
+        as specified by ``get_data()``.
 
         :return:
-            One or more dictionaries which holds the calibration data for each result.
+            One list or a list of list of dictionaries which holds the states and probabilities for each measurement
+            block for respectively 1 or more experiment result.
+
+        :raises QiskitBackendError: raised if there are no multi measurement probabilities in a result for the
+        experiment(s).
+        """
+        if experiment is None:
+            exp_keys = range(len(self.results))
+        else:
+            exp_keys = [experiment]  # type: ignore
+
+        list_of_dict_list: List[List[Dict[str, float]]] = []
+
+        for key in exp_keys:
+            exp = self._get_experiment(key)
+            try:
+                header = exp.header.to_dict()
+            except (AttributeError, QiskitError):  # header is not available
+                header = None
+
+            if "probabilities_multiple_measurement" in self.data(key).keys():
+                dict_list: List[Dict[str, float]] = []
+                for probabilities in self.data(key)["probabilities_multiple_measurement"]:
+                    dict_list.append(postprocess.format_counts(probabilities, header))
+                list_of_dict_list.append(dict_list)
+            else:
+                raise QiskitBackendError('No probabilities_multiple_measurement for experiment "{0}"'.format(key))
+
+        # Return first item of list_dict_list if size is 1
+        if len(list_of_dict_list) == 1:
+            return list_of_dict_list[0]
+
+        return list_of_dict_list
+
+    def get_calibration(self, experiment: Any = None) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+        """Get the calibration data of an experiment. The calibration data is added as a separate result item by
+        Quantum Inspire backend.
+
+        :param experiment: the index of the experiment, as specified by ``get_data()``.
+                experiment can be: str or QuantumCircuit or Schedule or int or None
+
+        :return:
+            Single or a list of dictionaries which holds the calibration data for respectively 1 or more experiment(s).
             Exact format depends on the backend. A simulator backend has no calibration data (None is returned)
 
         :raises QiskitBackendError: raised if there is no calibration data in a result for the experiment(s).
@@ -107,8 +188,6 @@ class QIResult(Result):  # type: ignore
 
         dict_list: List[Dict[str, float]] = []
         for key in exp_keys:
-            exp = self._get_experiment(key)
-
             if "calibration" in self.data(key).keys():
                 calibration = self.data(key)["calibration"]
                 dict_list.append(calibration)
