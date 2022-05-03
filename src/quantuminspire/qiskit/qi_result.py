@@ -1,19 +1,19 @@
-""" Quantum Inspire SDK
+# Quantum Inspire SDK
+#
+# Copyright 2022 QuTech Delft
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-Copyright 2018 QuTech Delft
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-   https://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-"""
 from typing import Any, Dict, List, Union
 from qiskit.exceptions import QiskitError
 from qiskit.result import postprocess, Result
@@ -62,7 +62,7 @@ class QIResult(Result):  # type: ignore
             'counts_multiple_measurement', 'memory_multiple_measurement', 'probabilities_multiple_measurement'
 
         :param experiment: the index of the experiment (str or QuantumCircuit or Schedule or int or None),
-        as specified by ``get_data()``.
+            as specified by ``get_data()``.
 
         :return:
             A list with result structures which holds the specific unprocessed result for each experiment.
@@ -91,7 +91,7 @@ class QIResult(Result):  # type: ignore
         Quantum Inspire backend.
 
         :param experiment: the index of the experiment (str or QuantumCircuit or Schedule or int or None),
-        as specified by ``get_data()``.
+            as specified by ``get_data()``.
 
         :return:
             A single or a list of dictionaries which holds the states and probabilities for respectively 1 or more
@@ -131,14 +131,14 @@ class QIResult(Result):  # type: ignore
         The probability data is added as a separate result by Quantum Inspire backend.
 
         :param experiment: the index of the experiment (str or QuantumCircuit or Schedule or int or None),
-        as specified by ``get_data()``.
+            as specified by ``get_data()``.
 
         :return:
             One list or a list of list of dictionaries which holds the states and probabilities for each measurement
             block for respectively 1 or more experiment result.
 
         :raises QiskitBackendError: raised if there are no multi measurement probabilities in a result for the
-        experiment(s).
+            experiment(s).
         """
         if experiment is None:
             exp_keys = range(len(self.results))

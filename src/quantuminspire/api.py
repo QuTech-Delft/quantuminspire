@@ -1,6 +1,6 @@
 # Quantum Inspire SDK
 #
-# Copyright 2018 QuTech Delft
+# Copyright 2022 QuTech Delft
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -46,11 +46,6 @@ QI_URL = 'https://api.quantum-inspire.com'
 
 class VersionedAPITransport(HTTPTransport):  # type: ignore[misc]
     """ VersionedAPITransport makes it possible to address a specific version of the API of quantum inspire.
-
-    The API version that is used by SDK version 1.8.0 and higher defaults to 2.0.
-    Version 2.0 is introduced for serving backends that support multiple-measurement algorithms.
-    Backends that support multiple-measurement algorithms have a flag defined called 'multiple_measurement' in their
-    backend type structure (See :meth:`~.get_default_backend_type`).
     """
     def __init__(self, api_version: str = '2.0', auth: AuthBase = None) -> None:
         self._api_version = api_version
@@ -82,6 +77,15 @@ class QuantumInspireAPI:
 
         QuantumInspireAPI is a convenient interface (or wrapper) to the low level API and hides details for
         requesting data (via get) and performing operations on the different entities (via actions).
+
+        The API version that is used by SDK version 2.0.0 and higher defaults to 2.0.
+        Version 2.0 is introduced for serving backends that support multiple measurement algorithms.
+        Backends that support multiple measurement algorithms have a flag defined called 'multiple_measurement' in their
+        backend type structure (See :meth:`~.get_default_backend_type`).
+
+        To support multiple measurement the results structure has changed to hold the results for each measurement block
+        defined in a multiple measurement algorithm. Backends that do not support multiple measurement algorithms have
+        1 measurement block. See :meth:`~.get_result` for details.
 
         For more documentation:
             * The knowledge base on: https://www.quantum-inspire.com/kbase/low-level-api/
@@ -552,7 +556,16 @@ class QuantumInspireAPI:
             print(f'Result id: {result["id"]} (date: {result["created_at"]})')
 
     def get_result(self, result_id: int) -> Dict[str, Any]:
-        """ Gets the histogram results of the executed job, given the result_id.
+        """ Gets the results of the executed job, given the result_id.
+
+        Using version 2.0 of the API, the results structure has changed to allow multiple measurement algorithms.
+        Some items in the results structure (histogram, raw data, measurement mask, quantum states,
+        measurement register) are defined as lists instead of single values. The lists hold the single values for each
+        measurement block in the algorithm for backends that support multiple measurement. Backends that do not support
+        multiple measurement always have a single measurement block and therefore return a single item in the
+        results lists.
+        For some items (raw data, measurement mask) in the results structure the type have changed to better express
+        measured and not measured qubits. See :meth:`~.get_raw_data_from_result` for details.
 
         :param result_id: The result identification number.
 
@@ -561,30 +574,31 @@ class QuantumInspireAPI:
         :return:
             The properties describing the result:
 
-            ============================= =========== ==================================================================
-            Key                           Type        Description
-            ============================= =========== ==================================================================
-            ``id``                        int         Unique id of the result.
-            ``url``                       str         The url to get this result.
-            ``job``                       str         The url to get the job that generated the result.
-            ``created_at``                str         The date-time the result is created at.
-                                                      The format is 'yyyy-MM-ddTHH:mm:ss.SSSSSSZ' Zulu Time.
-            ``number_of_qubits``          int         Number of qubits in the circuit for this experiment.
-            ``execution_time_in_seconds`` float       The execution time of the job.
-            ``raw_text``                  str         Text string filled when an error occurred, else empty.
-            ``raw_data_url``              str         Url to get the raw data of the result. The raw data exists of a
-                                                      list of integer values depicting the state for each shot.
-            ``histogram``                 list(dict)  The histograms as a list of dicts with tuples with state (str) and
-                                                      its probability (float).
-            ``histogram_url``             str         Url to get the histogram with probabilities. This results in the
-                                                      dict as found in property ``histogram`` of result.
-            ``measurement_mask``          list(list)  For each measurement block a list of 0/1 (not measured/measured)
-                                                      for all the qubits in the cQASM program.
-            ``quantum_states_url``        str         Url to get a list of quantum states for each measurement block.
-            ``measurement_register_url``  str         Url to get a list of measurement registers for each measurement
-                                                      block.
-            ``calibration``               str         Url to get calibration information.
-            ============================= =========== ==================================================================
+            ============================= ================ =============================================================
+            Key                           Type             Description
+            ============================= ================ =============================================================
+            ``id``                        int              Unique id of the result.
+            ``url``                       str              The url to get this result.
+            ``job``                       str              The url to get the job that generated the result.
+            ``created_at``                str              The date-time the result is created at.
+                                                           The format is 'yyyy-MM-ddTHH:mm:ss.SSSSSSZ' Zulu Time.
+            ``number_of_qubits``          int              Number of qubits in the circuit for this experiment.
+            ``execution_time_in_seconds`` float            The execution time of the job.
+            ``raw_text``                  str              Text string filled when an error occurred, else empty.
+            ``raw_data_url``              str              Url to get the raw data of the result. The raw data exists of
+                                                           a list of integer values depicting the state for each shot.
+            ``histogram``                 list(dict)       The histograms as a list of dicts with tuples with state
+                                                           (str) and its probability (float).
+            ``histogram_url``             str              Url to get the histogram with probabilities. This results in
+                                                           the dict as found in property ``histogram`` of result.
+            ``measurement_mask``          list(list(0|1))  For each measurement block a list of 0 (not measured) or 1
+                                                           (measured) values for all the qubits in the cQASM program.
+            ``quantum_states_url``        str              Url to get a list of quantum states for each measurement
+                                                           block.
+            ``measurement_register_url``  str              Url to get a list of measurement registers for each
+                                                           measurement block.
+            ``calibration``               str              Url to get calibration information.
+            ============================= ================ =============================================================
         """
         try:
             result = self._action(['results', 'read'], params={'id': result_id, })
@@ -624,18 +638,23 @@ class QuantumInspireAPI:
 
         Gets the raw data from the result of the executed job, given the result_id.
         The raw data consists of a list of measurements for each shot (job.number_of_shots).
-        The measurements contains a list of data for each measurement in the job (len(measurement_mask))
-        The data consist of integer state values for each measured qubit, else None (see measurement_mask).
-        Actual type is: List[List[List[Optional[int]]]] with least significant qubit first
-        Example for "measurement_mask": [[0, 1], [1, 1]]:
+        The measurements contains a list of data for each measurement in the job (len(measurement_mask)).
+        The data consist of integer state values (0 or 1) for each measured qubit, else None (see measurement_mask).
+        Actual type is: List[List[List[Optional[int]]]] with least significant qubit first.
+
+        Example for :code:`"measurement_mask": [[0, 0, 1], [1, 1]]` the raw_data for 6 shots is structured as follows:
+
+        .. code-block::
+
             "raw_data": [
-                [[None, 1], [0, 1]],
-                [[None, 1], [1, 0]],
-                [[None, 0], [1, 1]],
-                [[None, 0], [1, 1]],
-                [[None, 0], [0, 0]],
-                [[None, 1], [0, 1]],
-            ],
+                [[None, None, 1], [0, 1]],
+                [[None, None, 1], [1, 0]],
+                [[None, None, 0], [1, 1]],
+                [[None, None, 0], [1, 1]],
+                [[None, None, 0], [0, 0]],
+                [[None, None, 1], [0, 1]]
+            ]
+
         In this example in the first measurement block only qubit[1] is measured, in the second measurement block
         qubit[0] and qubit[1] are measured.
 
@@ -721,8 +740,8 @@ class QuantumInspireAPI:
             for the calibration info using the url failed.
 
         :return:
-            The calibration information from the backend.
-            None is returned when there is no calibration information (e.g. simulator backend).
+            The calibration information from the backend. Calibration information may differ per backend type.
+            None is returned when there is no calibration information (e.g. simulator backends).
         """
         calibration_info = None
         result = self.get_result(result_id)
