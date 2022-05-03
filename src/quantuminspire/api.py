@@ -642,17 +642,17 @@ class QuantumInspireAPI:
         The data consist of integer state values (0 or 1) for each measured qubit, else None (see measurement_mask).
         Actual type is: List[List[List[Optional[int]]]] with least significant qubit first.
 
-        Example for :code:`"measurement_mask": [[0, 0, 1], [1, 1]]` the raw_data for 6 shots is structured as follows:
+        Example for :code:`"measurement_mask": [[0, 1], [1, 1]]` the raw_data for 6 shots is structured as follows:
 
         .. code-block::
 
             "raw_data": [
-                [[None, None, 1], [0, 1]],
-                [[None, None, 1], [1, 0]],
-                [[None, None, 0], [1, 1]],
-                [[None, None, 0], [1, 1]],
-                [[None, None, 0], [0, 0]],
-                [[None, None, 1], [0, 1]]
+                [[None, 1], [0, 1]],
+                [[None, 1], [1, 0]],
+                [[None, 0], [1, 1]],
+                [[None, 0], [1, 1]],
+                [[None, 0], [0, 0]],
+                [[None, 1], [0, 1]]
             ]
 
         In this example in the first measurement block only qubit[1] is measured, in the second measurement block
