@@ -328,6 +328,25 @@ class QIBackend(BasicEngine):  # type: ignore
             print(f"_store: Deallocate gate {(index_to_remove,)}")
             print(f"   _allocation_map {self._allocation_map}")
 
+    def _logical_to_physical(self, logical_qubit_id: int) -> int:
+        """Return the physical location of the qubit with the given logical id.
+
+        :param logical_qubit_id: ID of the logical qubit whose position should be returned.
+
+        :return:
+            Physical position of logical qubit with id qb_id.
+        """
+        if self.main_engine.mapper is not None:
+            mapping = self.main_engine.mapper.current_mapping
+            if logical_qubit_id not in mapping:
+                raise RuntimeError(f"Unknown qubit id {logical_qubit_id}. Please make sure "
+                                   f"eng.flush() was called and that the qubit "
+                                   f"was not eliminated during optimization.")
+
+            return int(mapping[logical_qubit_id])
+
+        return logical_qubit_id  # no mapping
+
     def _physical_to_simulated(self, physical_qubit_id: int) -> int:
         """
         Return the allocated location on the simulated backend of the qubit with the given physical qubit id.
@@ -346,16 +365,15 @@ class QIBackend(BasicEngine):  # type: ignore
 
         return physical_qubit_id
 
-    def _simulated_to_logical(self, simulated_qubit_id: int) -> int:
+    def _simulated_to_physical(self, simulated_qubit_id: int) -> int:
         """
-        Return the logical qubit id given the allocated location on the simulated backend.
+        Return the physical qubit id given the allocated location on the simulated backend.
 
         :param simulated_qubit_id: the allocated location on the simulated backend.
 
         :return:
-            Logical bit position of simulated qubit.
+            Physical bit position of simulated qubit.
         """
-        # First step: simulated to physical
         if self._is_simulation_backend:
             allocation_entry = next(iter(x for x in self._allocation_map if x[0] == simulated_qubit_id), None)
             if allocation_entry is None:
@@ -365,7 +383,18 @@ class QIBackend(BasicEngine):  # type: ignore
         else:
             physical_qubit_id = simulated_qubit_id
 
-        # Second step: physical to logical
+        return physical_qubit_id
+
+    def _physical_to_logical(self, physical_qubit_id: int) -> int:
+        """
+        Return the logical qubit id given the physical qubit id. The qubit id is only converted when a mapper engine is
+        initialized.
+
+        :param physical_qubit_id: the physical location of the qubit.
+
+        :return:
+            Logical bit position of physical qubit.
+        """
         if self.main_engine.mapper is not None:
             mapping = self.main_engine.mapper.current_mapping
             # current_mapping is a dictionary with keys being the
@@ -379,10 +408,9 @@ class QIBackend(BasicEngine):  # type: ignore
                                f"was not eliminated during optimization.")
         return physical_qubit_id  # no mapping
 
-    def _switch_fsp_to_nonfsp(self) -> None:
-        """Switch to non-full state projection.
+    def _add_delayed_measurements(self) -> None:
+        """ Add the recorded measurements to the qasm algorithm.
 
-        We have determined that the algorithm is non-deterministic and cannot use fsp.
         At this point, :attr:`_measured_ids` is the collection of measurement statements in the algorithm for which no
         measurement statement has been added to the qasm yet.
         For every `measured_id` a measurement statement is added.
@@ -391,6 +419,14 @@ class QIBackend(BasicEngine):  # type: ignore
             physical_qubit_id = self._logical_to_physical(logical_qubit_id)
             sim_qubit_id = self._physical_to_simulated(physical_qubit_id)
             self._qasm += f"\nmeasure q[{sim_qubit_id}]"
+
+    def _switch_fsp_to_nonfsp(self) -> None:
+        """Switch to non-full state projection.
+
+        We have determined that the algorithm is non-deterministic and cannot use fsp.
+        For every `measured_id` a measurement statement is added.
+        """
+        self._add_delayed_measurements()
         self._full_state_projection = False
 
     def _store(self, cmd: Command) -> None:
@@ -496,25 +532,6 @@ class QIBackend(BasicEngine):  # type: ignore
             self._qasm += f"\n{gate_str} q[{qb_pos}]"
         else:
             raise NotImplementedError(f"cmd '{(cmd,)}' not implemented")
-
-    def _logical_to_physical(self, logical_qubit_id: int) -> int:
-        """Return the physical location of the qubit with the given logical id.
-
-        :param logical_qubit_id: ID of the logical qubit whose position should be returned.
-
-        :return:
-            Physical position of logical qubit with id qb_id.
-        """
-        if self.main_engine.mapper is not None:
-            mapping = self.main_engine.mapper.current_mapping
-            if logical_qubit_id not in mapping:
-                raise RuntimeError(f"Unknown qubit id {logical_qubit_id}. Please make sure "
-                                   f"eng.flush() was called and that the qubit "
-                                   f"was not eliminated during optimization.")
-
-            return int(mapping[logical_qubit_id])
-
-        return logical_qubit_id  # no mapping
 
     def get_probabilities(self, qureg: List[Qubit]) -> Dict[str, float]:
         """Return the list of basis states with corresponding probabilities.
@@ -669,13 +686,7 @@ class QIBackend(BasicEngine):  # type: ignore
         nr_of_measurement_blocks = len(self._quantum_inspire_result["measurement_mask"])
         for measurement_block_index in range(nr_of_measurement_blocks):
             result_histogram = self._quantum_inspire_result["histogram"][measurement_block_index]
-            if self._full_state_projection:
-                mask_bits = map(lambda bit: self._physical_to_simulated(self._logical_to_physical(bit)),
-                                self._measured_ids)
-            else:
-                measured_mask = self._quantum_inspire_result["measurement_mask"][measurement_block_index]
-                mask_bits = map(lambda bit_id: bit_id,
-                                [bit_id for bit_id in range(len(measured_mask)) if measured_mask[bit_id] == 1])
+            mask_bits = self._get_measured_qubit_iterator(measurement_block_index)
 
             histogram: Dict[int, float] = {int(k): v for k, v in result_histogram.items()}
             self._measured_states.append(QIBackend._filter_histogram(histogram, mask_bits))
@@ -720,20 +731,31 @@ class QIBackend(BasicEngine):  # type: ignore
                 self.id: int = qubit_id
 
         random_measurement = self._sample_measured_states_once()
-
-        if self._full_state_projection:
-            simulated_bits = map(lambda bit: self._physical_to_simulated(self._logical_to_physical(bit)),
-                                 self._measured_ids)
-        else:
-            measured_mask = self._quantum_inspire_result["measurement_mask"][V1_MEASUREMENT_BLOCK_INDEX]
-            simulated_bits = map(lambda bit_id: bit_id,
-                                 [bit_id for bit_id in range(len(measured_mask)) if measured_mask[bit_id] == 1])
+        simulated_bits = self._get_measured_qubit_iterator(V1_MEASUREMENT_BLOCK_INDEX)
 
         for sim_qubit_id in simulated_bits:
             result = bool(random_measurement & (1 << sim_qubit_id))
 
-            logical_qubit_id = self._simulated_to_logical(sim_qubit_id)
+            logical_qubit_id = self._physical_to_logical(self._simulated_to_physical(sim_qubit_id))
             self.main_engine.set_measurement_result(QB(logical_qubit_id), result)
+
+    def _get_measured_qubit_iterator(self, measurement_block_index: int) -> Iterator[int]:
+        """
+        Get an iterator for the measured qubits. The iterator returns the indexes of the qubits that are measured.
+
+        :param measurement_block_index: measurement block index for multi measurement results.
+
+        :return:
+            Iterator which iterated the indexes of the measured qubits
+        """
+        if self._full_state_projection:
+            bit_iterator = map(lambda bit: self._physical_to_simulated(self._logical_to_physical(bit)),
+                               self._measured_ids)
+        else:
+            measured_mask = self._quantum_inspire_result["measurement_mask"][measurement_block_index]
+            bit_iterator = map(lambda bit_id: bit_id,
+                               [bit_id for bit_id in range(len(measured_mask)) if measured_mask[bit_id] == 1])
+        return bit_iterator
 
     def _sample_measured_states_once(self) -> int:
         """

@@ -166,7 +166,7 @@ class QIBackendNonProtected(QIBackend):
         return self._logical_to_physical(qb_id)
 
     def simulated_to_logical(self, qb_id):
-        return self._simulated_to_logical(qb_id)
+        return self._physical_to_logical(self._simulated_to_physical(qb_id))
 
     def filter_result_by_measured_qubits(self):
         self._filter_result_by_measured_qubits()
