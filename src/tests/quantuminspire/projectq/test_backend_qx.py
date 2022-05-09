@@ -1,6 +1,6 @@
 """ Quantum Inspire SDK
 
-Copyright 2018 QuTech Delft
+Copyright 2022 QuTech Delft
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,11 +16,12 @@ limitations under the License.
 """
 
 import io
-import unittest
 import warnings
 import json
 import coreapi
-from unittest.mock import MagicMock, patch
+from functools import reduce
+from unittest import mock, TestCase
+from unittest.mock import MagicMock, patch, call
 
 from projectq.meta import LogicalQubitIDTag
 from projectq.ops import (CNOT, NOT, Allocate, Barrier,
@@ -28,6 +29,7 @@ from projectq.ops import (CNOT, NOT, Allocate, Barrier,
                           Ph, Rx, Ry, Rz, S, Sdag, Swap, T, Tdag, Toffoli, X,
                           Y, Z, R)
 
+from quantuminspire.api import V1_MEASUREMENT_BLOCK_INDEX
 from quantuminspire.exceptions import ProjectQBackendError, AuthenticationError
 from quantuminspire.projectq.backend_qx import QIBackend
 
@@ -35,7 +37,7 @@ from quantuminspire.projectq.backend_qx import QIBackend
 class MockApiClient:
 
     def __init__(self):
-        result = {'histogram': [{'00': 0.49, '11': 0.51}], 'results': 'dummy'}
+        result = {'histogram': [{'00': 0.49, '11': 0.51}], 'results': 'dummy', 'measurement_mask': [[1, 1]]}
         self.execute_qasm = MagicMock(return_value=result)
         self.get_backend_type = MagicMock(return_value=dict({'is_hardware_backend': False,
                                                              'is_allowed': True,
@@ -74,13 +76,25 @@ class QIBackendNonProtected(QIBackend):
     def is_simulation_backend(self):
         return self._is_simulation_backend
 
+    @is_simulation_backend.setter
+    def is_simulation_backend(self, x):
+        self._is_simulation_backend = x
+
     @property
     def full_state_projection(self):
         return self._full_state_projection
 
+    @full_state_projection.setter
+    def full_state_projection(self, x):
+        self._full_state_projection = x
+
     @property
     def quantum_inspire_result(self):
         return self._quantum_inspire_result
+
+    @quantum_inspire_result.setter
+    def quantum_inspire_result(self, x):
+        self._quantum_inspire_result = x
 
     @property
     def clear(self):
@@ -151,8 +165,17 @@ class QIBackendNonProtected(QIBackend):
     def logical_to_physical(self, qb_id):
         return self._logical_to_physical(qb_id)
 
+    def simulated_to_logical(self, qb_id):
+        return self._physical_to_logical(self._simulated_to_physical(qb_id))
 
-class TestProjectQBackend(unittest.TestCase):
+    def filter_result_by_measured_qubits(self):
+        self._filter_result_by_measured_qubits()
+
+    def register_random_measurement_outcome(self):
+        self._register_random_measurement_outcome()
+
+
+class TestProjectQBackend(TestCase):
 
     def setUp(self):
         self.hardware_backend_type = dict({'is_hardware_backend': True,
@@ -434,7 +457,7 @@ class TestProjectQBackend(unittest.TestCase):
         qd_id = 0
         expected = 1234
         self.qi_backend.main_engine = MagicMock()
-        self.qi_backend.main_engine.mapper.current_mapping = [expected, qd_id]
+        self.qi_backend.main_engine.mapper.current_mapping = {qd_id: expected}
         actual = self.qi_backend.logical_to_physical(qd_id)
         self.assertEqual(actual, expected)
 
@@ -449,37 +472,120 @@ class TestProjectQBackend(unittest.TestCase):
         qd_id = 0
         expected = 1234
         self.qi_backend.main_engine = MagicMock()
-        self.qi_backend.main_engine.mapper.current_mapping = [expected]
+        self.qi_backend.main_engine.mapper.current_mapping = {expected: expected}
         self.assertRaises(RuntimeError, self.qi_backend.logical_to_physical, qd_id)
+
+    def test_simulated_to_logical_returns_correct_result(self):
+        qd_id = 0
+        expected = 2
+        self.qi_backend.allocation_map = [(0, 3), (1, 1), (2, 2), (3, 0)]
+        self.qi_backend.main_engine = MagicMock()
+        self.qi_backend.main_engine.mapper.current_mapping = {0: 0, 1: 1, 2: 3, 3: 2}
+        actual = self.qi_backend.simulated_to_logical(qd_id)
+        self.assertEqual(actual, expected)
+
+    def test_simulated_to_logical_no_mapper_returns_correct_result(self):
+        qd_id = 0
+        expected = 3
+        self.qi_backend.allocation_map = [(0, 3), (1, 1), (2, 2), (3, 0)]
+        self.qi_backend.main_engine = MagicMock(mapper=None)
+        actual = self.qi_backend.simulated_to_logical(qd_id)
+        self.assertEqual(actual, expected)
+
+    def test_simulated_to_logical_for_hardware_backend_returns_correct_result(self):
+        qd_id = 3
+        expected = 2
+        self.qi_backend.is_simulation_backend = False
+        self.qi_backend.main_engine = MagicMock()
+        self.qi_backend.main_engine.mapper.current_mapping = {0: 0, 1: 2, 2: 3, 3: 1}
+        actual = self.qi_backend.simulated_to_logical(qd_id)
+        self.assertEqual(actual, expected)
+
+    def test_simulated_to_logical_no_mapper_raises_runtime_error(self):
+        qd_id = 4
+        self.qi_backend.allocation_map = [(0, 3), (1, 1), (2, 2), (3, 0)]
+        self.qi_backend.main_engine = MagicMock(mapper=None)
+        self.assertRaises(RuntimeError, self.qi_backend.simulated_to_logical, qd_id)
+
+    def test_simulated_to_logical_for_hardware_backend_raises_runtime_error(self):
+        qd_id = 4
+        self.qi_backend.is_simulation_backend = False
+        self.qi_backend.main_engine = MagicMock()
+        self.qi_backend.main_engine.mapper.current_mapping = {0: 0, 1: 2, 2: 3, 3: 1}
+        self.assertRaises(RuntimeError, self.qi_backend.simulated_to_logical, qd_id)
 
     def test_get_probabilities_raises_runtime_error(self):
         api = MockApiClient()
         backend = QIBackend(quantum_inspire_api=api)
         self.assertRaises(RuntimeError, backend.get_probabilities, None)
+        self.assertRaises(RuntimeError, backend.get_probabilities_multiple_measurement, None)
 
     def test_get_probabilities_returns_correct_result(self):
         value_a = 0.4892578125
         value_b = 0.5097656250
-        self.qi_backend.measured_states = {0: value_a, 11: value_b}  # 00000000 and 00001011
+        self.qi_backend.measured_states = [{0: value_a, 11: value_b}]  # 00000000 and 00001011
         expected = {'00': value_a, '11': value_b}
         self.qi_backend.main_engine = MagicMock()
         self.qi_backend.measured_ids = [0, 1]
         self.qi_backend.allocation_map = [(0, 0), (1, 1)]
-        self.qi_backend.main_engine.mapper.current_mapping = [0, 1]
+        self.qi_backend.main_engine.mapper.current_mapping = {0: 0, 1: 1}
         actual = self.qi_backend.get_probabilities([MagicMock(id=0), MagicMock(id=1)])
         self.assertDictEqual(expected, actual)
 
     def test_get_probabilities_reversed_measurement_order_returns_correct_result(self):
         value_a = 0.4892578125
         value_b = 0.5097656250
-        self.qi_backend.measured_states = {0: value_a, 11: value_b}  # 00000000 and 00001011
+        self.qi_backend.measured_states = [{0: value_a, 11: value_b}]  # 00000000 and 00001011
         expected = {'00': value_a, '10': value_b}
         self.qi_backend.main_engine = MagicMock()
         self.qi_backend.measured_ids = [1, 0]
         self.qi_backend.allocation_map = [(0, 0), (1, 1), (2, 2)]
-        self.qi_backend.main_engine.mapper.current_mapping = [0, 1, 2, 3, 4, 5, 6, 7]
+        self.qi_backend.main_engine.mapper.current_mapping = {0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7}
         actual = self.qi_backend.get_probabilities([MagicMock(id=0), MagicMock(id=2)])
         self.assertDictEqual(expected, actual)
+
+    def test_get_probabilities_multiple_measurement_raises_runtime_error(self):
+        api = MockApiClient()
+        backend = QIBackend(quantum_inspire_api=api)
+        self.assertRaises(RuntimeError, backend.get_probabilities_multiple_measurement, None)
+
+    def test_get_probabilities_multiple_measurement_result(self):
+        class QB:
+            def __init__(self, qubit_id: int) -> None:
+                self.id: int = qubit_id
+
+        mm_result = {'id': 502,
+                     'url': 'https,//api.quantum-inspire.com/results/502/',
+                     'job': 'https,//api.quantum-inspire.com/jobs/10/',
+                     'created_at': '1900-01-01T01:00:00:00000Z',
+                     'number_of_qubits': 3,
+                     'seconds': 0.0,
+                     'raw_text': '',
+                     'raw_data_url': 'https,//api.quantum-inspire.com/results/502/raw-data/f2b6/',
+                     'histogram': [{'1': 0.5068359375, '0': 0.4931640625},
+                                   {'5': 0.4068359375, '1': 0.2, '0': 0.3931640625}],
+                     'histogram_url': 'https,//api.quantum-inspire.com/results/502/histogram/f2b6/',
+                     'measurement_mask': [[1, 0, 0], [1, 0, 1]],
+                     'quantum_states_url': 'https,//api.quantum-inspire.com/results/502/quantum-states/f2b6d/',
+                     'measurement_register_url': 'https,//api.quantum-inspire.com/results/502/f2b6d/'}
+
+        self.qi_backend.main_engine = MagicMock(mapper=None)
+        self.qi_backend.allocation_map = [(0, 0), (1, 1), (2, 2)]
+        self.qi_backend.quantum_inspire_result = mm_result
+        self.qi_backend.full_state_projection = False
+        self.qi_backend.filter_result_by_measured_qubits()
+        self.assertEqual(self.qi_backend.measured_states, [{1: 0.5068359375, 0: 0.4931640625},
+                                                           {5: 0.4068359375, 1: 0.2, 0: 0.3931640625}])
+        self.qi_backend.register_random_measurement_outcome()
+
+        nr_of_measured_bits = reduce(lambda x, y: x + y, mm_result['measurement_mask'][V1_MEASUREMENT_BLOCK_INDEX], 0)
+        self.assertEqual(self.qi_backend.main_engine.set_measurement_result.call_count, nr_of_measured_bits)
+        qureg = [QB(id) for id in range(3)]
+        probabilities = self.qi_backend.get_probabilities(qureg)
+        self.assertDictEqual(probabilities, {'101': 0.4068359375, '100': 0.2, '000': 0.3931640625})
+        probabilities_list = self.qi_backend.get_probabilities_multiple_measurement(qureg)
+        self.assertListEqual(probabilities_list, [{'100': 0.5068359375, '000': 0.4931640625},
+                                                  {'101': 0.4068359375, '100': 0.2, '000': 0.3931640625}])
 
     @patch('quantuminspire.projectq.backend_qx.get_control_count')
     def test_receive(self, function_mock):
@@ -534,7 +640,7 @@ class TestProjectQBackend(unittest.TestCase):
                         MagicMock(gate=FlushGate())]
         api = MockApiClient()
         backend = QIBackend(quantum_inspire_api=api, verbose=1)
-        backend.main_engine = MagicMock()
+        backend.main_engine = MagicMock(mapper=None)
         with patch('sys.stdout', new_callable=io.StringIO):
             backend.receive(command_list)
         self.assertEqual(backend.qasm, "")
@@ -659,11 +765,11 @@ class TestProjectQBackend(unittest.TestCase):
     def test_alloc_map_and_mapping(self):
         value_a = 0.4892578125
         value_b = 0.5097656250
-        self.qi_backend.measured_states = {0: value_a, 11: value_b}  # 00000000 and 00001011
+        self.qi_backend.measured_states = [{0: value_a, 11: value_b}]  # 00000000 and 00001011
         expected = {'00': value_a, '10': value_b}
         self.qi_backend.main_engine = MagicMock()
         self.qi_backend.measured_ids = [0, 1]  # bits 0 and 1 measured
-        self.qi_backend.main_engine.mapper.current_mapping = [0, 1]   # bits 0 and 1 are logical bits 0 and 1
+        self.qi_backend.main_engine.mapper.current_mapping = {0: 0, 1: 1}   # bits 0 and 1 are logical bits 0 and 1
         # logical bit 0 is mapped on bit 3, logical bit 1 is mapped on bit 2 in cqasm
         self.qi_backend.allocation_map = [(0, 100), (1, 110), (2, 1), (3, 0), (4, 2), (5, 3)]
         # so we get a mask of 1100 (bit 3 and bit 2)
@@ -676,11 +782,11 @@ class TestProjectQBackend(unittest.TestCase):
     def test_alloc_map_and_mapping_with_2_bits_flipped_position_in_alloc_map(self):
         value_a = 0.4892578125
         value_b = 0.5097656250
-        self.qi_backend.measured_states = {0: value_a, 11: value_b}  # 00000000 and 00001011
+        self.qi_backend.measured_states = [{0: value_a, 11: value_b}]  # 00000000 and 00001011
         expected = {'00': value_a, '01': value_b}
         self.qi_backend.main_engine = MagicMock()
         self.qi_backend.measured_ids = [0, 1]  # bits 0 and 1 measured
-        self.qi_backend.main_engine.mapper.current_mapping = [0, 1]   # bits 0 and 1 are logical bits 0 and 1
+        self.qi_backend.main_engine.mapper.current_mapping = {0: 0, 1: 1}   # bits 0 and 1 are logical bits 0 and 1
         # logical bits 0 is mapped on bit 2, logical bit 1 is mapped on bit 3 in cqasm
         self.qi_backend.allocation_map = [(0, 100), (1, 110), (2, 0), (3, 1), (4, 2), (5, 3)]
         # so we get a mask of 1100 (bit 2 and bit 3)
@@ -693,11 +799,11 @@ class TestProjectQBackend(unittest.TestCase):
     def test_alloc_map_with_alternative_mapping(self):
         value_a = 0.4892578125
         value_b = 0.5097656250
-        self.qi_backend.measured_states = {12: value_a, 59: value_b}  # 001100 and 111011
+        self.qi_backend.measured_states = [{12: value_a, 59: value_b}]  # 001100 and 111011
         expected = {'10': value_a, '11': value_b}
         self.qi_backend.main_engine = MagicMock()
         self.qi_backend.measured_ids = [0, 1]  # bits 0 and 1 measured
-        self.qi_backend.main_engine.mapper.current_mapping = [1, 4, 0]   # bits 0 and 1 are logical bits 1 and 4
+        self.qi_backend.main_engine.mapper.current_mapping = {0: 1, 1: 4}   # bits 0 and 1 are logical bits 1 and 4
         # logical bits 1 is mapped on bit 3, logical bit 4 is mapped on bit 5 in cqasm
         self.qi_backend.allocation_map = [(0, 100), (1, 110), (2, 0), (3, 1), (4, 2), (5, 4)]
         # so we get a mask of 101000 (bit 3 and bit 5)
@@ -801,7 +907,7 @@ class TestProjectQBackend(unittest.TestCase):
             self.qi_verbose_backend.measured_ids = [0]
             self.qi_verbose_backend.allocation_map = [(0, 0), (1, 1)]
             self.qi_verbose_backend.main_engine = MagicMock()
-            self.qi_verbose_backend.main_engine.mapper.current_mapping = [0, 1]
+            self.qi_verbose_backend.main_engine.mapper.current_mapping = {0: 0, 1: 1}
             self.qi_verbose_backend.run()
             std_output = std_mock.getvalue()
             actual = self.qi_verbose_backend.quantum_inspire_result
@@ -817,7 +923,7 @@ class TestProjectQBackend(unittest.TestCase):
             self.qi_backend.measured_ids = [0, 1]
             self.qi_backend.allocation_map = [(0, 0), (1, 1)]
             self.qi_backend.main_engine = MagicMock()
-            self.qi_backend.main_engine.mapper.current_mapping = [0, 1]
+            self.qi_backend.main_engine.mapper.current_mapping = {0: 0, 1: 1}
             result_mock = MagicMock()
             result_mock.get.return_value = {}
             self.api.execute_qasm.return_value = result_mock
@@ -832,7 +938,7 @@ class TestProjectQBackend(unittest.TestCase):
             self.qi_backend.allocation_map = [(0, 0), (1, 1)]
             self.qi_backend.main_engine = MagicMock()
             self.qi_backend.main_engine.active_qubits = [0, 1]
-            self.qi_backend.main_engine.mapper.current_mapping = [0, 1]
+            self.qi_backend.main_engine.mapper.current_mapping = {0: 0, 1: 1}
             result_mock = MagicMock()
             result_mock.get.return_value = {}
             self.api.execute_qasm.return_value = result_mock

@@ -9,7 +9,7 @@ For documentation on how to use Qiskit we refer to
 Specific to Quantum Inspire is the creation of the QI instance, which is used to set the authentication
 of the user and provides a Quantum Inspire backend that is used to execute the circuit.
 
-Copyright 2018-19 QuTech Delft. Licensed under the Apache License, Version 2.0.
+Copyright 2018-2022 QuTech Delft. Licensed under the Apache License, Version 2.0.
 """
 import os
 
