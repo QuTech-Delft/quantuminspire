@@ -787,8 +787,6 @@ class QuantumInspireAPI:
                                                 'text/plain'.
             ``content``             str         The content itself.
                                                 For example a cQASM program when linked to a job.
-            ``measurement_mask``    list(list)  For each measurement block a list of 0/1 (not measured/measured) for
-                                                all the qubits in the cQASM program.
             ``project``             str         Url to get the project properties for which
                                                 this asset was created.
             ``project_id``          int         The project id of the project for which this asset was created.
