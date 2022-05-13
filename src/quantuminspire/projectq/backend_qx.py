@@ -336,16 +336,16 @@ class QIBackend(BasicEngine):  # type: ignore
         :return:
             Physical position of logical qubit with id qb_id.
         """
-        if self.main_engine.mapper is not None:
-            mapping = self.main_engine.mapper.current_mapping
-            if logical_qubit_id not in mapping:
-                raise RuntimeError(f"Unknown qubit id {logical_qubit_id}. Please make sure "
-                                   f"eng.flush() was called and that the qubit "
-                                   f"was not eliminated during optimization.")
+        if self.main_engine.mapper is None:
+            return logical_qubit_id  # no mapping
 
-            return int(mapping[logical_qubit_id])
+        mapping = self.main_engine.mapper.current_mapping
+        if logical_qubit_id not in mapping:
+            raise RuntimeError(f"Unknown qubit id {logical_qubit_id}. Please make sure "
+                               f"eng.flush() was called and that the qubit "
+                               f"was not eliminated during optimization.")
 
-        return logical_qubit_id  # no mapping
+        return int(mapping[logical_qubit_id])
 
     def _physical_to_simulated(self, physical_qubit_id: int) -> int:
         """
@@ -395,18 +395,19 @@ class QIBackend(BasicEngine):  # type: ignore
         :return:
             Logical bit position of physical qubit.
         """
-        if self.main_engine.mapper is not None:
-            mapping = self.main_engine.mapper.current_mapping
-            # current_mapping is a dictionary with keys being the
-            # logical qubit ids and the values being the physical ids
-            for logical_id, physical_id in mapping.items():
-                if int(physical_id) == physical_qubit_id:
-                    return int(logical_id)
+        if self.main_engine.mapper is None:
+            return physical_qubit_id  # no mapping
 
-            raise RuntimeError(f"Unknown physical qubit id {physical_qubit_id}. Please make sure "
-                               f"eng.flush() was called and that the qubit "
-                               f"was not eliminated during optimization.")
-        return physical_qubit_id  # no mapping
+        mapping = self.main_engine.mapper.current_mapping
+        # current_mapping is a dictionary with keys being the
+        # logical qubit ids and the values being the physical ids
+        for logical_id, physical_id in mapping.items():
+            if int(physical_id) == physical_qubit_id:
+                return int(logical_id)
+
+        raise RuntimeError(f"Unknown physical qubit id {physical_qubit_id}. Please make sure "
+                           f"eng.flush() was called and that the qubit "
+                           f"was not eliminated during optimization.")
 
     def _add_delayed_measurements(self) -> None:
         """ Add the recorded measurements to the qasm algorithm.
