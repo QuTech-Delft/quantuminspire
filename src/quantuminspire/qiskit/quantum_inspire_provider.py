@@ -32,7 +32,8 @@ class QuantumInspireProvider(Provider):  # type: ignore
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        self._backends: List[QuantumInspireBackend] = []
+        self._backends: Optional[List[QuantumInspireBackend]] = None
+        self._filter: Optional[str] = None
         self._api: Optional[QuantumInspireAPI] = None
 
     def __str__(self) -> str:
@@ -58,20 +59,24 @@ class QuantumInspireProvider(Provider):  # type: ignore
         :return:
             List of backends that meet the filter requirements (is_allow == True).
         """
+        if self._backends is not None and self._filter == name:
+            return self._backends
+
         if self._api is None:
             raise QiskitBackendError('Authentication details have not been set.')
 
         available_backends = self._api.get_backend_types()
         if name is not None:
             available_backends = list(filter(lambda b: b['name'] == name, available_backends))
-        backends = []
+        self._filter = name
+        self._backends = []
         for backend in available_backends:
             if backend['is_allowed']:
                 config = copy(QuantumInspireBackend.DEFAULT_CONFIGURATION)
                 self._adjust_backend_configuration(config, backend)
-                backends.append(QuantumInspireBackend(self._api, provider=self, configuration=config))
+                self._backends.append(QuantumInspireBackend(self._api, provider=self, configuration=config))
 
-        return backends
+        return self._backends
 
     @staticmethod
     def _adjust_backend_configuration(config: QasmBackendConfiguration, backend: Dict[str, Any]) -> None:

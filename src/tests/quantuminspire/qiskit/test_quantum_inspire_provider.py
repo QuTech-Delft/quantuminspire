@@ -69,7 +69,7 @@ class TestQuantumInspireProvider(unittest.TestCase):
                               'topology': {'edges': [[1], [0]]},
                               'number_of_qubits': 2}
 
-    def test_backends(self):
+    def test_no_backends(self):
         with mock.patch('quantuminspire.qiskit.quantum_inspire_provider.QuantumInspireAPI') as api:
             quantum_inpire_provider = QuantumInspireProvider()
             with self.assertRaises(QiskitBackendError):
@@ -80,11 +80,29 @@ class TestQuantumInspireProvider(unittest.TestCase):
             authentication = BasicAuthentication(email, secret)
             api.assert_called_with(QI_URL, authentication, None)
             quantum_inpire_provider._api.get_backend_types.return_value = [self.simulator_backend_type]
-            backend = quantum_inpire_provider.get_backend(name='qi_simulator')
-            self.assertEqual('qi_simulator', backend.name())
             with self.assertRaises(QiskitBackendNotFoundError) as error:
                 quantum_inpire_provider.get_backend(name='not-quantum-inspire')
             self.assertEqual(('No backend matches the criteria',), error.exception.args)
+
+    def test_backends_return_cached(self):
+        with mock.patch('quantuminspire.qiskit.quantum_inspire_provider.QuantumInspireAPI') as api:
+            quantum_inpire_provider = QuantumInspireProvider()
+            email = 'bla@bla.bla'
+            secret = 'secret'
+            quantum_inpire_provider.set_basic_authentication(email, secret)
+            authentication = BasicAuthentication(email, secret)
+            api.assert_called_with(QI_URL, authentication, None)
+            quantum_inpire_provider._api.get_backend_types.return_value = [self.simulator_backend_type]
+            backend = quantum_inpire_provider.get_backend(name='qi_simulator')
+            self.assertEqual('qi_simulator', backend.name())
+            self.assertEqual(quantum_inpire_provider._api.get_backend_types.call_count, 1)
+            # again, return cached
+            backend = quantum_inpire_provider.get_backend(name='qi_simulator')
+            self.assertEqual('qi_simulator', backend.name())
+            self.assertEqual(quantum_inpire_provider._api.get_backend_types.call_count, 1)
+            backend = quantum_inpire_provider.get_backend()
+            self.assertEqual('qi_simulator', backend.name())
+            self.assertEqual(quantum_inpire_provider._api.get_backend_types.call_count, 2)
 
     def test_simulator_backend(self):
         with mock.patch('quantuminspire.qiskit.quantum_inspire_provider.QuantumInspireAPI') as api:

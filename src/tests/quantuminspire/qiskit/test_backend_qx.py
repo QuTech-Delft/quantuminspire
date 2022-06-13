@@ -18,6 +18,7 @@ limitations under the License.
 
 import json
 import unittest
+from collections import OrderedDict
 from unittest.mock import Mock, patch, ANY
 
 import numpy as np
@@ -133,14 +134,14 @@ class TestQiSimulatorPy(unittest.TestCase):
 
     def test_get_experiment_results_raises_simulation_error_when_no_histogram(self):
         api = Mock()
-        api.get_jobs_from_project.return_value = [{'id': 42, 'results': '{}'}]
-        api.get_result_from_job.return_value = {'histogram': [], 'raw_text': 'Error'}
+        api.get_jobs_from_project.return_value = [{'id': 42, 'results': '{}', 'user_data': 'data'}]
+        api.get_result_from_job.return_value = {'histogram': [OrderedDict()], 'raw_text': 'Simulation failed'}
         job = Mock()
         job.job_id.return_value = '42'
         simulator = QuantumInspireBackend(api, Mock())
         with self.assertRaises(QiskitBackendError) as error:
             simulator.get_experiment_results_from_all_jobs(job)
-        self.assertEqual(('Result from backend contains no histogram data!\nError',), error.exception.args)
+        self.assertEqual(('Result from backend contains no histogram data!\nSimulation failed',), error.exception.args)
 
     def test_get_experiment_results_raises_simulation_error_when_no_user_data(self):
         api = Mock()
@@ -747,7 +748,7 @@ class TestQiSimulatorPyHistogram(unittest.TestCase):
                     [{'name': 'h', 'qubits': [0]},
                      {'name': 'cx', 'qubits': [0, 1]},
                      {'name': 'measure', 'qubits': [1], 'memory': [1]}]),
-                mock_result1={'id': 1, 'histogram': [], 'execution_time_in_seconds': 2.1,
+                mock_result1={'id': 1, 'histogram': [{}], 'execution_time_in_seconds': 2.1,
                               'number_of_qubits': 2, 'raw_text': 'oopsy daisy',
                               'raw_data_url': 'http://saevar-qutech-nginx/api/results/24/raw-data/'},
                 mock_result2=[],
