@@ -287,7 +287,7 @@ class QuantumInspireBackend(Backend):  # type: ignore
         results = [self.__api.get_result_from_job(job['id']) for job in jobs]
         experiment_results = []
         for result, job in zip(results, jobs):
-            if not result.get('histogram', []):
+            if not result.get('histogram', [{}])[0]:
                 raise QiskitBackendError(
                     f"Result from backend contains no histogram data!\n{result.get('raw_text')}")
 

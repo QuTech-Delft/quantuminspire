@@ -673,10 +673,10 @@ class QIBackend(BasicEngine):  # type: ignore
             full_state_projection=self._full_state_projection
         )
 
-        if not self._quantum_inspire_result.get("histogram", []):
+        if not self._quantum_inspire_result.get("histogram", [{}])[0]:
             raw_text = self._quantum_inspire_result.get("raw_text", "no raw_text in result structure")
             raise ProjectQBackendError(
-                f"Result structure does not contain proper histogram. raw_text field: {raw_text}")
+                f"Result from backend contains no histogram data!\n{raw_text}")
 
     def _filter_result_by_measured_qubits(self) -> None:
         """ Filters the raw result by collapsing states so that unmeasured qubits are ignored.

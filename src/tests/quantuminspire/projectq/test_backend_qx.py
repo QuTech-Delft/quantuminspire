@@ -19,9 +19,10 @@ import io
 import warnings
 import json
 import coreapi
+from collections import OrderedDict
 from functools import reduce
 from unittest import mock, TestCase
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock, patch
 
 from projectq.meta import LogicalQubitIDTag
 from projectq.ops import (CNOT, NOT, Allocate, Barrier,
@@ -925,9 +926,10 @@ class TestProjectQBackend(TestCase):
             self.qi_backend.main_engine = MagicMock()
             self.qi_backend.main_engine.mapper.current_mapping = {0: 0, 1: 1}
             result_mock = MagicMock()
-            result_mock.get.return_value = {}
+            result_mock.get.return_value = [OrderedDict()]
             self.api.execute_qasm.return_value = result_mock
-            self.assertRaisesRegex(ProjectQBackendError, 'raw_text', self.qi_backend.run)
+            self.assertRaisesRegex(ProjectQBackendError, 'Result from backend contains no histogram data!',
+                                   self.qi_backend.run)
         self.api.execute_qasm.assert_called_once()
 
     @patch('quantuminspire.projectq.backend_qx.Measure')
@@ -940,7 +942,8 @@ class TestProjectQBackend(TestCase):
             self.qi_backend.main_engine.active_qubits = [0, 1]
             self.qi_backend.main_engine.mapper.current_mapping = {0: 0, 1: 1}
             result_mock = MagicMock()
-            result_mock.get.return_value = {}
+            result_mock.get.return_value = [{}]
             self.api.execute_qasm.return_value = result_mock
-            self.assertRaisesRegex(ProjectQBackendError, 'raw_text', self.qi_backend.run)
+            self.assertRaisesRegex(ProjectQBackendError, 'Result from backend contains no histogram data!',
+                                   self.qi_backend.run)
         self.api.execute_qasm.assert_called_once()
