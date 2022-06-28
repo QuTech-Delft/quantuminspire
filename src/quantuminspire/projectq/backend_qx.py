@@ -485,8 +485,8 @@ class QIBackend(BasicEngine):  # type: ignore
             self._qasm += f"\nbarrier q[{qb_str}]"
             return
 
-        # when we find a gate after measurements we don't have fsp
-        # add any delayed measurement statements
+        # When fsp is enabled and we have skipped measurements when we find a gate after these measurements,
+        # switch to non-fsp and add any delayed measurement statements.
         if self._full_state_projection and len(self._measured_ids) != 0:
             self._switch_fsp_to_nonfsp()
 
@@ -638,11 +638,6 @@ class QIBackend(BasicEngine):  # type: ignore
         if self._qasm == "":
             return
 
-        # Finally: add measurement commands for all qubits if no measurements are given.
-        # Only for simulation backends, measurements after all gate operations will perform properly in FSP.
-        if not self._measured_ids and self._is_simulation_backend:
-            self.__add_measure_all_qubits()
-
         self._finalize_qasm()
         self._execute_cqasm()
         self._filter_result_by_measured_qubits()
@@ -743,13 +738,15 @@ class QIBackend(BasicEngine):  # type: ignore
     def _get_measured_qubit_iterator(self, measurement_block_index: int) -> Iterator[int]:
         """
         Get an iterator for the measured qubits. The iterator returns the indexes of the qubits that are measured.
+        With fsp, the simulator will return all qubits as measured, but when there were measurements in the algorithm
+        we want to get these measured qubits only.
 
         :param measurement_block_index: measurement block index for multi measurement results.
 
         :return:
             Iterator which iterated the indexes of the measured qubits
         """
-        if self._full_state_projection:
+        if self._full_state_projection and len(self._measured_ids) != 0:
             bit_iterator = map(lambda bit: self._physical_to_simulated(self._logical_to_physical(bit)),
                                self._measured_ids)
         else:
@@ -788,11 +785,3 @@ class QIBackend(BasicEngine):  # type: ignore
                 self._run()
                 self._flushed = True
                 self._reset()
-
-    def __add_measure_all_qubits(self) -> None:
-        """ Adds measurements at the end of the quantum algorithm for all allocated qubits. """
-        qubits_reference = self.main_engine.active_qubits.copy()
-        qubits_counts = len(qubits_reference)
-        for _ in range(qubits_counts):
-            q = qubits_reference.pop()
-            Measure | q
