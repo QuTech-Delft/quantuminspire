@@ -221,7 +221,9 @@ class QIJob(Job):  # type: ignore
         running = len([job for job in jobs if job['status'] == 'RUNNING'])
         completed = len([job for job in jobs if job['status'] == 'COMPLETE'])
 
-        if 0 < cancelled < number_of_jobs:
+        if number_of_jobs == 0:
+            self._status = JobStatus.INITIALIZING
+        elif 0 < cancelled < number_of_jobs:
             self._status = JobStatus.ERROR
         elif cancelled == number_of_jobs:
             self._status = JobStatus.CANCELLED

@@ -25,6 +25,7 @@ from collections import defaultdict, Counter
 from typing import Any, Dict, List, Tuple, Optional, Union, TYPE_CHECKING
 
 import numpy as np
+
 from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import assemble
 from qiskit.providers import Options, BackendV1 as Backend
@@ -40,6 +41,7 @@ from quantuminspire.job import QuantumInspireJob
 from quantuminspire.qiskit.circuit_parser import CircuitToString
 from quantuminspire.qiskit.measurements import Measurements
 from quantuminspire.qiskit.qi_job import QIJob
+from quantuminspire.qiskit.serialization import serializer
 from quantuminspire.version import __version__ as quantum_inspire_version
 
 if TYPE_CHECKING:
@@ -133,6 +135,7 @@ class QuantumInspireBackend(Backend):  # type: ignore
             run_input: Union[QasmQobj, QuantumCircuit, List[QuantumCircuit]],
             shots: Optional[int] = None,
             memory: Optional[bool] = None,
+            allow_fsp: bool = True,
             **run_config: Dict[str, Any]
             ) -> QIJob:
         """ Submits a quantum job to the Quantum Inspire platform.
@@ -144,6 +147,7 @@ class QuantumInspireBackend(Backend):  # type: ignore
         :param shots: Number of repetitions of each circuit, for sampling. Default: 1024
                 or ``max_shots`` from the backend configuration, whichever is smaller.
         :param memory: If ``True``, per-shot measurement bitstrings are returned
+        :param allow_fsp: When ``False``, never submit as full_state_projection
         :param run_config: Extra arguments used to configure the run.
 
         :return:
@@ -176,6 +180,8 @@ class QuantumInspireBackend(Backend):  # type: ignore
         project_name = 'qi-sdk-project-{}'.format(identifier)
         project: Optional[Dict[str, Any]]
         project = self.__api.create_project(project_name, number_of_shots, self.__backend)
+        if not allow_fsp:  # when allow_fsp = False, we know what we do, no message needed
+            self.__api.show_fsp_warning(False)
         try:
             experiments = qobj.experiments
             job = QIJob(self, str(project['id']), self.__api)
@@ -183,7 +189,7 @@ class QuantumInspireBackend(Backend):  # type: ignore
                 measurements = Measurements.from_experiment(experiment)
                 if Backend.configuration(self).conditional:
                     self.__validate_nr_of_clbits_conditional_gates(experiment)
-                full_state_projection = Backend.configuration(self).simulator and \
+                full_state_projection = allow_fsp and Backend.configuration(self).simulator and \
                     self.__validate_full_state_projection(experiment)
                 if not full_state_projection:
                     measurements.validate_unsupported_measurements()
@@ -235,13 +241,13 @@ class QuantumInspireBackend(Backend):  # type: ignore
         return QIJob(self, job_id, self.__api)
 
     def _generate_cqasm(self, experiment: QasmQobjExperiment, measurements: Measurements,
-                        full_state_projection: bool = True) -> str:
+                        full_state_projection: bool = False) -> str:
 
         """ Generates the cQASM from the Qiskit experiment.
 
         :param experiment: The experiment that contains instructions to be converted to cQASM.
         :param measurements: The measurement instance containing measurement information and measurement functionality.
-        :param full_state_projection: When False, the experiment is not suitable for full state projection
+        :param full_state_projection: When True, measurement commands are not added to the resulting cQASM
 
         :raises QiskitBackendError: If a Qiskit instruction is not in the basis gates set of Quantum Inspire backend.
 
@@ -263,10 +269,12 @@ class QuantumInspireBackend(Backend):  # type: ignore
     def _submit_experiment(self, experiment: QasmQobjExperiment, number_of_shots: int,
                            measurements: Measurements,
                            project: Optional[Dict[str, Any]] = None,
-                           full_state_projection: bool = True) -> QuantumInspireJob:
+                           full_state_projection: bool = False) -> QuantumInspireJob:
         compiled_qasm = self._generate_cqasm(experiment, measurements, full_state_projection=full_state_projection)
-        user_data = {'name': experiment.header.name, 'memory_slots': experiment.header.memory_slots,
-                     'creg_sizes': experiment.header.creg_sizes, 'measurements': measurements.to_dict()}
+        user_data = {'name': experiment.header.name, 'metadata': serializer.serialize(experiment.header.metadata),
+                     'clbit_labels': experiment.header.clbit_labels, 'creg_sizes': experiment.header.creg_sizes,
+                     'global_phase': experiment.header.global_phase, 'memory_slots': experiment.header.memory_slots,
+                     'measurements': measurements.to_dict()}
         quantum_inspire_job = self.__api.execute_qasm_async(compiled_qasm, backend_type=self.__backend,
                                                             number_of_shots=number_of_shots, project=project,
                                                             job_name=experiment.header.name,
@@ -297,6 +305,7 @@ class QuantumInspireBackend(Backend):  # type: ignore
                     f"This job was not submitted by the SDK")
 
             user_data = json.loads(str(job.get('user_data')))
+            user_data['metadata'] = serializer.unserialize(user_data.get('metadata'))
             measurements = Measurements.from_dict(user_data.pop('measurements'))
             histogram_obj, memory_data = self.__convert_result_data(result, measurements)
             full_state_histogram_obj = self.__convert_histogram(result, measurements)
