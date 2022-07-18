@@ -1,0 +1,78 @@
+[tool.poetry]
+name = "quantuminspire"
+version = "0.1.0"
+description = "SDK for the Quantum Inspire platform."
+authors = ["Quantum Inspire <support@quantum-inspire.com>"]
+license = "Apache-2.0"
+readme = "README.md"
+homepage = "https://www.quantum-inspire.com"
+repository = "https://github.com/quantum-inspire-2"
+classifiers = [
+  'Development Status :: 4 - Beta',
+  'Programming Language :: Python :: 3',
+  'Programming Language :: Python :: 3.7',
+  'Programming Language :: Python :: 3.8',
+  'Programming Language :: Python :: 3.9',
+  'License :: OSI Approved :: Apache Software License'
+]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+
+[tool.poetry.dev-dependencies]
+pytest = {extras = ["toml"], version = "^6.2.5"}
+pytest-cov = "^3.0.0"
+black = "^21.9b0"
+isort = "^5.9.3"
+pylint = "^2.12.2"
+coverage = {extras = ["toml"], version = "^6.4.1"}
+mypy = {version = "0.950", extras = ["toml"]}
+
+[tool.pytest.ini_options]
+addopts = "-v --cov --cov-report term-missing:skip-covered --cov-report xml"
+
+[tool.coverage.run]
+branch = true
+omit = ["tests/*"]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 100
+exclude_lines = [
+    "pragma: no cover",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:"
+]
+
+[tool.black]
+line-length = 120
+
+[tool.mypy]
+warn_unused_configs = true
+disallow_any_generics = true
+disallow_subclassing_any = true
+disallow_untyped_calls = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = true
+no_implicit_reexport = true
+strict_equality = true
+ignore_missing_imports = true
+show_error_codes = true
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+line_length = 120
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
