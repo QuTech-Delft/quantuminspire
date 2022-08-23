@@ -16,6 +16,9 @@ classifiers = [
   'License :: OSI Approved :: Apache Software License'
 ]
 
+[tool.poetry.scripts]
+qi = "quantuminspire.cli.command_list:app"
+
 [[tool.poetry.source]]
 name = "gitlab"
 url = "https://gitlab.com/api/v4/projects/37640328/packages/pypi/simple/"
@@ -23,16 +26,18 @@ default = true
 
 [tool.poetry.dependencies]
 python = "^3.7"
-qutechopenql = "^0.11.0-alpha.1"
+qutechopenql = "^0.11.0-alpha.4"
+typer = {extras = ["all"], version = "^0.6.1"}
 
 [tool.poetry.dev-dependencies]
 pytest = {extras = ["toml"], version = "^6.2.5"}
 pytest-cov = "^3.0.0"
-black = "^21.9b0"
-isort = "^5.9.3"
+black = "^22.6.0"
+isort = "^5.10.1"
 pylint = "^2.12.2"
 coverage = {extras = ["toml"], version = "^6.4.1"}
-mypy = {version = "0.950", extras = ["toml"]}
+mypy = "^0.971"
+docformatter = "^1.4"
 
 [tool.pytest.ini_options]
 addopts = "-v --cov --cov-report term-missing:skip-covered --cov-report xml"
@@ -78,6 +83,9 @@ multi_line_output = 3
 include_trailing_comma = true
 force_grid_wrap = 0
 line_length = 120
+
+[tool.pylint.FORMAT]
+max-line-length = 120
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
