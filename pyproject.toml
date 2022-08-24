@@ -26,7 +26,7 @@ default = true
 
 [tool.poetry.dependencies]
 python = "^3.7"
-qutechopenql = "^0.11.0-alpha.4"
+qutechopenql = "^0.11.0-alpha.5"
 typer = {extras = ["all"], version = "^0.6.1"}
 
 [tool.poetry.dev-dependencies]
@@ -38,6 +38,7 @@ pylint = "^2.12.2"
 coverage = {extras = ["toml"], version = "^6.4.1"}
 mypy = "^0.971"
 docformatter = "^1.4"
+pytest-mock = "^3.8.2"
 
 [tool.pytest.ini_options]
 addopts = "-v --cov --cov-report term-missing:skip-covered --cov-report xml"
