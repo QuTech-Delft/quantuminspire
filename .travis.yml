@@ -4,14 +4,14 @@ matrix:
     - name: python 3.7
       python: 3.7
       if: branch = dev
-      dist: xenial
+      dist: focal
     - name: python 3.8
       python: 3.8
       if: branch = dev
-      dist: xenial
+      dist: focal
     - name: python 3.9
       python: 3.9
-      dist: xenial
+      dist: focal
     - name: python 3.10
       python: 3.10.1
       if: branch = dev
