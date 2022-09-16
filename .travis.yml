@@ -1,10 +1,6 @@
 language: python
 matrix:
   include:
-    - name: python 3.7
-      python: 3.7
-      if: branch = dev
-      dist: focal
     - name: python 3.8
       python: 3.8
       if: branch = dev
