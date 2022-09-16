@@ -77,7 +77,7 @@ def read_account(filename: str = DEFAULT_QIRC_FILE) -> Optional[str]:
         The Quantum Inspire token or None when no token is found or token is empty.
     """
     try:
-        with open(filename, 'r') as file:
+        with open(filename, 'r', encoding='utf-8') as file:
             accounts = json.load(file)
             token: Optional[str] = accounts['token']
     except (OSError, KeyError, ValueError):  # file does not exist or is empty/invalid
@@ -126,7 +126,7 @@ def save_account(token: str, filename: str = DEFAULT_QIRC_FILE) -> None:
     """
     accounts = {'token': token}
     os.makedirs(os.path.dirname(filename), exist_ok=True)
-    with open(filename, 'w') as config_file:
+    with open(filename, 'w', encoding='utf-8') as config_file:
         json.dump(accounts, config_file, indent=2)
 
 

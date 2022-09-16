@@ -55,7 +55,7 @@ class TestQIJob(unittest.TestCase):
         self.assertEqual(job_id, job.job_id())
         self.assertEqual(api, job._api)
         self.assertIsNone(job.experiments)
-        self.assertEqual(JobStatus.CANCELLED, job._status)
+        self.assertEqual(JobStatus.INITIALIZING, job._status)
 
     def test_constructor_with_qobj(self):
         api = Mock()
@@ -127,12 +127,19 @@ class TestQIJob(unittest.TestCase):
 
     def test_result_all_jobs_run(self):
         api = Mock()
-        job_id = '42'
+        api.get_job.return_value = {'name': 'all_jobs', 'status': 'COMPLETE'}
+        quantuminspire_job1 = Mock()
+        quantuminspire_job2 = Mock()
+        quantuminspire_job1.get_job_identifier.return_value = [1]
+        quantuminspire_job2.get_job_identifier.return_value = [2]
         backend = Mock()
         backend.get_experiment_results_from_all_jobs.return_value = [self.experiment_result_1, self.experiment_result_2]
         backend.backend_name = 'some backend'
-        job = QIJob(backend, job_id, api)
-        results = job.result_all_jobs()
+        job_id = '42'
+        qijob = QIJob(backend, job_id, api)
+        qijob.add_job(quantuminspire_job1)
+        qijob.add_job(quantuminspire_job2)
+        results = qijob.result_all_jobs()
 
         self.assertTrue(results.success)
         self.assertDictEqual({'counts': {'0x0': 42}}, results.data(0))
@@ -157,12 +164,16 @@ class TestQIJob(unittest.TestCase):
 
     def test_result_cancelled(self):
         api = Mock()
+        api.get_job.return_value = {'name': 'test_job', 'status': 'CANCELLED'}
         job_id = '42'
         backend = Mock()
+        quantuminspire_job = Mock()
+        quantuminspire_job.get_job_identifier.return_value = [1]
         backend.get_experiment_results_from_latest_run.return_value = [self.experiment_result_3]
         backend.backend_name = 'some backend'
-        job = QIJob(backend, job_id, api)
-        results = job.result(timeout=None).results[0]
+        qijob = QIJob(backend, job_id, api)
+        qijob.add_job(quantuminspire_job)
+        results = qijob.result(timeout=None).results[0]
         self.assertFalse(results.success)
         self.assertEqual(results.status, 'CANCELLED')
 

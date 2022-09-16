@@ -81,8 +81,7 @@ class QIResult(Result):  # type: ignore
                 result_values = self.data(key)[field_name]
                 results_list.append(result_values)
             else:
-                raise QiskitBackendError('Result does not contain {0} data for experiment "{1}"'.format(field_name,
-                                                                                                        key))
+                raise QiskitBackendError(f'Result does not contain {field_name} data for experiment "{key}"')
         return results_list
 
     def get_probabilities(self, experiment: Any = None) -> Union[Dict[str, float], List[Dict[str, float]]]:
@@ -116,7 +115,7 @@ class QIResult(Result):  # type: ignore
                 probabilities = self.data(key)["probabilities"]
                 dict_list.append(postprocess.format_counts(probabilities, header))
             else:
-                raise QiskitBackendError('No probabilities for experiment "{0}"'.format(key))
+                raise QiskitBackendError(f'No probabilities for experiment "{key}"')
 
         # Return first item of dict_list if size is 1
         if len(dict_list) == 1:
@@ -160,7 +159,7 @@ class QIResult(Result):  # type: ignore
                     dict_list.append(postprocess.format_counts(probabilities, header))
                 list_of_dict_list.append(dict_list)
             else:
-                raise QiskitBackendError('No probabilities_multiple_measurement for experiment "{0}"'.format(key))
+                raise QiskitBackendError(f'No probabilities_multiple_measurement for experiment "{key}"')
 
         # Return first item of list_dict_list if size is 1
         if len(list_of_dict_list) == 1:
@@ -192,7 +191,7 @@ class QIResult(Result):  # type: ignore
                 calibration = self.data(key)["calibration"]
                 dict_list.append(calibration)
             else:
-                raise QiskitBackendError('No calibration data for experiment "{0}"'.format(key))
+                raise QiskitBackendError(f'No calibration data for experiment "{key}"')
 
         # Return first item of dict_list if size is 1
         if len(dict_list) == 1:
