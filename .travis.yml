@@ -17,7 +17,6 @@ matrix:
       if: branch = dev
       dist: focal
 install:
-- pip install pip setuptools wheel --upgrade
 - pip install --upgrade .[qiskit,projectq,dev] coveralls
 env:
 - API_URL=https://staging.quantum-inspire.com
