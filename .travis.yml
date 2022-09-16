@@ -4,7 +4,7 @@ matrix:
     - name: python 3.7
       python: 3.7
       if: branch = dev
-      dist: focal
+      dist: xenial
     - name: python 3.8
       python: 3.8
       if: branch = dev
@@ -15,8 +15,9 @@ matrix:
     - name: python 3.10
       python: 3.10.1
       if: branch = dev
-      dist: jammy
+      dist: focal
 install:
+- pip install pip setuptools wheel --upgrade
 - pip install --upgrade .[qiskit,projectq,dev] coveralls
 env:
 - API_URL=https://staging.quantum-inspire.com
