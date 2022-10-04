@@ -22,6 +22,7 @@ from collections import OrderedDict
 from unittest.mock import Mock, patch, ANY
 
 import numpy as np
+
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.compiler import assemble
 from qiskit.providers.models import QasmBackendConfiguration
@@ -165,18 +166,17 @@ class TestQiSimulatorPy(unittest.TestCase):
         number_of_shots = 100
         experiment = self._circuit_to_experiment(qc)
         api = Mock()
+        simulator = QuantumInspireBackend(api, Mock())
         api.get_result_from_job.return_value = {'id': 1, 'histogram': [{'1': 0.6, '3': 0.4}],
                                                 'execution_time_in_seconds': 2.1, 'number_of_qubits': 2,
                                                 'raw_data_url': 'http://saevar-qutech-nginx/api/results/24/raw-data/'}
         api.get_raw_data_from_result.return_value = [[[1, 0]]] * 60 + [[[1, 1]]] * 40
         jobs = self._basic_job_dictionary
         measurements = Measurements.from_experiment(experiment)
-        user_data = {'name': 'name', 'memory_slots': 2,
-                     'creg_sizes': [['c1', 2]], 'measurements': measurements.to_dict()}
+        user_data = simulator.generate_user_data(experiment, measurements)
         jobs['user_data'] = json.dumps(user_data)
         api.get_jobs_from_project.return_value = [jobs]
         job = QIJob('backend', '42', api)
-        simulator = QuantumInspireBackend(api, Mock())
         experiment_result = simulator.get_experiment_results_from_all_jobs(job)[0]
         self.assertEqual(experiment_result.data.counts['0x1'], 60)
         self.assertEqual(experiment_result.data.counts['0x3'], 40)
@@ -205,14 +205,14 @@ class TestQiSimulatorPy(unittest.TestCase):
         experiment = self._circuit_to_experiment(qc)
 
         api = Mock()
+        simulator = QuantumInspireBackend(api, Mock())
         api.get_result_from_job.return_value = {'id': 1, 'histogram': [{'1': 0.6, '3': 0.4}],
                                                 'execution_time_in_seconds': 2.1, 'number_of_qubits': 2,
                                                 'raw_data_url': 'http://saevar-qutech-nginx/api/results/24/raw-data/'}
         api.get_raw_data_from_result.return_value = [[[1, 0]]] * 60 + [[[1, 1]]] * 40
         job = self._basic_job_dictionary
         measurements = Measurements.from_experiment(experiment)
-        user_data = {'name': 'name', 'memory_slots': 2,
-                     'creg_sizes': [['c1', 2]], 'measurements': measurements.to_dict()}
+        user_data = simulator.generate_user_data(experiment, measurements)
         job['user_data'] = json.dumps(user_data)
 
         api.get_job.side_effect = [job]
@@ -221,7 +221,6 @@ class TestQiSimulatorPy(unittest.TestCase):
         qijob = QIJob('backend', '42', api)
         qijob.add_job(quantuminspire_job)
 
-        simulator = QuantumInspireBackend(api, Mock())
         experiment_result = simulator.get_experiment_results_from_latest_run(qijob)[0]
         self.assertEqual(experiment_result.data.counts['0x1'], 60)
         self.assertEqual(experiment_result.data.counts['0x3'], 40)
@@ -252,6 +251,7 @@ class TestQiSimulatorPy(unittest.TestCase):
         experiment = self._circuit_to_experiment(qc)
 
         api = Mock()
+        simulator = QuantumInspireBackend(api, Mock())
         api.get_result_from_job.return_value = {'id': 1, 'histogram': [{'0': 0.5, '3': 0.5}],
                                                 'execution_time_in_seconds': 2.1, 'number_of_qubits': 2,
                                                 'raw_data_url': 'http://saevar-qutech-nginx/api/results/24/raw-data/'}
@@ -259,12 +259,10 @@ class TestQiSimulatorPy(unittest.TestCase):
         api.get_backend_type_by_name.return_value = {'max_number_of_shots': 4096}
         jobs = self._basic_job_dictionary
         measurements = Measurements.from_experiment(experiment)
-        user_data = {'name': 'name', 'memory_slots': 2,
-                     'creg_sizes': [['c1', 2]], 'measurements': measurements.to_dict()}
+        user_data = simulator.generate_user_data(experiment, measurements)
         jobs['user_data'] = json.dumps(user_data)
         api.get_jobs_from_project.return_value = [jobs]
         job = QIJob('backend', '42', api)
-        simulator = QuantumInspireBackend(api, Mock())
         experiment_result = simulator.get_experiment_results_from_all_jobs(job)[0]
         self.assertEqual(experiment_result.data.probabilities['0x0'], 0.5)
         self.assertEqual(experiment_result.data.probabilities['0x3'], 0.5)
@@ -295,6 +293,7 @@ class TestQiSimulatorPy(unittest.TestCase):
 
             experiment = self._circuit_to_experiment(qc)
             api = Mock()
+            simulator = QuantumInspireBackend(api, Mock())
             api.get_result_from_job.return_value = {'id': 1, 'histogram': [{'0': 0.2, '1': 0.3, '2': 0.4, '3': 0.1}],
                                                     'execution_time_in_seconds': 2.1, 'number_of_qubits': 2,
                                                     'raw_data_url':
@@ -302,12 +301,10 @@ class TestQiSimulatorPy(unittest.TestCase):
             api.get_raw_data_from_result.return_value = []
             jobs = self._basic_job_dictionary
             measurements = Measurements.from_experiment(experiment)
-            user_data = {'name': 'name', 'memory_slots': 2,
-                         'creg_sizes': [['c1', 2]], 'measurements': measurements.to_dict()}
+            user_data = simulator.generate_user_data(experiment, measurements)
             jobs['user_data'] = json.dumps(user_data)
             api.get_jobs_from_project.return_value = [jobs]
             job = QIJob('backend', '42', api)
-            simulator = QuantumInspireBackend(api, Mock())
             experiment_result = simulator.get_experiment_results_from_all_jobs(job)[0]
             # Exactly one value in memory
             self.assertEqual(len(experiment_result.data.memory), 1)
@@ -492,8 +489,27 @@ class TestQiSimulatorPy(unittest.TestCase):
 
             simulator.run(qc, 25)
             experiment = self._circuit_to_experiment(qc)
-        result_experiment.assert_called_once_with(experiment, 25, ANY, project=project,
-                                                  full_state_projection=True)
+            result_experiment.assert_called_once_with(experiment, 25, ANY, project=project,
+                                                      full_state_projection=True)
+
+    def test_fsp_flag_overridden_by_parameter(self):
+        with patch.object(QuantumInspireBackend, "_submit_experiment", return_value=Mock()) as result_experiment:
+            api = Mock()
+            project = {'id': 43}
+            api.create_project.return_value = project
+            api.execute_qasm_async.return_value = 43
+            api.get_backend_type_by_name.return_value = {'max_number_of_shots': 1024}
+            simulator = QuantumInspireBackend(api, Mock())
+
+            # an algorithm that can be run as fsp
+            qc = QuantumCircuit(2, 2)
+            qc.cx(0, 1)
+            qc.x(0)
+
+            simulator.run(qc, 1000, allow_fsp=False)
+            experiment = self._circuit_to_experiment(qc)
+            result_experiment.assert_called_once_with(experiment, 1000, ANY, project=project,
+                                                      full_state_projection=False)
 
     def test_for_non_fsp_hardware_backend(self):
         with patch.object(QuantumInspireBackend, "_submit_experiment", return_value=Mock()) as result_experiment:
@@ -608,9 +624,9 @@ class TestQiSimulatorPyHistogram(unittest.TestCase):
                            expected_histogram_prob, expected_memory):
         self.mock_api.set(mock_result1, mock_result2)
         jobs = self._basic_job_dictionary
-        measurements = Measurements.from_experiment(QasmQobjExperiment.from_dict(single_experiment))
-        user_data = {'name': 'name', 'memory_slots': 2,
-                     'creg_sizes': [['c1', 2]], 'measurements': measurements.to_dict()}
+        experiment = QasmQobjExperiment.from_dict(single_experiment)
+        measurements = Measurements.from_experiment(experiment)
+        user_data = self.simulator.generate_user_data(experiment, measurements)
         jobs['user_data'] = json.dumps(user_data)
         self.mock_api.get_jobs_from_project.return_value = [jobs]
         job = QIJob('backend', '42', self.mock_api)
@@ -636,8 +652,10 @@ class TestQiSimulatorPyHistogram(unittest.TestCase):
     def _instructions_to_experiment(instructions, memory_slots=2):
         experiment_dictionary = {'instructions': instructions,
                                  'header': {'n_qubits': 2, 'memory_slots': memory_slots,
-                                            'name': 'test_circuit', 'qubit_labels': [['q0', 0], ['q0', 1]],
-                                            'clbit_labels': [['c0', 0], ['c1', 1]]}
+                                            'name': 'test_circuit',
+                                            'qubit_labels': [['q0', 0], ['q0', 1]], 'qreg_sizes': [['q', 2]],
+                                            'clbit_labels': [['c0', 0], ['c1', 1]], 'creg_sizes': [['c', 2]],
+                                            'metadata': {}, 'global_phase': 0.08}
                                  }
         return experiment_dictionary
 
@@ -729,8 +747,9 @@ class TestQiSimulatorPyHistogram(unittest.TestCase):
                                                 {'name': 'measure', 'qubits': [0], 'memory': [0]},
                                                 {'name': 'measure', 'qubits': [1], 'memory': [0]}],
                                'header': {'n_qubits': 2, 'memory_slots': 2, 'name': 'test',
-                                          'qubit_labels': [['q0', 0], ['q0', 1]],
-                                          'clbit_labels': [['c0', 0], ['c1', 1]]}
+                                          'qubit_labels': [['q0', 0], ['q0', 1]], 'qreg_sizes': [['q', 2]],
+                                          'clbit_labels': [['c0', 0], ['c1', 1]], 'creg_sizes': [['c', 2]],
+                                          'metadata': {}, 'global_phase': 0.11}
                                },
             mock_result1={'id': 1, 'histogram': [{'0': 0.1, '1': 0.2, '2': 0.3, '3': 0.4}],
                           'execution_time_in_seconds': 2.1, 'number_of_qubits': 2,

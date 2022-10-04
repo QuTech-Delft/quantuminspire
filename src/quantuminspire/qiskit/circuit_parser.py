@@ -28,11 +28,11 @@ from quantuminspire.qiskit.measurements import Measurements
 class CircuitToString:
     """ Contains the translational elements to convert the Qiskit circuits to cQASM code."""
 
-    def __init__(self, basis_gates: List[str], measurements: Measurements, full_state_projection: bool = True) -> None:
+    def __init__(self, basis_gates: List[str], measurements: Measurements, full_state_projection: bool = False) -> None:
         """
-        :param basis_gates: List of basis gates from the configuration
+        :param basis_gates: List of basis gates from the configuration.
         :param measurements: The measured qubits/classical bits and the number of qubits and classical bits.
-        :param full_state_projection: Whether or not to use full state projection.
+        :param full_state_projection: When full_state_projection = True, no measurement statements are added.
         """
         self.basis_gates = basis_gates.copy()
         if len(self.basis_gates) > 0:
