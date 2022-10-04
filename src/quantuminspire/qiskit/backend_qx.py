@@ -147,8 +147,9 @@ class QuantumInspireBackend(Backend):  # type: ignore
                 on the backend. A :class:`~qiskit.qobj.QasmQobj` object is also supported but is deprecated.
         :param shots: Number of repetitions of each circuit, for sampling. Default: 1024
                 or ``max_shots`` from the backend configuration, whichever is smaller.
-        :param memory: If ``True``, per-shot measurement bitstrings are returned
-        :param allow_fsp: When ``False``, never submit as full_state_projection
+        :param memory: If ``True``, per-shot measurement bitstrings are returned.
+        :param allow_fsp: When ``False``, never submit as full_state_projection. This means: turn off possible
+                optimization when running a deterministic circuit on a simulator backend.
         :param run_config: Extra arguments used to configure the run.
 
         :return:
@@ -181,7 +182,9 @@ class QuantumInspireBackend(Backend):  # type: ignore
         project_name = f'qi-sdk-project-{identifier}'
         project: Optional[Dict[str, Any]]
         project = self.__api.create_project(project_name, number_of_shots, self.__backend)
-        if not allow_fsp:  # when allow_fsp = False, we know what we do, no message needed
+        if not allow_fsp:
+            # method run was called explicitly with allow_fsp = False. That is: full_state_projection is turned off.
+            # No need to attend the user that the execution may take longer
             self.__api.show_fsp_warning(False)
         try:
             experiments = qobj.experiments
@@ -277,12 +280,11 @@ class QuantumInspireBackend(Backend):  # type: ignore
         :return:
             A structure with user data that is needed to process the result of the experiment.
         """
-        user_data = {'name': experiment.header.name, 'metadata': serializer.serialize(experiment.header.metadata),
-                     'qubit_labels': experiment.header.qubit_labels, 'qreg_sizes': experiment.header.qreg_sizes,
-                     'clbit_labels': experiment.header.clbit_labels, 'creg_sizes': experiment.header.creg_sizes,
-                     'global_phase': experiment.header.global_phase, 'memory_slots': experiment.header.memory_slots,
-                     'measurements': measurements.to_dict()}
-        return user_data
+        return {'name': experiment.header.name, 'metadata': serializer.serialize(experiment.header.metadata),
+                'qubit_labels': experiment.header.qubit_labels, 'qreg_sizes': experiment.header.qreg_sizes,
+                'clbit_labels': experiment.header.clbit_labels, 'creg_sizes': experiment.header.creg_sizes,
+                'global_phase': experiment.header.global_phase, 'memory_slots': experiment.header.memory_slots,
+                'measurements': measurements.to_dict()}
 
     def _submit_experiment(self, experiment: QasmQobjExperiment, number_of_shots: int,
                            measurements: Measurements,
