@@ -255,7 +255,7 @@ class TestQiSimulatorPy(unittest.TestCase):
         api.get_result_from_job.return_value = {'id': 1, 'histogram': [{'0': 0.5, '3': 0.5}],
                                                 'execution_time_in_seconds': 2.1, 'number_of_qubits': 2,
                                                 'raw_data_url': 'http://saevar-qutech-nginx/api/results/24/raw-data/'}
-        api.get_raw_data_from_result.return_value = []
+        api.get_raw_data_from_result.return_value = [[]]
         api.get_backend_type_by_name.return_value = {'max_number_of_shots': 4096}
         jobs = self._basic_job_dictionary
         measurements = Measurements.from_experiment(experiment)
@@ -298,7 +298,7 @@ class TestQiSimulatorPy(unittest.TestCase):
                                                     'execution_time_in_seconds': 2.1, 'number_of_qubits': 2,
                                                     'raw_data_url':
                                                         'http://saevar-qutech-nginx/api/results/24/raw-data/'}
-            api.get_raw_data_from_result.return_value = []
+            api.get_raw_data_from_result.return_value = [[]]
             jobs = self._basic_job_dictionary
             measurements = Measurements.from_experiment(experiment)
             user_data = simulator.generate_user_data(experiment, measurements)

@@ -536,8 +536,7 @@ class QuantumInspireBackend(Backend):  # type: ignore
         converts this list of single shot values to hexadecimal memory data according the Qiskit spec.
         From this memory data the counts histogram is constructed by counting the single shot values.
 
-        :param result: The result output from the Quantum Inspire backend with full-
-                       state projection histogram output.
+        :param result: The result output from the Quantum Inspire backend with full state projection histogram output.
         :param measurements: The measurement instance containing measurement information and measurement functionality.
         :param raw_data_list: The raw data from the result for this experiment.
 
@@ -578,8 +577,7 @@ class QuantumInspireBackend(Backend):  # type: ignore
         When shots = 1, the backend returns an empty list as raw_data. This is a special case handled in method
         __convert_result_single_shot.
 
-        :param result: The result output from the Quantum Inspire backend with full-
-                       state projection histogram output.
+        :param result: The result output from the Quantum Inspire backend with full state projection histogram output.
         :param measurements: The measurement instance containing measurement information and measurement functionality.
 
         :return:
@@ -587,7 +585,7 @@ class QuantumInspireBackend(Backend):  # type: ignore
             the second result is a list with converted hexadecimal memory values for each shot.
         """
         raw_data_list = self.__api.get_raw_data_from_result(result['id'])
-        if raw_data_list:
+        if len(raw_data_list) > 0 and raw_data_list[0]:
             result_histogram_data, result_memory_data = self.__convert_result_multiple_shots(result, measurements,
                                                                                              raw_data_list)
         else:
