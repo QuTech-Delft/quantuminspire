@@ -3,6 +3,7 @@ name: Nightly SDK build
 on:
   schedule:
     - cron: "59 23 * * 1-5"
+  push:
 
 jobs:
   test:
