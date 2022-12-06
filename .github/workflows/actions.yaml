@@ -17,10 +17,11 @@ jobs:
           python -m pip install --upgrade poetry
           poetry install
       - name: Test formatting
-        run: |
-          poetry run black --check .
-          poetry run isort --check .
-          poetry run docformatter --check -r .
+        run: poetry run black --check .
+      - name: Test sorting
+        run: poetry run isort --check .
+      - name: Test docstring formatting
+        run: poetry run docformatter --check --config ./pyproject.toml .
       - name: Test with pytest
         run: poetry run pytest .
       - name: Static code analysis

@@ -25,6 +25,13 @@ def test_create(openql: MagicMock) -> None:
     openql.set_option.assert_called_once()
 
 
+def test_get_program_name(openql: MagicMock, mock_file: None) -> None:
+    with Circuit(platform_name="platform", program_name="program") as c:
+        pass
+
+    assert c.program_name == "program"
+
+
 def test_create_empty_circuit(openql: MagicMock, mock_file: None) -> None:
     with Circuit(platform_name="platform", program_name="program") as c:
         pass

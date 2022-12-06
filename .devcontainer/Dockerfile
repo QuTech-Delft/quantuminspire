@@ -1,21 +1,47 @@
-# See here for image contents: https://github.com/microsoft/vscode-dev-containers/tree/v0.241.1/containers/python-3/.devcontainer/base.Dockerfile
+FROM python:3.10-bullseye as base
 
-ARG VARIANT="3.10-bullseye"
-FROM mcr.microsoft.com/vscode/devcontainers/python:0-${VARIANT}
-
+# Build environment variables
 ENV DEBIAN_FRONTEND noninteractive
-ENV PATH /home/vscode/.local/bin:$PATH
 
-# [Optional] If your pip requirements rarely change, uncomment this section to add them to the image.
-# COPY requirements.txt /tmp/pip-tmp/
-# RUN pip3 --disable-pip-version-check --no-cache-dir install -r /tmp/pip-tmp/requirements.txt \
-#    && rm -rf /tmp/pip-tmp
+# Set up user
+ARG USER=vagrant
+ENV PATH /home/${USER}/.local/bin:$PATH
+RUN groupadd -r ${USER} && useradd -m -r -s /bin/bash -g ${USER} ${USER}
 
-# Install additional OS packages.
-RUN apt-get update && \
-    apt-get -y install --no-install-recommends \
-    libsm6 libxext6
+USER ${USER}
 
-USER vscode
-RUN curl -sSL https://install.python-poetry.org | python3 - && \
-    poetry config virtualenvs.create false
+# Install poetry
+RUN curl -sSL https://install.python-poetry.org | POETRY_VERSION=1.1.15 python3 -
+
+FROM base as vscode
+
+CMD ["/bin/sh", "-c", "'while sleep 1000; do :; done'"]
+
+FROM base as vagrant
+
+USER root
+
+RUN apt-get update -y && \
+    apt-get install -y --no-install-recommends \
+    ssh \
+    sudo \
+    ca-certificates \
+    curl \
+    gnupg \
+    lsb-release \
+    openssh-client && \
+    apt-get clean
+
+RUN echo -n "${USER}:${USER}" | chpasswd && \
+    echo "${USER} ALL = NOPASSWD: ALL" > /etc/sudoers.d/${USER} && \
+    chmod 440 /etc/sudoers.d/${USER}
+
+RUN sed -i -e 's/Defaults.*requiretty/#&/' /etc/sudoers && \
+    sed -i -e 's/\(UsePAM \)yes/\1 no/' /etc/ssh/sshd_config && \
+    mkdir -p /var/run/sshd /home/${USER}/.ssh/
+
+RUN curl https://raw.githubusercontent.com/mitchellh/vagrant/master/keys/vagrant.pub >> /home/${USER}/.ssh/authorized_keys
+
+EXPOSE 22
+
+CMD ["/usr/sbin/sshd", "-D"]

@@ -28,9 +28,8 @@ def create_algorithm(
 ) -> None:
     """Create a new algorithm.
 
-    Create an algorithm with a name. Depending on the hybrid flag,
-    either the "hybrid algorithm" or the "quantum circuit" template is
-    used.
+    Create an algorithm with a name. Depending on the hybrid flag, either the "hybrid algorithm" or the "quantum
+    circuit" template is used.
     """
     if hybrid:
         typer.echo(f"Creating hybrid quantum/classical algorithm '{name}'")
@@ -42,8 +41,7 @@ def create_algorithm(
 def commit_algorithm() -> None:
     """Commit algorithm to API.
 
-    The algorithm is uploaded to the remote API. The algorithm is
-    selected on the folder, the user is currently in.
+    The algorithm is uploaded to the remote API. The algorithm is selected on the folder, the user is currently in.
     """
     typer.echo("Commit algorithm to API")
 
@@ -52,9 +50,8 @@ def commit_algorithm() -> None:
 def delete_algorithm(remote: bool = typer.Option(False, help="Also delete the remote resource")) -> None:
     """Delete algorithm.
 
-    The algorithm is deleted from the local disk. The algorithm is
-    selected on the folder, the user is currently in. Based on the
-    argument, the remote algorithm can also be deleted.
+    The algorithm is deleted from the local disk. The algorithm is selected on the folder, the user is currently in.
+    Based on the argument, the remote algorithm can also be deleted.
     """
     if remote:
         typer.echo("Delete local and remote algorithm")
@@ -66,10 +63,8 @@ def delete_algorithm(remote: bool = typer.Option(False, help="Also delete the re
 def describe_algorithm(remote: bool = typer.Option(False, help="Use the remote resource as source of truth")) -> None:
     """Describe algorithm.
 
-    Describe the algorithm. Both metadata and data from the algorithm
-    itself are shown. The algorithm is selected on the folder the user
-    is currently in. Based on the argument, the remote algorithm can
-    also be described.
+    Describe the algorithm. Both metadata and data from the algorithm itself are shown. The algorithm is selected on the
+    folder the user is currently in. Based on the argument, the remote algorithm can also be described.
     """
     if remote:
         typer.echo("Describe remote algorithm")
@@ -81,10 +76,8 @@ def describe_algorithm(remote: bool = typer.Option(False, help="Use the remote r
 def execute_algorithm() -> None:
     """Execute algorithm.
 
-    Send all selected algorithms to the configured execution environment
-    (e.g. remote or native). If no algorithms are selected, the
-    algorithm in the directory the user is currently in will be
-    "selected" and executed.
+    Send all selected algorithms to the configured execution environment (e.g. remote or native). If no algorithms are
+    selected, the algorithm in the directory the user is currently in will be "selected" and executed.
     """
     typer.echo("Execute algorithm")
 
@@ -97,12 +90,9 @@ def list_algorithms(
 ) -> None:
     """List algorithms.
 
-    List all algorithms known on that environment for the currently
-    selected project. If no environment is chosen (either local or
-    remote), an empty list is shown. If both environments are chosen,
-    both lists are merged with all algorithms being distinct. With the
-    project flag, a different project can be selected to list all
-    algorithms for.
+    List all algorithms known on that environment for the currently selected project. If no environment is chosen
+    (either local or remote), an empty list is shown. If both environments are chosen, both lists are merged with all
+    algorithms being distinct. With the project flag, a different project can be selected to list all algorithms for.
     """
     if local and remote:
         target = "remote and local"
@@ -122,11 +112,9 @@ def list_algorithms(
 def select_algorithm() -> None:
     """Select algorithm.
 
-    Select an algorithm for execution. The selected algorithms will be
-    added to a `BatchRun` on execution. If the algorithm has already
-    been selected before, the algorithm will be unselected on re-calling
-    this method (i.e. the method acts as a toggle). The algorithm is
-    selected on the folder the user is currently in.
+    Select an algorithm for execution. The selected algorithms will be added to a `BatchRun` on execution. If the
+    algorithm has already been selected before, the algorithm will be unselected on re-calling this method (i.e. the
+    method acts as a toggle). The algorithm is selected on the folder the user is currently in.
     """
     typer.echo("Select algorithm")
 
@@ -135,8 +123,7 @@ def select_algorithm() -> None:
 def get_config(key: str = typer.Argument(..., help="The name of the configuration to get.")) -> None:
     """Get config.
 
-    Get the configured value via a key. If no explicit value is set, the
-    default value will be returned.
+    Get the configured value via a key. If no explicit value is set, the default value will be returned.
     """
     typer.echo(f"Get config for '{key}'")
 
@@ -160,8 +147,7 @@ def set_config(
 ) -> None:
     """Set config.
 
-    Set a key value combination for the configuration. Both the key and
-    value are validated.
+    Set a key value combination for the configuration. Both the key and value are validated.
     """
     typer.echo(f"Set config '{key}={value}'")
 
@@ -170,9 +156,8 @@ def set_config(
 def create_project(name: str = typer.Argument(..., help="The name of the project")) -> None:
     """Create project.
 
-    Create a project based on the name. This project is only created
-    locally at first. The sync method will upload the project to the
-    remote target.
+    Create a project based on the name. This project is only created locally at first. The sync method will upload the
+    project to the remote target.
     """
     typer.echo(f"Create project '{name}'")
 
@@ -181,8 +166,7 @@ def create_project(name: str = typer.Argument(..., help="The name of the project
 def delete_project(remote: bool = typer.Option(False, help="Also delete the remote resource")) -> None:
     """Delete project.
 
-    Delete a project from disk. Based on the argument, the remote
-    project can also be deleted.
+    Delete a project from disk. Based on the argument, the remote project can also be deleted.
     """
     if remote:
         typer.echo("Delete remote and local project")
@@ -194,9 +178,8 @@ def delete_project(remote: bool = typer.Option(False, help="Also delete the remo
 def describe_project(remote: bool = typer.Option(False, help="Use the remote resource as source of truth")) -> None:
     """Describe project.
 
-    Describe the project. Both metadata and data from the project itself
-    are shown. Based on the argument, the remote project can also be
-    described.
+    Describe the project. Both metadata and data from the project itself are shown. Based on the argument, the remote
+    project can also be described.
     """
     if remote:
         typer.echo("Describe remote project")
@@ -211,10 +194,8 @@ def list_projects(
 ) -> None:
     """List project.
 
-    List all projects known on that environment. If no environment is
-    chosen (either local or remote), an empty list is shown. If both
-    environments are chosen, both lists are merged with all projects
-    being distinct.
+    List all projects known on that environment. If no environment is chosen (either local or remote), an empty list is
+    shown. If both environments are chosen, both lists are merged with all projects being distinct.
     """
     if local and remote:
         target = "remote and local"
@@ -234,9 +215,8 @@ def sync_projects(
 ) -> None:
     """Sync project.
 
-    All projects from the original location are synced to the
-    `destination`. In the case of existing projects, the metadata of the
-    target project is updated.
+    All projects from the original location are synced to the `destination`. In the case of existing projects, the
+    metadata of the target project is updated.
     """
     typer.echo(f"Sync projects with {dest}")
 
@@ -249,9 +229,8 @@ def login(
 ) -> None:
     """Log in to Quantum Inspire.
 
-    Log in to the Quantum Inspire platform. The host can be overwritten,
-    so that the user can connect to different instances. If no host is
-    specified, the production environment will be used.
+    Log in to the Quantum Inspire platform. The host can be overwritten, so that the user can connect to different
+    instances. If no host is specified, the production environment will be used.
     """
     typer.echo(f"Login to {host}")
 
@@ -264,8 +243,7 @@ def logout(
 ) -> None:
     """Log out of Quantum Inspire.
 
-    Log out of a Quantum Inspire platform. This option will delete the
-    local information needed for authentication, for a specific host. If
-    no host is specified, the production environment will be used.
+    Log out of a Quantum Inspire platform. This option will delete the local information needed for authentication, for
+    a specific host. If no host is specified, the production environment will be used.
     """
     typer.echo(f"Logout from {host}")

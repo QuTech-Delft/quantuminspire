@@ -1,5 +1,4 @@
 """Module containing the Quantum Circuit class."""
-
 from pathlib import Path
 from types import TracebackType
 from typing import Optional, Type
@@ -9,11 +8,10 @@ from openql import Kernel, Platform, Program
 
 
 class Circuit:
-    """A container object, interacting with OpenQL and storing cQASM
-    internally.
+    """A container object, interacting with OpenQL and storing cQASM internally.
 
-    A circuit wraps OpenQL to handle the boilerplate code for platform,
-    program and kernels. These objects can still be used.
+    A circuit wraps OpenQL to handle the boilerplate code for platform, program and kernels. These objects can still be
+    used.
     """
 
     def __init__(self, platform_name: str, program_name: str) -> None:
@@ -25,6 +23,15 @@ class Circuit:
         self._openql_program: Optional[Program] = None
         self._openql_kernels: list[Kernel] = []
         self._cqasm: str = ""
+
+    @property
+    def program_name(self) -> str:
+        """Return the name of the quantum circuit.
+
+        Returns:
+            The string representation of the quantum circuit name.
+        """
+        return self._program_name
 
     @property
     def qasm(self) -> str:
@@ -51,13 +58,10 @@ class Circuit:
     def finalize(self) -> None:
         """Finalize the quantum circuit.
 
-        After finishing writing the quantum circuit various actions are
-        performed to generate the actual cQASM circuit. First, the used
-        number of qubits is determined, based on the various kernels. It
-        is assumed that the qubits will be reused over the various
-        kernels. This creates an OpenQL program, to which the various
-        kernels are added. Finally, the program is compiled and the
-        generated cQASM file is processed to an internal variable.
+        After finishing writing the quantum circuit various actions are performed to generate the actual cQASM circuit.
+        First, the used number of qubits is determined, based on the various kernels. It is assumed that the qubits will
+        be reused over the various kernels. This creates an OpenQL program, to which the various kernels are added.
+        Finally, the program is compiled and the generated cQASM file is processed to an internal variable.
         """
         self._openql_program = openql.Program(self._program_name, self._openql_platform, self.max_number_of_qubits)
         for kernel in self._openql_kernels:
@@ -89,8 +93,7 @@ class Circuit:
     def init_kernel(self, name: str, number_of_qubits: int) -> Kernel:
         """Initialize an OpenQL kernel.
 
-        A new OpenQL kernel is created and added to an internal list
-        (ordered) of kernels. This list will be used to
+        A new OpenQL kernel is created and added to an internal list (ordered) of kernels. This list will be used to
         compile the final program (in order).
 
         Args:

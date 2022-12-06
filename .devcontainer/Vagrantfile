@@ -1,0 +1,19 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+ENV['VAGRANT_DEFAULT_PROVIDER'] = "docker"
+Vagrant.configure("2") do |config|
+  # Configuration of the virtual machine
+  config.vm.define "workspace", primary: true do |workspace|
+    workspace.vm.provider :docker do |d|
+      d.build_dir = __dir__
+      d.name = "docker-sdk"
+      d.remains_running = true
+      d.has_ssh = true
+    end
+
+    # Sync folders between host and guest system
+    workspace.vm.synced_folder ".", "/vagrant", disabled: true
+    workspace.vm.synced_folder "../", "/workspaces/quantuminspire2"
+  end
+end

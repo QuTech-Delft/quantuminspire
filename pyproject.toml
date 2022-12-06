@@ -28,6 +28,7 @@ default = true
 python = "^3.7"
 qutechopenql = "^0.11.0-alpha.5"
 typer = {extras = ["all"], version = "^0.6.1"}
+compute-api-client = {git = "https://github.com/qutech-delft/compute-api-client.git"}
 
 [tool.poetry.dev-dependencies]
 pytest = {extras = ["toml"], version = "^6.2.5"}
@@ -84,6 +85,11 @@ multi_line_output = 3
 include_trailing_comma = true
 force_grid_wrap = 0
 line_length = 120
+
+[tool.docformatter]
+recursive = true
+wrap-summaries = 120
+wrap-descriptions = 120
 
 [tool.pylint.FORMAT]
 max-line-length = 120
