@@ -1,7 +1,7 @@
 """Module containing the Quantum Circuit class."""
 from pathlib import Path
 from types import TracebackType
-from typing import Optional, Type
+from typing import List, Optional, Type
 
 import openql
 from openql import Kernel, Platform, Program
@@ -21,7 +21,7 @@ class Circuit:
         self._program_name = program_name
         self._openql_platform = Platform(self._platform_name, "none")
         self._openql_program: Optional[Program] = None
-        self._openql_kernels: list[Kernel] = []
+        self._openql_kernels: List[Kernel] = []
         self._cqasm: str = ""
 
     @property

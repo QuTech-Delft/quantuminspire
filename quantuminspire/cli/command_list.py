@@ -218,7 +218,7 @@ def sync_projects(
     All projects from the original location are synced to the `destination`. In the case of existing projects, the
     metadata of the target project is updated.
     """
-    typer.echo(f"Sync projects with {dest}")
+    typer.echo(f"Sync projects with {dest.value}")
 
 
 @app.command("login")

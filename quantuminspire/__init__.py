@@ -3,9 +3,8 @@
 SDK for the Quantum Inspire platform.
 """
 
+from contextlib import suppress
 from importlib.metadata import PackageNotFoundError, version
 
-try:
+with suppress(PackageNotFoundError):
     __version__ = version(__name__)
-except PackageNotFoundError:  # pragma: no cover
-    pass

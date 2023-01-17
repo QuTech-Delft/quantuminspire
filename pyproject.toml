@@ -10,36 +10,36 @@ repository = "https://github.com/quantum-inspire-2"
 classifiers = [
   'Development Status :: 4 - Beta',
   'Programming Language :: Python :: 3',
-  'Programming Language :: Python :: 3.7',
   'Programming Language :: Python :: 3.8',
   'Programming Language :: Python :: 3.9',
+  'Programming Language :: Python :: 3.10',
+  'Programming Language :: Python :: 3.11',
   'License :: OSI Approved :: Apache Software License'
 ]
 
 [tool.poetry.scripts]
 qi = "quantuminspire.cli.command_list:app"
 
-[[tool.poetry.source]]
-name = "gitlab"
-url = "https://gitlab.com/api/v4/projects/37640328/packages/pypi/simple/"
-default = true
-
 [tool.poetry.dependencies]
-python = "^3.7"
-qutechopenql = "^0.11.0-alpha.5"
+python = "^3.8"
 typer = {extras = ["all"], version = "^0.6.1"}
-compute-api-client = {git = "https://github.com/qutech-delft/compute-api-client.git"}
+qutechopenql = "^0.11.1"
+qi-compute-api-client = "^0.1.0"
 
 [tool.poetry.dev-dependencies]
 pytest = {extras = ["toml"], version = "^6.2.5"}
 pytest-cov = "^3.0.0"
 black = "^22.6.0"
 isort = "^5.10.1"
-pylint = "^2.12.2"
+pylint = "^2.15.10"
 coverage = {extras = ["toml"], version = "^6.4.1"}
 mypy = "^0.971"
 docformatter = "^1.4"
 pytest-mock = "^3.8.2"
+
+[tool.poetry.group.dev.dependencies]
+isort = "^5.11.4"
+black = "^22.12.0"
 
 [tool.pytest.ini_options]
 addopts = "-v --cov --cov-report term-missing:skip-covered --cov-report xml"

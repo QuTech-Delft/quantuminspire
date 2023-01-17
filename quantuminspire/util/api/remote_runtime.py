@@ -54,6 +54,7 @@ class RemoteRuntime(BaseRuntime):
     """
 
     def __init__(self) -> None:
+        super().__init__()
         self._configuration = Configuration(host="https://staging.qi2.quantum-inspire.com")
 
     def run(self, circuit: Circuit) -> None:

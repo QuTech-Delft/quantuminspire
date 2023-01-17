@@ -1,0 +1,30 @@
+name: Publish Python 🐍 distributions 📦 to TestPyPI
+
+on:
+  release:
+    types:
+      - created
+
+jobs:
+  publish:
+    name: Publish Python 🐍 distributions 📦 to TestPyPI
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.8"
+      - name: Install poetry
+        uses: abatilo/actions-poetry@v2
+        with:
+          poetry-version: "1.3.2"
+      - name: Version poetry package
+        run: poetry version "${{  github.ref_name }}"
+      - name: Build poetry package
+        run: poetry build
+      - name: Publish distribution 📦 to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+           password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+           repository_url: https://test.pypi.org/legacy/
