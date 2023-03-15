@@ -40,11 +40,12 @@ def json_config_settings(settings: BaseSettings) -> Any:
 
 class Settings(BaseSettings):
     """The settings class for the Quantum Inspire persistent configuration."""
-    auths: str = "auths"
 
+    auths: str = "auths"
 
     class Config:  # pylint: disable=too-few-public-methods
         """The configuration class for the Settings class."""
+
         env_file_encoding = "utf-8"
         env_prefix = "QI2_"
         json_config_file = Path.joinpath(Path.home(), ".quantuminspire", "config.json")
