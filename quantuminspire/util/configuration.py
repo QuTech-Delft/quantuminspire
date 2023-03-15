@@ -38,7 +38,7 @@ def json_config_settings(settings: BaseSettings) -> Any:
     return json.loads(json_config_file.read_text(encoding))
 
 
-class Settings(BaseSettings):
+class Settings(BaseSettings):  # pylint: disable=too-few-public-methods
     """The settings class for the Quantum Inspire persistent configuration."""
 
     auths: str = "auths"
