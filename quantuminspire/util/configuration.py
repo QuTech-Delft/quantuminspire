@@ -17,7 +17,6 @@ def ensure_config_file_exists(file_path: Path, file_encoding: Optional[str]) -> 
     if not file_path.exists():
         file_path.parent.mkdir(parents=True, exist_ok=True)
         file_path.open("w", encoding=file_encoding).write("{}")
-    return None
 
 
 def json_config_settings(settings: BaseSettings) -> Any:
@@ -40,9 +39,12 @@ def json_config_settings(settings: BaseSettings) -> Any:
 
 
 class Settings(BaseSettings):
+    """The settings class for the Quantum Inspire persistent configuration."""
     auths: str = "auths"
 
-    class Config:
+
+    class Config:  # pylint: disable=too-few-public-methods
+        """The configuration class for the Settings class."""
         env_file_encoding = "utf-8"
         env_prefix = "QI2_"
         json_config_file = Path.joinpath(Path.home(), ".quantuminspire", "config.json")
