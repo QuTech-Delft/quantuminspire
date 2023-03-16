@@ -47,8 +47,8 @@ class TestCreate:
         file_secret_settings = MagicMock()
         assert configuration.Settings.Config.customise_sources(init_settings, env_settings, file_secret_settings) == (
             init_settings,
-            configuration.json_config_settings,
             env_settings,
+            configuration.json_config_settings,
             file_secret_settings,
         )
 

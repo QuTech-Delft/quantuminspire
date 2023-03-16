@@ -66,7 +66,7 @@ class Settings(BaseSettings):  # pylint: disable=too-few-public-methods
             """
             return (
                 init_settings,
-                json_config_settings,
                 env_settings,
+                json_config_settings,
                 file_secret_settings,
             )
