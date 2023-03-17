@@ -29,12 +29,10 @@ def json_config_settings(settings: BaseSettings) -> Any:
         A dictionary with the setting variables from the JSON file.
     """
     encoding: Optional[str] = settings.Config.env_file_encoding
-    json_config_file: Path = settings.Config.json_config_file  # type: ignore
+    json_config_file: Path = settings.Config.json_config_file  # type: ignore[attr-defined]
 
     ensure_config_file_exists(json_config_file, encoding)
 
-    # The next stmt will fail if the json_config_file is something else then a regular file, and, of course, if the
-    # file is not a valid JSON file.
     return json.loads(json_config_file.read_text(encoding))
 
 
@@ -61,7 +59,7 @@ class Settings(BaseSettings):  # pylint: disable=too-few-public-methods
 
             Returns:
                 The original sources, with
-                - the JSON file as source added after the initial settings and before the configuration settings.
+                - the JSON file as source added after the env settings and before the file secret settings.
                 The order determines the priority!
             """
             return (
