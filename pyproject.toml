@@ -34,7 +34,7 @@ black = "^22.6.0"
 isort = "^5.10.1"
 pylint = "^2.17.1"
 coverage = {extras = ["toml"], version = "^7.2.2"}
-mypy = "^0.971"
+mypy = "^1.1"
 docformatter = "^1.4"
 pytest-mock = "^3.8.2"
 
