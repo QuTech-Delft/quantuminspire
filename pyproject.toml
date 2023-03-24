@@ -28,7 +28,7 @@ qi-compute-api-client = "^0.1.0"
 pydantic = "^1.10.5"
 
 [tool.poetry.dev-dependencies]
-pytest = {extras = ["toml"], version = "^6.2.5"}
+pytest = {extras = ["toml"], version = "^7.2.2"}
 pytest-cov = "^3.0.0"
 black = "^22.6.0"
 isort = "^5.10.1"
