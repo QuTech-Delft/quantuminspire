@@ -1,4 +1,4 @@
-name: Test Python 🐍 package 📦
+name: Tests
 
 on:
   push:
@@ -7,8 +7,34 @@ on:
   pull_request:
 
 jobs:
-  test:
-    name: Test Python 🐍 package 📦
+  lint:
+    name: Static analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      - name: Install poetry
+        uses: abatilo/actions-poetry@v2
+        with:
+          poetry-version: "1.3.2"
+      - name: Install dependencies
+        run: poetry install
+      - name: Test formatting
+        run: poetry run black --check .
+      - name: Test sorting
+        run: poetry run isort --check .
+      - name: Test docstring formatting
+        run: poetry run docformatter --check --config ./pyproject.toml .
+      - name: Static code analysis
+        run: poetry run mypy .
+      - name: Run pylint
+        run: poetry run pylint quantuminspire
+  unit-test:
+    name: Unit testing
+    needs: lint
     strategy:
       fail-fast: false
       matrix:
@@ -36,15 +62,22 @@ jobs:
           poetry-version: "1.3.2"
       - name: Install dependencies
         run: poetry install
-      - name: Test formatting
-        run: poetry run black --check .
-      - name: Test sorting
-        run: poetry run isort --check .
-      - name: Test docstring formatting
-        run: poetry run docformatter --check --config ./pyproject.toml .
       - name: Test with pytest
         run: poetry run pytest .
-      - name: Static code analysis
-        run: poetry run mypy .
-      - name: Run pylint
-        run: poetry run pylint quantuminspire
+  complete:
+    # see https://github.community/t/status-check-for-a-matrix-jobs/127354/7
+    name: Report status
+    needs: [lint, unit-test]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check all job status
+        # see https://docs.github.com/en/actions/reference/context-and-expression-syntax-for-github-actions#needs-context
+        # see https://stackoverflow.com/a/67532120/4907315
+        if: >-
+          ${{
+               contains(needs.*.result, 'failure')
+            || contains(needs.*.result, 'cancelled')
+            || contains(needs.*.result, 'skipped')
+          }}
+        run: exit 1
