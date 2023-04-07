@@ -79,6 +79,9 @@ no_implicit_reexport = true
 strict_equality = true
 ignore_missing_imports = true
 show_error_codes = true
+plugins = [
+    "pydantic.mypy"
+]
 
 [tool.isort]
 profile = "black"
@@ -98,3 +101,6 @@ max-line-length = 120
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pydantic-mypy]
+warn_untyped_fields = true

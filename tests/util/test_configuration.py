@@ -53,5 +53,5 @@ class TestCreate:
         )
 
     def test_settings_from_init(self) -> None:
-        settings = configuration.Settings(auths="authorisations")
-        assert settings.auths == "authorisations"
+        settings = configuration.Settings(auths={"example.com": {"user_id": "1"}})
+        assert settings.auths.items() >= {"example.com": {"user_id": "1"}}.items()

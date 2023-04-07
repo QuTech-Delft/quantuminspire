@@ -2,7 +2,7 @@
 
 import json
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 
 from pydantic import BaseSettings
 
@@ -39,7 +39,7 @@ def json_config_settings(settings: BaseSettings) -> Any:
 class Settings(BaseSettings):  # pylint: disable=too-few-public-methods
     """The settings class for the Quantum Inspire persistent configuration."""
 
-    auths: str = "auths"
+    auths: Dict[str, Dict[str, Any]]
 
     class Config:  # pylint: disable=too-few-public-methods
         """The configuration class for the Settings class."""
