@@ -5,13 +5,15 @@ from typing import Optional
 import typer
 from typer import Typer
 
-app = Typer(add_completion=False)
-algorithms_app = Typer()
+app = Typer(add_completion=False, no_args_is_help=True)
+algorithms_app = Typer(no_args_is_help=True)
 app.add_typer(algorithms_app, name="algorithms", help="Manage algorithms")
-configuration_app = Typer()
+configuration_app = Typer(no_args_is_help=True)
 app.add_typer(configuration_app, name="config", help="Manage configuration")
-projects_app = Typer()
+projects_app = Typer(no_args_is_help=True)
 app.add_typer(projects_app, name="projects", help="Manage projects")
+files_app = Typer(no_args_is_help=True)
+app.add_typer(files_app, name="files", help="Manage files")
 
 
 class Destination(str, Enum):
@@ -63,8 +65,8 @@ def delete_algorithm(remote: bool = typer.Option(False, help="Also delete the re
 def describe_algorithm(remote: bool = typer.Option(False, help="Use the remote resource as source of truth")) -> None:
     """Describe algorithm.
 
-    Describe the algorithm. Both metadata and data from the algorithm itself are shown. The algorithm is selected on the
-    folder the user is currently in. Based on the argument, the remote algorithm can also be described.
+    Describe the algorithm. Both metadata and data from the algorithm itself are shown. The algorithm is selected on
+    the folder the user is currently in. Based on the argument, the remote algorithm can also be described.
     """
     if remote:
         typer.echo("Describe remote algorithm")
@@ -219,6 +221,16 @@ def sync_projects(
     metadata of the target project is updated.
     """
     typer.echo(f"Sync projects with {dest.value}")
+
+
+@files_app.command("upload")
+def upload_files(name: str = typer.Argument(..., help="The name of the file to upload")) -> None:
+    """Upload a file to the QI API.
+
+    Upload a Hybrid Quantum/Classical Algorithm to the Quantum Inspire API. This file is marked as a hybrid algorithm
+    when sent to the API.
+    """
+    typer.echo(f"Upload file with name: {name}")
 
 
 @app.command("login")

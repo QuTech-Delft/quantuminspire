@@ -55,7 +55,7 @@ def mocked_settings(mocker: MockerFixture) -> Generator[MagicMock, None, None]:
 
 def test_create(configuration: MagicMock, mocked_settings: MagicMock) -> None:
     _ = RemoteRuntime()
-    configuration.assert_called_once_with(host=ANY, api_key=1)
+    configuration.assert_called_once_with(host=ANY, api_key={"user": "1"})
 
 
 def test_run(api_client: MagicMock, compute_api_client: None, mocked_settings: MagicMock) -> None:

@@ -59,13 +59,15 @@ class Circuit:
         """Finalize the quantum circuit.
 
         After finishing writing the quantum circuit various actions are performed to generate the actual cQASM circuit.
-        First, the used number of qubits is determined, based on the various kernels. It is assumed that the qubits will
-        be reused over the various kernels. This creates an OpenQL program, to which the various kernels are added.
-        Finally, the program is compiled and the generated cQASM file is processed to an internal variable.
+        First, the used number of qubits is determined, based on the various kernels. It is assumed that the qubits
+        will be reused over the various kernels. This creates an OpenQL program, to which the various kernels are
+        added. Finally, the program is compiled and the generated cQASM file is processed to an internal variable.
         """
         self._openql_program = openql.Program(self._program_name, self._openql_platform, self.max_number_of_qubits)
         for kernel in self._openql_kernels:
             self._openql_program.add_kernel(kernel)
+        self._openql_program.get_compiler().set_option("initialqasmwriter.cqasm_version", "1.0")
+        self._openql_program.get_compiler().set_option("initialqasmwriter.with_metadata", "no")
         self._openql_program.compile()
         self._cqasm = self._process_cqasm_file()
 

@@ -27,7 +27,7 @@ jobs:
       - name: Test sorting
         run: poetry run isort --check .
       - name: Test docstring formatting
-        run: poetry run docformatter --check --config ./pyproject.toml .
+        run: poetry run docformatter --check --recursive --wrap-summaries=119 --wrap-descriptions=119 .
       - name: Static code analysis
         run: poetry run mypy .
       - name: Run pylint

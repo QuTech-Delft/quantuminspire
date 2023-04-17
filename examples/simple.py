@@ -9,6 +9,8 @@ with Circuit(platform_name="spin-2", program_name="prgm1") as c:
     k = c.init_kernel("new_kernel", 2)
     k.x(0)
     k.hadamard(1)
+    k.measure(0)
+    k.measure(1)
 
 runtime = RemoteRuntime()
 

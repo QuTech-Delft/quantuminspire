@@ -24,21 +24,17 @@ qi = "quantuminspire.cli.command_list:app"
 python = "^3.8"
 typer = {extras = ["all"], version = "^0.7.0"}
 qutechopenql = "^0.11.1"
-qi-compute-api-client = "^0.1.0"
 pydantic = "^1.10.7"
+qi-compute-api-client = {git = "https://github.com/QuTech-Delft/compute-api-client.git"}
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 pytest = {extras = ["toml"], version = "^7.3.0"}
 pytest-cov = "^4.0.0"
-black = "^22.6.0"
-isort = "^5.10.1"
 pylint = "^2.17.2"
 coverage = {extras = ["toml"], version = "^7.2.3"}
 mypy = "^1.2"
-docformatter = "^1.4"
+docformatter = "1.4"
 pytest-mock = "^3.8.2"
-
-[tool.poetry.group.dev.dependencies]
 isort = "^5.11.4"
 black = "^22.12.0"
 
@@ -89,11 +85,6 @@ multi_line_output = 3
 include_trailing_comma = true
 force_grid_wrap = 0
 line_length = 120
-
-[tool.docformatter]
-recursive = true
-wrap-summaries = 120
-wrap-descriptions = 120
 
 [tool.pylint.FORMAT]
 max-line-length = 120
