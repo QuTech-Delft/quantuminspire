@@ -453,7 +453,7 @@ class CircuitToString:
         """ Translates the U1(lambda) element to U3(0, 0, lambda).
 
         A copy of the circuit is made to prevent
-        side-effects for the caller.
+        side effects for the caller.
 
         :param stream: The string-io stream to where the resulting cQASM is written.
         :param instruction: The Qiskit instruction to translate to cQASM.
@@ -468,7 +468,7 @@ class CircuitToString:
         """ Translates the binary-controlled U1(lambda) element to U3(0, 0, lambda).
 
         A copy of the circuit is
-        made to prevent side-effects for the caller.
+        made to prevent side effects for the caller.
 
         :param stream: The string-io stream to where the resulting cQASM is written.
         :param instruction: The Qiskit instruction to translate to cQASM.
@@ -501,38 +501,6 @@ class CircuitToString:
 
         """
         CircuitToString._c_u1(stream, instruction, binary_control)
-
-    @staticmethod
-    def _u2(stream: StringIO, instruction: QasmQobjInstruction) -> None:
-        """ Translates the U2(phi, lambda) element to U3(pi/2, phi, lambda).
-
-        A copy of the circuit is made to prevent
-        side-effects for the caller.
-
-        :param stream: The string-io stream to where the resulting cQASM is written.
-        :param instruction: The Qiskit instruction to translate to cQASM.
-
-        """
-        temp_instruction = copy.deepcopy(instruction)
-        temp_instruction.params.insert(0, np.pi/2)
-        CircuitToString._u3(stream, temp_instruction)
-
-    @staticmethod
-    def _c_u2(stream: StringIO, instruction: QasmQobjInstruction, binary_control: str) -> None:
-        """ Translates the binary-controlled U2(phi, lambda) element to U3(pi/2, phi, lambda).
-
-        A copy of the
-        circuit is made to prevent side-effects for the caller.
-
-        :param stream: The string-io stream to where the resulting cQASM is written.
-        :param instruction: The Qiskit instruction to translate to cQASM.
-        :param binary_control: The multi-bits control string. The gate is executed when all specified classical bits
-        are 1.
-
-        """
-        temp_instruction = copy.deepcopy(instruction)
-        temp_instruction.params.insert(0, np.pi/2)
-        CircuitToString._c_u3(stream, temp_instruction, binary_control)
 
     @staticmethod
     def _u3(stream: StringIO, instruction: QasmQobjInstruction) -> None:

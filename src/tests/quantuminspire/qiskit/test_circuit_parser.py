@@ -51,7 +51,7 @@ class TestQiCircuitToString(unittest.TestCase):
                                       'memory_slots': number_of_qubits,
                                       'compiled_circuit_qasm': ''},
                            'config': {'coupling_map': 'all-to-all',
-                                      'basis_gates': 'x,y,z,h,rx,ry,rz,s,cx,ccx,u1,p,u2,u3,id,snapshot',
+                                      'basis_gates': 'x,y,z,h,rx,ry,rz,s,cx,ccx,p,id,snapshot',
                                       'n_qubits': number_of_qubits}}
         experiment = qiskit.qobj.QasmQobjExperiment.from_dict(experiment_dict)
         for instruction in experiment.instructions:
@@ -455,72 +455,6 @@ class TestQiCircuitToString(unittest.TestCase):
         self.assertTrue('not b[2,3]\nC-Rz b[0,1,2,3], q[1], -0.333333\nC-Ry b[0,1,2,3], q[1], 0.123456\nC-Rz b[0,1,2,3],'
                         ' q[1], 0.654321\nnot b[2,3]\n' in result)
 
-    def test_generate_cqasm_correct_output_gate_u1_deprecated(self):
-        # Qiskit u1 is deprecated from 0.16.0. u1 -> p
-        # As long as it is available we need to support it.
-        qc = QuantumCircuit(2, 2)
-        qc.u1(np.pi / 2, 0)
-        result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('Rz q[0], 1.570796\n' in result)
-
-        qc = QuantumCircuit(2, 2)
-        qc.u1(np.pi / 4, 1)
-        result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('Rz q[1], 0.785398\n' in result)
-
-        qc = QuantumCircuit(3, 3)
-        qc.u1(-np.pi / 4, 2)
-        result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('Rz q[2], -0.785398\n' in result)
-
-        qc = QuantumCircuit(3, 3)
-        qc.u1(0.123456, 2)
-        result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('Rz q[2], 0.123456\n' in result)
-
-        qc = QuantumCircuit(2, 2)
-        qc.u1(0, 0)
-        result = self._generate_cqasm_from_circuit(qc)
-        self.assertFalse('q[0]' in result)
-
-    def test_generate_cqasm_correct_output_conditional_gate_u1_deprecated(self):
-        # Qiskit u1 is deprecated from 0.16.0. u1 -> p
-        # As long as it is available we need to support it.
-        q = QuantumRegister(4, "q")
-        c = ClassicalRegister(4, "c")
-        qc = QuantumCircuit(q, c, name="test")
-        qc.u1(np.pi / 2, 0).c_if(c, 3)
-        result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[2,3]\nC-Rz b[0,1,2,3], q[0], 1.570796\nnot b[2,3]\n' in result)
-
-        q = QuantumRegister(4, "q")
-        c = ClassicalRegister(4, "c")
-        qc = QuantumCircuit(q, c, name="test")
-        qc.u1(np.pi / 4, 1).c_if(c, 3)
-        result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[2,3]\nC-Rz b[0,1,2,3], q[1], 0.785398\nnot b[2,3]\n' in result)
-
-        q = QuantumRegister(4, "q")
-        c = ClassicalRegister(4, "c")
-        qc = QuantumCircuit(q, c, name="test")
-        qc.u1(-np.pi / 4, 2).c_if(c, 3)
-        result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[2,3]\nC-Rz b[0,1,2,3], q[2], -0.785398\nnot b[2,3]\n' in result)
-
-        q = QuantumRegister(4, "q")
-        c = ClassicalRegister(4, "c")
-        qc = QuantumCircuit(q, c, name="test")
-        qc.u1(0.123456, 2).c_if(c, 3)
-        result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[2,3]\nC-Rz b[0,1,2,3], q[2], 0.123456\nnot b[2,3]\n' in result)
-
-        q = QuantumRegister(4, "q")
-        c = ClassicalRegister(4, "c")
-        qc = QuantumCircuit(q, c, name="test")
-        qc.u1(0, 0).c_if(c, 3)
-        result = self._generate_cqasm_from_circuit(qc)
-        self.assertFalse('q[0]' in result)
-
     def test_generate_cqasm_correct_output_gate_p(self):
         qc = QuantumCircuit(2, 2)
         qc.p(np.pi / 2, 0)
@@ -637,62 +571,6 @@ class TestQiCircuitToString(unittest.TestCase):
         result = self._generate_cqasm_from_circuit(qc)
         self.assertTrue('not b[2,3]\nC-Ry b[0,1,2,3], q[0], 1.570796\nnot b[2,3]\n' in result)
 
-    def test_generate_cqasm_correct_output_gate_u2_deprecated(self):
-        # Qiskit u2 is deprecated from 0.16.0. u2(a, b) -> u(pi/2, a, b)
-        # As long as it is available we need to support it.
-        qc = QuantumCircuit(2, 2)
-        qc.u2(np.pi, np.pi / 2, 0)
-        result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('Rz q[0], 1.570796\nRy q[0], 1.570796\nRz q[0], 3.141593\n' in result)
-
-        qc = QuantumCircuit(2, 2)
-        qc.u2(0, np.pi, 1)
-        result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('Rz q[1], 3.141593\nRy q[1], 1.570796\n' in result)
-
-        qc = QuantumCircuit(3, 3)
-        qc.u2(0.123456, -0.654321, 2)
-        result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('Rz q[2], -0.654321\nRy q[2], 1.570796\nRz q[2], 0.123456\n' in result)
-
-        qc = QuantumCircuit(3, 3)
-        qc.u2(0, 0, 0)
-        result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('Ry q[0], 1.570796\n' in result)
-
-    def test_generate_cqasm_correct_output_conditional_gate_u2_deprecated(self):
-        # Qiskit u2 is deprecated from 0.16.0. u2(a, b) -> u(pi/2, a, b)
-        # As long as it is available we need to support it.
-        q = QuantumRegister(4, "q")
-        c = ClassicalRegister(4, "c")
-        qc = QuantumCircuit(q, c, name="test")
-        qc.u2(np.pi, np.pi / 2, 0).c_if(c, 3)
-        result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[2,3]\nC-Rz b[0,1,2,3], q[0], 1.570796\nC-Ry b[0,1,2,3], q[0], 1.570796\nC-Rz b[0,1,2,3], q[0],'
-                        ' 3.141593\nnot b[2,3]\n' in result)
-
-        q = QuantumRegister(4, "q")
-        c = ClassicalRegister(4, "c")
-        qc = QuantumCircuit(q, c, name="test")
-        qc.u2(0, np.pi, 1).c_if(c, 3)
-        result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[2,3]\nC-Rz b[0,1,2,3], q[1], 3.141593\nC-Ry b[0,1,2,3], q[1], 1.570796\nnot b[2,3]\n' in result)
-
-        q = QuantumRegister(4, "q")
-        c = ClassicalRegister(4, "c")
-        qc = QuantumCircuit(q, c, name="test")
-        qc.u2(0.123456, -0.654321, 2).c_if(c, 3)
-        result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[2,3]\nC-Rz b[0,1,2,3], q[2], -0.654321\nC-Ry b[0,1,2,3], q[2], 1.570796\nC-Rz b[0,1,2,3], q[2],'
-                        ' 0.123456\nnot b[2,3]\n' in result)
-
-        q = QuantumRegister(4, "q")
-        c = ClassicalRegister(4, "c")
-        qc = QuantumCircuit(q, c, name="test")
-        qc.u2(0, 0, 0).c_if(c, 3)
-        result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[2,3]\nC-Ry b[0,1,2,3], q[0], 1.570796\nnot b[2,3]\n' in result)
-
     def test_generate_cqasm_correct_output_gate_u3(self):
         # Qiskit u3 is deprecated from 0.16.0. u3 -> u
         qc = QuantumCircuit(2, 2)
@@ -756,74 +634,6 @@ class TestQiCircuitToString(unittest.TestCase):
         c = ClassicalRegister(4, "c")
         qc = QuantumCircuit(q, c, name="test")
         qc.u(0, 0, 0, 0).c_if(c, 3)
-        result = self._generate_cqasm_from_circuit(qc)
-        self.assertFalse('q[0]' in result)
-
-    def test_generate_cqasm_correct_output_gate_u3_deprecated(self):
-        # Qiskit u3 is deprecated from 0.16.0. u3 -> u
-        # As long as it is available we need to support it.
-        qc = QuantumCircuit(2, 2)
-        qc.u3(1, 2, 3, 0)
-        result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('Rz q[0], 3.000000\nRy q[0], 1.000000\nRz q[0], 2.000000\n' in result)
-
-        qc = QuantumCircuit(2, 2)
-        qc.u3(0.123456, 0.654321, -0.333333, 1)
-        result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('Rz q[1], -0.333333\nRy q[1], 0.123456\nRz q[1], 0.654321\n' in result)
-
-        qc = QuantumCircuit(2, 2)
-        qc.u3(0, 0.654321, 0, 1)
-        result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('Rz q[1], 0.654321\n' in result)
-
-        qc = QuantumCircuit(3, 3)
-        qc.u3(0.654321, 0, 0, 2)
-        result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('Ry q[2], 0.654321\n' in result)
-
-        qc = QuantumCircuit(2, 2)
-        qc.u3(0, 0, 0, 0)
-        result = self._generate_cqasm_from_circuit(qc)
-        self.assertFalse('q[0]' in result)
-
-    def test_generate_cqasm_correct_output_conditional_gate_u3_deprecated(self):
-        # Qiskit u3 is deprecated from 0.16.0. u3 -> u
-        # As long as it is available we need to support it.
-        q = QuantumRegister(4, "q")
-        c = ClassicalRegister(4, "c")
-        qc = QuantumCircuit(q, c, name="test")
-        qc.u3(1, 2, 3, 0).c_if(c, 3)
-        result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[2,3]\nC-Rz b[0,1,2,3], q[0], 3.000000\nC-Ry b[0,1,2,3], q[0], 1.000000\nC-Rz b[0,1,2,3], q[0],'
-                        ' 2.000000\nnot b[2,3]\n' in result)
-
-        q = QuantumRegister(4, "q")
-        c = ClassicalRegister(4, "c")
-        qc = QuantumCircuit(q, c, name="test")
-        qc.u3(0.123456, 0.654321, -0.333333, 1).c_if(c, 3)
-        result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[2,3]\nC-Rz b[0,1,2,3], q[1], -0.333333\nC-Ry b[0,1,2,3], q[1], 0.123456\nC-Rz b[0,1,2,3], q[1],'
-                        ' 0.654321\nnot b[2,3]\n' in result)
-
-        q = QuantumRegister(4, "q")
-        c = ClassicalRegister(4, "c")
-        qc = QuantumCircuit(q, c, name="test")
-        qc.u3(0, 0.654321, 0, 1).c_if(c, 3)
-        result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[2,3]\nC-Rz b[0,1,2,3], q[1], 0.654321\nnot b[2,3]\n' in result)
-
-        q = QuantumRegister(4, "q")
-        c = ClassicalRegister(4, "c")
-        qc = QuantumCircuit(q, c, name="test")
-        qc.u3(0.654321, 0, 0, 2).c_if(c, 3)
-        result = self._generate_cqasm_from_circuit(qc)
-        self.assertTrue('not b[2,3]\nC-Ry b[0,1,2,3], q[2], 0.654321\nnot b[2,3]\n' in result)
-
-        q = QuantumRegister(4, "q")
-        c = ClassicalRegister(4, "c")
-        qc = QuantumCircuit(q, c, name="test")
-        qc.u3(0, 0, 0, 0).c_if(c, 3)
         result = self._generate_cqasm_from_circuit(qc)
         self.assertFalse('q[0]' in result)
 

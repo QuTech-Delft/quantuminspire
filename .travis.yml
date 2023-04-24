@@ -12,6 +12,10 @@ matrix:
       python: 3.10.1
       if: branch = dev
       dist: focal
+    - name: python 3.11
+      python: 3.11.1
+      if: branch = dev
+      dist: focal
 install:
 - pip install --upgrade .[qiskit,projectq,dev] coveralls
 env:
