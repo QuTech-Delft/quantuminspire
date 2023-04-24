@@ -282,4 +282,4 @@ cython_debug/
 
 # End of https://www.toptal.com/developers/gitignore/api/python,intellij+all,visualstudiocode,vagrant
 
-quantuminspire/sdk/output
+quantuminspire/**/output

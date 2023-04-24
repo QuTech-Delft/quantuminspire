@@ -4,10 +4,13 @@ from types import TracebackType
 from typing import List, Optional, Type
 
 import openql
+from compute_api_client import AlgorithmType, CompileStage
 from openql import Kernel, Platform, Program
 
+from quantuminspire.sdk.models.base_algorithm import BaseAlgorithm
 
-class Circuit:
+
+class Circuit(BaseAlgorithm):
     """A container object, interacting with OpenQL and storing cQASM internally.
 
     A circuit wraps OpenQL to handle the boilerplate code for platform, program and kernels. These objects can still be
@@ -15,32 +18,25 @@ class Circuit:
     """
 
     def __init__(self, platform_name: str, program_name: str) -> None:
+        super().__init__(platform_name, program_name)
         self._output_dir = Path(__file__).parent.absolute() / "output"
         openql.set_option("output_dir", str(self._output_dir))
-        self._platform_name = platform_name
-        self._program_name = program_name
         self._openql_platform = Platform(self._platform_name, "none")
         self._openql_program: Optional[Program] = None
         self._openql_kernels: List[Kernel] = []
         self._cqasm: str = ""
 
     @property
-    def program_name(self) -> str:
-        """Return the name of the quantum circuit.
-
-        Returns:
-            The string representation of the quantum circuit name.
-        """
-        return self._program_name
+    def content(self) -> str:
+        return self._cqasm
 
     @property
-    def qasm(self) -> str:
-        """Return the quantum circuit.
+    def content_type(self) -> str:
+        return str(AlgorithmType.QUANTUM)
 
-        Returns:
-            The string representation of the quantum circuit.
-        """
-        return self._cqasm
+    @property
+    def compile_stage(self) -> str:
+        return str(CompileStage.NONE)
 
     def __enter__(self) -> "Circuit":
         self.initialize()

@@ -78,6 +78,9 @@ show_error_codes = true
 plugins = [
     "pydantic.mypy"
 ]
+exclude = [
+    "examples/"
+]
 
 [tool.isort]
 profile = "black"

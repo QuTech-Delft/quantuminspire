@@ -20,7 +20,6 @@ from compute_api_client import (
     Algorithm,
     AlgorithmIn,
     AlgorithmsApi,
-    AlgorithmType,
     ApiClient,
     BatchRun,
     BatchRunIn,
@@ -28,7 +27,6 @@ from compute_api_client import (
     Commit,
     CommitIn,
     CommitsApi,
-    CompileStage,
     Configuration,
     File,
     FileIn,
@@ -43,7 +41,7 @@ from compute_api_client import (
     ShareType,
 )
 
-from quantuminspire.sdk.circuit import Circuit
+from quantuminspire.sdk.models.base_algorithm import BaseAlgorithm
 from quantuminspire.util.api.base_runtime import BaseRuntime
 from quantuminspire.util.configuration import Settings
 
@@ -61,41 +59,41 @@ class RemoteRuntime(BaseRuntime):
         host = "https://staging.qi2.quantum-inspire.com"
         self._configuration = Configuration(host=host, api_key={"user": str(settings.auths[host]["user_id"])})
 
-    def run(self, circuit: Circuit) -> None:
+    def run(self, program: BaseAlgorithm) -> BatchRun:
         """Execute provided algorithm/circuit."""
-        asyncio.run(self._create_flow(circuit))
+        return asyncio.run(self._create_flow(program))
 
     def get_results(self) -> None:
         """Get results for algorithm/circuit."""
 
-    async def _create_flow(self, circuit: Circuit) -> None:
+    async def _create_flow(self, program: BaseAlgorithm) -> BatchRun:
         """Call the necessary methods in the correct order, with the correct parameters."""
         async with ApiClient(self._configuration) as api_client:
-            project = await self._create_project(api_client, circuit)
-            algorithm = await self._create_algorithm(api_client, project)
+            project = await self._create_project(api_client, program)
+            algorithm = await self._create_algorithm(api_client, program, project)
             commit = await self._create_commit(api_client, algorithm)
-            file = await self._create_file(api_client, commit, circuit)
+            file = await self._create_file(api_client, program, commit)
             batch_run = await self._create_batch_run(api_client)
             await self._create_run(api_client, file, batch_run)
-            await self._enqueue_batch_run(api_client, batch_run)
+            return await self._enqueue_batch_run(api_client, batch_run)
 
     @staticmethod
-    async def _create_project(api_client: ApiClient, circuit: Circuit) -> Project:
+    async def _create_project(api_client: ApiClient, program: BaseAlgorithm) -> Project:
         api_instance = ProjectsApi(api_client)
         obj = ProjectIn(
             owner_id=1,
-            name=circuit.program_name,
-            description="Quantum Circuit created by SDK",
+            name=program.program_name,
+            description="Project created by SDK",
             starred=False,
         )
         return await api_instance.create_project_projects_post(obj)
 
     @staticmethod
-    async def _create_algorithm(api_client: ApiClient, project: Project) -> Algorithm:
+    async def _create_algorithm(api_client: ApiClient, program: BaseAlgorithm, project: Project) -> Algorithm:
         api_instance = AlgorithmsApi(api_client)
         obj = AlgorithmIn(
             project_id=project.id,
-            type=AlgorithmType.QUANTUM,
+            type=program.content_type,
             shared=ShareType.PRIVATE,
         )
         return await api_instance.create_algorithm_algorithms_post(obj)
@@ -106,19 +104,19 @@ class RemoteRuntime(BaseRuntime):
         api_instance = CommitsApi(api_client)
         obj = CommitIn(
             hash=commit_hash,
-            description="Quantum Circuit created by SDK",
+            description="Commit created by SDK",
             algorithm_id=algorithm.id,
         )
         return await api_instance.create_commit_commits_post(obj)
 
     @staticmethod
-    async def _create_file(api_client: ApiClient, commit: Commit, circuit: Circuit) -> File:
+    async def _create_file(api_client: ApiClient, program: BaseAlgorithm, commit: Commit) -> File:
         api_instance = FilesApi(api_client)
         obj = FileIn(
             commit_id=commit.id,
-            content=circuit.qasm,
+            content=program.content,
             language_id=1,
-            compile_stage=CompileStage.NONE,
+            compile_stage=program.compile_stage,
             compile_properties={},
         )
         return await api_instance.create_file_files_post(obj)

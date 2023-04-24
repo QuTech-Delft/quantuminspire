@@ -15,7 +15,7 @@ language governing permissions and limitations under the License.
 
 from abc import ABC
 
-from quantuminspire.sdk.circuit import Circuit
+from quantuminspire.sdk.models.base_algorithm import BaseAlgorithm
 
 
 class BaseRuntime(ABC):
@@ -24,7 +24,7 @@ class BaseRuntime(ABC):
     A runtime will execute the hybrid algorithm, or quantum circuit provided.
     """
 
-    def run(self, circuit: Circuit) -> None:
+    def run(self, program: BaseAlgorithm) -> None:
         """Execute provided algorithm/circuit."""
 
     def get_results(self) -> None:

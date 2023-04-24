@@ -2,7 +2,7 @@
 
 import time
 
-from quantuminspire.sdk.circuit import Circuit
+from quantuminspire.sdk.models.circuit import Circuit
 from quantuminspire.util.api.remote_runtime import RemoteRuntime
 
 with Circuit(platform_name="spin-2", program_name="prgm1") as c:
@@ -11,6 +11,8 @@ with Circuit(platform_name="spin-2", program_name="prgm1") as c:
     k.hadamard(1)
     k.measure(0)
     k.measure(1)
+
+print(c.content)
 
 runtime = RemoteRuntime()
 

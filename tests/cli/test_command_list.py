@@ -1,6 +1,8 @@
 from typing import List
+from unittest.mock import MagicMock
 
 import pytest
+from pytest_mock import MockerFixture
 from typer.testing import CliRunner
 
 from quantuminspire.cli.command_list import app
@@ -40,7 +42,6 @@ runner = CliRunner()
         (["projects", "list", "--remote", "--local"], "List remote and local projects"),
         (["projects", "sync", "--dest", "local"], "Sync projects with local"),
         (["projects", "sync", "--dest", "remote"], "Sync projects with remote"),
-        (["files", "upload", "hqca_circuit.py"], "Upload file with name: hqca_circuit.py"),
         (["login"], "Login to https://api.qi2.quantum-inspire.com"),
         (["login", "https://www.quantum-inspire.com"], "Login to https://www.quantum-inspire.com"),
         (["logout"], "Logout from https://api.qi2.quantum-inspire.com"),
@@ -49,6 +50,16 @@ runner = CliRunner()
 )
 def test_cli_calls(args: List[str], output: str) -> None:
     result = runner.invoke(app, args)
-    print(result.output)
     assert result.exit_code == 0
     assert output in result.stdout
+
+
+def test_file_upload(mocker: MockerFixture) -> None:
+    mock_remote_runtime_inst = MagicMock()
+    mocker.patch("quantuminspire.cli.command_list.RemoteRuntime", return_value=mock_remote_runtime_inst)
+    mocker.patch("quantuminspire.cli.command_list.Path")
+
+    result = runner.invoke(app, ["files", "upload", "hqca_circuit.py"])
+
+    assert result.exit_code == 0
+    mock_remote_runtime_inst.run.assert_called_once()

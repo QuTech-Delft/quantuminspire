@@ -1,9 +1,13 @@
 """Module containing the commands for the Quantum Inspire 2 CLI."""
 from enum import Enum
+from pathlib import Path
 from typing import Optional
 
 import typer
 from typer import Typer
+
+from quantuminspire.sdk.models.hybrid_algorithm import HybridAlgorithm
+from quantuminspire.util.api.remote_runtime import RemoteRuntime
 
 app = Typer(add_completion=False, no_args_is_help=True)
 algorithms_app = Typer(no_args_is_help=True)
@@ -230,7 +234,12 @@ def upload_files(name: str = typer.Argument(..., help="The name of the file to u
     Upload a Hybrid Quantum/Classical Algorithm to the Quantum Inspire API. This file is marked as a hybrid algorithm
     when sent to the API.
     """
+    runtime = RemoteRuntime()
+    program = HybridAlgorithm(platform_name="spin-2", program_name=name)
+    program.read_file(Path(name))
+    batch_run = runtime.run(program)
     typer.echo(f"Upload file with name: {name}")
+    typer.echo(f"batch_run_id {batch_run.id} with runs f{batch_run.run_ids}")
 
 
 @app.command("login")
