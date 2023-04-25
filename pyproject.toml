@@ -30,7 +30,7 @@ qi-compute-api-client = {git = "https://github.com/QuTech-Delft/compute-api-clie
 [tool.poetry.group.dev.dependencies]
 pytest = {extras = ["toml"], version = "^7.3.0"}
 pytest-cov = "^4.0.0"
-pylint = "^2.17.2"
+pylint = "^2.17.3"
 coverage = {extras = ["toml"], version = "^7.2.3"}
 mypy = "^1.2"
 docformatter = "1.4"
