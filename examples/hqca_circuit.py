@@ -9,7 +9,7 @@ def generate_circuit() -> str:
         kernel.hadamard(0)
         kernel.cnot(0, 1)
 
-    return circuit.content
+    return {"shots_requested": 1024, "circuit": circuit.content}
 
 
 def initialize() -> str:

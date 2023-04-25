@@ -88,7 +88,7 @@ def get_qaoa_circuit(graph: Graph, beta: np.ndarray, gamma: np.ndarray) -> str:
         for i in graph.nodes():
             final_kernel.measure(i)
 
-    return circuit.qasm
+    return {"shots_requested": 1024, "circuit": circuit.content}
 
 
 def initialize() -> str:
