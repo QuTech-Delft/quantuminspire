@@ -32,6 +32,13 @@ def test_get_program_name(openql: MagicMock, mock_file: None) -> None:
     assert c.program_name == "program"
 
 
+def test_get_platform_name(openql: MagicMock, mock_file: None) -> None:
+    with Circuit(platform_name="platform", program_name="program") as c:
+        pass
+
+    assert c.platform_name == "platform"
+
+
 def test_get_content_type(openql: MagicMock, mock_file: None) -> None:
     with Circuit(platform_name="platform", program_name="program") as c:
         pass

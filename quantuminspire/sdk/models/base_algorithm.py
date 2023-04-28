@@ -19,6 +19,15 @@ class BaseAlgorithm(ABC):
         return self._program_name
 
     @property
+    def platform_name(self) -> str:
+        """Return the name of the platform the algorithm is intended to run on.
+
+        Returns:
+            The string representation of the platform name.
+        """
+        return self._platform_name
+
+    @property
     @abstractmethod
     def content(self) -> str:
         """Return the content.
