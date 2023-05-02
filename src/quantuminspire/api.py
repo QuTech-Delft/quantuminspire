@@ -638,7 +638,7 @@ class QuantumInspireAPI:
 
         Gets the raw data from the result of the executed job, given the result_id.
         The raw data consists of a list of measurements for each shot (job.number_of_shots).
-        The measurements contains a list of data for each measurement in the job (len(measurement_mask)).
+        The measurements contain a list of data for each measurement in the job (len(measurement_mask)).
         The data consist of integer state values (0 or 1) for each measured qubit, else None (see measurement_mask).
         Actual type is: List[List[List[Optional[int]]]] with least significant qubit first.
 
@@ -873,10 +873,9 @@ class QuantumInspireAPI:
 
     #  other  #
 
-    @staticmethod
-    def _wait_for_completed_job(quantum_inspire_job: QuantumInspireJob, collect_max_tries: Optional[int] = None,
-                                sec_retry_delay: float = 0.5) -> Tuple[bool, str]:
-        """Wait for job completion.
+    def wait_for_completed_job(self, quantum_inspire_job: QuantumInspireJob, collect_max_tries: Optional[int] = None,
+                               sec_retry_delay: float = 0.5) -> Tuple[bool, str]:
+        """ Wait for job completion.
 
         Delays the process and requests the job status. The waiting loop is broken when the job status is
         completed or cancelled, or when the maximum number of tries is set and has been reached.
@@ -937,7 +936,7 @@ class QuantumInspireAPI:
         :param qasm: The cQASM code as string object.
         :param backend_type: The backend_type to execute the algorithm on.
         :param number_of_shots: Execution times of the algorithm before collecting the results.
-        :param collect_tries: The number of times the status of the job is check for completion before returning.
+        :param collect_tries: The number of times the status of the job is checked for completion before returning.
         :param default_number_of_shots: The default used number of shots for the project.
         :param identifier: The identifier to generate names for the project, asset and job when necessary.
         :param full_state_projection: Do not use full state projection with simulations when set to False (default).
@@ -958,7 +957,7 @@ class QuantumInspireAPI:
                                                           full_state_projection=full_state_projection,
                                                           user_data=user_data)
 
-            has_results, message = self._wait_for_completed_job(quantum_inspire_job, collect_tries)
+            has_results, message = self.wait_for_completed_job(quantum_inspire_job, collect_tries)
             return dict(quantum_inspire_job.retrieve_results()) if has_results else \
                 dict(self._generate_error_result(message))
         except (CoreAPIException, TypeError, ValueError, ApiError) as err_msg:
@@ -981,7 +980,7 @@ class QuantumInspireAPI:
         the job to finish and returns the result.
 
         To execute a cQASM program a job is scheduled on a backend of type `backend type` as given by the
-        parameter backend_type. Currently there are 3 backend types available:
+        parameter backend_type. Currently, there are 3 backend types available:
 
             1. QX single-node simulator (default for anonymous accounts)
             2. QX single-node simulator SurfSara (advanced account credentials needed)

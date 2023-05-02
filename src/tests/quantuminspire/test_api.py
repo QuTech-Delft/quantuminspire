@@ -1129,7 +1129,7 @@ class TestQuantumInspireAPI(TestCase):
                                                        status='COMPLETE')
         api = QuantumInspireAPI(BASE_URL, self.authentication, coreapi_client_class=self.coreapi_client)
         quantum_inspire_job = QuantumInspireJob(api, job_id)
-        is_completed, message = api._wait_for_completed_job(quantum_inspire_job, collect_max_tries, sec_retry_delay=0.0)
+        is_completed, message = api.wait_for_completed_job(quantum_inspire_job, collect_max_tries, sec_retry_delay=0.0)
         self.assertTrue(is_completed)
         self.assertEqual(message, 'Job completed.')
 
@@ -1141,7 +1141,7 @@ class TestQuantumInspireAPI(TestCase):
                                                        status='RUNNING')
         api = QuantumInspireAPI(BASE_URL, self.authentication, coreapi_client_class=self.coreapi_client)
         quantum_inspire_job = QuantumInspireJob(api, job_id)
-        is_completed, message = api._wait_for_completed_job(quantum_inspire_job, collect_max_tries, sec_retry_delay=0.0)
+        is_completed, message = api.wait_for_completed_job(quantum_inspire_job, collect_max_tries, sec_retry_delay=0.0)
         self.assertFalse(is_completed)
         self.assertEqual(message, 'Failed getting result: timeout reached.')
 
@@ -1152,7 +1152,7 @@ class TestQuantumInspireAPI(TestCase):
                                                        status='CANCELLED')
         api = QuantumInspireAPI(BASE_URL, self.authentication, coreapi_client_class=self.coreapi_client)
         quantum_inspire_job = QuantumInspireJob(api, job_id)
-        is_completed, message = api._wait_for_completed_job(quantum_inspire_job)
+        is_completed, message = api.wait_for_completed_job(quantum_inspire_job)
         self.assertFalse(is_completed)
         self.assertEqual(message, 'Failed getting result: job cancelled.')
 
