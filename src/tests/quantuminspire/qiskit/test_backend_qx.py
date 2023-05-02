@@ -117,6 +117,22 @@ class TestQiSimulatorPy(unittest.TestCase):
         self.assertFalse(status.operational)
         self.assertEqual(status.pending_jobs, 0)
 
+    def test_strtobool(self):
+        simulator = QuantumInspireBackend(Mock(), Mock())
+        self.assertFalse(simulator.strtobool('False'))
+        self.assertFalse(simulator.strtobool('false'))
+        self.assertFalse(simulator.strtobool('0'))
+        self.assertFalse(simulator.strtobool('n'))
+        self.assertFalse(simulator.strtobool('no'))
+        self.assertTrue(simulator.strtobool('True'))
+        self.assertTrue(simulator.strtobool('true'))
+        self.assertTrue(simulator.strtobool('1'))
+        self.assertTrue(simulator.strtobool('y'))
+        self.assertTrue(simulator.strtobool('yes'))
+        with self.assertRaises(ValueError) as error:
+            simulator.strtobool('int')
+        self.assertEqual(("invalid truth value int",), error.exception.args)
+
     def test_run_a_circuit_returns_correct_result(self):
         api = Mock()
         type(api).__name__ = 'QuantumInspireAPI'
