@@ -508,7 +508,7 @@ class TestQiSimulatorPy(unittest.TestCase):
             result_experiment.assert_called_once_with(experiment, 25, ANY, project=project,
                                                       full_state_projection=True)
 
-    def test_fsp_flag_overridden_by_parameter(self):
+    def test_fsp_flag_overridden_by_string_parameter(self):
         with patch.object(QuantumInspireBackend, "_submit_experiment", return_value=Mock()) as result_experiment:
             api = Mock()
             project = {'id': 43}
@@ -522,7 +522,7 @@ class TestQiSimulatorPy(unittest.TestCase):
             qc.cx(0, 1)
             qc.x(0)
 
-            simulator.run(qc, 1000, allow_fsp=False)
+            simulator.run(qc, 1000, allow_fsp='False')
             experiment = self._circuit_to_experiment(qc)
             result_experiment.assert_called_once_with(experiment, 1000, ANY, project=project,
                                                       full_state_projection=False)
@@ -543,7 +543,7 @@ class TestQiSimulatorPy(unittest.TestCase):
             qc.cx(0, 1)
             qc.x(0)
 
-            simulator.run(qc, 25)
+            simulator.run(qc, 25, allow_fsp=True)
             experiment = self._circuit_to_experiment(qc)
         result_experiment.assert_called_once_with(experiment, 25, ANY, project=project,
                                                   full_state_projection=False)
