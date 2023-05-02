@@ -1057,8 +1057,8 @@ urllib3 = "^1.25.3"
 [package.source]
 type = "git"
 url = "https://github.com/QuTech-Delft/compute-api-client.git"
-reference = "HEAD"
-resolved_reference = "c0641c63b262d097c6d877a69ec31e6915e39a0b"
+reference = "0.2.0"
+resolved_reference = "a5bace343677635d1a08d29552c4fda510862fc2"
 
 [[package]]
 name = "qutechopenql"
@@ -1401,4 +1401,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "bdcd87d83a53d321dfbd46dc51dcdf620d9333aebab1c45f3fcc86d8a2d84045"
+content-hash = "f65d5502f654c4bd2cc0e3e96181f87adbe1a4066f248eae4cf3e3623e8d278f"
