@@ -10,13 +10,17 @@ To change user (token) or environment (production/staging) set environment varia
 
 Copyright 2018-2023 QuTech Delft. Licensed under the Apache License, Version 2.0.
 """
+import os
 from quantuminspire.credentials import get_token_authentication, load_account
 from quantuminspire.qiskit import QI
+
+QI_URL = os.getenv('API_URL', 'https://staging.quantum-inspire.com/')
+
 
 token = load_account()
 if token is not None:
     qi_authentication = get_token_authentication(token)
-    QI.set_authentication(qi_authentication)
+    QI.set_authentication(qi_authentication, QI_URL)
     api = QI.get_api()
 
     projects = api.get_projects()
