@@ -8,17 +8,15 @@ of the user.
 
 Copyright 2018-2023 QuTech Delft. Licensed under the Apache License, Version 2.0.
 """
-import os
-
-from quantuminspire.credentials import get_authentication
+from quantuminspire.credentials import get_token_authentication, load_account
 from quantuminspire.qiskit import QI
 
-QI_URL = os.getenv('API_URL', 'https://api.quantum-inspire.com/')
+token = load_account()
+if token is not None:
+    qi_authentication = get_token_authentication(token)
+    QI.set_authentication(qi_authentication)
+    api = QI.get_api()
 
-authentication = get_authentication()
-QI.set_authentication(authentication, QI_URL)
-api = QI.get_api()
-
-projects = api.get_projects()
-for project in projects:
-    api.delete_project(project["id"])
+    projects = api.get_projects()
+    for project in projects:
+        api.delete_project(project["id"])
