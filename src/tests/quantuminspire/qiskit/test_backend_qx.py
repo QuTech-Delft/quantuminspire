@@ -117,6 +117,22 @@ class TestQiSimulatorPy(unittest.TestCase):
         self.assertFalse(status.operational)
         self.assertEqual(status.pending_jobs, 0)
 
+    def test_strtobool(self):
+        simulator = QuantumInspireBackend(Mock(), Mock())
+        self.assertFalse(simulator.strtobool('False'))
+        self.assertFalse(simulator.strtobool('false'))
+        self.assertFalse(simulator.strtobool('0'))
+        self.assertFalse(simulator.strtobool('n'))
+        self.assertFalse(simulator.strtobool('no'))
+        self.assertTrue(simulator.strtobool('True'))
+        self.assertTrue(simulator.strtobool('true'))
+        self.assertTrue(simulator.strtobool('1'))
+        self.assertTrue(simulator.strtobool('y'))
+        self.assertTrue(simulator.strtobool('yes'))
+        with self.assertRaises(ValueError) as error:
+            simulator.strtobool('int')
+        self.assertEqual(("invalid truth value int",), error.exception.args)
+
     def test_run_a_circuit_returns_correct_result(self):
         api = Mock()
         type(api).__name__ = 'QuantumInspireAPI'
@@ -492,7 +508,7 @@ class TestQiSimulatorPy(unittest.TestCase):
             result_experiment.assert_called_once_with(experiment, 25, ANY, project=project,
                                                       full_state_projection=True)
 
-    def test_fsp_flag_overridden_by_parameter(self):
+    def test_fsp_flag_overridden_by_string_parameter(self):
         with patch.object(QuantumInspireBackend, "_submit_experiment", return_value=Mock()) as result_experiment:
             api = Mock()
             project = {'id': 43}
@@ -506,7 +522,7 @@ class TestQiSimulatorPy(unittest.TestCase):
             qc.cx(0, 1)
             qc.x(0)
 
-            simulator.run(qc, 1000, allow_fsp=False)
+            simulator.run(qc, 1000, allow_fsp='False')
             experiment = self._circuit_to_experiment(qc)
             result_experiment.assert_called_once_with(experiment, 1000, ANY, project=project,
                                                       full_state_projection=False)
@@ -527,7 +543,7 @@ class TestQiSimulatorPy(unittest.TestCase):
             qc.cx(0, 1)
             qc.x(0)
 
-            simulator.run(qc, 25)
+            simulator.run(qc, 25, allow_fsp=True)
             experiment = self._circuit_to_experiment(qc)
         result_experiment.assert_called_once_with(experiment, 25, ANY, project=project,
                                                   full_state_projection=False)
