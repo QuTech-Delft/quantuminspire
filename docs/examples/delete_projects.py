@@ -6,6 +6,8 @@ all projects registered for the authenticated user in Quantum Inspire.
 Specific to Quantum Inspire is the creation of the QI instance, which is used to set the authentication
 of the user.
 
+To change user (token) or environment (production/staging) set environment variables QI_TOKEN and API_URL respectively.
+
 Copyright 2018-2023 QuTech Delft. Licensed under the Apache License, Version 2.0.
 """
 from quantuminspire.credentials import get_token_authentication, load_account
