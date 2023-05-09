@@ -35,6 +35,7 @@ script:
     jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=300 docs/examples/example_projectq.ipynb;
     jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=300 docs/examples/grover_algorithm_qi.ipynb;
     jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=300 docs/examples/qi-performance-test.ipynb;
+    echo "cleaning up";
     python ./docs/examples/delete_projects.py;
   fi
 after_success:
