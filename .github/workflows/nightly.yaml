@@ -28,6 +28,11 @@ jobs:
       run: |
         python ./docs/examples/example_qiskit_entangle.py
         python ./docs/examples/example_qiskit_conditional.py
+      env:
+        QI_TOKEN: ${{ secrets.QI_TOKEN }}
+        API_URL: https://api.quantum-inspire.com
+    - name: Clean up
+      run: |
         python ./docs/examples/delete_projects.py
       env:
         QI_TOKEN: ${{ secrets.QI_TOKEN }}
