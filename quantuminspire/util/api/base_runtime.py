@@ -13,7 +13,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 language governing permissions and limitations under the License.
 """
 
-from abc import ABC
+from abc import ABC, abstractmethod
+from typing import Any
 
 from quantuminspire.sdk.models.base_algorithm import BaseAlgorithm
 
@@ -24,8 +25,12 @@ class BaseRuntime(ABC):
     A runtime will execute the hybrid algorithm, or quantum circuit provided.
     """
 
-    def run(self, program: BaseAlgorithm) -> None:
+    @abstractmethod
+    def run(self, program: BaseAlgorithm) -> int:
         """Execute provided algorithm/circuit."""
+        raise NotImplementedError
 
-    def get_results(self) -> None:
+    @abstractmethod
+    def get_results(self, run_id: int) -> Any:
         """Get results for algorithm/circuit."""
+        raise NotImplementedError

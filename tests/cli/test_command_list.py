@@ -63,3 +63,24 @@ def test_file_upload(mocker: MockerFixture) -> None:
 
     assert result.exit_code == 0
     mock_remote_runtime_inst.run.assert_called_once()
+
+
+def test_results_get(mocker: MockerFixture) -> None:
+    mock_remote_runtime_inst = MagicMock()
+    mocker.patch("quantuminspire.cli.command_list.RemoteRuntime", return_value=mock_remote_runtime_inst)
+
+    result = runner.invoke(app, ["results", "get", "1"])
+
+    assert result.exit_code == 0
+    mock_remote_runtime_inst.get_results.assert_called_once()
+
+
+def test_results_get_no_results(mocker: MockerFixture) -> None:
+    mock_remote_runtime_inst = MagicMock()
+    mock_remote_runtime_inst.get_results.return_value = None
+    mocker.patch("quantuminspire.cli.command_list.RemoteRuntime", return_value=mock_remote_runtime_inst)
+
+    result = runner.invoke(app, ["results", "get", "1"])
+
+    assert result.exit_code == 1
+    mock_remote_runtime_inst.get_results.assert_called_once()

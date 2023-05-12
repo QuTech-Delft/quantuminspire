@@ -18,6 +18,8 @@ projects_app = Typer(no_args_is_help=True)
 app.add_typer(projects_app, name="projects", help="Manage projects")
 files_app = Typer(no_args_is_help=True)
 app.add_typer(files_app, name="files", help="Manage files")
+results_app = Typer(no_args_is_help=True)
+app.add_typer(results_app, name="results", help="Manage results")
 
 
 class Destination(str, Enum):
@@ -237,9 +239,26 @@ def upload_files(name: str = typer.Argument(..., help="The name of the file to u
     runtime = RemoteRuntime()
     program = HybridAlgorithm(platform_name="spin-2", program_name=name)
     program.read_file(Path(name))
-    batch_run = runtime.run(program)
+    run_id = runtime.run(program)
     typer.echo(f"Upload file with name: {name}")
-    typer.echo(f"batch_run_id {batch_run.id} with runs f{batch_run.run_ids}")
+    typer.echo(f"run_id {run_id}")
+
+
+@results_app.command("get")
+def get_results(run_id: int = typer.Argument(..., help="The id of the run")) -> None:
+    """Retrieve the results for a run.
+
+    Takes the id as returned by upload_files and retrieves the results for that run, if it's finished.
+    """
+    runtime = RemoteRuntime()
+    results = runtime.get_results(run_id)
+
+    if results is None:
+        typer.echo("No results.")
+        raise typer.Exit(1)
+
+    typer.echo("Raw results:")
+    typer.echo(results)
 
 
 @app.command("login")

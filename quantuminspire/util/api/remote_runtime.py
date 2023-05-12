@@ -15,6 +15,7 @@ language governing permissions and limitations under the License.
 
 import asyncio
 import uuid
+from typing import Any, List
 
 from compute_api_client import (
     Algorithm,
@@ -34,6 +35,8 @@ from compute_api_client import (
     Project,
     ProjectIn,
     ProjectsApi,
+    Result,
+    ResultsApi,
     Run,
     RunIn,
     RunsApi,
@@ -59,14 +62,23 @@ class RemoteRuntime(BaseRuntime):
         host = "https://staging.qi2.quantum-inspire.com"
         self._configuration = Configuration(host=host, api_key={"user": str(settings.auths[host]["user_id"])})
 
-    def run(self, program: BaseAlgorithm) -> BatchRun:
+    def run(self, program: BaseAlgorithm) -> int:
         """Execute provided algorithm/circuit."""
         return asyncio.run(self._create_flow(program))
 
-    def get_results(self) -> None:
-        """Get results for algorithm/circuit."""
+    async def _get_results(self, run_id: int) -> Any:
+        async with ApiClient(self._configuration) as api_client:
+            run = await self._read_run(api_client, run_id)
+            if run.status != RunStatus.COMPLETED:
+                return None
 
-    async def _create_flow(self, program: BaseAlgorithm) -> BatchRun:
+            return await self._read_results_for_run(api_client, run)
+
+    def get_results(self, run_id: int) -> Any:
+        """Get results for algorithm/circuit."""
+        return asyncio.run(self._get_results(run_id))
+
+    async def _create_flow(self, program: BaseAlgorithm) -> int:
         """Call the necessary methods in the correct order, with the correct parameters."""
         async with ApiClient(self._configuration) as api_client:
             project = await self._create_project(api_client, program)
@@ -74,8 +86,9 @@ class RemoteRuntime(BaseRuntime):
             commit = await self._create_commit(api_client, algorithm)
             file = await self._create_file(api_client, program, commit)
             batch_run = await self._create_batch_run(api_client)
-            await self._create_run(api_client, file, batch_run)
-            return await self._enqueue_batch_run(api_client, batch_run)
+            run: Run = await self._create_run(api_client, file, batch_run)
+            await self._enqueue_batch_run(api_client, batch_run)
+            return run.id  # type: ignore
 
     @staticmethod
     async def _create_project(api_client: ApiClient, program: BaseAlgorithm) -> Project:
@@ -141,3 +154,13 @@ class RemoteRuntime(BaseRuntime):
     async def _enqueue_batch_run(api_client: ApiClient, batch_run: BatchRun) -> BatchRun:
         api_instance = BatchRunsApi(api_client)
         return await api_instance.enqueue_batch_run_batch_runs_id_enqueue_patch(batch_run.id)
+
+    @staticmethod
+    async def _read_run(api_client: ApiClient, run_id: int) -> Run:
+        api_instance = RunsApi(api_client)
+        return await api_instance.read_run_runs_id_get(run_id)
+
+    @staticmethod
+    async def _read_results_for_run(api_client: ApiClient, run: Run) -> List[Result]:
+        api_instance = ResultsApi(api_client)
+        return await api_instance.read_results_by_run_id_results_run_run_id_get(run.id)  # type: ignore
