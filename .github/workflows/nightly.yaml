@@ -2,7 +2,7 @@ name: Nightly SDK build
 
 on:
   schedule:
-    - cron: "59 23 * * 1-5"
+    - cron: "0 22 * * *"
 
 jobs:
   test:
@@ -31,9 +31,15 @@ jobs:
       env:
         QI_TOKEN: ${{ secrets.QI_TOKEN }}
         API_URL: https://api.quantum-inspire.com
-    - name: Clean up
+    - name: Clean up SDK test projects
       run: |
         python ./docs/examples/delete_projects.py
       env:
         QI_TOKEN: ${{ secrets.QI_TOKEN }}
+        API_URL: https://api.quantum-inspire.com
+    - name: Clean up pennylane test projects
+      run: |
+        python ./docs/examples/delete_projects.py
+      env:
+        QI_TOKEN: ${{ secrets.QI_PENNYLANE_TOKEN }}
         API_URL: https://api.quantum-inspire.com
