@@ -17,6 +17,6 @@ print(c.content)
 runtime = RemoteRuntime()
 
 startTime = time.time()
-runtime.run(c)
+runtime.run(c, runtime_type_id=3)
 executionTime = time.time() - startTime
 print("Execution time in seconds: " + str(executionTime))

@@ -61,7 +61,7 @@ def test_create(configuration: MagicMock, mocked_settings: MagicMock) -> None:
 
 def test_run(api_client: MagicMock, compute_api_client: None, mocked_settings: MagicMock) -> None:
     runtime = RemoteRuntime()
-    runtime.run(MagicMock())
+    runtime.run(MagicMock(), 10)
     api_client.assert_has_calls([call().__aenter__(), call().__aexit__(None, None, None)])
 
 

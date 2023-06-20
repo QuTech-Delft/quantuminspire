@@ -59,7 +59,7 @@ def test_file_upload(mocker: MockerFixture) -> None:
     mocker.patch("quantuminspire.cli.command_list.RemoteRuntime", return_value=mock_remote_runtime_inst)
     mocker.patch("quantuminspire.cli.command_list.Path")
 
-    result = runner.invoke(app, ["files", "upload", "hqca_circuit.py"])
+    result = runner.invoke(app, ["files", "upload", "hqca_circuit.py", "10"])
 
     assert result.exit_code == 0
     mock_remote_runtime_inst.run.assert_called_once()

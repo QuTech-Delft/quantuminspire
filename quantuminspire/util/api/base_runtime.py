@@ -26,7 +26,7 @@ class BaseRuntime(ABC):
     """
 
     @abstractmethod
-    def run(self, program: BaseAlgorithm) -> int:
+    def run(self, program: BaseAlgorithm, runtime_type_id: int) -> int:
         """Execute provided algorithm/circuit."""
         raise NotImplementedError
 

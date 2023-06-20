@@ -62,9 +62,9 @@ class RemoteRuntime(BaseRuntime):
         host = "https://staging.qi2.quantum-inspire.com"
         self._configuration = Configuration(host=host, api_key={"user": str(settings.auths[host]["user_id"])})
 
-    def run(self, program: BaseAlgorithm) -> int:
+    def run(self, program: BaseAlgorithm, runtime_type_id: int) -> int:
         """Execute provided algorithm/circuit."""
-        return asyncio.run(self._create_flow(program))
+        return asyncio.run(self._create_flow(program, runtime_type_id))
 
     async def _get_results(self, run_id: int) -> Any:
         async with ApiClient(self._configuration) as api_client:
@@ -78,14 +78,14 @@ class RemoteRuntime(BaseRuntime):
         """Get results for algorithm/circuit."""
         return asyncio.run(self._get_results(run_id))
 
-    async def _create_flow(self, program: BaseAlgorithm) -> int:
+    async def _create_flow(self, program: BaseAlgorithm, runtime_type_id: int) -> int:
         """Call the necessary methods in the correct order, with the correct parameters."""
         async with ApiClient(self._configuration) as api_client:
             project = await self._create_project(api_client, program)
             algorithm = await self._create_algorithm(api_client, program, project)
             commit = await self._create_commit(api_client, algorithm)
             file = await self._create_file(api_client, program, commit)
-            batch_run = await self._create_batch_run(api_client)
+            batch_run = await self._create_batch_run(api_client, runtime_type_id=runtime_type_id)
             run: Run = await self._create_run(api_client, file, batch_run)
             await self._enqueue_batch_run(api_client, batch_run)
             return run.id  # type: ignore
@@ -135,9 +135,9 @@ class RemoteRuntime(BaseRuntime):
         return await api_instance.create_file_files_post(obj)
 
     @staticmethod
-    async def _create_batch_run(api_client: ApiClient) -> BatchRun:
+    async def _create_batch_run(api_client: ApiClient, runtime_type_id: int) -> BatchRun:
         api_instance = BatchRunsApi(api_client)
-        obj = BatchRunIn(runtime_type_id=3, user_id=1)
+        obj = BatchRunIn(runtime_type_id=runtime_type_id, user_id=1)
         return await api_instance.create_batch_run_batch_runs_post(obj)
 
     @staticmethod

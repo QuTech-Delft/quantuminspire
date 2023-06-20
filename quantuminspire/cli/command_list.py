@@ -230,7 +230,12 @@ def sync_projects(
 
 
 @files_app.command("upload")
-def upload_files(name: str = typer.Argument(..., help="The name of the file to upload")) -> None:
+def upload_files(
+    name: str = typer.Argument(..., help="The name of the file to upload"),
+    runtime_type_id: int = typer.Argument(
+        ..., help="The id of the runtime type on which this algorithm should be executed"
+    ),
+) -> None:
     """Upload a file to the QI API.
 
     Upload a Hybrid Quantum/Classical Algorithm to the Quantum Inspire API. This file is marked as a hybrid algorithm
@@ -239,7 +244,7 @@ def upload_files(name: str = typer.Argument(..., help="The name of the file to u
     runtime = RemoteRuntime()
     program = HybridAlgorithm(platform_name="spin-2", program_name=name)
     program.read_file(Path(name))
-    run_id = runtime.run(program)
+    run_id = runtime.run(program, runtime_type_id=runtime_type_id)
     typer.echo(f"Upload file with name: {name}")
     typer.echo(f"run_id {run_id}")
 
