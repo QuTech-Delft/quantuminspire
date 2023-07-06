@@ -28,7 +28,7 @@ pydantic = "^1.10.9"
 qi-compute-api-client = {git = "https://github.com/QuTech-Delft/compute-api-client.git", branch = "0.2.0"}
 
 [tool.poetry.group.dev.dependencies]
-pytest = {extras = ["toml"], version = "^7.3.0"}
+pytest = {extras = ["toml"], version = "^7.4.0"}
 pytest-cov = "^4.1.0"
 pylint = "^2.17.4"
 coverage = {extras = ["toml"], version = "^7.2.7"}
