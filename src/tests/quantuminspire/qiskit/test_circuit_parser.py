@@ -14,6 +14,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import copy
 import unittest
 from unittest.mock import Mock
 
@@ -33,14 +34,18 @@ class TestQiCircuitToString(unittest.TestCase):
     @staticmethod
     def _generate_cqasm_from_circuit(circuit, full_state_projection=True, transpile_first=False):
         run_config_dict = {'shots': 25, 'memory': True}
-        backend = QuantumInspireBackend(Mock(), Mock())
+        configuration = copy.copy(QuantumInspireBackend.DEFAULT_CONFIGURATION)
+        if transpile_first:
+            configuration.simulator = False
+            configuration.coupling_map = [[0, 1], [0, 2], [1, 3], [2, 3]]
+        backend = QuantumInspireBackend(Mock(), Mock(), configuration)
         if transpile_first:
             circuit = transpile(circuit, backend=backend)
         qobj = assemble(circuit, backend, **run_config_dict)
         experiment = qobj.experiments[0]
         measurements = Measurements.from_experiment(experiment)
-        simulator = QuantumInspireBackend(Mock(), Mock())
-        result = simulator._generate_cqasm(experiment, measurements, full_state_projection)
+        # simulator = QuantumInspireBackend(Mock(), Mock())
+        result = backend._generate_cqasm(experiment, measurements, full_state_projection)
         return result
 
     @staticmethod
@@ -248,18 +253,19 @@ class TestQiCircuitToString(unittest.TestCase):
         c2 = ClassicalRegister(2, "c2")
         qc = QuantumCircuit(q1, q2, c1, c2, name="test")
 
+        # waits are only valid on hardware backends, qiskit transpiler expects hw backend
         qc.delay(1.1, q1, "ms")
-        result = self._generate_cqasm_from_circuit(qc, transpile_first=True)
+        result = self._generate_cqasm_from_circuit(qc, full_state_projection=False, transpile_first=True)
         self.assertTrue('wait q[0], 0\n' in result)
         self.assertTrue('wait q[1], 0\n' in result)
 
         qc.delay(0.9, q2, "ns")
-        result = self._generate_cqasm_from_circuit(qc, transpile_first=True)
+        result = self._generate_cqasm_from_circuit(qc, full_state_projection=False, transpile_first=True)
         self.assertTrue('wait q[2], 0\n' in result)
         self.assertTrue('wait q[3], 0\n' in result)
 
         qc.delay(1.0, unit="s")
-        result = self._generate_cqasm_from_circuit(qc, transpile_first=True)
+        result = self._generate_cqasm_from_circuit(qc, full_state_projection=False, transpile_first=True)
         self.assertTrue('wait q[0], 1\n' in result)
         self.assertTrue('wait q[1], 1\n' in result)
         self.assertTrue('wait q[2], 1\n' in result)
