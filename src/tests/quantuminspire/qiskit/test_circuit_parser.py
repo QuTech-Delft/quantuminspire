@@ -36,6 +36,7 @@ class TestQiCircuitToString(unittest.TestCase):
         run_config_dict = {'shots': 25, 'memory': True}
         configuration = copy.copy(QuantumInspireBackend.DEFAULT_CONFIGURATION)
         if transpile_first:
+            # qiskit transpiler expects coupling map
             configuration.simulator = False
             configuration.coupling_map = [[0, 1], [0, 2], [1, 3], [2, 3]]
         backend = QuantumInspireBackend(Mock(), Mock(), configuration)
@@ -44,7 +45,6 @@ class TestQiCircuitToString(unittest.TestCase):
         qobj = assemble(circuit, backend, **run_config_dict)
         experiment = qobj.experiments[0]
         measurements = Measurements.from_experiment(experiment)
-        # simulator = QuantumInspireBackend(Mock(), Mock())
         result = backend._generate_cqasm(experiment, measurements, full_state_projection)
         return result
 
@@ -253,19 +253,18 @@ class TestQiCircuitToString(unittest.TestCase):
         c2 = ClassicalRegister(2, "c2")
         qc = QuantumCircuit(q1, q2, c1, c2, name="test")
 
-        # waits are only valid on hardware backends, qiskit transpiler expects hw backend
         qc.delay(1.1, q1, "ms")
-        result = self._generate_cqasm_from_circuit(qc, full_state_projection=False, transpile_first=True)
+        result = self._generate_cqasm_from_circuit(qc, transpile_first=True)
         self.assertTrue('wait q[0], 0\n' in result)
         self.assertTrue('wait q[1], 0\n' in result)
 
         qc.delay(0.9, q2, "ns")
-        result = self._generate_cqasm_from_circuit(qc, full_state_projection=False, transpile_first=True)
+        result = self._generate_cqasm_from_circuit(qc, transpile_first=True)
         self.assertTrue('wait q[2], 0\n' in result)
         self.assertTrue('wait q[3], 0\n' in result)
 
         qc.delay(1.0, unit="s")
-        result = self._generate_cqasm_from_circuit(qc, full_state_projection=False, transpile_first=True)
+        result = self._generate_cqasm_from_circuit(qc, transpile_first=True)
         self.assertTrue('wait q[0], 1\n' in result)
         self.assertTrue('wait q[1], 1\n' in result)
         self.assertTrue('wait q[2], 1\n' in result)
