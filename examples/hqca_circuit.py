@@ -9,33 +9,34 @@ def generate_circuit() -> str:
         kernel.hadamard(0)
         kernel.cnot(0, 1)
 
-    return {"shots_requested": 1024, "circuit": circuit.content}
+    return circuit.content
 
 
-def initialize() -> str:
-    """Generate the first iteration of the classical part of the Hybrid Quantum/Classical Algorithm.
-
-    Returns:
-        cQASM string representing the test algorithm.
-    """
-    return generate_circuit()
-
-
-def execute(results: Dict[str, float], shots_requested: int, shots_done: int) -> str:
-    """Run the next 2-n iterations of the classical part of the Hybrid Quantum/Classical Algorithm.
+async def execute(qi) -> None:
+    """Run the classical part of the Hybrid Quantum/Classical Algorithm.
 
     Args:
-        results: The results from iteration n-1.
-        shots_requested: The number of shots requested by the user for the previous iteration.
-        shots_done: The number of shots actually run.
+        qi: A QuantumInterface instance that can be used to execute quantum circuits
 
-    Returns:
-        cQASM string representing the test algorithm.
+    The qi object has a single method called execute_circuit, its interface is described below:
+
+    qi.execute_circuit args:
+        circuit: a string representation of a quantum circuit
+        number_of_shots: how often to execute the circuit
+
+    qi.execute_circuit return value:
+        The results of executing the quantum circuit, this is an object with the following attributes
+            results: The results from iteration n-1.
+            shots_requested: The number of shots requested by the user for the previous iteration.
+            shots_done: The number of shots actually run.
     """
-    print(results)
-    print(shots_requested)
-    print(shots_done)
-    return generate_circuit()
+    for i in range(1, 5):
+        circuit = generate_circuit()
+        result = await qi.execute_circuit(circuit, 1024)
+
+        print(result.results)
+        print(result.shots_requested)
+        print(result.shots_done)
 
 
 def finalize(list_of_measurements: Dict[int, List[Any]]) -> Dict[str, Any]:
@@ -49,10 +50,23 @@ def finalize(list_of_measurements: Dict[int, List[Any]]) -> Dict[str, Any]:
         be everything serializable.
     """
     print(list_of_measurements)
-    return {}
+    return {"results": list_of_measurements}
 
 
 if __name__ == "__main__":
+    import asyncio
+
     # Run the individual steps for debugging
-    print("=== Ansatz ===\n", initialize())
-    print("=== Next iteration ===\n", execute({"01": 0.5, "10": 0.5}, 1024, 1024))
+    print("=== Circuit ===\n", generate_circuit())
+
+    class MockExecuteCircuitResult:
+        results = {"00": 0.490234, "11": 0.509766}
+        shots_requested = 1024
+        shots_done = 1024
+
+    class MockQI:
+        async def execute_circuit(self, circuit: str, number_of_shots: int) -> None:
+            print(f"circuit:\n {circuit}")
+            return MockExecuteCircuitResult()
+
+    print("=== Execute ===\n", asyncio.run(execute(MockQI())))
