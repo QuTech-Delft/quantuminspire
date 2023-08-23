@@ -43,7 +43,7 @@ addopts = "-v --cov --cov-report term-missing:skip-covered --cov-report xml"
 
 [tool.coverage.run]
 branch = true
-omit = ["tests/*"]
+omit = ["tests/*", "**/.tox/**"]
 
 [tool.coverage.report]
 show_missing = true

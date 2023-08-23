@@ -20,18 +20,10 @@ jobs:
         uses: abatilo/actions-poetry@v2
         with:
           poetry-version: "1.3.2"
-      - name: Install dependencies
-        run: poetry install
-      - name: Test formatting
-        run: poetry run black --check .
-      - name: Test sorting
-        run: poetry run isort --check .
-      - name: Test docstring formatting
-        run: poetry run docformatter --check .
-      - name: Static code analysis
-        run: poetry run mypy .
-      - name: Run pylint
-        run: poetry run pylint quantuminspire
+      - name: Install tox
+        run: pip install tox
+      - name: run tox lint and type
+        run: tox -e lint,type
   unit-test:
     name: Unit testing
     needs: lint
@@ -60,10 +52,10 @@ jobs:
         uses: abatilo/actions-poetry@v2
         with:
           poetry-version: "1.3.2"
-      - name: Install dependencies
-        run: poetry install
-      - name: Test with pytest
-        run: poetry run pytest .
+      - name: Install tox
+        run: pip install tox
+      - name: run tox test
+        run: tox -e test
   complete:
     # see https://github.community/t/status-check-for-a-matrix-jobs/127354/7
     name: Report status
