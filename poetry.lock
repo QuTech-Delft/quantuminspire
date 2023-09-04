@@ -1060,6 +1060,34 @@ files = [
 msvc-runtime = {version = "*", markers = "platform_system == \"Windows\""}
 
 [[package]]
+name = "qxelarator"
+version = "0.6.2"
+description = "qxelarator Python Package"
+optional = true
+python-versions = "*"
+files = [
+    {file = "qxelarator-0.6.2-cp310-cp310-macosx_11_0_x86_64.whl", hash = "sha256:ac4a292958c210e03e6a134da25ea9169a70b8fa0e337df129dae10b46059ba8"},
+    {file = "qxelarator-0.6.2-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a09325a98a7c2fa5cdc593e21cc13ae444844efb1b76317a9bd1983ed2968095"},
+    {file = "qxelarator-0.6.2-cp310-cp310-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:1ff2b9e4075a6dcb3a578b2c9fbbb54920edd754f58f5448be91388e20c7a100"},
+    {file = "qxelarator-0.6.2-cp310-cp310-win_amd64.whl", hash = "sha256:b40716857afeba8c2363f3bbe7679b1cd05de1489ea4dbfe4868aa6dd5d9a275"},
+    {file = "qxelarator-0.6.2-cp311-cp311-macosx_10_10_universal2.whl", hash = "sha256:c421d2cdb90fcc6820c85f07f096988c0c3f922a89eb5d3f0d4b642212c86ce9"},
+    {file = "qxelarator-0.6.2-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6dd1421e72b0e58d5c9efe9b4cadf0ac93938386b0eff995f65a391d70ca4367"},
+    {file = "qxelarator-0.6.2-cp311-cp311-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:1ba0fdf4b2d60286f4c5d97a964ed6473889cc144080a2de7dc9462eeea11579"},
+    {file = "qxelarator-0.6.2-cp311-cp311-win_amd64.whl", hash = "sha256:25ceaaed9ea73e553d7673ddffc0971c590ec2517ce1e9d8a9fc297dd37afc96"},
+    {file = "qxelarator-0.6.2-cp38-cp38-macosx_10_15_x86_64.whl", hash = "sha256:d46c92ffd3cec7916af7b341c9e8e185d2fbfeba50eaebf9513bbff4c13ce881"},
+    {file = "qxelarator-0.6.2-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:e0cdc096e2e0a39fd59f70a671e839f5aaa535bc2bb7edcbf82cc02079e62f5f"},
+    {file = "qxelarator-0.6.2-cp38-cp38-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:16bed84e2c6d42a27c9ba70eb45091b13cb76bf77b996a9af567636020e5cb5b"},
+    {file = "qxelarator-0.6.2-cp38-cp38-win_amd64.whl", hash = "sha256:899f2ee1adece692da480dee606dccdeb2653fb836917ae5cba7a33ef7229f71"},
+    {file = "qxelarator-0.6.2-cp39-cp39-macosx_11_0_x86_64.whl", hash = "sha256:ce617b8a8f0cdce04e2b941466065f03776a01b9d054bd953da7b4e071336f18"},
+    {file = "qxelarator-0.6.2-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:791ddbc053bbd4075e5a17a285ea0393b54a9982ed91e0ca8db1155f7467dd35"},
+    {file = "qxelarator-0.6.2-cp39-cp39-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:c8c02993beb2c0a7feb0cfbf92d2f6cb5e2f56efd4986ab5a79d720fe2ec000b"},
+    {file = "qxelarator-0.6.2-cp39-cp39-win_amd64.whl", hash = "sha256:39338b42ac96bc977abfeff9639ee2b0949ae99df68ebaf2285e9efe56326f85"},
+]
+
+[package.dependencies]
+msvc-runtime = {version = "*", markers = "platform_system == \"Windows\""}
+
+[[package]]
 name = "rich"
 version = "12.6.0"
 description = "Render rich text, tables, progress bars, syntax highlighting, markdown and more to the terminal"
@@ -1354,7 +1382,10 @@ files = [
 idna = ">=2.0"
 multidict = ">=4.0"
 
+[extras]
+local = ["qxelarator"]
+
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "6005da630b7b8b12af533aa47ee1a6e91d86d48f1484d007c4938ecf243a7855"
+content-hash = "8c0d79ca4abae715eeab324ceb50f6d0be516f0ec0a327d50a2aca50eac7e639"
