@@ -40,7 +40,7 @@ mypy = "^1.5"
 docformatter = "1.7.5"
 pytest-mock = "^3.11.1"
 isort = "^5.11.4"
-black = "^23.7.0"
+black = "^23.9.1"
 
 [tool.pytest.ini_options]
 addopts = "-v --cov --cov-report term-missing:skip-covered --cov-report xml"
