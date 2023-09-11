@@ -1,6 +1,10 @@
+from pathlib import Path
 from typing import Any, Dict, List
 
 from quantuminspire.sdk.models.circuit import Circuit
+from quantuminspire.sdk.models.hybrid_algorithm import HybridAlgorithm
+from quantuminspire.util.api.local_runtime import LocalRuntime
+from quantuminspire.util.api.quantum_interface import QuantumInterface
 
 
 def generate_circuit() -> str:
@@ -8,11 +12,12 @@ def generate_circuit() -> str:
         kernel = circuit.init_kernel("new_kernel", 2)
         kernel.hadamard(0)
         kernel.cnot(0, 1)
+        kernel.measure(1)
 
     return circuit.content
 
 
-async def execute(qi) -> None:
+async def execute(qi: QuantumInterface) -> None:
     """Run the classical part of the Hybrid Quantum/Classical Algorithm.
 
     Args:
@@ -54,19 +59,14 @@ def finalize(list_of_measurements: Dict[int, List[Any]]) -> Dict[str, Any]:
 
 
 if __name__ == "__main__":
-    import asyncio
-
     # Run the individual steps for debugging
     print("=== Circuit ===\n", generate_circuit())
 
-    class MockExecuteCircuitResult:
-        results = {"00": 0.490234, "11": 0.509766}
-        shots_requested = 1024
-        shots_done = 1024
+    algorithm = HybridAlgorithm("test", "test")
+    algorithm.read_file(Path(__file__))
 
-    class MockQI:
-        async def execute_circuit(self, circuit: str, number_of_shots: int) -> None:
-            print(f"circuit:\n {circuit}")
-            return MockExecuteCircuitResult()
+    local_runtime = LocalRuntime()
+    run_id = local_runtime.run(algorithm, 0)
+    results = local_runtime.get_results(run_id)
 
-    print("=== Execute ===\n", asyncio.run(execute(MockQI())))
+    print("=== Execute ===\n", results)
