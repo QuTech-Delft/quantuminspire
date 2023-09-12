@@ -12,7 +12,6 @@ def generate_circuit() -> str:
         kernel = circuit.init_kernel("new_kernel", 2)
         kernel.hadamard(0)
         kernel.cnot(0, 1)
-        kernel.measure(1)
 
     return circuit.content
 
