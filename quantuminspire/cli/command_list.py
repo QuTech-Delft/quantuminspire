@@ -7,6 +7,7 @@ import typer
 from typer import Typer
 
 from quantuminspire.sdk.models.hybrid_algorithm import HybridAlgorithm
+from quantuminspire.util.api.local_runtime import LocalRuntime
 from quantuminspire.util.api.remote_runtime import RemoteRuntime
 
 app = Typer(add_completion=False, no_args_is_help=True)
@@ -247,6 +248,23 @@ def upload_files(
     run_id = runtime.run(program, runtime_type_id=runtime_type_id)
     typer.echo(f"Upload file with name: {name}")
     typer.echo(f"run_id {run_id}")
+
+
+@files_app.command("run")
+def run_file(
+    name: str = typer.Argument(..., help="The full path of the file to run"),
+) -> None:
+    """Run a file locally.
+
+    Run a Hybrid Quantum/Classical Algorithm locally. The quantum part will be run with QXEmulator.
+    """
+    algorithm = HybridAlgorithm("test", "test")
+    algorithm.read_file(Path(name))
+
+    local_runtime = LocalRuntime()
+    run_id = local_runtime.run(algorithm, 0)
+    results = local_runtime.get_results(run_id)
+    typer.echo(f"{results}")
 
 
 @results_app.command("get")

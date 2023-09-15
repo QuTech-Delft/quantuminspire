@@ -65,6 +65,17 @@ def test_file_upload(mocker: MockerFixture) -> None:
     mock_remote_runtime_inst.run.assert_called_once()
 
 
+def test_file_run(mocker: MockerFixture) -> None:
+    mock_local_runtime_inst = MagicMock()
+    mocker.patch("quantuminspire.cli.command_list.LocalRuntime", return_value=mock_local_runtime_inst)
+    mocker.patch("quantuminspire.cli.command_list.Path")
+
+    result = runner.invoke(app, ["files", "run", "hqca_circuit.py"])
+
+    assert result.exit_code == 0
+    mock_local_runtime_inst.run.assert_called_once()
+
+
 def test_results_get(mocker: MockerFixture) -> None:
     mock_remote_runtime_inst = MagicMock()
     mocker.patch("quantuminspire.cli.command_list.RemoteRuntime", return_value=mock_remote_runtime_inst)
