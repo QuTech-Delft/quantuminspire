@@ -35,6 +35,6 @@ class QuantumInterface(ABC):
     results: List[Any]
 
     @abstractmethod
-    async def execute_circuit(self, circuit: str, number_of_shots: int) -> ExecuteCircuitResult:
+    def execute_circuit(self, circuit: str, number_of_shots: int) -> ExecuteCircuitResult:
         """Execute a quantum circuit."""
         raise NotImplementedError

@@ -28,7 +28,7 @@ def quantum_interface() -> Mock:
     def execute_circuit(_circuit: str, number_of_shots: int) -> ExecuteCircuitResult:
         return ExecuteCircuitResult(results={}, shots_requested=number_of_shots, shots_done=number_of_shots)
 
-    quantum_interface.execute_circuit = AsyncMock(side_effect=execute_circuit)
+    quantum_interface.execute_circuit = Mock(side_effect=execute_circuit)
     return quantum_interface
 
 
@@ -36,7 +36,7 @@ class MockLocalRuntime(LocalRuntime):
     run_quantum = Mock(
         spec=LocalRuntime.run_quantum, return_value=ExecuteCircuitResult(results={}, shots_requested=1, shots_done=1)
     )
-    run_hybrid = AsyncMock(spec=LocalRuntime.run_hybrid, return_value={"test": "result"})
+    run_hybrid = Mock(spec=LocalRuntime.run_hybrid, return_value={"test": "result"})
 
 
 @pytest.fixture
@@ -51,12 +51,12 @@ def test_local_runtime_run_quantum(qxelarator: Mock) -> None:
     qxelarator.execute_string.assert_called_once()
 
 
-async def test_local_runtime_run_hybrid(qxelarator: Mock, quantum_interface: Mock) -> None:
+def test_local_runtime_run_hybrid(qxelarator: Mock, quantum_interface: Mock) -> None:
     runtime = LocalRuntime(qxelarator)
     file = Path("examples/hqca_circuit.py")
     algorithm = HybridAlgorithm("test", "Test")
     algorithm.read_file(file)
-    await runtime.run_hybrid(algorithm, quantum_interface)
+    runtime.run_hybrid(algorithm, quantum_interface)
 
 
 def test_local_runtime_run_with_hybrid_algorithm(local_runtime: MockLocalRuntime) -> None:

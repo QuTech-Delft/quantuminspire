@@ -31,7 +31,7 @@ class QuantumInterface(QuantumInterfaceProtocol):
         self.runtime = runtime
         self.results: List[Any] = []
 
-    async def execute_circuit(self, circuit: str, number_of_shots: int) -> ExecuteCircuitResult:
+    def execute_circuit(self, circuit: str, number_of_shots: int) -> ExecuteCircuitResult:
         """Execute a quantum circuit."""
         results = self.runtime.run_quantum(circuit, number_of_shots)
         self.results.append(results.results)

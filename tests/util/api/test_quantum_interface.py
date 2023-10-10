@@ -19,6 +19,6 @@ def local_runtime() -> Mock:
 
 async def test_quantum_interface(local_runtime: Mock) -> None:
     qi = QuantumInterface(local_runtime)
-    result = await qi.execute_circuit("circuit", 1)
+    result = qi.execute_circuit("circuit", 1)
     assert result.shots_done == 1
     local_runtime.run_quantum.assert_called_once()

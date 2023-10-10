@@ -11,7 +11,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific
 language governing permissions and limitations under the License.
 """
-import asyncio
 import importlib
 import sys
 import types
@@ -63,14 +62,14 @@ class LocalRuntime(BaseRuntime):
         """Execute provided algorithm/circuit."""
         if isinstance(program, HybridAlgorithm):
             quantum_interface = QuantumInterface(self)
-            self._hybrid_results = asyncio.run(self.run_hybrid(program, quantum_interface))
+            self._hybrid_results = self.run_hybrid(program, quantum_interface)
             return self.RunFakeID.HYBRID
         if isinstance(program, Circuit):
             self._quantum_results = self.run_quantum(program.content)
             return self.RunFakeID.QUANTUM
         raise AssertionError("Unknown algorithm type")
 
-    async def run_hybrid(self, algorithm: HybridAlgorithm, quantum_interface: QuantumInterfaceProtocol) -> Any:
+    def run_hybrid(self, algorithm: HybridAlgorithm, quantum_interface: QuantumInterfaceProtocol) -> Any:
         """Execute provided algorithm."""
 
         # pylint: disable = E1101, W0122
@@ -83,7 +82,7 @@ class LocalRuntime(BaseRuntime):
 
         if not hasattr(program, "execute") or not callable(program.execute):
             raise AssertionError("'execute' hook not found or not callable.")
-        await program.execute(quantum_interface)
+        program.execute(quantum_interface)
 
         if not hasattr(program, "finalize") or not callable(program.finalize):
             raise AssertionError("'finalize' hook not found or not callable.")

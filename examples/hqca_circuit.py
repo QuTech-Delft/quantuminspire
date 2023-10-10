@@ -16,7 +16,7 @@ def generate_circuit() -> str:
     return circuit.content
 
 
-async def execute(qi: QuantumInterface) -> None:
+def execute(qi: QuantumInterface) -> None:
     """Run the classical part of the Hybrid Quantum/Classical Algorithm.
 
     Args:
@@ -36,7 +36,7 @@ async def execute(qi: QuantumInterface) -> None:
     """
     for i in range(1, 5):
         circuit = generate_circuit()
-        result = await qi.execute_circuit(circuit, 1024)
+        result = qi.execute_circuit(circuit, 1024)
 
         print(result.results)
         print(result.shots_requested)
