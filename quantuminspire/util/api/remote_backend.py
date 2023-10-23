@@ -21,9 +21,9 @@ from compute_api_client import (
     AlgorithmIn,
     AlgorithmsApi,
     ApiClient,
-    BatchRun,
-    BatchRunIn,
-    BatchRunsApi,
+    BatchJob,
+    BatchJobIn,
+    BatchJobsApi,
     Commit,
     CommitIn,
     CommitsApi,
@@ -31,27 +31,27 @@ from compute_api_client import (
     File,
     FileIn,
     FilesApi,
+    Job,
+    JobIn,
+    JobsApi,
+    JobStatus,
     Project,
     ProjectIn,
     ProjectsApi,
     Result,
     ResultsApi,
-    Run,
-    RunIn,
-    RunsApi,
-    RunStatus,
     ShareType,
 )
 
 from quantuminspire.sdk.models.base_algorithm import BaseAlgorithm
-from quantuminspire.util.api.base_runtime import BaseRuntime
+from quantuminspire.util.api.base_backend import BaseBackend
 from quantuminspire.util.configuration import Settings
 
 
-class RemoteRuntime(BaseRuntime):
-    """Connection to remote runtime.
+class RemoteBackend(BaseBackend):
+    """Connection to remote backend.
 
-    Create a connection with the remote runtime for Quantum Inspire. This connection creates the appropriate projects,
+    Create a connection with the remote backend for Quantum Inspire. This connection creates the appropriate projects,
     algorithms, files etc. The algorithm/circuit will also be run.
     """
 
@@ -61,33 +61,33 @@ class RemoteRuntime(BaseRuntime):
         host = "https://staging.qi2.quantum-inspire.com"
         self._configuration = Configuration(host=host, api_key={"user": str(settings.auths[host]["user_id"])})
 
-    def run(self, program: BaseAlgorithm, runtime_type_id: int) -> int:
+    def run(self, program: BaseAlgorithm, backend_type_id: int) -> int:
         """Execute provided algorithm/circuit."""
-        return asyncio.run(self._create_flow(program, runtime_type_id))
+        return asyncio.run(self._create_flow(program, backend_type_id))
 
-    async def _get_results(self, run_id: int) -> Any:
+    async def _get_results(self, job_id: int) -> Any:
         async with ApiClient(self._configuration) as api_client:
-            run = await self._read_run(api_client, run_id)
-            if run.status != RunStatus.COMPLETED:
+            job = await self._read_job(api_client, job_id)
+            if job.status != JobStatus.COMPLETED:
                 return None
 
-            return await self._read_results_for_run(api_client, run)
+            return await self._read_results_for_job(api_client, job)
 
-    def get_results(self, run_id: int) -> Any:
+    def get_results(self, job_id: int) -> Any:
         """Get results for algorithm/circuit."""
-        return asyncio.run(self._get_results(run_id))
+        return asyncio.run(self._get_results(job_id))
 
-    async def _create_flow(self, program: BaseAlgorithm, runtime_type_id: int) -> int:
+    async def _create_flow(self, program: BaseAlgorithm, backend_type_id: int) -> int:
         """Call the necessary methods in the correct order, with the correct parameters."""
         async with ApiClient(self._configuration) as api_client:
             project = await self._create_project(api_client, program)
             algorithm = await self._create_algorithm(api_client, program, project)
             commit = await self._create_commit(api_client, algorithm)
             file = await self._create_file(api_client, program, commit)
-            batch_run = await self._create_batch_run(api_client, runtime_type_id=runtime_type_id)
-            run: Run = await self._create_run(api_client, file, batch_run)
-            await self._enqueue_batch_run(api_client, batch_run)
-            return run.id  # type: ignore
+            batch_job = await self._create_batch_job(api_client, backend_type_id=backend_type_id)
+            job: Job = await self._create_job(api_client, file, batch_job)
+            await self._enqueue_batch_job(api_client, batch_job)
+            return job.id  # type: ignore
 
     @staticmethod
     async def _create_project(api_client: ApiClient, program: BaseAlgorithm) -> Project:
@@ -134,32 +134,32 @@ class RemoteRuntime(BaseRuntime):
         return await api_instance.create_file_files_post(obj)
 
     @staticmethod
-    async def _create_batch_run(api_client: ApiClient, runtime_type_id: int) -> BatchRun:
-        api_instance = BatchRunsApi(api_client)
-        obj = BatchRunIn(runtime_type_id=runtime_type_id, user_id=1)
-        return await api_instance.create_batch_run_batch_runs_post(obj)
+    async def _create_batch_job(api_client: ApiClient, backend_type_id: int) -> BatchJob:
+        api_instance = BatchJobsApi(api_client)
+        obj = BatchJobIn(backend_type_id=backend_type_id, user_id=1)
+        return await api_instance.create_batch_job_batch_jobs_post(obj)
 
     @staticmethod
-    async def _create_run(api_client: ApiClient, file: File, batch_run: BatchRun) -> Run:
-        api_instance = RunsApi(api_client)
-        obj = RunIn(
+    async def _create_job(api_client: ApiClient, file: File, batch_job: BatchJob) -> Job:
+        api_instance = JobsApi(api_client)
+        obj = JobIn(
             file_id=file.id,
-            status=RunStatus.PLANNED,
-            batch_run_id=batch_run.id,
+            status=JobStatus.PLANNED,
+            batch_job_id=batch_job.id,
         )
-        return await api_instance.create_run_runs_post(obj)
+        return await api_instance.create_job_jobs_post(obj)
 
     @staticmethod
-    async def _enqueue_batch_run(api_client: ApiClient, batch_run: BatchRun) -> BatchRun:
-        api_instance = BatchRunsApi(api_client)
-        return await api_instance.enqueue_batch_run_batch_runs_id_enqueue_patch(batch_run.id)
+    async def _enqueue_batch_job(api_client: ApiClient, batch_job: BatchJob) -> BatchJob:
+        api_instance = BatchJobsApi(api_client)
+        return await api_instance.enqueue_batch_job_batch_jobs_id_enqueue_patch(batch_job.id)
 
     @staticmethod
-    async def _read_run(api_client: ApiClient, run_id: int) -> Run:
-        api_instance = RunsApi(api_client)
-        return await api_instance.read_run_runs_id_get(run_id)
+    async def _read_job(api_client: ApiClient, job_id: int) -> Job:
+        api_instance = JobsApi(api_client)
+        return await api_instance.read_job_jobs_id_get(job_id)
 
     @staticmethod
-    async def _read_results_for_run(api_client: ApiClient, run: Run) -> List[Result]:
+    async def _read_results_for_job(api_client: ApiClient, job: Job) -> List[Result]:
         api_instance = ResultsApi(api_client)
-        return await api_instance.read_results_by_run_id_results_run_run_id_get(run.id)  # type: ignore
+        return await api_instance.read_results_by_job_id_results_job_job_id_get(job.id)  # type: ignore

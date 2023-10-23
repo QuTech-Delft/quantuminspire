@@ -18,18 +18,18 @@ from typing import Any
 from quantuminspire.sdk.models.base_algorithm import BaseAlgorithm
 
 
-class BaseRuntime(ABC):
-    """Base interface for runtimes.
+class BaseBackend(ABC):
+    """Base interface for backends.
 
-    A runtime will execute the hybrid algorithm, or quantum circuit provided.
+    A backend will execute the hybrid algorithm, or quantum circuit provided.
     """
 
     @abstractmethod
-    def run(self, program: BaseAlgorithm, runtime_type_id: int) -> int:
+    def run(self, program: BaseAlgorithm, backend_type_id: int) -> int:
         """Execute provided algorithm/circuit."""
         raise NotImplementedError
 
     @abstractmethod
-    def get_results(self, run_id: int) -> Any:
+    def get_results(self, job_id: int) -> Any:
         """Get results for algorithm/circuit."""
         raise NotImplementedError

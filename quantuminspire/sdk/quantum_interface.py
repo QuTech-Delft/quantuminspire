@@ -18,7 +18,7 @@ from quantuminspire.util.api.quantum_interface import ExecuteCircuitResult
 from quantuminspire.util.api.quantum_interface import QuantumInterface as QuantumInterfaceProtocol
 
 if TYPE_CHECKING:  # pragma: no cover
-    from quantuminspire.util.api.local_runtime import LocalRuntime
+    from quantuminspire.util.api.local_backend import LocalBackend
 
 
 class QuantumInterface(QuantumInterfaceProtocol):
@@ -27,12 +27,12 @@ class QuantumInterface(QuantumInterfaceProtocol):
     # pylint: disable = R0903
     # R0903: Too few public methods (1/2) (too-few-public-methods)
 
-    def __init__(self, runtime: "LocalRuntime"):
-        self.runtime = runtime
+    def __init__(self, backend: "LocalBackend"):
+        self.backend = backend
         self.results: List[Any] = []
 
     def execute_circuit(self, circuit: str, number_of_shots: int) -> ExecuteCircuitResult:
         """Execute a quantum circuit."""
-        results = self.runtime.run_quantum(circuit, number_of_shots)
+        results = self.backend.run_quantum(circuit, number_of_shots)
         self.results.append(results.results)
         return results

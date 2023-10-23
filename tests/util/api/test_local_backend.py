@@ -6,7 +6,7 @@ import pytest
 
 from quantuminspire.sdk.models.circuit import Circuit
 from quantuminspire.sdk.models.hybrid_algorithm import HybridAlgorithm
-from quantuminspire.util.api.local_runtime import LocalRuntime
+from quantuminspire.util.api.local_backend import LocalBackend
 from quantuminspire.util.api.quantum_interface import ExecuteCircuitResult
 
 
@@ -32,44 +32,44 @@ def quantum_interface() -> Mock:
     return quantum_interface
 
 
-class MockLocalRuntime(LocalRuntime):
+class MockLocalBackend(LocalBackend):
     run_quantum = Mock(
-        spec=LocalRuntime.run_quantum, return_value=ExecuteCircuitResult(results={}, shots_requested=1, shots_done=1)
+        spec=LocalBackend.run_quantum, return_value=ExecuteCircuitResult(results={}, shots_requested=1, shots_done=1)
     )
-    run_hybrid = Mock(spec=LocalRuntime.run_hybrid, return_value={"test": "result"})
+    run_hybrid = Mock(spec=LocalBackend.run_hybrid, return_value={"test": "result"})
 
 
 @pytest.fixture
-def local_runtime(qxelarator: Mock) -> MockLocalRuntime:
-    return MockLocalRuntime(qxelarator)
+def local_backend(qxelarator: Mock) -> MockLocalBackend:
+    return MockLocalBackend(qxelarator)
 
 
-def test_local_runtime_run_quantum(qxelarator: Mock) -> None:
-    runtime = LocalRuntime(qxelarator)
-    result = runtime.run_quantum("circuit", 1)
+def test_local_backend_run_quantum(qxelarator: Mock) -> None:
+    backend = LocalBackend(qxelarator)
+    result = backend.run_quantum("circuit", 1)
     assert result.shots_done == 1
     qxelarator.execute_string.assert_called_once()
 
 
-def test_local_runtime_run_hybrid(qxelarator: Mock, quantum_interface: Mock) -> None:
-    runtime = LocalRuntime(qxelarator)
+def test_local_backend_run_hybrid(qxelarator: Mock, quantum_interface: Mock) -> None:
+    backend = LocalBackend(qxelarator)
     file = Path("examples/hqca_circuit.py")
     algorithm = HybridAlgorithm("test", "Test")
     algorithm.read_file(file)
-    runtime.run_hybrid(algorithm, quantum_interface)
+    backend.run_hybrid(algorithm, quantum_interface)
 
 
-def test_local_runtime_run_with_hybrid_algorithm(local_runtime: MockLocalRuntime) -> None:
+def test_local_backend_run_with_hybrid_algorithm(local_backend: MockLocalBackend) -> None:
     algorithm = HybridAlgorithm("test", "Test")
-    run_id = local_runtime.run(algorithm, 0)
-    local_runtime.run_hybrid.assert_called_once()
-    results = local_runtime.get_results(run_id)
+    job_id = local_backend.run(algorithm, 0)
+    local_backend.run_hybrid.assert_called_once()
+    results = local_backend.get_results(job_id)
     assert results == {"test": "result"}
 
 
-def test_local_runtime_run_with_quantum_algorithm(local_runtime: MockLocalRuntime) -> None:
+def test_local_backend_run_with_quantum_algorithm(local_backend: MockLocalBackend) -> None:
     algorithm = Circuit("test", "Test")
-    run_id = local_runtime.run(algorithm, 0)
-    local_runtime.run_hybrid.assert_called_once()
-    results = local_runtime.get_results(run_id)
+    job_id = local_backend.run(algorithm, 0)
+    local_backend.run_hybrid.assert_called_once()
+    results = local_backend.get_results(job_id)
     assert results == ExecuteCircuitResult(results={}, shots_requested=1, shots_done=1)

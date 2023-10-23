@@ -7,8 +7,8 @@ import typer
 from typer import Typer
 
 from quantuminspire.sdk.models.hybrid_algorithm import HybridAlgorithm
-from quantuminspire.util.api.local_runtime import LocalRuntime
-from quantuminspire.util.api.remote_runtime import RemoteRuntime
+from quantuminspire.util.api.local_backend import LocalBackend
+from quantuminspire.util.api.remote_backend import RemoteBackend
 
 app = Typer(add_completion=False, no_args_is_help=True)
 algorithms_app = Typer(no_args_is_help=True)
@@ -233,8 +233,8 @@ def sync_projects(
 @files_app.command("upload")
 def upload_files(
     name: str = typer.Argument(..., help="The name of the file to upload"),
-    runtime_type_id: int = typer.Argument(
-        ..., help="The id of the runtime type on which this algorithm should be executed"
+    backend_type_id: int = typer.Argument(
+        ..., help="The id of the backend type on which this algorithm should be executed"
     ),
 ) -> None:
     """Upload a file to the QI API.
@@ -242,12 +242,12 @@ def upload_files(
     Upload a Hybrid Quantum/Classical Algorithm to the Quantum Inspire API. This file is marked as a hybrid algorithm
     when sent to the API.
     """
-    runtime = RemoteRuntime()
+    backend = RemoteBackend()
     program = HybridAlgorithm(platform_name="spin-2", program_name=name)
     program.read_file(Path(name))
-    run_id = runtime.run(program, runtime_type_id=runtime_type_id)
+    job_id = backend.run(program, backend_type_id=backend_type_id)
     typer.echo(f"Upload file with name: {name}")
-    typer.echo(f"run_id {run_id}")
+    typer.echo(f"job_id {job_id}")
 
 
 @files_app.command("run")
@@ -261,20 +261,20 @@ def run_file(
     algorithm = HybridAlgorithm("test", "test")
     algorithm.read_file(Path(name))
 
-    local_runtime = LocalRuntime()
-    run_id = local_runtime.run(algorithm, 0)
-    results = local_runtime.get_results(run_id)
+    local_backend = LocalBackend()
+    job_id = local_backend.run(algorithm, 0)
+    results = local_backend.get_results(job_id)
     typer.echo(f"{results}")
 
 
 @results_app.command("get")
-def get_results(run_id: int = typer.Argument(..., help="The id of the run")) -> None:
+def get_results(job_id: int = typer.Argument(..., help="The id of the run")) -> None:
     """Retrieve the results for a run.
 
     Takes the id as returned by upload_files and retrieves the results for that run, if it's finished.
     """
-    runtime = RemoteRuntime()
-    results = runtime.get_results(run_id)
+    backend = RemoteBackend()
+    results = backend.get_results(job_id)
 
     if results is None:
         typer.echo("No results.")

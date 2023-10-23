@@ -3,7 +3,7 @@ from typing import Any, Dict, List
 
 from quantuminspire.sdk.models.circuit import Circuit
 from quantuminspire.sdk.models.hybrid_algorithm import HybridAlgorithm
-from quantuminspire.util.api.local_runtime import LocalRuntime
+from quantuminspire.util.api.local_backend import LocalBackend
 from quantuminspire.util.api.quantum_interface import QuantumInterface
 
 
@@ -64,8 +64,8 @@ if __name__ == "__main__":
     algorithm = HybridAlgorithm("test", "test")
     algorithm.read_file(Path(__file__))
 
-    local_runtime = LocalRuntime()
-    run_id = local_runtime.run(algorithm, 0)
-    results = local_runtime.get_results(run_id)
+    local_backend = LocalBackend()
+    job_id = local_backend.run(algorithm, 0)
+    results = local_backend.get_results(job_id)
 
     print("=== Execute ===\n", results)

@@ -21,7 +21,7 @@ from quantuminspire.sdk.models.base_algorithm import BaseAlgorithm
 from quantuminspire.sdk.models.circuit import Circuit
 from quantuminspire.sdk.models.hybrid_algorithm import HybridAlgorithm
 from quantuminspire.sdk.quantum_interface import QuantumInterface
-from quantuminspire.util.api.base_runtime import BaseRuntime
+from quantuminspire.util.api.base_backend import BaseBackend
 from quantuminspire.util.api.quantum_interface import ExecuteCircuitResult
 from quantuminspire.util.api.quantum_interface import QuantumInterface as QuantumInterfaceProtocol
 
@@ -39,15 +39,15 @@ def import_qxelarator() -> types.ModuleType:  # pragma: no cover
         raise SystemExit from exc
 
 
-class LocalRuntime(BaseRuntime):
-    """Connection to remote runtime.
+class LocalBackend(BaseBackend):
+    """Connection to remote backend.
 
-    Create a connection with the remote runtime for Quantum Inspire. This connection creates the appropriate projects,
+    Create a connection with the remote backend for Quantum Inspire. This connection creates the appropriate projects,
     algorithms, files etc. The algorithm/circuit will also be run.
     """
 
-    class RunFakeID(IntEnum):
-        """Helper to conform to BaseRuntime interface of returning job IDs."""
+    class JobFakeID(IntEnum):
+        """Helper to conform to BaseBackend interface of returning job IDs."""
 
         QUANTUM = -1
         HYBRID = -2
@@ -58,15 +58,15 @@ class LocalRuntime(BaseRuntime):
         self._hybrid_results: Union[Any, None] = None
         self._qxelarator = qxelarator if qxelarator else import_qxelarator()
 
-    def run(self, program: BaseAlgorithm, runtime_type_id: int) -> int:
+    def run(self, program: BaseAlgorithm, backend_type_id: int) -> int:
         """Execute provided algorithm/circuit."""
         if isinstance(program, HybridAlgorithm):
             quantum_interface = QuantumInterface(self)
             self._hybrid_results = self.run_hybrid(program, quantum_interface)
-            return self.RunFakeID.HYBRID
+            return self.JobFakeID.HYBRID
         if isinstance(program, Circuit):
             self._quantum_results = self.run_quantum(program.content)
-            return self.RunFakeID.QUANTUM
+            return self.JobFakeID.QUANTUM
         raise AssertionError("Unknown algorithm type")
 
     def run_hybrid(self, algorithm: HybridAlgorithm, quantum_interface: QuantumInterfaceProtocol) -> Any:
@@ -100,11 +100,11 @@ class LocalRuntime(BaseRuntime):
             shots_requested=result.shots_requested,
         )
 
-    def get_results(self, run_id: int) -> Any:
+    def get_results(self, job_id: int) -> Any:
         """Get results for algorithm/circuit."""
-        if run_id == self.RunFakeID.QUANTUM:
+        if job_id == self.JobFakeID.QUANTUM:
             return self._quantum_results
-        if run_id == self.RunFakeID.HYBRID:
+        if job_id == self.JobFakeID.HYBRID:
             return self._hybrid_results
 
-        raise AssertionError("Unknown run id")
+        raise AssertionError("Unknown job id")

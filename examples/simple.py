@@ -3,7 +3,7 @@
 import time
 
 from quantuminspire.sdk.models.circuit import Circuit
-from quantuminspire.util.api.remote_runtime import RemoteRuntime
+from quantuminspire.util.api.remote_backend import RemoteBackend
 
 with Circuit(platform_name="spin-2", program_name="prgm1") as c:
     k = c.init_kernel("new_kernel", 2)
@@ -14,9 +14,9 @@ with Circuit(platform_name="spin-2", program_name="prgm1") as c:
 
 print(c.content)
 
-runtime = RemoteRuntime()
+backend = RemoteBackend()
 
 startTime = time.time()
-runtime.run(c, runtime_type_id=3)
+backend.run(c, backend_type_id=3)
 executionTime = time.time() - startTime
 print("Execution time in seconds: " + str(executionTime))

@@ -111,7 +111,7 @@ def generate_objective_function(qi, graph) -> Callable:
         gamma = theta[P:]
         circuit = qaoa_circuit(graph, beta, gamma)
         # This slightly awkward. f needs to by a normal (non async) function since scipy can only minimize those.
-        # However, in the classical runtime there is already an asycio event loop so we can't just call
+        # However, in the classical backend there is already an asycio event loop so we can't just call
         #
         #   result = asyncio.run(qi.execute_circuit(circuit, SHOTS))
         #

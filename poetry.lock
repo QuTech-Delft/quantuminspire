@@ -1027,7 +1027,7 @@ six = ">=1.5"
 
 [[package]]
 name = "qi-compute-api-client"
-version = "0.2.0"
+version = "0.9.0"
 description = "An API client for the Compute Job Manager of Quantum Inspire."
 optional = false
 python-versions = "^3.7"
@@ -1042,8 +1042,8 @@ urllib3 = "^1.25.3"
 [package.source]
 type = "git"
 url = "https://github.com/QuTech-Delft/compute-api-client.git"
-reference = "0.2.0"
-resolved_reference = "a5bace343677635d1a08d29552c4fda510862fc2"
+reference = "HEAD"
+resolved_reference = "b69d71bd25a3026e116aa8f674509797e13f1920"
 
 [[package]]
 name = "qutechopenql"
@@ -1406,4 +1406,4 @@ local = ["qxelarator"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "5047e915e75179f9636a40d3164c3a49e16d2844e6352ed013d2bf71b4512c8d"
+content-hash = "e56b2e77f4c258d3b9947773d5f7a8ec333e3a779f29da4861dc24a44949f02b"
