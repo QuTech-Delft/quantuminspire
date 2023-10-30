@@ -133,7 +133,7 @@ def generate_objective_function(qi, graph) -> Callable:
     return f
 
 
-async def execute(qi) -> None:
+def execute(qi) -> None:
     """Run the entire qaoa alogrithm.
 
     Args:

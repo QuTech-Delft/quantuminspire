@@ -12,7 +12,9 @@ class TestCreate:
         configuration.ensure_config_file_exists(path, "utf-8")
         path.parent.mkdir.assert_called_once_with(parents=True, exist_ok=True)
         path.open.assert_called_once_with("w", encoding="utf-8")
-        open_mock.write.assert_called_once_with("{}")
+        open_mock.write.assert_called_once_with(
+            '{"auths": {"https://staging.qi2.quantum-inspire.com": {"user_id": 1}}}'
+        )
 
     def test_force_file_into_existence_file_exists(self) -> None:
         path = MagicMock()

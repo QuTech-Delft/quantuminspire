@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  qi2sdk:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: vscode
+      args:
+        USER: vscode
+    platform: linux/amd64
+    command: /bin/sh -c "while sleep 1000; do :; done"
+    volumes:
+      - ..:/workspace:cached
+    user: vscode

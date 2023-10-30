@@ -6,9 +6,20 @@ ENV DEBIAN_FRONTEND noninteractive
 # Set up user
 ARG USER=vagrant
 ENV PATH /home/${USER}/.local/bin:$PATH
-RUN groupadd -r ${USER} && useradd -m -r -s /bin/bash -g ${USER} ${USER}
+RUN groupadd -r ${USER} && \
+    useradd -m -r -s /bin/bash -g ${USER} ${USER}
+
+RUN apt-get update -y && \
+    apt-get install -y --no-install-recommends \
+    sudo && \
+    apt-get clean && \
+    echo -n "${USER}:${USER}" | chpasswd && \
+    echo "${USER} ALL = NOPASSWD: ALL" > /etc/sudoers.d/${USER} && \
+    chmod 440 /etc/sudoers.d/${USER}
 
 USER ${USER}
+
+RUN pip install --upgrade pip wheel setuptools tox
 
 # Install poetry
 RUN curl -sSL https://install.python-poetry.org | python3 -
@@ -24,17 +35,12 @@ USER root
 RUN apt-get update -y && \
     apt-get install -y --no-install-recommends \
     ssh \
-    sudo \
     ca-certificates \
     curl \
     gnupg \
     lsb-release \
     openssh-client && \
     apt-get clean
-
-RUN echo -n "${USER}:${USER}" | chpasswd && \
-    echo "${USER} ALL = NOPASSWD: ALL" > /etc/sudoers.d/${USER} && \
-    chmod 440 /etc/sudoers.d/${USER}
 
 RUN sed -i -e 's/Defaults.*requiretty/#&/' /etc/sudoers && \
     sed -i -e 's/\(UsePAM \)yes/\1 no/' /etc/ssh/sshd_config && \
