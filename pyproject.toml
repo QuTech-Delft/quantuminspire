@@ -32,7 +32,7 @@ qxelarator = {version = "^0.6.2", optional = true}
 local = ["qxelarator"]
 
 [tool.poetry.group.dev.dependencies]
-pytest = {extras = ["toml"], version = "^7.4.2"}
+pytest = {extras = ["toml"], version = "^7.4.3"}
 pytest-cov = "^4.1.0"
 pylint = "^3.0.2"
 coverage = {extras = ["toml"], version = "^7.3.2"}
