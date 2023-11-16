@@ -56,6 +56,7 @@ class TestQuantumInspireProvider(unittest.TestCase):
                               'allowed_operations': {
                                   'measure': ['measure_z', 'measure_x'],
                                   'measure_all': ['measure_all'],
+                                  'prep': ['prep_z'],
                                   'parameterized_single_gates': ['rx', 'ry', 'rz'],
                                   'single_gates': ['x', 'y', 'z', 'h', 'i', 't', 'tdag', 's', 'sdag'],
                                   'dual_gates': ['cz', 'cr', 'cnot', 'swap'],
@@ -127,8 +128,8 @@ class TestQuantumInspireProvider(unittest.TestCase):
             self.assertTrue(backend.configuration().multiple_measurements)
             self.assertFalse(backend.configuration().parallel_computing)
             self.assertEqual(backend.configuration().basis_gates, ['x', 'y', 'z', 'h', 'rx', 'ry', 'rz', 's', 'sdg',
-                                                                   't', 'tdg', 'cx', 'ccx', 'p', 'id',
-                                                                   'swap', 'cz', 'snapshot', 'delay', 'barrier'])
+                                                                   't', 'tdg', 'cx', 'ccx', 'p', 'u', 'id',
+                                                                   'swap', 'cz', 'snapshot', 'delay', 'barrier', 'reset'])
 
     def test_hardware_backend(self):
         with mock.patch('quantuminspire.qiskit.quantum_inspire_provider.QuantumInspireAPI') as api:
@@ -177,9 +178,10 @@ class TestQuantumInspireProvider(unittest.TestCase):
             self.assertFalse(backend.configuration().conditional)
             self.assertTrue(backend.configuration().multiple_measurements)
             self.assertFalse(backend.configuration().parallel_computing)
-            self.assertEqual(backend.configuration().basis_gates, ['rx', 'ry', 'rz', 'x', 'y', 'z', 'h', 'id', 't',
+            self.assertEqual(backend.configuration().basis_gates, ['reset', 'rx', 'ry', 'rz', 'x', 'y', 'z',
+                                                                   'h', 'id', 't',
                                                                    'tdg', 's', 'sdg', 'cz', 'cx', 'swap',
-                                                                   'ccx', 'barrier', 'delay', 'p'])
+                                                                   'ccx', 'barrier', 'delay', 'u', 'p'])
 
     def test_set_authentication_details(self):
         with mock.patch('quantuminspire.qiskit.quantum_inspire_provider.QuantumInspireAPI') as api:

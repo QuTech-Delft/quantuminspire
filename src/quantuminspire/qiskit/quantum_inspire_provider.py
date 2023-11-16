@@ -92,7 +92,7 @@ class QuantumInspireProvider(Provider):  # type: ignore
             config.basis_gates = []
             for keys in backend['allowed_operations']:
                 if keys in ['single_gates', 'parameterized_single_gates', 'dual_gates',
-                            'parameterized_dual_gates', 'triple_gates', 'wait', 'barrier']:
+                            'parameterized_dual_gates', 'triple_gates', 'wait', 'barrier', 'prep']:
                     for gate in backend['allowed_operations'][keys]:
                         if gate in ['x', 'y', 'z', 'h', 's', 't', 'rx', 'ry', 'rz', 'swap', 'cz', 'barrier']:
                             config.basis_gates += [gate]
@@ -108,7 +108,10 @@ class QuantumInspireProvider(Provider):  # type: ignore
                             config.basis_gates += ['cx']
                         elif gate == 'toffoli':
                             config.basis_gates += ['ccx']
+                        elif gate == 'prep' or gate == 'prep_z':
+                            config.basis_gates += ['reset']
             if 'rz' in config.basis_gates and 'ry' in config.basis_gates:
+                config.basis_gates += ['u']
                 config.basis_gates += ['p']
 
         config.simulator = not backend['is_hardware_backend']

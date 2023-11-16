@@ -18,8 +18,6 @@ import copy
 from io import StringIO
 from typing import Optional, Tuple, List
 
-import numpy as np
-
 from qiskit.qobj import QasmQobjInstruction
 from quantuminspire.exceptions import ApiError
 from quantuminspire.qiskit.measurements import Measurements
@@ -37,7 +35,6 @@ class CircuitToString:
         self.basis_gates = basis_gates.copy()
         if len(self.basis_gates) > 0:
             self.basis_gates.append("measure")
-            self.basis_gates.append("u")
         self.bfunc_instructions: List[QasmQobjInstruction] = []
         self.full_state_projection = full_state_projection
         self.measurements = measurements
@@ -565,6 +562,15 @@ class CircuitToString:
         are 1.
 
         """
+
+    def _reset(self, stream: StringIO, instruction: QasmQobjInstruction) -> None:
+        """ Translates the reset element.
+
+        :param stream: The string-io stream to where the resulting cQASM is written.
+        :param instruction: The Qiskit instruction to translate to cQASM.
+
+        """
+        stream.write('prep_z q[{0}]\n'.format(*instruction.qubits))
 
     @staticmethod
     def _delay(stream: StringIO, instruction: QasmQobjInstruction) -> None:

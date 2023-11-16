@@ -270,6 +270,28 @@ class TestQiCircuitToString(unittest.TestCase):
         self.assertTrue('wait q[2], 1\n' in result)
         self.assertTrue('wait q[3], 1\n' in result)
 
+    def test_generate_cqasm_correct_output_reset_qubit(self):
+        q1 = QuantumRegister(1, "q1")
+        q2 = QuantumRegister(2, "q2")
+        c1 = ClassicalRegister(1, "c1")
+        c2 = ClassicalRegister(2, "c2")
+        qc = QuantumCircuit(q1, q2, c1, c2, name="test")
+
+        qc.reset(q1)
+        result = self._generate_cqasm_from_circuit(qc)
+        self.assertTrue('prep_z q[0]\n' in result)
+
+    def test_generate_cqasm_correct_output_reset_qubits(self):
+        q1 = QuantumRegister(1, "q1")
+        q2 = QuantumRegister(2, "q2")
+        c1 = ClassicalRegister(1, "c1")
+        c2 = ClassicalRegister(2, "c2")
+        qc = QuantumCircuit(q1, q2, c1, c2, name="test")
+
+        qc.reset(q2)
+        result = self._generate_cqasm_from_circuit(qc)
+        self.assertTrue('prep_z q[1]\nprep_z q[2]\n' in result)
+
     def test_generate_cqasm_correct_output_identity(self):
         qc = QuantumCircuit(2, 2)
         qc.i(0)
