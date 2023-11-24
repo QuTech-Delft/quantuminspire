@@ -342,27 +342,27 @@ class CircuitToString:
         epsilon = 1e-8
         qubit = instruction.qubits[0]
         if axis == 'x':
-            if abs(angle_q0-np.pi/2) < epsilon:            
+            if abs(angle_q0-np.pi/2) < epsilon:
                 stream.write(f'X90 q[{qubit}]\n')
                 return
-            elif abs(angle_q0-np.pi) < epsilon:            
+            elif abs(angle_q0-np.pi) < epsilon:
                 stream.write(f'X q[{qubit}]\n')
                 return
-            elif abs(angle_q0+np.pi/2) < epsilon:            
+            elif abs(angle_q0+np.pi/2) < epsilon:
                 stream.write(f'mX90 q[{qubit}]\n')
                 return
         elif axis == 'y':
-            if abs(angle_q0-np.pi/2) < epsilon:            
+            if abs(angle_q0-np.pi/2) < epsilon:
                 stream.write(f'Y90 q[{qubit}]\n')
                 return
-            elif abs(angle_q0-np.pi) < epsilon:            
+            elif abs(angle_q0-np.pi) < epsilon:
                 stream.write(f'Y q[{qubit}]\n')
                 return
-            elif abs(angle_q0+np.pi/2) < epsilon:            
+            elif abs(angle_q0+np.pi/2) < epsilon:
                 stream.write(f'mY90 q[{qubit}]\n')
                 return
         elif axis == 'z':
-            if abs(angle_q0-np.pi) < epsilon:            
+            if abs(angle_q0-np.pi) < epsilon:
                 stream.write(f'Z q[{qubit}]\n')
                 return
 
