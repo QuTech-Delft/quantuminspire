@@ -3,7 +3,6 @@
 The algorithm is the Quantum Approximate Optimization Algorithm, as documented on
 https://www.quantuminspire.com/kbase/qaoa/
 """
-import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Callable, Dict, List
 
@@ -110,18 +109,8 @@ def generate_objective_function(qi, graph) -> Callable:
         beta = theta[:P]
         gamma = theta[P:]
         circuit = qaoa_circuit(graph, beta, gamma)
-        # This slightly awkward. f needs to by a normal (non async) function since scipy can only minimize those.
-        # However, in the classical backend there is already an asycio event loop so we can't just call
-        #
-        #   result = asyncio.run(qi.execute_circuit(circuit, SHOTS))
-        #
-        # and we have to do it in a separate thread instead. Ideally we solve these issues in
-        # the classical so that we do not expose the end user to such technical difficulties.
-        with ThreadPoolExecutor(1) as pool:
-            coro = qi.execute_circuit(circuit, SHOTS)
-            future = pool.submit(lambda: asyncio.run(coro))
-            result = future.result()
 
+        result = qi.execute_circuit(circuit, SHOTS)
         counts = result.results
         energy = compute_maxcut_energy(counts, graph)
         # right now the platform has no way to make intermediate results
