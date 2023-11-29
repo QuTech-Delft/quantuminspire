@@ -17,11 +17,11 @@
 import copy
 from io import StringIO
 from typing import Optional, Tuple, List
+import math
 
 from qiskit.qobj import QasmQobjInstruction
 from quantuminspire.exceptions import ApiError
 from quantuminspire.qiskit.measurements import Measurements
-
 
 class CircuitToString:
     """ Contains the translational elements to convert the Qiskit circuits to cQASM code."""
@@ -85,6 +85,16 @@ class CircuitToString:
 
         """
         stream.write('CNOT q[{0}], q[{1}]\n'.format(*instruction.qubits))
+
+    @staticmethod
+    def _prep(stream: StringIO, instruction: QasmQobjInstruction) -> None:
+        """ Translates the controlled X element.
+
+        :param stream: The string-io stream to where the resulting cQASM is written.
+        :param instruction: The Qiskit instruction to translate to cQASM.
+
+        """
+        stream.write('prep_z q[{0}]\n'.format(*instruction.qubits))
 
     @staticmethod
     def _c_cx(stream: StringIO, instruction: QasmQobjInstruction, binary_control: str) -> None:
@@ -342,27 +352,27 @@ class CircuitToString:
         epsilon = 1e-8
         qubit = instruction.qubits[0]
         if axis == 'x':
-            if abs(angle_q0-np.pi/2) < epsilon:
+            if abs(angle_q0-math.pi/2) < epsilon:
                 stream.write(f'X90 q[{qubit}]\n')
                 return
-            elif abs(angle_q0-np.pi) < epsilon:
+            elif abs(angle_q0-math.pi) < epsilon:
                 stream.write(f'X q[{qubit}]\n')
                 return
-            elif abs(angle_q0+np.pi/2) < epsilon:
+            elif abs(angle_q0+math.pi/2) < epsilon:
                 stream.write(f'mX90 q[{qubit}]\n')
                 return
         elif axis == 'y':
-            if abs(angle_q0-np.pi/2) < epsilon:
+            if abs(angle_q0-math.pi/2) < epsilon:
                 stream.write(f'Y90 q[{qubit}]\n')
                 return
-            elif abs(angle_q0-np.pi) < epsilon:
+            elif abs(angle_q0-math.pi) < epsilon:
                 stream.write(f'Y q[{qubit}]\n')
                 return
-            elif abs(angle_q0+np.pi/2) < epsilon:
+            elif abs(angle_q0+math.pi/2) < epsilon:
                 stream.write(f'mY90 q[{qubit}]\n')
                 return
         elif axis == 'z':
-            if abs(angle_q0-np.pi) < epsilon:
+            if abs(angle_q0-math.pi) < epsilon:
                 stream.write(f'Z q[{qubit}]\n')
                 return
 

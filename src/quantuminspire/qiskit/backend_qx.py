@@ -310,6 +310,7 @@ class QuantumInspireBackend(Backend):  # type: ignore
                            project: Optional[Dict[str, Any]] = None,
                            full_state_projection: bool = False) -> QuantumInspireJob:
         compiled_qasm = self._generate_cqasm(experiment, measurements, full_state_projection=full_state_projection)
+        self.latest_compiled_qasm = compiled_qasm
         user_data = self.generate_user_data(experiment, measurements)
         quantum_inspire_job = self.__api.execute_qasm_async(compiled_qasm, backend_type=self.__backend,
                                                             number_of_shots=number_of_shots, project=project,
