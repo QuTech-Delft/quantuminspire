@@ -1,5 +1,7 @@
 from unittest.mock import MagicMock
 
+from pytest_mock import MockerFixture
+
 import quantuminspire.util.configuration as configuration
 
 
@@ -27,27 +29,29 @@ class TestCreate:
         path.open().write.assert_not_called()
         open_mock.write.assert_not_called()
 
-    def test_json_config_settings_file_does_not_exist(self) -> None:
+    def test_json_config_settings_file_does_not_exist(self, mocker: MockerFixture) -> None:
         settings = MagicMock()
-        settings.Config.env_file_encoding = "utf-8"
-        settings.Config.json_config_file = MagicMock()
-        settings.Config.json_config_file.exists.return_value = False
-        settings.Config.json_config_file.read_text.return_value = "{}"
+        settings.model_config["env_file_encoding"] = "utf-8"
+        path_mock = MagicMock()
+        mocker.patch("quantuminspire.util.configuration.Path.joinpath", return_value=path_mock)
+        path_mock.exists.return_value = False
+        path_mock.read_text.return_value = "{}"
         assert configuration.json_config_settings(settings) == {}
 
-    def test_json_config_settings_file_does_exist(self) -> None:
+    def test_json_config_settings_file_does_exist(self, mocker: MockerFixture) -> None:
         settings = MagicMock()
-        settings.Config.env_file_encoding = "utf-8"
-        settings.Config.json_config_file = MagicMock()
-        settings.Config.json_config_file.exists.return_value = True
-        settings.Config.json_config_file.read_text.return_value = '{"auths": "authorisations from file"}'
+        settings.model_config["env_file_encoding"] = "utf-8"
+        path_mock = MagicMock()
+        mocker.patch("quantuminspire.util.configuration.Path.joinpath", return_value=path_mock)
+        path_mock.exists.return_value = True
+        path_mock.read_text.return_value = '{"auths": "authorisations from file"}'
         assert configuration.json_config_settings(settings) == {"auths": "authorisations from file"}
 
     def test_customise_sources(self) -> None:
         init_settings = MagicMock()
         env_settings = MagicMock()
         file_secret_settings = MagicMock()
-        assert configuration.Settings.Config.customise_sources(init_settings, env_settings, file_secret_settings) == (
+        assert configuration.Settings.customise_sources(init_settings, env_settings, file_secret_settings) == (
             init_settings,
             env_settings,
             configuration.json_config_settings,

@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 def ensure_config_file_exists(file_path: Path, file_encoding: Optional[str]) -> None:
@@ -30,8 +30,8 @@ def json_config_settings(settings: BaseSettings) -> Any:
     Returns:
         A dictionary with the setting variables from the JSON file.
     """
-    encoding: Optional[str] = settings.Config.env_file_encoding
-    json_config_file: Path = settings.Config.json_config_file  # type: ignore[attr-defined]
+    encoding = settings.model_config["env_file_encoding"]
+    json_config_file = Path.joinpath(Path.home(), ".quantuminspire", "config.json")
 
     ensure_config_file_exists(json_config_file, encoding)
 
@@ -41,32 +41,30 @@ def json_config_settings(settings: BaseSettings) -> Any:
 class Settings(BaseSettings):  # pylint: disable=too-few-public-methods
     """The settings class for the Quantum Inspire persistent configuration."""
 
+    model_config = SettingsConfigDict(
+        env_file_encoding="utf-8",
+        env_prefix="QI2_",
+    )
+
     auths: Dict[str, Dict[str, Any]]
 
-    class Config:  # pylint: disable=too-few-public-methods
-        """The configuration class for the Settings class."""
+    @classmethod
+    def customise_sources(cls, init_settings: Any, env_settings: Any, file_secret_settings: Any) -> Any:
+        """Customise the settings sources (by adding, removing and changing the order of sources).
 
-        env_file_encoding = "utf-8"
-        env_prefix = "QI2_"
-        json_config_file = Path.joinpath(Path.home(), ".quantuminspire", "config.json")
+        Args:
+            init_settings: The initial settings (Settings object creation): highest priority.
+            env_settings: The configuration settings (Config inner object creation).
+            file_secret_settings: The file secret settings: lowest priority
 
-        @classmethod
-        def customise_sources(cls, init_settings: Any, env_settings: Any, file_secret_settings: Any) -> Any:
-            """Customise the settings sources (by adding, removing and changing the order of sources).
-
-            Args:
-                init_settings: The initial settings (Settings object creation): highest priority.
-                env_settings: The configuration settings (Config inner object creation).
-                file_secret_settings: The file secret settings: lowest priority
-
-            Returns:
-                The original sources, with
-                - the JSON file as source added after the env settings and before the file secret settings.
-                The order determines the priority!
-            """
-            return (
-                init_settings,
-                env_settings,
-                json_config_settings,
-                file_secret_settings,
-            )
+        Returns:
+            The original sources, with
+            - the JSON file as source added after the env settings and before the file secret settings.
+            The order determines the priority!
+        """
+        return (
+            init_settings,
+            env_settings,
+            json_config_settings,
+            file_secret_settings,
+        )
