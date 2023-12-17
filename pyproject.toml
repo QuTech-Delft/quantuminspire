@@ -36,7 +36,7 @@ local = ["qxelarator"]
 pytest = {extras = ["toml"], version = "^7.4.3"}
 pytest-cov = "^4.1.0"
 pylint = "^3.0.3"
-coverage = {extras = ["toml"], version = "^7.3.2"}
+coverage = {extras = ["toml"], version = "^7.3.3"}
 mypy = "^1.7"
 docformatter = "1.7.5"
 pytest-mock = "^3.12.0"
