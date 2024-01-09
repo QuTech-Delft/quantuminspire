@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock
 
 import pytest
+from compute_api_client import AlgorithmType, CompileStage
 from pytest_mock import MockerFixture
 
 from quantuminspire.sdk.models.hybrid_algorithm import HybridAlgorithm
@@ -27,12 +28,12 @@ def test_get_program_name() -> None:
 
 def test_get_content_type() -> None:
     p = HybridAlgorithm(platform_name="platform", program_name="program")
-    assert p.content_type == "hybrid"
+    assert p.content_type.value == "hybrid"
 
 
 def test_get_compile_stage() -> None:
     p = HybridAlgorithm(platform_name="platform", program_name="program")
-    assert p.compile_stage == "none"
+    assert p.compile_stage.value == "none"
 
 
 def test_read_algorithm(mock_file: MagicMock) -> None:

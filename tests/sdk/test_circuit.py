@@ -2,6 +2,7 @@ from typing import Generator
 from unittest.mock import MagicMock
 
 import pytest
+from compute_api_client import AlgorithmType, CompileStage
 from pytest_mock import MockerFixture
 
 from quantuminspire.sdk.models.circuit import Circuit
@@ -43,14 +44,14 @@ def test_get_content_type(openql: MagicMock, mock_file: None) -> None:
     with Circuit(platform_name="platform", program_name="program") as c:
         pass
 
-    assert c.content_type == "quantum"
+    assert c.content_type.value == "quantum"
 
 
 def test_get_compile_stage(openql: MagicMock, mock_file: None) -> None:
     with Circuit(platform_name="platform", program_name="program") as c:
         pass
 
-    assert c.compile_stage == "none"
+    assert c.compile_stage.value == "none"
 
 
 def test_create_empty_circuit(openql: MagicMock, mock_file: None) -> None:

@@ -107,6 +107,7 @@ class RemoteBackend(BaseBackend):
             project_id=project.id,
             type=program.content_type,
             shared=ShareType.PRIVATE,
+            name=program.program_name,
         )
         return await api_instance.create_algorithm_algorithms_post(obj)
 

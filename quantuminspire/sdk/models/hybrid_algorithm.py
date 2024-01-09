@@ -21,12 +21,12 @@ class HybridAlgorithm(BaseAlgorithm):
         return self._content
 
     @property
-    def content_type(self) -> str:
-        return str(AlgorithmType.HYBRID)
+    def content_type(self) -> AlgorithmType:
+        return AlgorithmType.HYBRID
 
     @property
-    def compile_stage(self) -> str:
-        return str(CompileStage.NONE)
+    def compile_stage(self) -> CompileStage:
+        return CompileStage.NONE
 
     def read_file(self, file_pointer: Path) -> None:
         """Read the python file to the wrapper.

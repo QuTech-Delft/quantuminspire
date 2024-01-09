@@ -68,12 +68,20 @@ def test_run(api_client: MagicMock, compute_api_client: None, mocked_settings: M
 def test_get_results(mocker: MockerFixture, api_client: MagicMock, mocked_settings: MagicMock) -> None:
     backend = RemoteBackend()
     jobs_api_instance = AsyncMock()
-    jobs = MagicMock()
-    jobs.status = JobStatus.COMPLETED
-    jobs_api_instance.read_job_jobs_id_get.return_value = jobs
+    job = MagicMock()
+    job.status = JobStatus.COMPLETED
+    job.id = 1
+    jobs_api_instance.read_job_jobs_id_get.return_value = job
+
+    results_api_instance = AsyncMock()
+    results = MagicMock()
+    results_api_instance.read_results_by_job_id_results_job_job_id_get.return_value = results
+
     mocker.patch("quantuminspire.util.api.remote_backend.JobsApi", return_value=jobs_api_instance)
-    backend.get_results(1)
-    jobs_api_instance.read_job_jobs_id_get.assert_called_with(1)
+    mocker.patch("quantuminspire.util.api.remote_backend.ResultsApi", return_value=results_api_instance)
+    backend.get_results(job.id)
+    jobs_api_instance.read_job_jobs_id_get.assert_called_with(job.id)
+    results_api_instance.read_results_by_job_id_results_job_job_id_get.assert_called_with(job.id)
 
 
 def test_get_results_not_completed(
@@ -81,9 +89,16 @@ def test_get_results_not_completed(
 ) -> None:
     backend = RemoteBackend()
     jobs_api_instance = AsyncMock()
-    jobs = MagicMock()
-    jobs.status = JobStatus.RUNNING
-    jobs_api_instance.read_job_jobs_id_get.return_value = jobs
+    job = MagicMock()
+    job.id = 1
+    job.status = JobStatus.RUNNING
+    jobs_api_instance.read_job_jobs_id_get.return_value = job
+
+    results_api_instance = AsyncMock()
+
     mocker.patch("quantuminspire.util.api.remote_backend.JobsApi", return_value=jobs_api_instance)
-    backend.get_results(MagicMock())
+    mocker.patch("quantuminspire.util.api.remote_backend.ResultsApi", return_value=results_api_instance)
+    backend.get_results(job.id)
     api_client.assert_has_calls([call().__aenter__(), call().__aexit__(None, None, None)])
+    jobs_api_instance.read_job_jobs_id_get.assert_called_with(job.id)
+    results_api_instance.read_results_by_job_id_results_job_job_id_get.assert_not_called()

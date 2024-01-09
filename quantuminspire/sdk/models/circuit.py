@@ -31,12 +31,12 @@ class Circuit(BaseAlgorithm):
         return self._cqasm
 
     @property
-    def content_type(self) -> str:
-        return str(AlgorithmType.QUANTUM)
+    def content_type(self) -> AlgorithmType:
+        return AlgorithmType.QUANTUM
 
     @property
-    def compile_stage(self) -> str:
-        return str(CompileStage.NONE)
+    def compile_stage(self) -> CompileStage:
+        return CompileStage.NONE
 
     def __enter__(self) -> "Circuit":
         self.initialize()
