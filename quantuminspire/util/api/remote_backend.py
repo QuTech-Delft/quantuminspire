@@ -13,7 +13,6 @@ language governing permissions and limitations under the License.
 """
 
 import asyncio
-import uuid
 from typing import Any, List
 
 from compute_api_client import (
@@ -113,10 +112,8 @@ class RemoteBackend(BaseBackend):
 
     @staticmethod
     async def _create_commit(api_client: ApiClient, algorithm: Algorithm) -> Commit:
-        commit_hash = uuid.uuid4().hex[0:8]
         api_instance = CommitsApi(api_client)
         obj = CommitIn(
-            hash=commit_hash,
             description="Commit created by SDK",
             algorithm_id=algorithm.id,
         )
