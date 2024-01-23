@@ -33,7 +33,7 @@ pydantic-settings = "^2.1.0"
 local = ["qxelarator"]
 
 [tool.poetry.group.dev.dependencies]
-pytest = {extras = ["toml"], version = "^7.4.3"}
+pytest = {extras = ["toml"], version = "^7.4.4"}
 pytest-cov = "^4.1.0"
 pylint = "^3.0.3"
 coverage = {extras = ["toml"], version = "^7.3.3"}
