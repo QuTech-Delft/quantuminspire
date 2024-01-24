@@ -1135,31 +1135,31 @@ resolved_reference = "2ce24d800b23373531e82522245c3ca367638fc0"
 
 [[package]]
 name = "qutechopenql"
-version = "0.11.1"
+version = "0.12.2"
 description = "OpenQL Python Package"
 optional = false
 python-versions = "*"
 files = [
-    {file = "qutechopenql-0.11.1-cp310-cp310-macosx_11_0_x86_64.whl", hash = "sha256:75d68b3f843d8b48578280a0af59a9dd69a585cbee3c7eec0a0f14ef828eb41d"},
-    {file = "qutechopenql-0.11.1-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6b21450983ed4dd8ef3663b7dda390fdb939e43303ef67b8063ebef0ec90ccbc"},
-    {file = "qutechopenql-0.11.1-cp310-cp310-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:ba37549a82a3ee802a20894141c1985cff9c339f15744abd540ca436fa227fe6"},
-    {file = "qutechopenql-0.11.1-cp310-cp310-win_amd64.whl", hash = "sha256:faf0454e2996e81f192e09a6f0a82079a2f0f0b349087850a5f0ecb6a1d02d20"},
-    {file = "qutechopenql-0.11.1-cp311-cp311-macosx_10_10_universal2.whl", hash = "sha256:53d55dc137dee9a9048a986e004875df4418801cb30af867a10a55f66cd5bf94"},
-    {file = "qutechopenql-0.11.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:acfa1ed6e19284c660f89beb612c6752b090310e101322162b6d4b20a557c236"},
-    {file = "qutechopenql-0.11.1-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:ec14dd993d864dbccf021aa4181bf38e34423f801b9118aab8940c8dc94cfc9c"},
-    {file = "qutechopenql-0.11.1-cp311-cp311-win_amd64.whl", hash = "sha256:43af37faf2cc44fafc40fc01f0ca68b468fd1c5b5374320cffe6bc7b6804c607"},
-    {file = "qutechopenql-0.11.1-cp37-cp37m-macosx_10_15_x86_64.whl", hash = "sha256:b057e2710349070b4487e670f559a8c645e81768e789c8ae5937599cb05cb181"},
-    {file = "qutechopenql-0.11.1-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:959193e6b2a114c1d89762bf7f95f0a431549b297e102f1c686ad86b6f113658"},
-    {file = "qutechopenql-0.11.1-cp37-cp37m-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:cd2f45b10d3c13e3f9bed7c827958893927584e835fe56227f67c721450c1105"},
-    {file = "qutechopenql-0.11.1-cp37-cp37m-win_amd64.whl", hash = "sha256:96dca84282780e79856fd8eb363a2a19a8ffc59693e6ecc156c20b7de6f26b00"},
-    {file = "qutechopenql-0.11.1-cp38-cp38-macosx_10_15_x86_64.whl", hash = "sha256:514954ca2233e3c16a810b9de5e2eb9dc744e21c4567db21dff25af6f0901883"},
-    {file = "qutechopenql-0.11.1-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:eac8c32c0379f1356fcd64e5852f2fb5a0bf41b3ff46cb6fb929c10f89adf5ee"},
-    {file = "qutechopenql-0.11.1-cp38-cp38-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:6f02116fa466bf0eb3c5afa598a8224e9c27810f9a8eba7718a9727e128c14c5"},
-    {file = "qutechopenql-0.11.1-cp38-cp38-win_amd64.whl", hash = "sha256:d753eeab376c6829e7297c9d0330955673c9177302351ff24500ef1d72e0b7c6"},
-    {file = "qutechopenql-0.11.1-cp39-cp39-macosx_11_0_x86_64.whl", hash = "sha256:1e44f9e02d6d1170ca3148af511406dde08a7f2386458a10d45c0392d46f2cc5"},
-    {file = "qutechopenql-0.11.1-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:5e2762390319ac151ee1b8598797e70d6417a4f240419baf76a5497bc17a595c"},
-    {file = "qutechopenql-0.11.1-cp39-cp39-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:a95dca89b506a9837f8d33e072e5bee3bd0ce5e7a28c5be6865e050a72579ad5"},
-    {file = "qutechopenql-0.11.1-cp39-cp39-win_amd64.whl", hash = "sha256:f0158e5ff6b2a19f7fd52e8ee4a190fb4ff647bbc644bbe1546865456e940d38"},
+    {file = "qutechopenql-0.12.2-cp310-cp310-macosx_11_0_x86_64.whl", hash = "sha256:f1e73a98b3a7c9c8c7fbcc702ae748905721937d5dc2254a20365df043cc224c"},
+    {file = "qutechopenql-0.12.2-cp310-cp310-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:88737ff3a3686fca1195c798ff3f53c5c131151249b76e3429a005e2c3da7b64"},
+    {file = "qutechopenql-0.12.2-cp310-cp310-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:45cb8ee75194d079d8683db4025167e6b51ffca5b208ab82d2bce47dd98e9706"},
+    {file = "qutechopenql-0.12.2-cp310-cp310-win_amd64.whl", hash = "sha256:de8b2c3725c960b427887ce0181d42abefd3b37f06b04730eeac6b2e81f16851"},
+    {file = "qutechopenql-0.12.2-cp311-cp311-macosx_10_10_universal2.whl", hash = "sha256:b002d0e674ab96b689b35f873da1c031d45ea04f2287a2164ec970e218da2218"},
+    {file = "qutechopenql-0.12.2-cp311-cp311-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:3328b6303063a6856cc8452441973cca0bf1d96b0144ac6f183ed076964ac051"},
+    {file = "qutechopenql-0.12.2-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:5bbf83675c2bcff4e3d40478483da7fb8c473fa1e4418a8c03d81e8e53eaba77"},
+    {file = "qutechopenql-0.12.2-cp311-cp311-win_amd64.whl", hash = "sha256:705de7495c986290e489e19b1feb85538d3a748a5d15b0d053a6cccce7352e8a"},
+    {file = "qutechopenql-0.12.2-cp312-cp312-macosx_10_10_universal2.whl", hash = "sha256:04ba091887cfdbdb674c239245e75ea6c94be49d5bddb81eb639dda2c6767a84"},
+    {file = "qutechopenql-0.12.2-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:0c0a1745e71e8c2eb77bd059259544fc316ef1f30e332bf1e442429a1eeccf81"},
+    {file = "qutechopenql-0.12.2-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:87a38a148be507686cedb87943ce8acc5a2e127ef064582df49771e6917eb606"},
+    {file = "qutechopenql-0.12.2-cp312-cp312-win_amd64.whl", hash = "sha256:fd8183f29f20f5d56357dee5645eebed5ba3863be93c05046cd9a3b3dc6c35fc"},
+    {file = "qutechopenql-0.12.2-cp38-cp38-macosx_11_0_x86_64.whl", hash = "sha256:528e8f40d0daae566a5a33947323322705fe154ae368324b425fe17406f5670f"},
+    {file = "qutechopenql-0.12.2-cp38-cp38-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:9dfcb4972e340e6e9b8ea97876b8180a2be6b5ab193309aecc61a069cded8309"},
+    {file = "qutechopenql-0.12.2-cp38-cp38-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:8a85c94bea7a8756f9c8daab599b6e751d82bc45c44fe8df898f83b533acbe1f"},
+    {file = "qutechopenql-0.12.2-cp38-cp38-win_amd64.whl", hash = "sha256:cf69b8b1c6e80ec5c03ab51350542867af888279ada47b21513a46b73427c3ab"},
+    {file = "qutechopenql-0.12.2-cp39-cp39-macosx_11_0_x86_64.whl", hash = "sha256:8d29074fef48d3757763e9dc8634e1c0f1ad3f7fa553ed356262f97b7bc4f2b9"},
+    {file = "qutechopenql-0.12.2-cp39-cp39-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:2d1ca7ac3548e84583278ae595905c9a357fb9cd71b193c91d069df52171b65c"},
+    {file = "qutechopenql-0.12.2-cp39-cp39-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:0dfa4bd2d6216ec63a747e6dd4247a43f5b346e590fd558d0bc05161c1c96702"},
+    {file = "qutechopenql-0.12.2-cp39-cp39-win_amd64.whl", hash = "sha256:20ef98cfc9e7c34392626d5467713e2dd7829ca47579b6cd5815cdca2a9ef724"},
 ]
 
 [package.dependencies]
@@ -1430,4 +1430,4 @@ local = ["qxelarator"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "71b3bc28c1bbb33589711ced6687bc3ec07dc55d94ec6290b77e5344318d9e35"
+content-hash = "89972ff2e91fbbed45e8eac9ab44f86fcbbcb08d2b163417366fc8b1653df27b"
