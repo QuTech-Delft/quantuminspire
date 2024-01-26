@@ -1,4 +1,5 @@
 """Module containing the commands for the Quantum Inspire 2 CLI."""
+
 from enum import Enum
 from pathlib import Path
 from typing import Optional

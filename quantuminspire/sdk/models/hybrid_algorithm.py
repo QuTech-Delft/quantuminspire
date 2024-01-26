@@ -1,4 +1,5 @@
 """Module containing the Hybrid Quantum/Classical Algorithm class."""
+
 from pathlib import Path
 
 from compute_api_client import AlgorithmType, CompileStage

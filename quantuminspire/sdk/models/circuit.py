@@ -1,4 +1,5 @@
 """Module containing the Quantum Circuit class."""
+
 from pathlib import Path
 from types import TracebackType
 from typing import List, Optional, Type

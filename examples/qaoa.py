@@ -3,6 +3,7 @@
 The algorithm is the Quantum Approximate Optimization Algorithm, as documented on
 https://www.quantuminspire.com/kbase/qaoa/
 """
+
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Callable, Dict, List
 

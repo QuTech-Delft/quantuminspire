@@ -1,4 +1,5 @@
 """Module containing the Abstract Base Class for Algorithm classes."""
+
 from abc import ABC, abstractmethod
 
 
