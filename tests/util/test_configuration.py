@@ -36,7 +36,7 @@ class TestCreate:
         mocker.patch("quantuminspire.util.configuration.Path.joinpath", return_value=path_mock)
         path_mock.exists.return_value = False
         path_mock.read_text.return_value = "{}"
-        assert configuration.json_config_settings(settings) == {}
+        assert configuration.JsonConfigSettingsSource(configuration.Settings)() == {}
 
     def test_json_config_settings_file_does_exist(self, mocker: MockerFixture) -> None:
         settings = MagicMock()
@@ -45,16 +45,29 @@ class TestCreate:
         mocker.patch("quantuminspire.util.configuration.Path.joinpath", return_value=path_mock)
         path_mock.exists.return_value = True
         path_mock.read_text.return_value = '{"auths": "authorisations from file"}'
-        assert configuration.json_config_settings(settings) == {"auths": "authorisations from file"}
+        assert configuration.JsonConfigSettingsSource(configuration.Settings)() == {"auths": "authorisations from file"}
 
-    def test_customise_sources(self) -> None:
+    def test_json_config_settings_qi2_813(self, mocker: MockerFixture) -> None:
+        path_mock = MagicMock()
+        mocker.patch("quantuminspire.util.configuration.Path.joinpath", return_value=path_mock)
+        path_mock.exists.return_value = True
+        path_mock.read_text.return_value = '{"auths": {"host": {"username": "secret_password"}}}'
+
+        settings = configuration.Settings()
+        assert settings.auths["host"]["username"] == "secret_password"
+
+    def test_customise_sources(self, mocker: MockerFixture) -> None:
         init_settings = MagicMock()
         env_settings = MagicMock()
+        dot_env_settings = MagicMock()
         file_secret_settings = MagicMock()
-        assert configuration.Settings.customise_sources(init_settings, env_settings, file_secret_settings) == (
+        json_settings_source = mocker.patch("quantuminspire.util.configuration.JsonConfigSettingsSource")
+        assert configuration.Settings.settings_customise_sources(
+            configuration.Settings, init_settings, env_settings, dot_env_settings, file_secret_settings
+        ) == (
             init_settings,
             env_settings,
-            configuration.json_config_settings,
+            json_settings_source(configuration.Settings),
             file_secret_settings,
         )
 
