@@ -35,19 +35,20 @@ if TYPE_CHECKING:
 class QIJob(Job):  # type: ignore
     """
     A Qiskit job that is executed on the Quantum Inspire platform. A QIJob is normally created by calling
-    ``execute`` (which triggers a `run` on the QuantumInspireBackend ``qi_backend``).
+    ``run`` on QuantumInspireBackend ``qi_backend``.
 
-    .. code::
+    .. code-block:: python
 
         qc = QuantumCircuit(5, 5)
         qc.h(0)
         qc.cx(0, range(1, 5))
         qc.measure_all()
 
-        job = execute(qc, qi_backend, shots=1024)
+        qc = transpile(qc, qi_backend)
+        job = qi_backend.run(qc, shots=1024)
         result = job.result()
 
-    The return value of ``execute`` is an instance of QIJob (Qiskit job) and is the equivalent to the Quantum
+    The return value of ``run`` is an instance of QIJob (Qiskit job) and is the equivalent to the Quantum
     Inspire project. It is a container to handle one or more (asynchronous) Qiskit circuits or experiments.
     A Qiskit circuit is equivalent to a Quantum Inspire job.
 
@@ -190,7 +191,7 @@ class QIJob(Job):  # type: ignore
         """ Add a Quantum Inspire job to the list. The list contains the (Quantum Inspire) jobs created for the
         submitted experiments in this particular QIJob.
 
-        :param job: QuatumInspireJob (submitted) that has to be added to the list of jobs created for the experiments
+        :param job: QuantumInspireJob (submitted) that has to be added to the list of jobs created for the experiments
          in QIJob.
         """
         self.jobs.append(job)
@@ -198,13 +199,13 @@ class QIJob(Job):  # type: ignore
     def queue_position(self, refresh: bool = False) -> Optional[int]:
         """
         Return the position for this Job in the Quantum Inspire queue (when in status QUEUED).
-        Currently we don't have this info available.
+        Currently, we don't have this info available.
 
         :param refresh: If ``True``, re-query the server to get the latest value.
-                Otherwise return the cached value, when available. Not used.
+                Otherwise, return the cached value, when available. Not used.
 
         :return:
-            The queue position of the job. Currently None (not available).
+            The queue position of the job. Currently, None (not available).
         """
         return None
 

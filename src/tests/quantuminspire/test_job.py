@@ -34,7 +34,7 @@ class TestQuantumInspireJob(TestCase):
         api.get_job.side_effect = ErrorMessage('TestMock')
         job_identifier = 1
         self.assertRaises(ValueError, QuantumInspireJob, api, job_identifier)
-        api.get_job.called_once()
+        api.get_job.assert_called_once()
 
     def test_check_status(self):
         expected = 'RUNNING'
