@@ -12,14 +12,14 @@ jobs:
 
     steps:
     - name: Checkout Quantum Inspire SDK
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     - name: Clone Qiskit-terra
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         repository: qiskit/qiskit-terra
         path: qiskit-terra
     - name: Set up Python 3.8
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: 3.8
     - name: pip install prerequisites

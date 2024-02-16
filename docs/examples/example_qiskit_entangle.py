@@ -14,7 +14,7 @@ Copyright 2018-2022 QuTech Delft. Licensed under the Apache License, Version 2.0
 """
 import os
 
-from qiskit import execute
+from qiskit import transpile
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 
 from quantuminspire.credentials import get_authentication
@@ -36,7 +36,8 @@ circuit.h(q[0])
 circuit.cx(q[0], q[1])
 circuit.measure(q, b)
 
-qi_job = execute(circuit, backend=qi_backend, shots=256)
+circuit = transpile(circuit, backend=qi_backend)
+qi_job = qi_backend.run(circuit, shots=256)
 qi_result = qi_job.result()
 histogram = qi_result.get_counts(circuit)
 print('\nState\tCounts')

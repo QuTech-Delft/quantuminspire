@@ -13,7 +13,8 @@ Copyright 2018-2022 QuTech Delft. Licensed under the Apache License, Version 2.0
 """
 import os
 
-from qiskit import BasicAer, execute
+from qiskit import transpile
+from qiskit.providers.basic_provider import BasicProvider
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 
 from quantuminspire.credentials import get_authentication
@@ -40,7 +41,8 @@ qc.measure(q[0], c0)
 qc.measure(q[1], c1)
 qc.measure(q[2], c2)
 
-qi_job = execute(qc, backend=qi_backend, shots=1024)
+qc = transpile(qc, backend=qi_backend)
+qi_job = qi_backend.run(qc, shots=1024)
 qi_result = qi_job.result()
 histogram = qi_result.get_counts(qc)
 print("\nResult from the remote Quantum Inspire backend:\n")
@@ -48,7 +50,9 @@ print('State\tCounts')
 [print('{0}\t{1}'.format(state, counts)) for state, counts in histogram.items()]
 
 print("\nResult from the local Qiskit simulator backend:\n")
-backend = BasicAer.get_backend("qasm_simulator")
-job = execute(qc, backend=backend, shots=1024)
+backend = BasicProvider().get_backend(name="basic_simulator")   # qasm_simulator
+qc = transpile(qc, backend=backend)
+job = backend.run(qc, shots=1024)
+
 result = job.result()
 print(result.get_counts(qc))
