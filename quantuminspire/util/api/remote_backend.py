@@ -142,7 +142,6 @@ class RemoteBackend(BaseBackend):
         api_instance = JobsApi(api_client)
         obj = JobIn(
             file_id=file.id,
-            status=JobStatus.PLANNED,
             batch_job_id=batch_job.id,
         )
         return await api_instance.create_job_jobs_post(obj)
