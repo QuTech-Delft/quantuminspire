@@ -134,7 +134,7 @@ class RemoteBackend(BaseBackend):
     @staticmethod
     async def _create_batch_job(api_client: ApiClient, backend_type_id: int) -> BatchJob:
         api_instance = BatchJobsApi(api_client)
-        obj = BatchJobIn(backend_type_id=backend_type_id, user_id=1)
+        obj = BatchJobIn(backend_type_id=backend_type_id)
         return await api_instance.create_batch_job_batch_jobs_post(obj)
 
     @staticmethod
