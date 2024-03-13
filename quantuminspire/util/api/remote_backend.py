@@ -13,7 +13,7 @@ language governing permissions and limitations under the License.
 """
 
 import asyncio
-from typing import Any, List
+from typing import Any, List, Optional
 
 from compute_api_client import (
     Algorithm,
@@ -60,9 +60,9 @@ class RemoteBackend(BaseBackend):
         host = "https://staging.qi2.quantum-inspire.com"
         self._configuration = Configuration(host=host, api_key={"user": str(settings.auths[host]["user_id"])})
 
-    def run(self, program: BaseAlgorithm, backend_type_id: int) -> int:
+    def run(self, program: BaseAlgorithm, backend_type_id: int, number_of_shots: Optional[int] = None) -> int:
         """Execute provided algorithm/circuit."""
-        return asyncio.run(self._create_flow(program, backend_type_id))
+        return asyncio.run(self._create_flow(program, backend_type_id, number_of_shots))
 
     async def _get_results(self, job_id: int) -> Any:
         async with ApiClient(self._configuration) as api_client:
@@ -76,7 +76,9 @@ class RemoteBackend(BaseBackend):
         """Get results for algorithm/circuit."""
         return asyncio.run(self._get_results(job_id))
 
-    async def _create_flow(self, program: BaseAlgorithm, backend_type_id: int) -> int:
+    async def _create_flow(
+        self, program: BaseAlgorithm, backend_type_id: int, number_of_shots: Optional[int] = None
+    ) -> int:
         """Call the necessary methods in the correct order, with the correct parameters."""
         async with ApiClient(self._configuration) as api_client:
             project = await self._create_project(api_client, program)
@@ -84,7 +86,7 @@ class RemoteBackend(BaseBackend):
             commit = await self._create_commit(api_client, algorithm)
             file = await self._create_file(api_client, program, commit)
             batch_job = await self._create_batch_job(api_client, backend_type_id=backend_type_id)
-            job: Job = await self._create_job(api_client, file, batch_job)
+            job: Job = await self._create_job(api_client, file, batch_job, number_of_shots=number_of_shots)
             await self._enqueue_batch_job(api_client, batch_job)
             return job.id  # type: ignore
 
@@ -138,12 +140,11 @@ class RemoteBackend(BaseBackend):
         return await api_instance.create_batch_job_batch_jobs_post(obj)
 
     @staticmethod
-    async def _create_job(api_client: ApiClient, file: File, batch_job: BatchJob) -> Job:
+    async def _create_job(
+        api_client: ApiClient, file: File, batch_job: BatchJob, number_of_shots: Optional[int] = None
+    ) -> Job:
         api_instance = JobsApi(api_client)
-        obj = JobIn(
-            file_id=file.id,
-            batch_job_id=batch_job.id,
-        )
+        obj = JobIn(file_id=file.id, batch_job_id=batch_job.id, number_of_shots=number_of_shots)
         return await api_instance.create_job_jobs_post(obj)
 
     @staticmethod
