@@ -39,7 +39,7 @@ pylint = "^3.1.0"
 coverage = {extras = ["toml"], version = "^7.4.4"}
 mypy = "^1.9"
 docformatter = "1.7.5"
-pytest-mock = "^3.12.0"
+pytest-mock = "^3.14.0"
 isort = "^5.13.2"
 black = "^24.3.0"
 pytest-asyncio = "^0.23.6"
