@@ -28,6 +28,10 @@ pydantic = "^2.6.4"
 qi-compute-api-client = {git = "https://github.com/QuTech-Delft/compute-api-client.git", branch="0.26.0"}
 qxelarator = {version = "^0.6.2", optional = true}
 pydantic-settings = "^2.2.1"
+qiskit = "^0.45.2"
+qiskit-algorithms = "^0.2.2"
+qiskit-nature = "^0.7.1"
+pyscf = {version = "^2.4.0", markers = 'sys_platform != "win32"'}
 
 [tool.poetry.extras]
 local = ["qxelarator"]
@@ -52,6 +56,7 @@ asyncio_mode = "auto"
 
 [tool.coverage.run]
 branch = true
+source = ["quantuminspire"]
 omit = ["tests/*", "**/.tox/**"]
 
 [tool.coverage.report]
@@ -88,7 +93,8 @@ plugins = [
     "pydantic.mypy"
 ]
 exclude = [
-    "examples/"
+    "examples/",
+    "tests/sdk/qiskit/"
 ]
 
 [tool.isort]
