@@ -1,0 +1,56 @@
+name: SDK build and test
+
+on:
+  push:
+    branches:
+      - dev
+  pull_request:
+    branches:
+      - dev
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      max-parallel: 3
+      matrix:
+        python-version: [3.7, 3.8, 3.9, "3.10"]
+
+    steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.4.1
+        with:
+          access_token: ${{ github.token }}
+      - uses: actions/checkout@v2
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade .[qiskit,projectq,dev] coveralls
+
+      - name: Run Tests
+        run: |
+          echo "running unit tests"
+          coverage run --source="./src/quantuminspire" -m unittest discover -s src/tests -t src -v
+          echo "running mypy"
+          MYPYPATH=./src mypy --strict --ignore-missing-imports -p quantuminspire
+          echo "running pylint"
+          pylint quantuminspire || true
+          echo "running examples"
+          python ./docs/examples/example_projectq_entangle.py
+          python ./docs/examples/example_projectq_grover.py
+          python ./docs/examples/example_qiskit_conditional.py
+          python ./docs/examples/example_qiskit_entangle.py
+          echo "running notebooks"
+          jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=300 docs/examples/example_projectq.ipynb
+          jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=300 docs/examples/grover_algorithm_qi.ipynb
+          jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=300 docs/examples/qi-performance-test.ipynb
+        env:
+          API_URL: https://api.quantum-inspire.com
+          QI_TOKEN: ${{ secrets.QI_TOKEN }}
