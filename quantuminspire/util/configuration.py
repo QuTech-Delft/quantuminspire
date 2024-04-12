@@ -1,11 +1,32 @@
 """Module containing the handler for the Quantum Inspire persistent configuration."""
 
+from __future__ import annotations
+
 import json
+import time
+from os import PathLike
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple, Type
 
-from pydantic.fields import FieldInfo
+from pydantic import BaseModel, BeforeValidator, HttpUrl
+from pydantic.fields import Field, FieldInfo
 from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
+from typing_extensions import Annotated
+
+Url = Annotated[str, BeforeValidator(lambda value: str(HttpUrl(value)).rstrip("/"))]
+
+DEFAULT_CONFIG = """
+{
+  "auths": {
+    "https://staging.qi2.quantum-inspire.com": {
+      "well_known_endpoint":  "https://auth.qi2.quantum-inspire.com/realms/oidc_staging/.well-known/openid-configuration"
+    },
+    "https://api.qi2.quantum-inspire.com": {
+      "well_known_endpoint":  "https://auth.qi2.quantum-inspire.com/realms/oidc_production/.well-known/openid-configuration"
+    }
+  }
+}
+"""
 
 
 def ensure_config_file_exists(file_path: Path, file_encoding: Optional[str] = None) -> None:
@@ -17,9 +38,7 @@ def ensure_config_file_exists(file_path: Path, file_encoding: Optional[str] = No
     """
     if not file_path.exists():
         file_path.parent.mkdir(parents=True, exist_ok=True)
-        file_path.open("w", encoding=file_encoding).write(
-            '{"auths": {"https://staging.qi2.quantum-inspire.com": {"user_id": 1}}}'
-        )
+        file_path.open("w", encoding=file_encoding).write(DEFAULT_CONFIG)
 
 
 class JsonConfigSettingsSource(PydanticBaseSettingsSource):
@@ -34,11 +53,46 @@ class JsonConfigSettingsSource(PydanticBaseSettingsSource):
 
     def __call__(self) -> Any:
         encoding = self.config.get("env_file_encoding")
-        json_config_file = Path.joinpath(Path.home(), ".quantuminspire", "config.json")
+
+        assert isinstance(self.config["json_file"], PathLike)
+
+        json_config_file = Path(self.config["json_file"])
 
         ensure_config_file_exists(json_config_file, encoding)
 
         return json.loads(json_config_file.read_text(encoding))
+
+
+class TokenInfo(BaseModel):
+    """A pydantic model for storing all information regarding oauth access and refresh tokens."""
+
+    access_token: str
+    expires_in: int
+    refresh_token: str
+    refresh_expires_in: int
+    generated_at: float = Field(default_factory=time.time)
+
+    @property
+    def access_expires_at(self) -> float:
+        """Timestamp containing the time when the access token will expire."""
+        return self.generated_at + self.expires_in
+
+    @property
+    def refresh_expires_at(self) -> float:
+        """Timestamp containing the time when the refresh token will expire."""
+        return self.generated_at + self.refresh_expires_in
+
+
+class AuthSettings(BaseModel):
+    """Pydantic model for storing all auth related settings for a given host."""
+
+    client_id: str = "compute-job-manager"
+    code_challenge_method: str = "S256"
+    code_verifyer_length: int = 64
+    well_known_endpoint: Url = (
+        "https://auth.qi2.quantum-inspire.com/realms/oidc_production/.well-known/openid-configuration"
+    )
+    tokens: Optional[TokenInfo] = None
 
 
 class Settings(BaseSettings):  # pylint: disable=too-few-public-methods
@@ -47,9 +101,12 @@ class Settings(BaseSettings):  # pylint: disable=too-few-public-methods
     model_config = SettingsConfigDict(
         env_file_encoding="utf-8",
         env_prefix="QI2_",
+        json_file=Path.joinpath(Path.home(), ".quantuminspire", "config.json"),
     )
 
-    auths: Dict[str, Dict[str, Any]]
+    auths: Dict[Url, AuthSettings]
+
+    default_host: Url = "https://staging.qi2.quantum-inspire.com"
 
     # R0913: Too many arguments (6/5) (too-many-arguments)
     @classmethod
@@ -78,4 +135,19 @@ class Settings(BaseSettings):  # pylint: disable=too-few-public-methods
             env_settings,
             JsonConfigSettingsSource(settings_cls),
             file_secret_settings,
+        )
+
+    def store_tokens(self, host: Url, tokens: TokenInfo) -> None:
+        """
+
+        :param host: the hostname of the api for which the tokens are intended
+        :param tokens: OAuth access and refresh tokens
+        :return: None
+
+        This functions stores the access and refresh tokens in the config.json file.
+        """
+        self.auths[host].tokens = tokens
+        assert isinstance(self.model_config["json_file"], PathLike)
+        Path(self.model_config["json_file"]).write_text(
+            self.model_dump_json(indent=2), encoding=self.model_config.get("env_file_encoding")
         )

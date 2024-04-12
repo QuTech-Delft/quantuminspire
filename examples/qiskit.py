@@ -1,10 +1,8 @@
 from pathlib import Path
 from typing import Any, Dict, List
 
-from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
-from qiskit import execute as qskit_execute
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, execute as qskit_execute
 
-from quantuminspire.sdk.models.circuit import Circuit
 from quantuminspire.sdk.models.hybrid_algorithm import HybridAlgorithm
 from quantuminspire.sdk.qiskit.backend import QuantumInspireBackend
 from quantuminspire.util.api.local_backend import LocalBackend

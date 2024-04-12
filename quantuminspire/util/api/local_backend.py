@@ -23,8 +23,7 @@ from quantuminspire.sdk.models.circuit import Circuit
 from quantuminspire.sdk.models.hybrid_algorithm import HybridAlgorithm
 from quantuminspire.sdk.quantum_interface import QuantumInterface
 from quantuminspire.util.api.base_backend import BaseBackend
-from quantuminspire.util.api.quantum_interface import ExecuteCircuitResult
-from quantuminspire.util.api.quantum_interface import QuantumInterface as QuantumInterfaceProtocol
+from quantuminspire.util.api.quantum_interface import ExecuteCircuitResult, QuantumInterface as QuantumInterfaceProtocol
 
 
 def import_qxelarator() -> types.ModuleType:  # pragma: no cover

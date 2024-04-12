@@ -1,7 +1,6 @@
 import pytest
 
 from quantuminspire.sdk.models.base_algorithm import BaseAlgorithm
-from quantuminspire.sdk.models.circuit import Circuit
 
 
 def test_not_initializable() -> None:

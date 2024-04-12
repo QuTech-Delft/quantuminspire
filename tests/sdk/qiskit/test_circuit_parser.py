@@ -25,7 +25,7 @@ from qiskit.compiler import assemble, transpile
 
 from quantuminspire.sdk.qiskit.backend import QuantumInspireBackend
 from quantuminspire.sdk.qiskit.circuit_parser import CircuitToString
-from quantuminspire.sdk.qiskit.exceptions import CircuitError, QiskitBackendError
+from quantuminspire.sdk.qiskit.exceptions import CircuitError
 from quantuminspire.sdk.qiskit.measurements import Measurements
 
 

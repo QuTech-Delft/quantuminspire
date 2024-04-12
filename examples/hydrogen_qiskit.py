@@ -1,18 +1,17 @@
 # (H2) Hydrogen molecuole ground state energy determined using VQE with a UCCSD-ansatz function.
 # Compared with Hartee-Fock energies and with energies calculated by NumPyMinimumEigensolver
 # This script is based on the Qiskit Chemistry tutorials
-import json
 import warnings
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List
+from typing import Any, Dict, List
 
-from qiskit.primitives import BackendEstimator, Estimator
+from qiskit.primitives import BackendEstimator
 from qiskit_algorithms import NumPyMinimumEigensolverResult, VQEResult
-from qiskit_algorithms.minimum_eigensolvers import VQE, NumPyMinimumEigensolver
+from qiskit_algorithms.minimum_eigensolvers import VQE
 from qiskit_algorithms.optimizers import COBYLA
 from qiskit_nature.second_q.circuit.library import UCCSD, HartreeFock
 from qiskit_nature.second_q.drivers import PySCFDriver
-from qiskit_nature.second_q.mappers import JordanWignerMapper, ParityMapper
+from qiskit_nature.second_q.mappers import ParityMapper
 
 from quantuminspire.sdk.qiskit.backend import QuantumInspireBackend
 from quantuminspire.util.api.quantum_interface import QuantumInterface

@@ -1,11 +1,11 @@
-from typing import Generator
-from unittest.mock import ANY, AsyncMock, MagicMock, call
+from unittest.mock import AsyncMock, MagicMock, call
 
 import pytest
 from compute_api_client import JobStatus
 from pytest_mock import MockerFixture
 
 from quantuminspire.util.api.remote_backend import RemoteBackend
+from quantuminspire.util.configuration import AuthSettings
 
 
 @pytest.fixture
@@ -47,25 +47,37 @@ def api_client(mocker: MockerFixture) -> MagicMock:
 @pytest.fixture
 def mocked_settings(mocker: MockerFixture) -> MagicMock:
     settings = MagicMock()
-    settings.auths = {"https://staging.qi2.quantum-inspire.com": {"user_id": 1}}
+    settings.auths = {"https://staging.qi2.quantum-inspire.com": AuthSettings()}
+    settings.default_host = "https://staging.qi2.quantum-inspire.com"
 
     mocked_settings = mocker.patch("quantuminspire.util.api.remote_backend.Settings", return_value=settings)
 
     return mocked_settings
 
 
-def test_create(configuration: MagicMock, mocked_settings: MagicMock) -> None:
+@pytest.fixture
+def mocked_authentication(mocker: MockerFixture) -> MagicMock:
+    return mocker.patch("quantuminspire.util.api.remote_backend.OauthDeviceSession")
+
+
+def test_create(configuration: MagicMock, mocked_settings: MagicMock, mocked_authentication: MagicMock) -> None:
     _ = RemoteBackend()
-    configuration.assert_called_once_with(host=ANY, api_key={"user": "1"})
+    configuration.assert_called_once_with(
+        host="https://staging.qi2.quantum-inspire.com", oauth_session=mocked_authentication()
+    )
 
 
-def test_run(api_client: MagicMock, compute_api_client: None, mocked_settings: MagicMock) -> None:
+def test_run(
+    api_client: MagicMock, compute_api_client: None, mocked_settings: MagicMock, mocked_authentication: MagicMock
+) -> None:
     backend = RemoteBackend()
     backend.run(MagicMock(), 10)
     api_client.assert_has_calls([call().__aenter__(), call().__aexit__(None, None, None)])
 
 
-def test_get_results(mocker: MockerFixture, api_client: MagicMock, mocked_settings: MagicMock) -> None:
+def test_get_results(
+    mocker: MockerFixture, api_client: MagicMock, mocked_settings: MagicMock, mocked_authentication: MagicMock
+) -> None:
     backend = RemoteBackend()
     jobs_api_instance = AsyncMock()
     job = MagicMock()
@@ -85,7 +97,11 @@ def test_get_results(mocker: MockerFixture, api_client: MagicMock, mocked_settin
 
 
 def test_get_results_not_completed(
-    mocker: MockerFixture, api_client: MagicMock, compute_api_client: None, mocked_settings: MagicMock
+    mocker: MockerFixture,
+    api_client: MagicMock,
+    compute_api_client: None,
+    mocked_settings: MagicMock,
+    mocked_authentication: MagicMock,
 ) -> None:
     backend = RemoteBackend()
     jobs_api_instance = AsyncMock()

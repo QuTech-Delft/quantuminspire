@@ -26,7 +26,6 @@ from compute_api_client import (
     Commit,
     CommitIn,
     CommitsApi,
-    Configuration,
     File,
     FileIn,
     FilesApi,
@@ -44,6 +43,7 @@ from compute_api_client import (
 
 from quantuminspire.sdk.models.base_algorithm import BaseAlgorithm
 from quantuminspire.util.api.base_backend import BaseBackend
+from quantuminspire.util.authentication import Configuration, OauthDeviceSession
 from quantuminspire.util.configuration import Settings
 
 
@@ -57,8 +57,13 @@ class RemoteBackend(BaseBackend):
     def __init__(self) -> None:
         super().__init__()
         settings = Settings()
-        host = "https://staging.qi2.quantum-inspire.com"
-        self._configuration = Configuration(host=host, api_key={"user": str(settings.auths[host]["user_id"])})
+        host = settings.default_host
+
+        oauth_session = OauthDeviceSession(settings.auths[host])
+        tokens = oauth_session.refresh()
+        settings.store_tokens(host, tokens)
+
+        self._configuration = Configuration(host=host, oauth_session=oauth_session)
 
     def run(self, program: BaseAlgorithm, backend_type_id: int, number_of_shots: Optional[int] = None) -> int:
         """Execute provided algorithm/circuit."""

@@ -14,8 +14,7 @@ language governing permissions and limitations under the License.
 
 from typing import TYPE_CHECKING, Any, List
 
-from quantuminspire.util.api.quantum_interface import ExecuteCircuitResult
-from quantuminspire.util.api.quantum_interface import QuantumInterface as QuantumInterfaceProtocol
+from quantuminspire.util.api.quantum_interface import ExecuteCircuitResult, QuantumInterface as QuantumInterfaceProtocol
 
 if TYPE_CHECKING:  # pragma: no cover
     from quantuminspire.util.api.local_backend import LocalBackend

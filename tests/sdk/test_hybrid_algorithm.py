@@ -1,7 +1,6 @@
 from unittest.mock import MagicMock
 
 import pytest
-from compute_api_client import AlgorithmType, CompileStage
 from pytest_mock import MockerFixture
 
 from quantuminspire.sdk.models.hybrid_algorithm import HybridAlgorithm

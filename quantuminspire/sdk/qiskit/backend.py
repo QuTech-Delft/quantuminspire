@@ -26,9 +26,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import assemble
-from qiskit.providers import BackendV1 as Backend
-from qiskit.providers import JobV1 as Job
-from qiskit.providers import Options
+from qiskit.providers import BackendV1 as Backend, JobV1 as Job, Options
 from qiskit.providers.jobstatus import JobStatus
 from qiskit.providers.models import QasmBackendConfiguration
 from qiskit.providers.models.backendconfiguration import GateConfig

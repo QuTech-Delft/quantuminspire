@@ -25,13 +25,16 @@ python = "^3.8"
 typer = {extras = ["all"], version = "^0.12.3"}
 qutechopenql = "^0.12.2"
 pydantic = "^2.7.0"
-qi-compute-api-client = {git = "https://github.com/QuTech-Delft/compute-api-client.git", branch="0.26.0"}
+qi-compute-api-client = {git = "https://github.com/QuTech-Delft/compute-api-client.git", branch="0.27.0"}
 qxelarator = {version = "^0.6.2", optional = true}
 pydantic-settings = "^2.2.1"
 qiskit = "^0.45.2"
 qiskit-algorithms = "^0.3.0"
 qiskit-nature = "^0.7.1"
 pyscf = {version = "^2.4.0", markers = 'sys_platform != "win32"'}
+oauthlib = "^3.2.2"
+requests = "^2.31.0"
+
 
 [tool.poetry.extras]
 local = ["qxelarator"]
@@ -39,25 +42,29 @@ local = ["qxelarator"]
 [tool.poetry.group.dev.dependencies]
 pytest = {extras = ["toml"], version = "^8.1.1"}
 pytest-cov = "^5.0.0"
-pylint = "^3.1.0"
 coverage = {extras = ["toml"], version = "^7.4.4"}
 mypy = "^1.9"
 docformatter = "1.7.5"
 pytest-mock = "^3.14.0"
-isort = "^5.13.2"
 black = "^24.3.0"
 pytest-asyncio = "^0.23.6"
+ruff = "^0.3.5"
+types-requests = "^2.25.0"
+types-oauthlib = "^3.2.0.20240217"
+responses = "^0.25.0"
+freezegun = "^1.4.0"
 
 
 [tool.pytest.ini_options]
 addopts = "-v --cov --cov-report term-missing:skip-covered --cov-report xml"
 asyncio_mode = "auto"
+testpaths = ["tests"]
 
 
 [tool.coverage.run]
 branch = true
 source = ["quantuminspire"]
-omit = ["tests/*", "**/.tox/**"]
+omit = ["tests/*", "**/.tox/**", "scratch"]
 
 [tool.coverage.report]
 show_missing = true
@@ -94,15 +101,15 @@ plugins = [
 ]
 exclude = [
     "examples/",
-    "tests/sdk/qiskit/"
+    "tests/sdk/qiskit/",
+    "scratch"
 ]
 
-[tool.isort]
-profile = "black"
-multi_line_output = 3
-include_trailing_comma = true
-force_grid_wrap = 0
-line_length = 120
+[tool.ruff]
+lint.select = ["E", "F", "I"]
+line-length = 120
+target-version = "py311"
+lint.isort.combine-as-imports = true
 
 [tool.pylint]
 MASTER.extension-pkg-whitelist = "pydantic"

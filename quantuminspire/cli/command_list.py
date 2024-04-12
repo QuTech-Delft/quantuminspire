@@ -1,5 +1,6 @@
 """Module containing the commands for the Quantum Inspire 2 CLI."""
 
+import webbrowser
 from enum import Enum
 from pathlib import Path
 from typing import Optional
@@ -10,6 +11,8 @@ from typer import Typer
 from quantuminspire.sdk.models.hybrid_algorithm import HybridAlgorithm
 from quantuminspire.util.api.local_backend import LocalBackend
 from quantuminspire.util.api.remote_backend import RemoteBackend
+from quantuminspire.util.authentication import OauthDeviceSession
+from quantuminspire.util.configuration import Settings, Url
 
 app = Typer(add_completion=False, no_args_is_help=True)
 algorithms_app = Typer(no_args_is_help=True)
@@ -296,7 +299,17 @@ def login(
     Log in to the Quantum Inspire platform. The host can be overwritten, so that the user can connect to different
     instances. If no host is specified, the production environment will be used.
     """
-    typer.echo(f"Login to {host}")
+    settings = Settings()
+    host_url = Url(host)
+
+    auth_session = OauthDeviceSession(settings.auths[host_url])
+
+    login_info = auth_session.initialize_authorization()
+    typer.echo(f"Please continue logging in by opening: {login_info['verification_uri_complete']} in your browser")
+    webbrowser.open(login_info["verification_uri_complete"], new=2)
+    tokens = auth_session.poll_for_tokens()
+    settings.store_tokens(host_url, tokens)
+    typer.echo("Login successful!")
 
 
 @app.command("logout")

@@ -13,23 +13,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import json
 import unittest
-from collections import OrderedDict
-from unittest.mock import ANY, Mock, patch
+from unittest.mock import Mock
 
-import numpy as np
 import pytest
-from qiskit.circuit import ClassicalRegister, QuantumCircuit, QuantumRegister
-from qiskit.compiler import assemble
+from qiskit.circuit import ClassicalRegister, QuantumCircuit
 from qiskit.providers.jobstatus import JobStatus
-from qiskit.providers.models import QasmBackendConfiguration
-from qiskit.providers.models.backendconfiguration import GateConfig
-from qiskit.qobj import QasmQobjExperiment
 
 from quantuminspire.sdk.qiskit.backend import QiskitQuantumInspireJob, QuantumInspireBackend
 from quantuminspire.sdk.qiskit.exceptions import QiskitBackendError
-from quantuminspire.sdk.qiskit.measurements import Measurements
 
 
 class TestQiskitQuantumInspireJob(unittest.TestCase):
@@ -68,7 +60,7 @@ class TestBackend:
         assert status.backend_version == "2.0"
         assert status.backend_name == "quantum_inspire_2"
         assert status.pending_jobs == 0
-        assert status.operational == True
+        assert status.operational
         assert status.status_msg == "online"
 
     def test_run_normal(self, backend):
