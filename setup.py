@@ -63,7 +63,7 @@ setup(name='quantuminspire',
       install_requires=['coverage>=4.5.1', 'matplotlib>=2.1', 'pylatexenc', 'coreapi>=2.3.3', 'numpy>=1.20', 'jupyter',
                         'nbimporter', 'qilib', 'setuptools'],
       extras_require={
-          "qiskit": ["qiskit>=0.46,<1.0", "qiskit-aer"],
+          "qiskit": ["qiskit>=1.0", "qiskit-aer"],
           "projectq": ["projectq>=0.8.0"],
           "dev": ["pytest>=3.3.1", "pylint", "mypy>=0.670"],
           "rtd": ["sphinx", "sphinx_rtd_theme", "nbsphinx", "sphinx-automodapi", "recommonmark"],
