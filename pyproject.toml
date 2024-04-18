@@ -26,7 +26,7 @@ typer = {extras = ["all"], version = "^0.12.3"}
 qutechopenql = "^0.12.2"
 pydantic = "^2.7.0"
 qi-compute-api-client = {git = "https://github.com/QuTech-Delft/compute-api-client.git", branch="0.27.0"}
-qxelarator = {version = "^0.6.2", optional = true}
+qxelarator = {version = "^0.7.0", optional = true}
 pydantic-settings = "^2.2.1"
 qiskit = "^0.45.2"
 qiskit-algorithms = "^0.3.0"
