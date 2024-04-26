@@ -93,6 +93,13 @@ class AuthSettings(BaseModel):
         "https://auth.qi2.quantum-inspire.com/realms/oidc_production/.well-known/openid-configuration"
     )
     tokens: Optional[TokenInfo] = None
+    team_member_id: Optional[int] = None
+
+    @property
+    def owner_id(self) -> int:
+        if self.team_member_id is None:
+            raise ValueError("Please set the default team_member_id for this host!")
+        return self.team_member_id
 
 
 class Settings(BaseSettings):  # pylint: disable=too-few-public-methods
@@ -107,6 +114,10 @@ class Settings(BaseSettings):  # pylint: disable=too-few-public-methods
     auths: Dict[Url, AuthSettings]
 
     default_host: Url = "https://staging.qi2.quantum-inspire.com"
+
+    @property
+    def default_auth_settings(self) -> AuthSettings:
+        return self.auths[self.default_host]
 
     # R0913: Too many arguments (6/5) (too-many-arguments)
     @classmethod

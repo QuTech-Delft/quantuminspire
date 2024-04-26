@@ -57,13 +57,13 @@ class RemoteBackend(BaseBackend):
     def __init__(self) -> None:
         super().__init__()
         settings = Settings()
-        host = settings.default_host
+        self.auth_settings = settings.default_auth_settings
 
-        oauth_session = OauthDeviceSession(settings.auths[host])
+        oauth_session = OauthDeviceSession(self.auth_settings)
         tokens = oauth_session.refresh()
-        settings.store_tokens(host, tokens)
+        settings.store_tokens(settings.default_host, tokens)
 
-        self._configuration = Configuration(host=host, oauth_session=oauth_session)
+        self._configuration = Configuration(host=settings.default_host, oauth_session=oauth_session)
 
     def run(self, program: BaseAlgorithm, backend_type_id: int, number_of_shots: Optional[int] = None) -> int:
         """Execute provided algorithm/circuit."""
@@ -95,11 +95,10 @@ class RemoteBackend(BaseBackend):
             await self._enqueue_batch_job(api_client, batch_job)
             return job.id  # type: ignore
 
-    @staticmethod
-    async def _create_project(api_client: ApiClient, program: BaseAlgorithm) -> Project:
+    async def _create_project(self, api_client: ApiClient, program: BaseAlgorithm) -> Project:
         api_instance = ProjectsApi(api_client)
         obj = ProjectIn(
-            owner_id=1,
+            owner_id=self.auth_settings.owner_id,
             name=program.program_name,
             description="Project created by SDK",
             starred=False,

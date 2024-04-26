@@ -1,8 +1,11 @@
+import json
 from unittest.mock import MagicMock
 
+import pytest
 from pytest_mock import MockerFixture
 
 import quantuminspire.util.configuration as configuration
+from tests.conftest import CONFIGURATION
 
 EXAMPLE_TOKENINFO = configuration.TokenInfo(
     access_token="secret",
@@ -51,23 +54,11 @@ def test_force_file_into_existence_file_exists() -> None:
 def test_json_config_settings_file_does_not_exist(mocked_config_file: MagicMock) -> None:
     mocked_config_file.exists.return_value = False
 
-    assert configuration.JsonConfigSettingsSource(configuration.Settings)() == {
-        "auths": {
-            "https://host": {
-                "well_known_endpoint": "https://some_url",
-            },
-        },
-    }
+    assert configuration.JsonConfigSettingsSource(configuration.Settings)() == json.loads(CONFIGURATION)
 
 
 def test_json_config_settings_file_does_exist(mocked_config_file: MagicMock) -> None:
-    assert configuration.JsonConfigSettingsSource(configuration.Settings)() == {
-        "auths": {
-            "https://host": {
-                "well_known_endpoint": "https://some_url",
-            },
-        },
-    }
+    assert configuration.JsonConfigSettingsSource(configuration.Settings)() == json.loads(CONFIGURATION)
 
 
 def test_json_config_settings_qi2_813(mocked_config_file: MagicMock) -> None:
@@ -109,3 +100,16 @@ def test_tokeninfo() -> None:
 def test_store_tokens(mocked_config_file: MagicMock) -> None:
     settings = configuration.Settings()
     settings.store_tokens("https://host", EXAMPLE_TOKENINFO)
+
+
+def test_owner_id_none(mocked_config_file: MagicMock) -> None:
+    settings = configuration.Settings()
+    with pytest.raises(ValueError):
+        settings.default_auth_settings.owner_id
+
+
+def test_owner_id(mocked_config_file: MagicMock) -> None:
+    settings = configuration.Settings(
+        auths={"https://example.com": {"team_member_id": 42}}, default_host="https://example.com"
+    )
+    assert settings.default_auth_settings.owner_id == 42
