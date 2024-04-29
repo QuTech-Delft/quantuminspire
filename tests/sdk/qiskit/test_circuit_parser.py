@@ -354,7 +354,7 @@ class TestQiCircuitToString(unittest.TestCase):
 
     def test_generate_cqasm_correct_output_identity(self):
         qc = QuantumCircuit(2, 2)
-        qc.i(0)
+        qc.id(0)
         result = self._generate_cqasm_from_circuit(qc)
         self.assertTrue("I q[0]\n" in result)
 
@@ -367,7 +367,7 @@ class TestQiCircuitToString(unittest.TestCase):
         q = QuantumRegister(8, "q")
         c = ClassicalRegister(8, "c")
         qc = QuantumCircuit(q, c, name="test")
-        qc.i(0).c_if(c, 14)
+        qc.id(0).c_if(c, 14)
         result = self._generate_cqasm_from_circuit(qc)
         self.assertTrue("not b[0,4,5,6,7]\nC-I b[0,1,2,3,4,5,6,7], q[0]\nnot b[0,4,5,6,7]\n" in result)
 

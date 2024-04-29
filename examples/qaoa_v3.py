@@ -9,9 +9,10 @@ from typing import Any, Callable, Dict, List
 import networkx as nx
 import numpy as np
 from networkx import Graph
+from opensquirrel.squirrel_ir import Float, Qubit
 from scipy.optimize import Bounds, minimize
 
-from quantuminspire.sdk.models.circuit import Circuit
+from quantuminspire.sdk.models.circuit_v3 import CircuitV3
 
 MATRIX = np.matrix([[0, 1], [1, 0]])
 GRAPH = nx.from_numpy_array(MATRIX)
@@ -73,27 +74,18 @@ def qaoa_circuit(graph: Graph, beta: np.ndarray, gamma: np.ndarray) -> str:
     Returns:
         cQASM string representing the quantum circuit used to compute the energies in the QAOA algorithm.
     """
-    with Circuit(platform_name="spin-2", program_name="qaoa") as circuit:
-        init_kernel = circuit.init_kernel("initialize", graph.number_of_nodes())
+    with CircuitV3(platform_name="spin-2", program_name="qaoa", number_of_qubits=graph.number_of_nodes()) as circuit:
         for i in graph.nodes:
-            init_kernel.prepz(i)
-        for i in graph.nodes:
-            init_kernel.hadamard(i)
+            circuit.ir.H(Qubit(i))
 
         for i in range(P):
-            ug_kernel = circuit.init_kernel(f"U_gamma_{i + 1}", graph.number_of_nodes())
             for edge in graph.edges():
-                ug_kernel.cnot(edge[0], edge[1])
-                ug_kernel.rz(edge[1], 2 * gamma[i])
-                ug_kernel.cnot(edge[0], edge[1])
+                circuit.ir.CNOT(Qubit(edge[0]), Qubit(edge[1]))
+                circuit.ir.Rz(Qubit(edge[1]), Float(2 * gamma[i]))
+                circuit.ir.CNOT(Qubit(edge[0]), Qubit(edge[1]))
 
-            ub_kernel = circuit.init_kernel(f"U_beta_{i + 1}", graph.number_of_nodes())
             for j in graph.nodes():
-                ub_kernel.rx(j, 2 * beta[i])
-
-        final_kernel = circuit.init_kernel("finalize", graph.number_of_nodes())
-        for i in graph.nodes():
-            final_kernel.measure(i)
+                circuit.ir.Rx(Qubit(j), Float(2 * beta[i]))
 
     return circuit.content
 
@@ -115,7 +107,7 @@ def generate_objective_function(qi, graph) -> Callable:
         energy = compute_maxcut_energy(counts, graph)
         # right now the platform has no way to make intermediate results
         # available to the finalize function so we do it ourselves.
-        qi.results[f"custom result: {len(qi.results)}"] = [energy, counts]
+        # qi.results[f"custom result: {len(qi.results)}"] = [energy, counts]
         # return the energy
         return energy
 
