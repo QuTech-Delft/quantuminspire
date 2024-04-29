@@ -40,7 +40,7 @@ requests = "^2.31.0"
 local = ["qxelarator"]
 
 [tool.poetry.group.dev.dependencies]
-pytest = {extras = ["toml"], version = "^8.1.1"}
+pytest = {extras = ["toml"], version = "^8.2.0"}
 pytest-cov = "^5.0.0"
 coverage = {extras = ["toml"], version = "^7.5.0"}
 mypy = "^1.10"
