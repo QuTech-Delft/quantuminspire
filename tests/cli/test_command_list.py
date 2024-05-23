@@ -98,9 +98,11 @@ def test_results_get_no_results(mocker: MockerFixture) -> None:
 def test_login(mocker: MockerFixture, mocked_config_file: MagicMock) -> None:
     device_session = mocker.patch("quantuminspire.cli.command_list.OauthDeviceSession")()
     webbrowser_open = mocker.patch("quantuminspire.cli.command_list.webbrowser.open")
+    store_tokens = mocker.patch("quantuminspire.cli.command_list.Settings.store_tokens")
     result = runner.invoke(app, ["login", "https://host"])
     assert result.exit_code == 0, repr(result.exception)
     webbrowser_open.assert_called_once()
     device_session.initialize_authorization.assert_called_once()
     device_session.poll_for_tokens.assert_called_once()
+    store_tokens.assert_called_once()
     assert "Login successful!" in result.stdout

@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import time
 from os import PathLike
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple, Type
+from typing import Any, Dict, Optional, Tuple, Type, cast
 
+import typer
+from compute_api_client import ApiClient, Configuration, MembersApi
 from pydantic import BaseModel, BeforeValidator, HttpUrl
 from pydantic.fields import Field, FieldInfo
 from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
@@ -155,10 +158,43 @@ class Settings(BaseSettings):  # pylint: disable=too-few-public-methods
         :param tokens: OAuth access and refresh tokens
         :return: None
 
-        This functions stores the access and refresh tokens in the config.json file.
+        This functions stores the team_member_id, access and refresh tokens in the config.json file.
         """
         self.auths[host].tokens = tokens
+        member_id = self.get_team_member_id(host=host, access_token=tokens.access_token)
+        self.auths[host].team_member_id = member_id
         assert isinstance(self.model_config["json_file"], PathLike)
         Path(self.model_config["json_file"]).write_text(
             self.model_dump_json(indent=2), encoding=self.model_config.get("env_file_encoding")
         )
+
+    @staticmethod
+    async def _fetch_team_member_id(host: str, access_token: str) -> int:
+        config = Configuration(host=host, access_token=access_token)
+        async with ApiClient(config) as api_client:
+            api_instance = MembersApi(api_client)
+            members = await api_instance.read_members_members_get()
+            if len(members) == 1:
+                member_id = members[0].id
+                typer.echo(f"Using member ID {member_id}")
+                return cast(int, member_id)
+
+            typer.echo("Choose a member ID from the list for project configuration.")
+            json_string = "[" + ",".join(member.model_dump_json(indent=4) for member in members) + "]"
+            typer.echo(json_string)
+
+            member_ids = [member.id for member in members]
+
+            while True:
+                try:
+                    member_id = int(input("Please enter one of the given ids: "))
+                    if member_id not in member_ids:
+                        raise ValueError
+                    typer.echo(f"Using member ID {member_id}")
+                    return cast(int, member_id)
+                except ValueError:
+                    typer.echo("Invalid input. Please enter a valid id or CTRL + C to cancel.")
+
+    @classmethod
+    def get_team_member_id(cls, host: str, access_token: str) -> int:
+        return asyncio.run(cls._fetch_team_member_id(host, access_token))
