@@ -1,6 +1,8 @@
 from pathlib import Path
 from typing import Any, Dict, List
 
+from opensquirrel.squirrel_ir import Qubit
+
 from quantuminspire.sdk.models.circuit import Circuit
 from quantuminspire.sdk.models.hybrid_algorithm import HybridAlgorithm
 from quantuminspire.util.api.local_backend import LocalBackend
@@ -8,10 +10,9 @@ from quantuminspire.util.api.quantum_interface import QuantumInterface
 
 
 def generate_circuit() -> str:
-    with Circuit(platform_name="spin-2", program_name="prgm1") as circuit:
-        kernel = circuit.init_kernel("new_kernel", 2)
-        kernel.hadamard(0)
-        kernel.cnot(0, 1)
+    with Circuit(platform_name="spin-2", program_name="prgm1", number_of_qubits=2) as circuit:
+        circuit.ir.H(Qubit(0))
+        circuit.ir.CNOT(Qubit(0), Qubit(1))
 
     return circuit.content
 

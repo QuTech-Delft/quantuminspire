@@ -1,30 +1,24 @@
 """Module containing the Quantum Circuit class."""
 
-from pathlib import Path
 from types import TracebackType
-from typing import List, Optional, Type
+from typing import Optional, Type
 
-import openql
 from compute_api_client import AlgorithmType, CompileStage
-from openql import Kernel, Platform, Program
+from opensquirrel import CircuitBuilder
 
 from quantuminspire.sdk.models.base_algorithm import BaseAlgorithm
 
 
 class Circuit(BaseAlgorithm):
-    """A container object, interacting with OpenQL and storing cQASM internally.
+    """A container object, interacting with OpenSquirrel and storing cQASM internally.
 
-    A circuit wraps OpenQL to handle the boilerplate code for platform, program and kernels. These objects can still be
-    used.
+    A circuit wraps OpenSquirrel to handle the boilerplate code for the CircuitBuilder.
     """
 
-    def __init__(self, platform_name: str, program_name: str) -> None:
+    def __init__(self, platform_name: str, program_name: str, number_of_qubits: int) -> None:
         super().__init__(platform_name, program_name)
-        self._output_dir = Path(__file__).parent.absolute() / "output"
-        openql.set_option("output_dir", str(self._output_dir))
-        self._openql_platform = Platform(self._platform_name, "none")
-        self._openql_program: Optional[Program] = None
-        self._openql_kernels: List[Kernel] = []
+        self._number_of_qubits = number_of_qubits
+        self.ir = CircuitBuilder(number_of_qubits=number_of_qubits)
         self._cqasm: str = ""
 
     @property
@@ -47,7 +41,7 @@ class Circuit(BaseAlgorithm):
         self, exc_type: Optional[Type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
     ) -> bool:
         self.finalize()
-        return True
+        return exc_type is None
 
     def initialize(self) -> None:
         """Initialize the quantum circuit."""
@@ -56,56 +50,21 @@ class Circuit(BaseAlgorithm):
         """Finalize the quantum circuit.
 
         After finishing writing the quantum circuit various actions are performed to generate the actual cQASM circuit.
-        First, the used number of qubits is determined, based on the various kernels. It is assumed that the qubits
-        will be reused over the various kernels. This creates an OpenQL program, to which the various kernels are
-        added. Finally, the program is compiled and the generated cQASM file is processed to an internal variable.
+        The circuit is converted to cQASM. Due to some differences between OpenSquirrel and QX, the casing of the gates
+        need to be tweaked.
         """
-        self._openql_program = openql.Program(self._program_name, self._openql_platform, self.max_number_of_qubits)
-        for kernel in self._openql_kernels:
-            self._openql_program.add_kernel(kernel)
-        self._openql_program.get_compiler().set_option("initialqasmwriter.cqasm_version", "1.0")
-        self._openql_program.get_compiler().set_option("initialqasmwriter.with_metadata", "no")
-        self._openql_program.compile()
-        self._cqasm = self._process_cqasm_file()
-
-    @property
-    def max_number_of_qubits(self) -> int:
-        """Determine the number of qubits over the various kernels.
-
-        Returns:
-            The maximum number of qubits used in the kernels, assuming that the qubits can be reused.
-        """
-        return int(max((kernel.qubit_count for kernel in self._openql_kernels), default=0))
-
-    def _process_cqasm_file(self) -> str:
-        """Read and remove the generated cQASM file.
-
-        Returns:
-            The content of the OpenQL generated cQASM file.
-        """
-        cqasm_file = self._output_dir / f"{self._program_name}.qasm"
-        with open(cqasm_file, encoding="utf-8") as file_pointer:
-            cqasm = file_pointer.read()
-        Path.unlink(cqasm_file)
-        return cqasm
-
-    def init_kernel(self, name: str, number_of_qubits: int) -> Kernel:
-        """Initialize an OpenQL kernel.
-
-        A new OpenQL kernel is created and added to an internal list (ordered) of kernels. This list will be used to
-        compile the final program (in order).
-
-        Args:
-            name: Name of the kernel.
-            number_of_qubits: Number of qubits used in the kernel.
-
-        Returns:
-            The OpenQL kernel.
-        """
-        kernel = Kernel(name, self._openql_platform, number_of_qubits)
-        self._openql_kernels.append(kernel)
-        return kernel
-
-    def add_kernel(self, kernel: Kernel) -> None:
-        """Add an existing kernel to the list of kernels."""
-        self._openql_kernels.append(kernel)
+        self._cqasm = str(self.ir.to_circuit())
+        self._cqasm = (
+            self._cqasm.replace("h", "H")
+            .replace("cnot", "CNOT")
+            .replace("x", "X")
+            .replace("y", "Y")
+            .replace("z", "Z")
+            .replace("x90", "X90")
+            .replace("mx90", "mX90")
+            .replace("y90", "Y90")
+            .replace("my90", "mY90")
+            .replace("RZ", "Rz")
+            .replace("RX", "Rx")
+            .replace("cz", "CZ")
+        )
