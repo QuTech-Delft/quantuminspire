@@ -18,7 +18,7 @@ class Circuit(BaseAlgorithm):
     def __init__(self, platform_name: str, program_name: str, number_of_qubits: int) -> None:
         super().__init__(platform_name, program_name)
         self._number_of_qubits = number_of_qubits
-        self.ir = CircuitBuilder(number_of_qubits=number_of_qubits)
+        self.ir = CircuitBuilder(qubit_register_size=number_of_qubits)
         self._cqasm: str = ""
 
     @property

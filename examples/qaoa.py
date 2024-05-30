@@ -9,7 +9,7 @@ from typing import Any, Callable, Dict, List
 import networkx as nx
 import numpy as np
 from networkx import Graph
-from opensquirrel.squirrel_ir import Float, Qubit
+from opensquirrel.ir import Float, Qubit
 from scipy.optimize import Bounds, minimize
 
 from quantuminspire.sdk.models.circuit import Circuit

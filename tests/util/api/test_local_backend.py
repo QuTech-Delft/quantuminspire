@@ -70,6 +70,6 @@ def test_local_backend_run_with_hybrid_algorithm(local_backend: MockLocalBackend
 def test_local_backend_run_with_quantum_algorithm(local_backend: MockLocalBackend) -> None:
     algorithm = Circuit("test", "Test", 2)
     job_id = local_backend.run(algorithm, 0)
-    local_backend.run_hybrid.assert_called_once()
+    local_backend.run_quantum.assert_called_once()
     results = local_backend.get_results(job_id)
     assert results == ExecuteCircuitResult(results={}, shots_requested=1, shots_done=1)
