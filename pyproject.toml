@@ -28,7 +28,7 @@ qxelarator = {version = "^0.7.1", optional = true}
 pydantic-settings = "^2.2.1"
 qiskit = "^1.1.0"
 oauthlib = "^3.2.2"
-requests = "^2.32.2"
+requests = "^2.32.3"
 opensquirrel = {git = "https://github.com/QuTech-Delft/OpenSquirrel.git"}
 
 
