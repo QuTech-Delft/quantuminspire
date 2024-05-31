@@ -10,6 +10,9 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
+    ignore:
+      - dependency-name: "opensquirrel"
+        versions: ["*"]
     reviewers:
       - QuTech-Delft/web-team
       
