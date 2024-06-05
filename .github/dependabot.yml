@@ -13,6 +13,8 @@ updates:
     ignore:
       - dependency-name: "opensquirrel"
         versions: ["*"]
+      - dependency-name: "qi-compute-api-client"
+        versions: ["*"]
     reviewers:
       - QuTech-Delft/web-team
       
