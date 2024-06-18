@@ -49,6 +49,9 @@ class OauthDeviceSession:
         }
 
         response = requests.post(self._device_endpoint, data=data, headers=self._headers).json()
+        if "error" in response:
+            raise AuthorisationError(response["error_description"])
+
         self.expires_in = int(response["expires_in"])
         self.polling_interval = response["interval"]
         self.expires_at = time.monotonic() + self.expires_in

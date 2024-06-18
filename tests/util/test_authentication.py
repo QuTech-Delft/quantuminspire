@@ -58,6 +58,21 @@ def test_initialize_authorization(
     assert mocked_device_session._device_code == "secret"
 
 
+def test_initialize_authorization_error(
+    mocked_responses: responses.RequestsMock, mocked_device_session: OauthDeviceSession
+) -> None:
+    error = "This as an authorzation error"
+    error_description = "This is the description"
+    mocked_responses.replace(
+        responses.POST,
+        "https://localhost/device",
+        body=json.dumps({"error": error, "error_description": error_description}),
+        status=400,
+    )
+    with pytest.raises(AuthorisationError):
+        mocked_device_session.initialize_authorization()
+
+
 def test_poll_for_tokens(mocked_responses: responses.RequestsMock, mocked_device_session: OauthDeviceSession) -> None:
     mocked_device_session.initialize_authorization()
 
