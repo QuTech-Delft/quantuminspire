@@ -25,6 +25,8 @@ files_app = Typer(no_args_is_help=True)
 app.add_typer(files_app, name="files", help="Manage files")
 results_app = Typer(no_args_is_help=True)
 app.add_typer(results_app, name="results", help="Manage results")
+final_results_app = Typer(no_args_is_help=True)
+app.add_typer(final_results_app, name="final_results", help="Manage final results")
 
 
 class Destination(str, Enum):
@@ -285,6 +287,23 @@ def get_results(job_id: int = typer.Argument(..., help="The id of the run")) -> 
         raise typer.Exit(1)
 
     typer.echo("Raw results:")
+    typer.echo(results)
+
+
+@final_results_app.command("get")
+def get_final_results(job_id: int = typer.Argument(..., help="The id of the run")) -> None:
+    """Retrieve the final results for a run.
+
+    Takes the id as returned by upload_files and retrieves the final results for that job, if it's finished.
+    """
+    backend = RemoteBackend()
+    results = backend.get_final_results(job_id)
+
+    if results is None:
+        typer.echo("No final results.")
+        raise typer.Exit(1)
+
+    typer.echo("Raw final results:")
     typer.echo(results)
 
 

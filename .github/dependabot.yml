@@ -13,6 +13,8 @@ updates:
     ignore:
       - dependency-name: "opensquirrel"
         versions: ["*"]
+      - dependency-name: "qiskit"
+        versions: [ "*" ]
       - dependency-name: "qi-compute-api-client"
         versions: ["*"]
     reviewers:

@@ -95,6 +95,27 @@ def test_results_get_no_results(mocker: MockerFixture) -> None:
     mock_remote_backend_inst.get_results.assert_called_once()
 
 
+def test_final_results_get(mocker: MockerFixture) -> None:
+    mock_remote_backend_inst = MagicMock()
+    mocker.patch("quantuminspire.cli.command_list.RemoteBackend", return_value=mock_remote_backend_inst)
+
+    result = runner.invoke(app, ["final_results", "get", "1"])
+
+    assert result.exit_code == 0
+    mock_remote_backend_inst.get_final_results.assert_called_once()
+
+
+def test_final_results_get_no_results(mocker: MockerFixture) -> None:
+    mock_remote_backend_inst = MagicMock()
+    mock_remote_backend_inst.get_final_results.return_value = None
+    mocker.patch("quantuminspire.cli.command_list.RemoteBackend", return_value=mock_remote_backend_inst)
+
+    result = runner.invoke(app, ["final_results", "get", "1"])
+
+    assert result.exit_code == 1
+    mock_remote_backend_inst.get_final_results.assert_called_once()
+
+
 def test_login(mocker: MockerFixture, mocked_config_file: MagicMock) -> None:
     device_session = mocker.patch("quantuminspire.cli.command_list.OauthDeviceSession")()
     webbrowser_open = mocker.patch("quantuminspire.cli.command_list.webbrowser.open")

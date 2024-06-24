@@ -29,6 +29,8 @@ from compute_api_client import (
     File,
     FileIn,
     FilesApi,
+    FinalResult,
+    FinalResultsApi,
     Job,
     JobIn,
     JobsApi,
@@ -77,9 +79,21 @@ class RemoteBackend(BaseBackend):
 
             return await self._read_results_for_job(api_client, job)
 
+    async def _get_final_results(self, job_id: int) -> Any:
+        async with ApiClient(self._configuration) as api_client:
+            job = await self._read_job(api_client, job_id)
+            if job.status != JobStatus.COMPLETED:
+                return None
+
+            return await self._read_final_results_for_job(api_client, job)
+
     def get_results(self, job_id: int) -> Any:
         """Get results for algorithm/circuit."""
         return asyncio.run(self._get_results(job_id))
+
+    def get_final_results(self, job_id: int) -> Any:
+        """Get final results for algorithm/circuit."""
+        return asyncio.run(self._get_final_results(job_id))
 
     async def _create_flow(
         self, program: BaseAlgorithm, backend_type_id: int, number_of_shots: Optional[int] = None
@@ -165,3 +179,8 @@ class RemoteBackend(BaseBackend):
     async def _read_results_for_job(api_client: ApiClient, job: Job) -> List[Result]:
         api_instance = ResultsApi(api_client)
         return await api_instance.read_results_by_job_id_results_job_job_id_get(job.id)  # type: ignore
+
+    @staticmethod
+    async def _read_final_results_for_job(api_client: ApiClient, job: Job) -> List[FinalResult]:
+        api_instance = FinalResultsApi(api_client)
+        return await api_instance.read_final_result_by_job_id_final_results_job_job_id_get(job.id)  # type: ignore

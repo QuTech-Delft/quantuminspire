@@ -37,6 +37,8 @@ def compute_api_client(mocker: MockerFixture) -> None:
     mocker.patch("quantuminspire.util.api.remote_backend.ShareType", return_value=MagicMock())
     mocker.patch("quantuminspire.util.api.remote_backend.Result", return_value=MagicMock())
     mocker.patch("quantuminspire.util.api.remote_backend.ResultsApi", return_value=AsyncMock())
+    mocker.patch("quantuminspire.util.api.remote_backend.FinalResult", return_value=MagicMock())
+    mocker.patch("quantuminspire.util.api.remote_backend.FinalResultsApi", return_value=AsyncMock())
 
 
 @pytest.fixture
@@ -118,3 +120,48 @@ def test_get_results_not_completed(
     api_client.assert_has_calls([call().__aenter__(), call().__aexit__(None, None, None)])
     jobs_api_instance.read_job_jobs_id_get.assert_called_with(job.id)
     results_api_instance.read_results_by_job_id_results_job_job_id_get.assert_not_called()
+
+
+def test_get_final_results(
+    mocker: MockerFixture, api_client: MagicMock, mocked_settings: MagicMock, mocked_authentication: MagicMock
+) -> None:
+    backend = RemoteBackend()
+    jobs_api_instance = AsyncMock()
+    job = MagicMock()
+    job.status = JobStatus.COMPLETED
+    job.id = 1
+    jobs_api_instance.read_job_jobs_id_get.return_value = job
+
+    final_results_api_instance = AsyncMock()
+    results = MagicMock()
+    final_results_api_instance.read_final_result_by_job_id_final_results_job_job_id_get.return_value = results
+
+    mocker.patch("quantuminspire.util.api.remote_backend.JobsApi", return_value=jobs_api_instance)
+    mocker.patch("quantuminspire.util.api.remote_backend.FinalResultsApi", return_value=final_results_api_instance)
+    backend.get_final_results(job.id)
+    jobs_api_instance.read_job_jobs_id_get.assert_called_with(job.id)
+    final_results_api_instance.read_final_result_by_job_id_final_results_job_job_id_get.assert_called_with(job.id)
+
+
+def test_get_final_results_not_completed(
+    mocker: MockerFixture,
+    api_client: MagicMock,
+    compute_api_client: None,
+    mocked_settings: MagicMock,
+    mocked_authentication: MagicMock,
+) -> None:
+    backend = RemoteBackend()
+    jobs_api_instance = AsyncMock()
+    job = MagicMock()
+    job.id = 1
+    job.status = JobStatus.RUNNING
+    jobs_api_instance.read_job_jobs_id_get.return_value = job
+
+    final_results_api_instance = AsyncMock()
+
+    mocker.patch("quantuminspire.util.api.remote_backend.JobsApi", return_value=jobs_api_instance)
+    mocker.patch("quantuminspire.util.api.remote_backend.FinalResultsApi", return_value=final_results_api_instance)
+    backend.get_final_results(job.id)
+    api_client.assert_has_calls([call().__aenter__(), call().__aexit__(None, None, None)])
+    jobs_api_instance.read_job_jobs_id_get.assert_called_with(job.id)
+    final_results_api_instance.read_final_result_by_job_id_final_results_job_job_id_get.assert_not_called()
