@@ -30,7 +30,7 @@ pydantic-settings = "^2.3.3"
 qiskit = "1.0.2"
 oauthlib = "^3.2.2"
 requests = "^2.32.3"
-opensquirrel = {git = "https://github.com/QuTech-Delft/OpenSquirrel.git", rev = "82498f268682deac89add8a11b93b27079c46e6d"}
+opensquirrel = {git = "https://github.com/QuTech-Delft/OpenSquirrel.git", rev = "bc64d9e326732e7a943a84a9a3042be8469a418a"}
 
 
 [tool.poetry.extras]

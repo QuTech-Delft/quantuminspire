@@ -15,10 +15,15 @@ class Circuit(BaseAlgorithm):
     A circuit wraps OpenSquirrel to handle the boilerplate code for the CircuitBuilder.
     """
 
-    def __init__(self, platform_name: str, program_name: str, number_of_qubits: int) -> None:
+    def __init__(
+        self, platform_name: str, program_name: str, number_of_qubits: int, bit_registers: Optional[int] = None
+    ) -> None:
         super().__init__(platform_name, program_name)
         self._number_of_qubits = number_of_qubits
-        self.ir = CircuitBuilder(qubit_register_size=number_of_qubits)
+        if bit_registers is None:
+            bit_registers = number_of_qubits
+        self._number_of_bit_registers = bit_registers
+        self.ir = CircuitBuilder(qubit_register_size=number_of_qubits, bit_register_size=bit_registers)
         self._cqasm: str = ""
 
     @property

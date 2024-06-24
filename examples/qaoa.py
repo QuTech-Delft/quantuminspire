@@ -9,7 +9,7 @@ from typing import Any, Callable, Dict, List
 import networkx as nx
 import numpy as np
 from networkx import Graph
-from opensquirrel.ir import Float, Qubit
+from opensquirrel.ir import Bit, Float, Qubit
 from scipy.optimize import Bounds, minimize
 
 from quantuminspire.sdk.models.circuit import Circuit
@@ -86,6 +86,9 @@ def qaoa_circuit(graph: Graph, beta: np.ndarray, gamma: np.ndarray) -> str:
 
             for j in graph.nodes():
                 circuit.ir.Rx(Qubit(j), Float(2 * beta[i]))
+
+        for i in graph.nodes:
+            circuit.ir.measure(Qubit(i), Bit(i))
 
     return circuit.content
 

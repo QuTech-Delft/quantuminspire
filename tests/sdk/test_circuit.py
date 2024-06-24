@@ -50,3 +50,13 @@ def test_create_empty_circuit(CircuitBuilder: MagicMock) -> None:
 
     cb.to_circuit.assert_called_once()
     assert c.content == MOCK_QUANTUM_CIRCUIT
+
+
+def test_set_bit_registers(CircuitBuilder: MagicMock) -> None:
+    cb = CircuitBuilder()
+    cb.to_circuit.return_value = MOCK_QUANTUM_CIRCUIT
+    with Circuit(platform_name="platform", program_name="program", number_of_qubits=2, bit_registers=3) as c:
+        assert c._number_of_bit_registers == 3
+
+    cb.to_circuit.assert_called_once()
+    assert c.content == MOCK_QUANTUM_CIRCUIT
