@@ -2,17 +2,18 @@
 
 import time
 
+from opensquirrel.ir import Bit, Qubit
+
 from quantuminspire.sdk.models.circuit import Circuit
 from quantuminspire.util.api.remote_backend import RemoteBackend
 
 if __name__ == "__main__":
 
-    with Circuit(platform_name="spin-2", program_name="prgm1") as c:
-        k = c.init_kernel("new_kernel", 2)
-        k.x(0)
-        k.hadamard(1)
-        k.measure(0)
-        k.measure(1)
+    with Circuit(platform_name="spin-2", program_name="prgm1", number_of_qubits=2) as c:
+        c.ir.X(Qubit(0))
+        c.ir.H(Qubit(1))
+        c.ir.measure(Qubit(0), Bit(0))
+        c.ir.measure(Qubit(1), Bit(1))
 
     backend = RemoteBackend()
 
