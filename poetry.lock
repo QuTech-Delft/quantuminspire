@@ -1329,19 +1329,23 @@ files = [
 
 [[package]]
 name = "qi-compute-api-client"
-version = "0.32.0"
+version = "0.33.0"
 description = "An API client for the Compute Job Manager of Quantum Inspire."
 optional = false
-python-versions = "<4.0,>=3.8"
-files = [
-    {file = "qi_compute_api_client-0.32.0-py3-none-any.whl", hash = "sha256:2f0063c6448fb8cd2ded8ff4322b34e0826eb4db7f1ae59dca3eb2c4412c4855"},
-    {file = "qi_compute_api_client-0.32.0.tar.gz", hash = "sha256:d3fb283d28869018acb986c32993adfb8b0dd73bc6bf1ff1a0e9e077ac9bcf62"},
-]
+python-versions = "^3.8"
+files = []
+develop = false
 
 [package.dependencies]
-aiohttp = ">=3.8.1,<4.0.0"
-python-dateutil = ">=2.8.2,<3.0.0"
-urllib3 = ">=1.25.3,<2.0.0"
+aiohttp = "^3.8.1"
+python-dateutil = "^2.8.2"
+urllib3 = "^1.25.3"
+
+[package.source]
+type = "git"
+url = "https://github.com/QuTech-Delft/compute-api-client.git"
+reference = "ed421c2331e82f164c08de1ec7521b296583bd13"
+resolved_reference = "ed421c2331e82f164c08de1ec7521b296583bd13"
 
 [[package]]
 name = "qiskit"
@@ -1927,4 +1931,4 @@ local = ["qxelarator"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "2defb303244f05407afd843f301c8fd752cfed0fe49a4c3edf7738e39360cca9"
+content-hash = "e3eb6ec7b4906fa0dd62078d986ba8ad62059c169f1c8c62f16b4a01baa3e82c"

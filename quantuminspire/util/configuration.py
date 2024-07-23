@@ -173,7 +173,8 @@ class Settings(BaseSettings):  # pylint: disable=too-few-public-methods
         config = Configuration(host=host, access_token=access_token)
         async with ApiClient(config) as api_client:
             api_instance = MembersApi(api_client)
-            members = await api_instance.read_members_members_get()
+            members_page = await api_instance.read_members_members_get()
+            members = members_page.items
             if len(members) == 1:
                 member_id = members[0].id
                 typer.echo(f"Using member ID {member_id}")
