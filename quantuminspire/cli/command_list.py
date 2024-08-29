@@ -329,6 +329,7 @@ def login(
     tokens = auth_session.poll_for_tokens()
     settings.store_tokens(host_url, tokens)
     typer.echo("Login successful!")
+    typer.echo(f"Using member ID {settings.auths[host].team_member_id}")
 
 
 @app.command("logout")

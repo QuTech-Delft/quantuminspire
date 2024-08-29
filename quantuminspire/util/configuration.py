@@ -177,7 +177,6 @@ class Settings(BaseSettings):  # pylint: disable=too-few-public-methods
             members = members_page.items
             if len(members) == 1:
                 member_id = members[0].id
-                typer.echo(f"Using member ID {member_id}")
                 return cast(int, member_id)
 
             typer.echo("Choose a member ID from the list for project configuration.")
@@ -191,7 +190,6 @@ class Settings(BaseSettings):  # pylint: disable=too-few-public-methods
                     member_id = int(input("Please enter one of the given ids: "))
                     if member_id not in member_ids:
                         raise ValueError
-                    typer.echo(f"Using member ID {member_id}")
                     return cast(int, member_id)
                 except ValueError:
                     typer.echo("Invalid input. Please enter a valid id or CTRL + C to cancel.")
