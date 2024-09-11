@@ -26,7 +26,7 @@ typer = {extras = ["all"], version = "^0.12.5"}
 pydantic = "^2.9.1"
 qi-compute-api-client = "^0.33.0"
 qxelarator = {version = "^0.7.1", optional = true}
-pydantic-settings = "^2.4.0"
+pydantic-settings = "^2.5.1"
 qiskit = "1.0.2"
 oauthlib = "^3.2.2"
 requests = "^2.32.3"
