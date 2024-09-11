@@ -37,7 +37,7 @@ opensquirrel = {git = "https://github.com/QuTech-Delft/OpenSquirrel.git", rev = 
 local = ["qxelarator"]
 
 [tool.poetry.group.dev.dependencies]
-pytest = {extras = ["toml"], version = "^8.3.2"}
+pytest = {extras = ["toml"], version = "^8.3.3"}
 pytest-cov = "^5.0.0"
 coverage = {extras = ["toml"], version = "^7.6.1"}
 mypy = "^1.11"
