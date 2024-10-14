@@ -39,7 +39,7 @@ local = ["qxelarator"]
 [tool.poetry.group.dev.dependencies]
 pytest = {extras = ["toml"], version = "^8.3.3"}
 pytest-cov = "^5.0.0"
-coverage = {extras = ["toml"], version = "^7.6.2"}
+coverage = {extras = ["toml"], version = "^7.6.3"}
 mypy = "^1.11"
 docformatter = "1.7.5"
 pytest-mock = "^3.14.0"
