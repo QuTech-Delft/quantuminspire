@@ -38,14 +38,15 @@ class OauthDeviceSession:
         config = response.json()
         return config["token_endpoint"], config["device_authorization_endpoint"]
 
-    def initialize_authorization(self, scope: str = "api-access openid") -> Dict[str, Any]:
+    def initialize_authorization(self) -> Dict[str, Any]:
         code_verifier = self._oauth_client.create_code_verifier(self._settings.code_verifyer_length)
         self._oauth_client.create_code_challenge(code_verifier, self._settings.code_challenge_method)
         data = {
             "client_id": self._client_id,
             "code_challenge_method": self._settings.code_challenge_method,
             "code_challenge": self._oauth_client.code_challenge,
-            "scope": scope,
+            "audience": self._settings.audience,
+            "scope": self._settings.scope,
         }
 
         response = requests.post(self._device_endpoint, data=data, headers=self._headers).json()
@@ -69,7 +70,7 @@ class OauthDeviceSession:
 
         response = requests.post(self._token_endpoint, data=data, headers=self._headers)
 
-        if response.status_code == 400:
+        if response.status_code >= 400:
             content = response.json()
             if content["error"] == "authorization_pending":
                 raise AuthorisationPending(content["error"])
@@ -85,7 +86,6 @@ class OauthDeviceSession:
         raise AuthorisationError(f"Received status code: {response.status_code}\n {response.text}")
 
     def poll_for_tokens(self) -> TokenInfo:
-
         while time.monotonic() < self.expires_at:
             try:
                 return self.request_token()
@@ -117,7 +117,6 @@ class OauthDeviceSession:
 
 
 class Configuration(compute_api_client.Configuration):  # type: ignore[misc]
-
     def __init__(self, host: str, oauth_session: OauthDeviceSession, **kwargs: Any):
         self._oauth_session = oauth_session
         super().__init__(host=host, **kwargs)

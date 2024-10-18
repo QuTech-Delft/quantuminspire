@@ -22,7 +22,7 @@ DEFAULT_CONFIG = """
 {
   "auths": {
     "https://staging.qi2.quantum-inspire.com": {
-      "well_known_endpoint":  "https://auth.qi2.quantum-inspire.com/realms/oidc_staging/.well-known/openid-configuration"
+      "well_known_endpoint":  "https://quantum-inspire-staging.eu.auth0.com/.well-known/openid-configuration"
     },
     "https://api.qi2.quantum-inspire.com": {
       "well_known_endpoint":  "https://auth.qi2.quantum-inspire.com/realms/oidc_production/.well-known/openid-configuration"
@@ -72,7 +72,6 @@ class TokenInfo(BaseModel):
     access_token: str
     expires_in: int
     refresh_token: str
-    refresh_expires_in: int
     generated_at: float = Field(default_factory=time.time)
 
     @property
@@ -80,16 +79,15 @@ class TokenInfo(BaseModel):
         """Timestamp containing the time when the access token will expire."""
         return self.generated_at + self.expires_in
 
-    @property
-    def refresh_expires_at(self) -> float:
-        """Timestamp containing the time when the refresh token will expire."""
-        return self.generated_at + self.refresh_expires_in
-
 
 class AuthSettings(BaseModel):
     """Pydantic model for storing all auth related settings for a given host."""
 
     client_id: str = "compute-job-manager"
+    audience: str = "compute-job-manager"
+    # Keycloak requires api-access in scope for compute-job-manager audience
+    # Auth0 requires offline_access in scopefor sending a refresh token
+    scope: str = "api-access openid profile email offline_access"
     code_challenge_method: str = "S256"
     code_verifyer_length: int = 64
     well_known_endpoint: Url = (

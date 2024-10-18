@@ -226,7 +226,9 @@ def list_projects(
 
 @projects_app.command("sync")
 def sync_projects(
-    dest: Destination = typer.Option(Destination.LOCAL, help="The target system with which to synchronize the projects")
+    dest: Destination = typer.Option(
+        Destination.LOCAL, help="The target system with which to synchronize the projects"
+    ),
 ) -> None:
     """Sync project.
 
@@ -311,7 +313,7 @@ def get_final_results(job_id: int = typer.Argument(..., help="The id of the run"
 def login(
     host: str = typer.Argument(
         "https://api.qi2.quantum-inspire.com", help="The URL of the platform to which to connect"
-    )
+    ),
 ) -> None:
     """Log in to Quantum Inspire.
 
@@ -325,6 +327,7 @@ def login(
 
     login_info = auth_session.initialize_authorization()
     typer.echo(f"Please continue logging in by opening: {login_info['verification_uri_complete']} in your browser")
+    typer.echo(f"If promped to verify a code, please confirm it is as follows: {login_info['user_code']}")
     webbrowser.open(login_info["verification_uri_complete"], new=2)
     tokens = auth_session.poll_for_tokens()
     settings.store_tokens(host_url, tokens)
@@ -336,7 +339,7 @@ def login(
 def logout(
     host: str = typer.Argument(
         "https://api.qi2.quantum-inspire.com", help="The URL of the platform from which to log out"
-    )
+    ),
 ) -> None:
     """Log out of Quantum Inspire.
 
