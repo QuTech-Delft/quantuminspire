@@ -4,8 +4,6 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
-    reviewers:
-      - QuTech-Delft/web-team
   - package-ecosystem: "pip"
     directory: "/"
     schedule:
@@ -14,9 +12,6 @@ updates:
       - dependency-name: "opensquirrel"
         versions: ["*"]
       - dependency-name: "qiskit"
-        versions: [ "*" ]
+        versions: ["*"]
       - dependency-name: "qi-compute-api-client"
         versions: ["*"]
-    reviewers:
-      - QuTech-Delft/web-team
-      
