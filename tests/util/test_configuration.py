@@ -30,6 +30,7 @@ def test_force_file_into_existence_file_does_not_exist(mocked_config_file: Magic
 {
   "auths": {
     "https://staging.qi2.quantum-inspire.com": {
+      "client_id": "Yz7ni9PUAyT43eUASZfmc1yqI66QxLUJ",
       "well_known_endpoint":  "https://quantum-inspire-staging.eu.auth0.com/.well-known/openid-configuration"
     },
     "https://api.qi2.quantum-inspire.com": {

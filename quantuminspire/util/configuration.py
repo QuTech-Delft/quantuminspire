@@ -22,6 +22,7 @@ DEFAULT_CONFIG = """
 {
   "auths": {
     "https://staging.qi2.quantum-inspire.com": {
+      "client_id": "Yz7ni9PUAyT43eUASZfmc1yqI66QxLUJ",
       "well_known_endpoint":  "https://quantum-inspire-staging.eu.auth0.com/.well-known/openid-configuration"
     },
     "https://api.qi2.quantum-inspire.com": {
