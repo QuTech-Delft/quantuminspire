@@ -127,3 +127,12 @@ def test_login(mocker: MockerFixture, mocked_config_file: MagicMock) -> None:
     device_session.poll_for_tokens.assert_called_once()
     store_tokens.assert_called_once()
     assert "Login successful!" in result.stdout
+
+
+def test_set_default_host(mocker: MockerFixture, mocked_config_file: MagicMock) -> None:
+    host = "https://example.com"
+    write_settings_to_file = mocker.patch("quantuminspire.cli.command_list.Settings.write_settings_to_file")
+    result = runner.invoke(app, ["set-default-host", host])
+    assert result.exit_code == 0, repr(result.exception)
+    write_settings_to_file.assert_called_once()
+    assert f"Default host set to {host}" in result.stdout

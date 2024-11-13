@@ -311,9 +311,7 @@ def get_final_results(job_id: int = typer.Argument(..., help="The id of the run"
 
 @app.command("login")
 def login(
-    host: str = typer.Argument(
-        "https://api.qi2.quantum-inspire.com", help="The URL of the platform to which to connect"
-    ),
+    host: Optional[str] = typer.Argument(None, help="The URL of the platform to which to connect"),
 ) -> None:
     """Log in to Quantum Inspire.
 
@@ -321,7 +319,9 @@ def login(
     instances. If no host is specified, the production environment will be used.
     """
     settings = Settings()
+    host = host or settings.default_host
     host_url = Url(host)
+    settings.default_host = host_url
 
     auth_session = OauthDeviceSession(settings.auths[host_url])
 
@@ -333,6 +333,17 @@ def login(
     settings.store_tokens(host_url, tokens)
     typer.echo("Login successful!")
     typer.echo(f"Using member ID {settings.auths[host].team_member_id}")
+
+
+@app.command("set-default-host")
+def set_default_host(
+    host: str = typer.Argument(help="The URL of the platform to which to connect"),
+) -> None:
+    """Set default_host for interacting with Quantum Inspire."""
+    settings = Settings()
+    settings.default_host = Url(host)
+    settings.write_settings_to_file()
+    typer.echo(f"Default host set to {host}")
 
 
 @app.command("logout")

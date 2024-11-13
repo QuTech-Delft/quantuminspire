@@ -115,7 +115,7 @@ class Settings(BaseSettings):  # pylint: disable=too-few-public-methods
 
     auths: Dict[Url, AuthSettings]
 
-    default_host: Url = "https://staging.qi2.quantum-inspire.com"
+    default_host: Url = "https://api.qi2.quantum-inspire.com"
 
     @property
     def default_auth_settings(self) -> AuthSettings:
@@ -162,6 +162,9 @@ class Settings(BaseSettings):  # pylint: disable=too-few-public-methods
         self.auths[host].tokens = tokens
         member_id = self.get_team_member_id(host=host, access_token=tokens.access_token)
         self.auths[host].team_member_id = member_id
+        self.write_settings_to_file()
+
+    def write_settings_to_file(self) -> None:
         assert isinstance(self.model_config["json_file"], PathLike)
         Path(self.model_config["json_file"]).write_text(
             self.model_dump_json(indent=2), encoding=self.model_config.get("env_file_encoding")
