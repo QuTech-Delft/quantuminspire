@@ -1,7 +1,7 @@
 from unittest.mock import AsyncMock, MagicMock, call
 
 import pytest
-from compute_api_client import JobStatus
+from compute_api_client import JobStatus, Language
 from pytest_mock import MockerFixture
 
 from quantuminspire.util.api.remote_backend import RemoteBackend
@@ -39,6 +39,8 @@ def compute_api_client(mocker: MockerFixture) -> None:
     mocker.patch("quantuminspire.util.api.remote_backend.ResultsApi", return_value=AsyncMock())
     mocker.patch("quantuminspire.util.api.remote_backend.FinalResult", return_value=MagicMock())
     mocker.patch("quantuminspire.util.api.remote_backend.FinalResultsApi", return_value=AsyncMock())
+    mocker.patch("quantuminspire.util.api.remote_backend.Language", return_value=AsyncMock())
+    mocker.patch("quantuminspire.util.api.remote_backend.LanguagesApi", return_value=AsyncMock())
 
 
 @pytest.fixture
@@ -70,8 +72,13 @@ def test_create(configuration: MagicMock, mocked_settings: MagicMock, mocked_aut
 
 
 def test_run(
-    api_client: MagicMock, compute_api_client: None, mocked_settings: MagicMock, mocked_authentication: MagicMock
+    api_client: MagicMock,
+    compute_api_client: None,
+    mocked_settings: MagicMock,
+    mocked_authentication: MagicMock,
+    mocker: MockerFixture,
 ) -> None:
+    mocker.patch.object(RemoteBackend, "_get_language_for_algorithm", return_value=AsyncMock())
     backend = RemoteBackend()
     backend.run(MagicMock(), 10)
     api_client.assert_has_calls([call().__aenter__(), call().__aexit__(None, None, None)])
@@ -165,3 +172,56 @@ def test_get_final_results_not_completed(
     api_client.assert_has_calls([call().__aenter__(), call().__aexit__(None, None, None)])
     jobs_api_instance.read_job_jobs_id_get.assert_called_with(job.id)
     final_results_api_instance.read_final_result_by_job_id_final_results_job_job_id_get.assert_not_called()
+
+
+async def test__get_language_for_algorithm(
+    mocker: MockerFixture,
+    api_client: MagicMock,
+    compute_api_client: None,
+    mocked_settings: MagicMock,
+    mocked_authentication: MagicMock,
+) -> None:
+    # Arrange
+    algorithm_mock = MagicMock()
+    algorithm_mock.language_name = "MyLanguage"
+
+    backend = RemoteBackend()
+
+    languages_api_instance = AsyncMock()
+    expected_language = Language(id=1, name="MyLanguage", version="1.0")
+    non_expected_language = Language(id=2, name="NotMyLanguage", version="2.0")
+    page_language = MagicMock()
+    page_language.items = [expected_language, non_expected_language]
+    languages_api_instance.read_languages_languages_get.return_value = page_language
+    mocker.patch("quantuminspire.util.api.remote_backend.LanguagesApi", return_value=languages_api_instance)
+
+    # Act
+    actual_language = await backend._get_language_for_algorithm(api_client, algorithm_mock)
+
+    # Assert
+    assert actual_language == expected_language
+
+
+async def test__get_language_for_algorithm_fail(
+    mocker: MockerFixture,
+    api_client: MagicMock,
+    compute_api_client: None,
+    mocked_settings: MagicMock,
+    mocked_authentication: MagicMock,
+) -> None:
+    # Arrange
+    algorithm_mock = MagicMock()
+    algorithm_mock.language_name = "MyLanguage"
+
+    backend = RemoteBackend()
+
+    languages_api_instance = AsyncMock()
+    expected_language = Language(id=1, name="NotMyLanguage", version="1.0")
+    page_language = MagicMock()
+    page_language.items = [expected_language]
+    languages_api_instance.read_languages_languages_get.return_value = page_language
+    mocker.patch("quantuminspire.util.api.remote_backend.LanguagesApi", return_value=languages_api_instance)
+
+    # Act/Assert
+    with pytest.raises(ValueError):
+        _ = await backend._get_language_for_algorithm(api_client, algorithm_mock)

@@ -35,6 +35,8 @@ from compute_api_client import (
     JobIn,
     JobsApi,
     JobStatus,
+    Language,
+    LanguagesApi,
     Project,
     ProjectIn,
     ProjectsApi,
@@ -140,12 +142,24 @@ class RemoteBackend(BaseBackend):
         return await api_instance.create_commit_commits_post(obj)
 
     @staticmethod
+    async def _get_language_for_algorithm(api_client: ApiClient, algorithm: BaseAlgorithm) -> Language:
+        api_instance = LanguagesApi(api_client)
+        page_languages = await api_instance.read_languages_languages_get()
+        for language in page_languages.items:
+            if language.name.lower() == algorithm.language_name.lower():
+                return language
+
+        raise ValueError(f"Language {algorithm.language_name} not found in API")
+
+    @staticmethod
     async def _create_file(api_client: ApiClient, program: BaseAlgorithm, commit: Commit) -> File:
         api_instance = FilesApi(api_client)
+        language = await RemoteBackend._get_language_for_algorithm(api_client, program)
+
         obj = FileIn(
             commit_id=commit.id,
             content=program.content,
-            language_id=1,
+            language_id=language.id,
             compile_stage=program.compile_stage,
             compile_properties={},
         )

@@ -60,3 +60,8 @@ def test_set_bit_registers(CircuitBuilder: MagicMock) -> None:
 
     cb.to_circuit.assert_called_once()
     assert c.content == MOCK_QUANTUM_CIRCUIT
+
+
+def test_get_language_name(CircuitBuilder: MagicMock) -> None:
+    with Circuit(platform_name="platform", program_name="program", number_of_qubits=2) as c:
+        assert c.language_name == "cQASM"

@@ -54,3 +54,11 @@ class BaseAlgorithm(ABC):
         Returns:
             The string representation of the `CompileStage`.
         """
+
+    @property
+    @abstractmethod
+    def language_name(self) -> str:
+        """The name of the language the algorithm in the file is written in.
+
+        Should match a language in the API.
+        """

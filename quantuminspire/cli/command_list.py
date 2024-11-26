@@ -8,6 +8,8 @@ from typing import Optional
 import typer
 from typer import Typer
 
+from quantuminspire.sdk.models.cqasm_algorithm import CqasmAlgorithm
+from quantuminspire.sdk.models.file_algorithm import FileAlgorithm
 from quantuminspire.sdk.models.hybrid_algorithm import HybridAlgorithm
 from quantuminspire.util.api.local_backend import LocalBackend
 from quantuminspire.util.api.remote_backend import RemoteBackend
@@ -238,22 +240,37 @@ def sync_projects(
     typer.echo(f"Sync projects with {dest.value}")
 
 
+def load_algorithm_from_file(file_path: Path) -> FileAlgorithm:
+    """Load an algorithm from a file."""
+    if file_path.suffix == ".py":
+        algorithm: FileAlgorithm = HybridAlgorithm("", str(file_path))
+    elif file_path.suffix == ".cq":
+        algorithm = CqasmAlgorithm("", str(file_path))
+    else:
+        raise ValueError(f"Unsupported file type: {file_path.suffix}. Supported types are .py and .cq")
+
+    algorithm.read_file(file_path)
+    return algorithm
+
+
 @files_app.command("upload")
 def upload_files(
     name: str = typer.Argument(..., help="The name of the file to upload"),
     backend_type_id: int = typer.Argument(
         ..., help="The id of the backend type on which this algorithm should be executed"
     ),
+    num_shots: int = typer.Option(
+        1024, help="The number of shots to run the algorithm (only for pure cQASM algorithms)"
+    ),
 ) -> None:
     """Upload a file to the QI API.
 
-    Upload a Hybrid Quantum/Classical Algorithm to the Quantum Inspire API. This file is marked as a hybrid algorithm
-    when sent to the API.
+    Upload a file containing either a Hybrid (.py) or a Quantum (.cq) algorithm, and run it on the QI2 platform.
     """
     backend = RemoteBackend()
-    program = HybridAlgorithm(platform_name="spin-2", program_name=name)
+    program = load_algorithm_from_file(Path(name))
     program.read_file(Path(name))
-    job_id = backend.run(program, backend_type_id=backend_type_id)
+    job_id = backend.run(program, backend_type_id=backend_type_id, number_of_shots=num_shots)
     typer.echo(f"Upload file with name: {name}")
     typer.echo(f"job_id {job_id}")
 

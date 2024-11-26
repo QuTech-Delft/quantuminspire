@@ -48,6 +48,10 @@ class Circuit(BaseAlgorithm):
         self.finalize()
         return exc_type is None
 
+    @property
+    def language_name(self) -> str:
+        return "cQASM"
+
     def initialize(self) -> None:
         """Initialize the quantum circuit."""
 

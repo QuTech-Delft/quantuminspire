@@ -6,6 +6,8 @@ from pytest_mock import MockerFixture
 from typer.testing import CliRunner
 
 from quantuminspire.cli.command_list import app
+from quantuminspire.sdk.models.cqasm_algorithm import CqasmAlgorithm
+from quantuminspire.sdk.models.hybrid_algorithm import HybridAlgorithm
 
 runner = CliRunner()
 
@@ -52,15 +54,38 @@ def test_cli_calls(args: List[str], output: str) -> None:
     assert output in result.stdout
 
 
-def test_file_upload(mocker: MockerFixture) -> None:
+def test_file_upload_hybrid(mocker: MockerFixture) -> None:
     mock_remote_backend_inst = MagicMock()
     mocker.patch("quantuminspire.cli.command_list.RemoteBackend", return_value=mock_remote_backend_inst)
-    mocker.patch("quantuminspire.cli.command_list.Path")
+    mocker.patch("quantuminspire.cli.command_list.Path.read_text")
 
     result = runner.invoke(app, ["files", "upload", "hqca_circuit.py", "10"])
 
     assert result.exit_code == 0
     mock_remote_backend_inst.run.assert_called_once()
+    assert type(mock_remote_backend_inst.run.call_args.args[0]) is HybridAlgorithm
+
+
+def test_file_upload_no_suffix(mocker: MockerFixture) -> None:
+    mock_remote_backend_inst = MagicMock()
+    mocker.patch("quantuminspire.cli.command_list.RemoteBackend", return_value=mock_remote_backend_inst)
+    mocker.patch("quantuminspire.cli.command_list.Path.read_text")
+
+    result = runner.invoke(app, ["files", "upload", "hqca_circuit", "10"])
+
+    assert type(result.exception) is ValueError
+
+
+def test_file_upload_cqasm(mocker: MockerFixture) -> None:
+    mock_remote_backend_inst = MagicMock()
+    mocker.patch("quantuminspire.cli.command_list.RemoteBackend", return_value=mock_remote_backend_inst)
+    mocker.patch("quantuminspire.cli.command_list.Path.read_text")
+
+    result = runner.invoke(app, ["files", "upload", "simple_circuit.cq", "10"])
+
+    assert result.exit_code == 0
+    mock_remote_backend_inst.run.assert_called_once()
+    assert type(mock_remote_backend_inst.run.call_args.args[0]) is CqasmAlgorithm
 
 
 def test_file_run(mocker: MockerFixture) -> None:
