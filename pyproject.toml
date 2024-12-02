@@ -37,7 +37,7 @@ opensquirrel = "^0.1.0"
 local = ["qxelarator"]
 
 [tool.poetry.group.dev.dependencies]
-pytest = {extras = ["toml"], version = "^8.3.3"}
+pytest = {extras = ["toml"], version = "^8.3.4"}
 pytest-cov = "^6.0.0"
 coverage = {extras = ["toml"], version = "^7.6.8"}
 mypy = "^1.13"
