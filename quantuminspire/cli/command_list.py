@@ -11,6 +11,7 @@ from typer import Typer
 from quantuminspire.sdk.models.cqasm_algorithm import CqasmAlgorithm
 from quantuminspire.sdk.models.file_algorithm import FileAlgorithm
 from quantuminspire.sdk.models.hybrid_algorithm import HybridAlgorithm
+from quantuminspire.sdk.models.job_options import JobOptions
 from quantuminspire.util.api.local_backend import LocalBackend
 from quantuminspire.util.api.remote_backend import RemoteBackend
 from quantuminspire.util.authentication import OauthDeviceSession
@@ -262,6 +263,9 @@ def upload_files(
     num_shots: int = typer.Option(
         1024, help="The number of shots to run the algorithm (only for pure cQASM algorithms)"
     ),
+    store_raw_data: bool = typer.Option(
+        False, help="Whether to enable shot memory for the algorithm (only for pure cQASM algorithms)"
+    ),
 ) -> None:
     """Upload a file to the QI API.
 
@@ -270,7 +274,8 @@ def upload_files(
     backend = RemoteBackend()
     program = load_algorithm_from_file(Path(name))
     program.read_file(Path(name))
-    job_id = backend.run(program, backend_type_id=backend_type_id, number_of_shots=num_shots)
+    job_options = JobOptions(number_of_shots=num_shots, raw_data_enabled=store_raw_data)
+    job_id = backend.run(program, backend_type_id=backend_type_id, options=job_options)
     typer.echo(f"Upload file with name: {name}")
     typer.echo(f"job_id {job_id}")
 

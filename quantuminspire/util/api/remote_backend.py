@@ -13,7 +13,7 @@ language governing permissions and limitations under the License.
 """
 
 import asyncio
-from typing import Any, List, Optional
+from typing import Any, List
 
 from compute_api_client import (
     Algorithm,
@@ -46,6 +46,7 @@ from compute_api_client import (
 )
 
 from quantuminspire.sdk.models.base_algorithm import BaseAlgorithm
+from quantuminspire.sdk.models.job_options import JobOptions
 from quantuminspire.util.api.base_backend import BaseBackend
 from quantuminspire.util.authentication import Configuration, OauthDeviceSession
 from quantuminspire.util.configuration import Settings
@@ -69,9 +70,14 @@ class RemoteBackend(BaseBackend):
 
         self._configuration = Configuration(host=settings.default_host, oauth_session=oauth_session)
 
-    def run(self, program: BaseAlgorithm, backend_type_id: int, number_of_shots: Optional[int] = None) -> int:
+    def run(
+        self,
+        program: BaseAlgorithm,
+        backend_type_id: int,
+        options: JobOptions = JobOptions(),
+    ) -> int:
         """Execute provided algorithm/circuit."""
-        return asyncio.run(self._create_flow(program, backend_type_id, number_of_shots))
+        return asyncio.run(self._create_flow(program, backend_type_id, job_options=options))
 
     async def _get_results(self, job_id: int) -> Any:
         async with ApiClient(self._configuration) as api_client:
@@ -98,7 +104,10 @@ class RemoteBackend(BaseBackend):
         return asyncio.run(self._get_final_results(job_id))
 
     async def _create_flow(
-        self, program: BaseAlgorithm, backend_type_id: int, number_of_shots: Optional[int] = None
+        self,
+        program: BaseAlgorithm,
+        backend_type_id: int,
+        job_options: JobOptions,
     ) -> int:
         """Call the necessary methods in the correct order, with the correct parameters."""
         async with ApiClient(self._configuration) as api_client:
@@ -107,7 +116,7 @@ class RemoteBackend(BaseBackend):
             commit = await self._create_commit(api_client, algorithm)
             file = await self._create_file(api_client, program, commit)
             batch_job = await self._create_batch_job(api_client, backend_type_id=backend_type_id)
-            job: Job = await self._create_job(api_client, file, batch_job, number_of_shots=number_of_shots)
+            job: Job = await self._create_job(api_client, file, batch_job, job_options)
             await self._enqueue_batch_job(api_client, batch_job)
             return job.id  # type: ignore
 
@@ -172,11 +181,9 @@ class RemoteBackend(BaseBackend):
         return await api_instance.create_batch_job_batch_jobs_post(obj)
 
     @staticmethod
-    async def _create_job(
-        api_client: ApiClient, file: File, batch_job: BatchJob, number_of_shots: Optional[int] = None
-    ) -> Job:
+    async def _create_job(api_client: ApiClient, file: File, batch_job: BatchJob, job_options: JobOptions) -> Job:
         api_instance = JobsApi(api_client)
-        obj = JobIn(file_id=file.id, batch_job_id=batch_job.id, number_of_shots=number_of_shots)
+        obj = JobIn(file_id=file.id, batch_job_id=batch_job.id, **job_options.model_dump())
         return await api_instance.create_job_jobs_post(obj)
 
     @staticmethod
