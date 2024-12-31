@@ -1,5 +1,6 @@
 """Module containing the commands for the Quantum Inspire 2 CLI."""
 
+import asyncio
 import webbrowser
 from enum import Enum
 from pathlib import Path
@@ -334,6 +335,10 @@ def get_final_results(job_id: int = typer.Argument(..., help="The id of the run"
 @app.command("login")
 def login(
     host: Optional[str] = typer.Argument(None, help="The URL of the platform to which to connect"),
+    override_auth_config: bool = typer.Option(
+        False,
+        help="Will ignore authentication configuration suggested by the API and use stored configuration instead",
+    ),
 ) -> None:
     """Log in to Quantum Inspire.
 
@@ -344,6 +349,9 @@ def login(
     host = host or settings.default_host
     host_url = Url(host)
     settings.default_host = host_url
+
+    if not override_auth_config:
+        asyncio.run(settings.fetch_auth_settings(host_url))
 
     auth_session = OauthDeviceSession(settings.auths[host_url])
 

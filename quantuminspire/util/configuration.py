@@ -10,27 +10,13 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Tuple, Type, cast
 
 import typer
-from compute_api_client import ApiClient, Configuration, MembersApi
+from compute_api_client import ApiClient, AuthConfigApi, Configuration, MembersApi
 from pydantic import BaseModel, BeforeValidator, HttpUrl
 from pydantic.fields import Field, FieldInfo
 from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
 from typing_extensions import Annotated
 
 Url = Annotated[str, BeforeValidator(lambda value: str(HttpUrl(value)).rstrip("/"))]
-
-DEFAULT_CONFIG = """
-{
-  "auths": {
-    "https://staging.qi2.quantum-inspire.com": {
-      "client_id": "Yz7ni9PUAyT43eUASZfmc1yqI66QxLUJ",
-      "well_known_endpoint":  "https://quantum-inspire-staging.eu.auth0.com/.well-known/openid-configuration"
-    },
-    "https://api.qi2.quantum-inspire.com": {
-      "well_known_endpoint":  "https://auth.qi2.quantum-inspire.com/realms/oidc_production/.well-known/openid-configuration"
-    }
-  }
-}
-"""
 
 
 def ensure_config_file_exists(file_path: Path, file_encoding: Optional[str] = None) -> None:
@@ -42,7 +28,7 @@ def ensure_config_file_exists(file_path: Path, file_encoding: Optional[str] = No
     """
     if not file_path.exists():
         file_path.parent.mkdir(parents=True, exist_ok=True)
-        file_path.open("w", encoding=file_encoding).write(DEFAULT_CONFIG)
+        file_path.open("w", encoding=file_encoding).close()
 
 
 class JsonConfigSettingsSource(PydanticBaseSettingsSource):
@@ -149,6 +135,18 @@ class Settings(BaseSettings):  # pylint: disable=too-few-public-methods
             JsonConfigSettingsSource(settings_cls),
             file_secret_settings,
         )
+
+    async def fetch_auth_settings(self, host: Optional[Url] = None) -> None:
+        """Fetch suggested auth settings for the default host."""
+        if host is None:
+            host = self.default_host
+        async with ApiClient(Configuration(host=host)) as api_client:
+            auth_config = await AuthConfigApi(api_client).auth_config_auth_config_get()
+            self.auths[host] = AuthSettings(
+                client_id=auth_config.client_id,
+                audience=auth_config.audience,
+                well_known_endpoint=auth_config.well_known_endpoint,
+            )
 
     def store_tokens(self, host: Url, tokens: TokenInfo) -> None:
         """

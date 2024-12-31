@@ -25,21 +25,7 @@ def test_force_file_into_existence_file_does_not_exist(mocked_config_file: Magic
     configuration.ensure_config_file_exists(mocked_config_file, "utf-8")
     mocked_config_file.parent.mkdir.assert_called_once_with(parents=True, exist_ok=True)
     mocked_config_file.open.assert_called_once_with("w", encoding="utf-8")
-    open_mock.write.assert_called_once_with(
-        """
-{
-  "auths": {
-    "https://staging.qi2.quantum-inspire.com": {
-      "client_id": "Yz7ni9PUAyT43eUASZfmc1yqI66QxLUJ",
-      "well_known_endpoint":  "https://quantum-inspire-staging.eu.auth0.com/.well-known/openid-configuration"
-    },
-    "https://api.qi2.quantum-inspire.com": {
-      "well_known_endpoint":  "https://auth.qi2.quantum-inspire.com/realms/oidc_production/.well-known/openid-configuration"
-    }
-  }
-}
-"""
-    )
+    open_mock.close.assert_called_once()
 
 
 def test_force_file_into_existence_file_exists() -> None:
@@ -145,3 +131,29 @@ def test_get_member_id(
     member_id = configuration.Settings.get_team_member_id(host="https://host", access_token="some token")
     assert member_id == expected_member_id
     assert mock_input.call_count == len(side_effect_user_input)
+
+
+@pytest.mark.parametrize(
+    "host",
+    ["https://test.host", None],
+)
+async def test_fetch_auth_settings(mocked_config_file: MagicMock, mocker: MockerFixture, host: str) -> None:
+    settings = configuration.Settings()
+    api_client = MagicMock()
+    auth_config = MagicMock()
+    auth_config.client_id = "test_client_id"
+    auth_config.audience = "test_audience"
+    auth_config.well_known_endpoint = "https://test.endpoint/.well-known/config"
+
+    auth_config_api = AsyncMock()
+    auth_config_api.auth_config_auth_config_get = AsyncMock(return_value=auth_config)
+
+    mocker.patch("quantuminspire.util.configuration.ApiClient", return_value=api_client)
+    mocker.patch("quantuminspire.util.configuration.AuthConfigApi", return_value=auth_config_api)
+
+    await settings.fetch_auth_settings(host)
+    auth_settings = settings.auths[settings.default_host] if host is None else settings.auths[host]
+
+    assert auth_settings.client_id == "test_client_id"
+    assert auth_settings.audience == "test_audience"
+    assert auth_settings.well_known_endpoint == "https://test.endpoint/.well-known/config"
