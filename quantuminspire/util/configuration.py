@@ -9,6 +9,7 @@ from os import PathLike
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple, Type, cast
 
+import jwt
 import typer
 from compute_api_client import ApiClient, AuthConfigApi, Configuration, MembersApi
 from pydantic import BaseModel, BeforeValidator, HttpUrl
@@ -196,4 +197,22 @@ class Settings(BaseSettings):  # pylint: disable=too-few-public-methods
 
     @classmethod
     def get_team_member_id(cls, host: str, access_token: str) -> int:
-        return asyncio.run(cls._fetch_team_member_id(host, access_token))
+        return asyncio.run(cls._validate_token_and_retrieve_team_member_id(host, access_token))
+
+    @classmethod
+    async def _validate_token_and_retrieve_team_member_id(cls, host: str, access_token: str) -> int:
+        await cls._wait_until_token_becomes_valid(access_token)
+        return await cls._fetch_team_member_id(host, access_token)
+
+    @staticmethod
+    async def _wait_until_token_becomes_valid(access_token: str) -> None:
+        decoded_token = jwt.decode(access_token, options={"verify_signature": False})
+        token_issued_at = int(decoded_token["iat"])
+
+        while True:
+            current_time = int(time.time())
+            time_diff = token_issued_at - current_time
+
+            if time_diff > 0:
+                await asyncio.sleep(time_diff)
+            return

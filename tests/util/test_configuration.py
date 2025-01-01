@@ -1,7 +1,10 @@
+import asyncio
 import json
+import time
 from typing import Any, List
 from unittest.mock import AsyncMock, MagicMock
 
+import jwt
 import pytest
 from compute_api_client import Member
 from pytest_mock import MockerFixture
@@ -124,11 +127,25 @@ def test_get_member_id(
         def __init__(self, items_list: list[Member]) -> None:
             self.items = items_list
 
+    token = (
+        "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ik5UNkp2YTZvcHZVMTFlbjItdDlBRSJ9."
+        "eyJpc3MiOiJodHRwczovL3F1YW50dW0taW5zcGlyZS1zdGFnaW5nLmV1LmF1dGgwLmNvbS8iLCJzdWIi"
+        "OiJhdXRoMHw2NzE2MWRhZmEyMDEzZjFkY2VkNjdlODQiLCJhdWQiOlsiY29tcHV0ZS1qb2ItbWFuYWdl"
+        "ciIsImh0dHBzOi8vcXVhbnR1bS1pbnNwaXJlLXN0YWdpbmcuZXUuYXV0aDAuY29tL3VzZXJpbmZvIl0s"
+        "ImlhdCI6MTczNTA0MTEzMCwiZXhwIjoxNzM1MDQ0NzMwLCJzY29wZSI6Im9wZW5pZCBwcm9maWxlIGVt"
+        "YWlsIG9mZmxpbmVfYWNjZXNzIiwiYXpwIjoiWXo3bmk5UFVBeVQ0M2VVQVNaZm1jMXlxSTY2UXhMVUo"
+        "ifQ.iJyaZ_F9jhWCpkO85uht5wS9-o3jNnjNQXkO39Q0M5tgheoOCxhVfI3dCF86M2jE0np5lc8Mdxrhgo"
+        "HEDad9sq5ZNnQMJUXC9tKE-P8gMvu9_EJuLz-Xa9Tg0E0TDlGGt_wl9_YO-dCl1Wi8okjtXJWn0e4p23w"
+        "ZiUlE0SraRvfPmldPy_M0quevF0v55gSCegbybDMFM3KnOh7kXO1t1FqTaSkPRs-PCht3mnXLiFWWkWJD"
+        "4OwT7fVUWUOHFXqWkHc8MCGD-cyDqa0jRqzbH_wb_uErwCMYGu-falfEdGoZX_yopgNpvrWke1VH-ieei"
+        "KNADUnZ3rMx23kVQJstfQ"
+    )
+
     members_api = MagicMock()
     members_api.read_members_members_get = AsyncMock(return_value=PageMember(members_list))
     mocker.patch("quantuminspire.util.configuration.MembersApi", return_value=members_api)
     mock_input = mocker.patch("builtins.input", side_effect=side_effect_user_input)
-    member_id = configuration.Settings.get_team_member_id(host="https://host", access_token="some token")
+    member_id = configuration.Settings.get_team_member_id(host="https://host", access_token=token)
     assert member_id == expected_member_id
     assert mock_input.call_count == len(side_effect_user_input)
 
@@ -157,3 +174,23 @@ async def test_fetch_auth_settings(mocked_config_file: MagicMock, mocker: Mocker
     assert auth_settings.client_id == "test_client_id"
     assert auth_settings.audience == "test_audience"
     assert auth_settings.well_known_endpoint == "https://test.endpoint/.well-known/config"
+
+
+async def test_wait_until_token_becomes_valid() -> None:
+
+    secret_key = "some_secret_key"
+
+    current_time = int(time.time())
+    valid_from_time = current_time + 1  # Token becomes valid in 1 second
+
+    # Payload with 'iat' and 'exp' claims
+    payload = {
+        "sub": "user_id_123",
+        "iat": valid_from_time,  # Issued at time (valid after 1 second)
+        "exp": valid_from_time + 3600,  # Expires 1 hour from valid time
+    }
+
+    # Generate the token
+    token = jwt.encode(payload, secret_key, algorithm="HS256")
+
+    await asyncio.wait_for(configuration.Settings._wait_until_token_becomes_valid(token), 3)
