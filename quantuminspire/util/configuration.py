@@ -29,7 +29,7 @@ def ensure_config_file_exists(file_path: Path, file_encoding: Optional[str] = No
     """
     if not file_path.exists():
         file_path.parent.mkdir(parents=True, exist_ok=True)
-        file_path.open("w", encoding=file_encoding).write("{}")
+        file_path.open("w", encoding=file_encoding).write('{"auths": {}}')
 
 
 class JsonConfigSettingsSource(PydanticBaseSettingsSource):

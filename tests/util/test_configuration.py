@@ -28,7 +28,7 @@ def test_force_file_into_existence_file_does_not_exist(mocked_config_file: Magic
     configuration.ensure_config_file_exists(mocked_config_file, "utf-8")
     mocked_config_file.parent.mkdir.assert_called_once_with(parents=True, exist_ok=True)
     mocked_config_file.open.assert_called_once_with("w", encoding="utf-8")
-    open_mock.write.assert_called_once_with("{}")
+    open_mock.write.assert_called_once_with('{"auths": {}}')
 
 
 def test_force_file_into_existence_file_exists() -> None:
