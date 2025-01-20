@@ -23,11 +23,11 @@ from functools import partial
 from typing import Any, Dict, List
 
 import numpy as np
+from opensquirrel.circuit_builder import CircuitBuilder
 from opensquirrel.ir import Bit, Float, Qubit
+from opensquirrel.writer import writer
+from qi2_shared.hybrid.quantum_interface import ExecuteCircuitResult, QuantumInterface
 from qiskit_algorithms.optimizers import SPSA
-
-from quantuminspire.sdk.models.circuit import Circuit
-from quantuminspire.util.api.quantum_interface import ExecuteCircuitResult, QuantumInterface
 
 
 def counts_to_distr(counts: Dict[str, int]) -> dict[int, float]:
@@ -105,7 +105,7 @@ target_distribution = {k: p0[k] for k in range(m)}
 dt = AverageDecreaseTermination(N=35)
 
 
-def U(circuit_ir, q: Qubit, theta: float, phi: float, lamb: float):
+def U(builder: CircuitBuilder, q: Qubit, theta: float, phi: float, lamb: float):
     """McKay decomposition of the U gate.
 
     :param self: circuit object
@@ -115,31 +115,31 @@ def U(circuit_ir, q: Qubit, theta: float, phi: float, lamb: float):
     :param lamb: angle
     :return: circuit object
     """
-    circuit_ir.Rz(q, Float(phi))
-    circuit_ir.Rx(q, Float(-np.pi / 2))
-    circuit_ir.Rz(q, Float(theta))
-    circuit_ir.Rx(q, Float(np.pi / 2))
-    circuit_ir.Rz(q, Float(lamb))
-    return circuit_ir
+    builder.Rz(q, Float(phi))
+    builder.Rx(q, Float(-np.pi / 2))
+    builder.Rz(q, Float(theta))
+    builder.Rx(q, Float(np.pi / 2))
+    builder.Rz(q, Float(lamb))
+    return builder
 
 
-def generate_ansatz(params: List[Any]):
-    with Circuit(platform_name="spin-2", program_name="prgm1", number_of_qubits=2) as circuit:
-        U(circuit.ir, Qubit(0), *params[0:3])
-        U(circuit.ir, Qubit(1), *params[3:6])
-        circuit.ir.CZ(Qubit(0), Qubit(1))
-        U(circuit.ir, Qubit(0), *params[6:9])
-        U(circuit.ir, Qubit(1), *params[9:12])
-        for ii in range(number_of_qubits):
-            circuit.ir.measure(Qubit(ii), Bit(ii))
+def generate_ansatz(params: List[Any]) -> str:
+    builder = CircuitBuilder(qubit_register_size=number_of_qubits, bit_register_size=number_of_qubits)
+    U(builder, Qubit(0), *params[0:3])
+    U(builder, Qubit(1), *params[3:6])
+    builder.CZ(Qubit(0), Qubit(1))
+    U(builder, Qubit(0), *params[6:9])
+    U(builder, Qubit(1), *params[9:12])
+    for ii in range(number_of_qubits):
+        builder.measure(Qubit(ii), Bit(ii))
 
-    return circuit
+    return writer.circuit_to_string(builder.to_circuit())
 
 
 def objective_function(params: List[Any], qi: QuantumInterface, target_distribution: Dict[int, float], nshots=None):
     """Compares the output distribution of our circuit with parameters `params` to the target distribution."""
-    qc = generate_ansatz(params)
-    execute_result = qi.execute_circuit(qc.content, nshots)
+    cqasm = generate_ansatz(params)
+    execute_result = qi.execute_circuit(cqasm, nshots)
     # Convert the result to a dictionary with probabilities
     output_distr = counts_to_distr(execute_result.results)
     # Calculate the cost as the distance between the output

@@ -9,10 +9,10 @@ from typing import Any, Callable, Dict, List
 import networkx as nx
 import numpy as np
 from networkx import Graph
+from opensquirrel.circuit_builder import CircuitBuilder
 from opensquirrel.ir import Bit, Float, Qubit
+from opensquirrel.writer import writer
 from scipy.optimize import Bounds, minimize
-
-from quantuminspire.sdk.models.circuit import Circuit
 
 MATRIX = np.matrix([[0, 1], [1, 0]])
 GRAPH = nx.from_numpy_array(MATRIX)
@@ -74,23 +74,23 @@ def qaoa_circuit(graph: Graph, beta: np.ndarray, gamma: np.ndarray) -> str:
     Returns:
         cQASM string representing the quantum circuit used to compute the energies in the QAOA algorithm.
     """
-    with Circuit(platform_name="spin-2", program_name="qaoa", number_of_qubits=graph.number_of_nodes()) as circuit:
-        for i in graph.nodes:
-            circuit.ir.H(Qubit(i))
+    builder = CircuitBuilder(qubit_register_size=2, bit_register_size=2)
+    for i in graph.nodes:
+        builder.H(Qubit(i))
 
-        for i in range(P):
-            for edge in graph.edges():
-                circuit.ir.CNOT(Qubit(edge[0]), Qubit(edge[1]))
-                circuit.ir.Rz(Qubit(edge[1]), Float(2 * gamma[i]))
-                circuit.ir.CNOT(Qubit(edge[0]), Qubit(edge[1]))
+    for i in range(P):
+        for edge in graph.edges():
+            builder.CNOT(Qubit(edge[0]), Qubit(edge[1]))
+            builder.Rz(Qubit(edge[1]), Float(2 * gamma[i]))
+            builder.CNOT(Qubit(edge[0]), Qubit(edge[1]))
 
-            for j in graph.nodes():
-                circuit.ir.Rx(Qubit(j), Float(2 * beta[i]))
+        for j in graph.nodes():
+            builder.Rx(Qubit(j), Float(2 * beta[i]))
 
-        for i in graph.nodes:
-            circuit.ir.measure(Qubit(i), Bit(i))
+    for i in graph.nodes:
+        builder.measure(Qubit(i), Bit(i))
 
-    return circuit.content
+    return writer.circuit_to_string(builder.to_circuit())
 
 
 def generate_objective_function(qi, graph) -> Callable:

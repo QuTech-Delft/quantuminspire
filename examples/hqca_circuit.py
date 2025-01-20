@@ -1,22 +1,19 @@
-from pathlib import Path
 from typing import Any, Dict, List
 
+from opensquirrel.circuit_builder import CircuitBuilder
 from opensquirrel.ir import Bit, Qubit
-
-from quantuminspire.sdk.models.circuit import Circuit
-from quantuminspire.sdk.models.hybrid_algorithm import HybridAlgorithm
-from quantuminspire.util.api.local_backend import LocalBackend
-from quantuminspire.util.api.quantum_interface import QuantumInterface
+from opensquirrel.writer import writer
+from qi2_shared.hybrid.quantum_interface import QuantumInterface
 
 
 def generate_circuit() -> str:
-    with Circuit(platform_name="spin-2", program_name="prgm1", number_of_qubits=2) as circuit:
-        circuit.ir.H(Qubit(0))
-        circuit.ir.CNOT(Qubit(0), Qubit(1))
-        circuit.ir.measure(Qubit(0), Bit(0))
-        circuit.ir.measure(Qubit(1), Bit(1))
+    builder = CircuitBuilder(qubit_register_size=2, bit_register_size=2)
+    builder.H(Qubit(0))
+    builder.CNOT(Qubit(0), Qubit(1))
+    builder.measure(Qubit(0), Bit(0))
+    builder.measure(Qubit(1), Bit(1))
 
-    return circuit.content
+    return writer.circuit_to_string(builder.to_circuit())
 
 
 def execute(qi: QuantumInterface) -> None:
@@ -58,17 +55,3 @@ def finalize(list_of_measurements: Dict[int, List[Any]]) -> Dict[str, Any]:
     """
     print(list_of_measurements)
     return {"results": list_of_measurements}
-
-
-if __name__ == "__main__":
-    # Run the individual steps for debugging
-    print("=== Circuit ===\n", generate_circuit())
-
-    algorithm = HybridAlgorithm("test", "test")
-    algorithm.read_file(Path(__file__))
-
-    local_backend = LocalBackend()
-    job_id = local_backend.run(algorithm, 0)
-    results = local_backend.get_results(job_id)
-
-    print("=== Execute ===\n", results)
