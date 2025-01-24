@@ -84,6 +84,17 @@ def test_run(
     api_client.assert_has_calls([call().__aenter__(), call().__aexit__(None, None, None)])
 
 
+def test_get_job(
+    mocker: MockerFixture, api_client: MagicMock, mocked_settings: MagicMock, mocked_authentication: MagicMock
+) -> None:
+    backend = RemoteBackend()
+    jobs_api_instance = AsyncMock()
+    job_id = 1
+    mocker.patch("quantuminspire.util.api.remote_backend.JobsApi", return_value=jobs_api_instance)
+    backend.get_job(job_id)
+    jobs_api_instance.read_job_jobs_id_get.assert_called_with(job_id)
+
+
 def test_get_results(
     mocker: MockerFixture, api_client: MagicMock, mocked_settings: MagicMock, mocked_authentication: MagicMock
 ) -> None:

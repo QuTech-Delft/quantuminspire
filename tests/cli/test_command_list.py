@@ -2,6 +2,7 @@ from typing import List
 from unittest.mock import MagicMock
 
 import pytest
+from compute_api_client import JobStatus
 from pytest_mock import MockerFixture
 from typer.testing import CliRunner
 
@@ -109,6 +110,24 @@ def test_results_get(mocker: MockerFixture) -> None:
     mock_remote_backend_inst.get_results.assert_called_once()
 
 
+def test_results_get_failed_job(mocker: MockerFixture) -> None:
+    mock_remote_backend_inst = MagicMock()
+    job = MagicMock()
+    job.id = 1
+    job.status = JobStatus.FAILED
+    job.message = "Job failed."
+    job.trace_id = "trace_id"
+    mock_remote_backend_inst.get_job.return_value = job
+    mocker.patch("quantuminspire.cli.command_list.RemoteBackend", return_value=mock_remote_backend_inst)
+
+    result = runner.invoke(app, ["results", "get", "1"])
+
+    print(result.stdout)
+
+    assert result.stdout == "Job failed.\nTrace id: trace_id\n"
+    assert result.exit_code == 1
+
+
 def test_results_get_no_results(mocker: MockerFixture) -> None:
     mock_remote_backend_inst = MagicMock()
     mock_remote_backend_inst.get_results.return_value = None
@@ -128,6 +147,22 @@ def test_final_results_get(mocker: MockerFixture) -> None:
 
     assert result.exit_code == 0
     mock_remote_backend_inst.get_final_results.assert_called_once()
+
+
+def test_final_results_get_failed_job(mocker: MockerFixture) -> None:
+    mock_remote_backend_inst = MagicMock()
+    job = MagicMock()
+    job.id = 1
+    job.status = JobStatus.FAILED
+    job.message = "Job failed."
+    job.trace_id = "trace_id"
+    mock_remote_backend_inst.get_job.return_value = job
+    mocker.patch("quantuminspire.cli.command_list.RemoteBackend", return_value=mock_remote_backend_inst)
+
+    result = runner.invoke(app, ["final_results", "get", "1"])
+
+    assert result.stdout == "Job failed.\nTrace id: trace_id\n"
+    assert result.exit_code == 1
 
 
 def test_final_results_get_no_results(mocker: MockerFixture) -> None:

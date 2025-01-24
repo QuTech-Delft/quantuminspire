@@ -79,6 +79,10 @@ class RemoteBackend(BaseBackend):
         """Execute provided algorithm/circuit."""
         return asyncio.run(self._create_flow(program, backend_type_id, job_options=options))
 
+    async def _get_job(self, job_id: int) -> Any:
+        async with ApiClient(self._configuration) as api_client:
+            return await self._read_job(api_client, job_id)
+
     async def _get_results(self, job_id: int) -> Any:
         async with ApiClient(self._configuration) as api_client:
             job = await self._read_job(api_client, job_id)
@@ -94,6 +98,10 @@ class RemoteBackend(BaseBackend):
                 return None
 
             return await self._read_final_results_for_job(api_client, job)
+
+    def get_job(self, job_id: int) -> Any:
+        """Get job for algorithm/circuit."""
+        return asyncio.run(self._get_job(job_id))
 
     def get_results(self, job_id: int) -> Any:
         """Get results for algorithm/circuit."""

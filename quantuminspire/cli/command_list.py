@@ -7,6 +7,8 @@ from pathlib import Path
 from typing import Optional
 
 import typer
+from compute_api_client import JobStatus
+from rich import print
 from typer import Typer
 
 from quantuminspire.sdk.models.cqasm_algorithm import CqasmAlgorithm
@@ -298,6 +300,16 @@ def run_file(
     typer.echo(f"{results}")
 
 
+def _has_job_failed(backend: RemoteBackend, job_id: int) -> None:
+    """Check if a job has failed and exit with error_code 1 if it has."""
+    job = backend.get_job(job_id)
+    if job.status == JobStatus.FAILED:
+        job.message = job.message or "Job failed."
+        typer.echo(job.message, err=True)
+        typer.echo(f"Trace id: {job.trace_id}", err=True)
+        raise typer.Exit(1)
+
+
 @results_app.command("get")
 def get_results(job_id: int = typer.Argument(..., help="The id of the run")) -> None:
     """Retrieve the results for a run.
@@ -305,6 +317,7 @@ def get_results(job_id: int = typer.Argument(..., help="The id of the run")) -> 
     Takes the id as returned by upload_files and retrieves the results for that run, if it's finished.
     """
     backend = RemoteBackend()
+    _has_job_failed(backend, job_id)
     results = backend.get_results(job_id)
 
     if results is None:
@@ -312,7 +325,7 @@ def get_results(job_id: int = typer.Argument(..., help="The id of the run")) -> 
         raise typer.Exit(1)
 
     typer.echo("Raw results:")
-    typer.echo(results)
+    print(results.model_dump())
 
 
 @final_results_app.command("get")
@@ -322,6 +335,7 @@ def get_final_results(job_id: int = typer.Argument(..., help="The id of the run"
     Takes the id as returned by upload_files and retrieves the final results for that job, if it's finished.
     """
     backend = RemoteBackend()
+    _has_job_failed(backend, job_id)
     results = backend.get_final_results(job_id)
 
     if results is None:
@@ -329,7 +343,7 @@ def get_final_results(job_id: int = typer.Argument(..., help="The id of the run"
         raise typer.Exit(1)
 
     typer.echo("Raw final results:")
-    typer.echo(results)
+    print(results.model_dump())
 
 
 @app.command("login")
