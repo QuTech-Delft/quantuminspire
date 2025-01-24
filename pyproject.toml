@@ -23,7 +23,7 @@ qi = "quantuminspire.cli.command_list:app"
 [tool.poetry.dependencies]
 python = "^3.9"
 typer = {extras = ["all"], version = "^0.15.1"}
-pydantic = "^2.10.5"
+pydantic = "^2.10.6"
 qi-compute-api-client = "^0.44.0"
 qxelarator = {version = "^0.7.2", optional = true}
 pydantic-settings = "^2.7.1"
