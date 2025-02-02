@@ -32,8 +32,7 @@ app.add_typer(files_app, name="files", help="Manage files")
 results_app = Typer(no_args_is_help=True)
 app.add_typer(results_app, name="results", help="Manage results")
 final_results_app = Typer(no_args_is_help=True)
-app.add_typer(final_results_app, name="final_results",
-              help="Manage final results")
+app.add_typer(final_results_app, name="final_results", help="Manage final results")
 
 
 class Destination(str, Enum):
@@ -46,8 +45,7 @@ class Destination(str, Enum):
 @algorithms_app.command("create")
 def create_algorithm(
     name: str = typer.Argument(..., help="The name of the algorithm"),
-    hybrid: bool = typer.Option(
-        False, help="Whether the template should be hybrid or only quantum"),
+    hybrid: bool = typer.Option(False, help="Whether the template should be hybrid or only quantum"),
 ) -> None:
     """Create a new algorithm.
 
@@ -107,12 +105,9 @@ def execute_algorithm() -> None:
 
 @algorithms_app.command("list")
 def list_algorithms(
-    local: bool = typer.Option(
-        False, help="List all algorithms on the local system"),
-    project: Optional[str] = typer.Option(
-        None, help="Override the selected (default) project"),
-    remote: bool = typer.Option(
-        False, help="List all algorithms on the remote system"),
+    local: bool = typer.Option(False, help="List all algorithms on the local system"),
+    project: Optional[str] = typer.Option(None, help="Override the selected (default) project"),
+    remote: bool = typer.Option(False, help="List all algorithms on the remote system"),
 ) -> None:
     """List algorithms.
 
@@ -168,10 +163,8 @@ def list_config(full: bool = typer.Option(False, help="List both custom and defa
 
 @configuration_app.command("set")
 def set_config(
-    key: str = typer.Argument(...,
-                              help="The name of the configuration to set"),
-    value: str = typer.Argument(...,
-                                help="The value of the configuration to set"),
+    key: str = typer.Argument(..., help="The name of the configuration to set"),
+    value: str = typer.Argument(..., help="The value of the configuration to set"),
 ) -> None:
     """Set config.
 
@@ -217,10 +210,8 @@ def describe_project(remote: bool = typer.Option(False, help="Use the remote res
 
 @projects_app.command("list")
 def list_projects(
-    local: bool = typer.Option(
-        False, help="List all projects on the local system"),
-    remote: bool = typer.Option(
-        False, help="List all projects on the remote system"),
+    local: bool = typer.Option(False, help="List all projects on the local system"),
+    remote: bool = typer.Option(False, help="List all projects on the remote system"),
 ) -> None:
     """List project.
 
@@ -260,8 +251,10 @@ def load_algorithm_from_file(file_path: Path) -> FileAlgorithm:
     elif file_path.suffix == ".cq":
         algorithm = CqasmAlgorithm("", str(file_path))
     else:
-        raise ValueError(f"Unsupported file type: {
-                         file_path.suffix}. Supported types are .py and .cq")
+        raise ValueError(
+            f"Unsupported file type: {
+                         file_path.suffix}. Supported types are .py and .cq"
+        )
 
     algorithm.read_file(file_path)
     return algorithm
@@ -287,10 +280,8 @@ def upload_files(
     backend = RemoteBackend()
     program = load_algorithm_from_file(Path(name))
     program.read_file(Path(name))
-    job_options = JobOptions(number_of_shots=num_shots,
-                             raw_data_enabled=store_raw_data)
-    job_id = backend.run(
-        program, backend_type_id=backend_type_id, options=job_options)
+    job_options = JobOptions(number_of_shots=num_shots, raw_data_enabled=store_raw_data)
+    job_id = backend.run(program, backend_type_id=backend_type_id, options=job_options)
     typer.echo(f"Upload file with name: {name}")
     typer.echo(f"job_id {job_id}")
 
@@ -360,8 +351,7 @@ def get_final_results(job_id: int = typer.Argument(..., help="The id of the run"
 
 @app.command("login")
 def login(
-    host: Optional[str] = typer.Argument(
-        None, help="The URL of the platform to which to connect"),
+    host: Optional[str] = typer.Argument(None, help="The URL of the platform to which to connect"),
     override_auth_config: bool = typer.Option(
         False,
         help="Will ignore authentication configuration suggested by the API and use stored configuration instead",
@@ -383,10 +373,14 @@ def login(
     auth_session = OauthDeviceSession(settings.auths[host_url])
 
     login_info = auth_session.initialize_authorization()
-    typer.echo(f"Please continue logging in by opening: {
-               login_info['verification_uri_complete']} in your browser")
-    typer.echo(f"If promped to verify a code, please confirm it is as follows: {
-               login_info['user_code']}")
+    typer.echo(
+        f"Please continue logging in by opening: {
+               login_info['verification_uri_complete']} in your browser"
+    )
+    typer.echo(
+        f"If promped to verify a code, please confirm it is as follows: {
+               login_info['user_code']}"
+    )
     webbrowser.open(login_info["verification_uri_complete"], new=2)
     tokens = auth_session.poll_for_tokens()
     settings.store_tokens(host_url, tokens)
@@ -396,8 +390,7 @@ def login(
 
 @app.command("set-default-host")
 def set_default_host(
-    host: str = typer.Argument(
-        help="The URL of the platform to which to connect"),
+    host: str = typer.Argument(help="The URL of the platform to which to connect"),
 ) -> None:
     """Set default_host for interacting with Quantum Inspire."""
     settings = Settings()

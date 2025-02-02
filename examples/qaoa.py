@@ -138,8 +138,7 @@ def execute(qi) -> None:
     bounds = Bounds(lb, ub)
     initial_point = np.random.uniform(lb, ub, 2 * P)
     f = generate_objective_function(qi, GRAPH)
-    result = minimize(f, initial_point, method="COBYLA",
-                      bounds=bounds, options={"maxiter": MAX_ITER})
+    result = minimize(f, initial_point, method="COBYLA", bounds=bounds, options={"maxiter": MAX_ITER})
     APPROXIMATED_MAXCUT_SIZE = -result["fun"]
 
 
