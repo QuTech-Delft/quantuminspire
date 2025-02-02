@@ -94,8 +94,11 @@ class LocalBackend(BaseBackend):
     def run_quantum(self, circuit: str, number_of_shots: int = 1) -> ExecuteCircuitResult:
         """Execute provided circuit."""
         result = self._qxelarator.execute_string(circuit, iterations=number_of_shots)
+        # todo: use result.results instead of result.state. qxelerator has a bug where it returns only "00" for
+        # result.results, but result.state contains the correct probability for all multi-qubit states.
+        results = {key: int(round(number_of_shots * abs(val) ** 2)) for key, val in result.state.items()}
         return ExecuteCircuitResult(
-            results=result.results,
+            results=results,
             shots_done=result.shots_done,
             shots_requested=result.shots_requested,
         )

@@ -1,30 +1,41 @@
 name: Releases
 
 on:
+  push:
+    branches:
+      - master
   release:
     types:
       - created
 
 jobs:
-  publish:
-    name: Publish to TestPyPI
+  python-build:
+    name: Build Python package
     runs-on: "ubuntu-latest"
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: qutech-delft/github-actions/actions/python/poetry-build@master
+  python-deploy:
+    name: Deploy Python package
+    runs-on: "ubuntu-latest"
+    needs: python-build
+    permissions:
+      id-token: write
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download Artifact
+        uses: actions/download-artifact@v4
         with:
-          python-version: "3.8"
-      - name: Install poetry
-        uses: abatilo/actions-poetry@v4
-        with:
-          poetry-version: "1.3.2"
-      - name: Version poetry package
-        run: poetry version "${{  github.ref_name }}"
-      - name: Build poetry package
-        run: poetry build
-      - name: Publish distribution 📦 to PyPI
+          name: dist
+          path: dist
+      # Publishing the package
+      - name: Publish distribution 📦 to Test PyPI
+        if: github.ref == 'refs/heads/master'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
-          repository_url: https://test.pypi.org/legacy/
+          repository-url: https://test.pypi.org/legacy/
+          verbose: true
+      - name: Publish distribution 📦 to PyPI
+        if: github.event_name == 'release' && github.event.action == 'created'
+        uses: pypa/gh-action-pypi-publish@release/v1
