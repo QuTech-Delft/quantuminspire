@@ -8,6 +8,8 @@ from typing import Optional
 import typer
 from compute_api_client import JobStatus
 from rich import print
+from rich.console import Console
+from rich.table import Table
 from typer import Typer
 
 from quantuminspire.sdk.models.cqasm_algorithm import CqasmAlgorithm
@@ -20,12 +22,38 @@ from quantuminspire.util.authentication import OauthDeviceSession
 from quantuminspire.util.configuration import Settings, Url
 
 app = Typer(add_completion=False, no_args_is_help=True)
+backend_types_app = Typer(no_args_is_help=True)
+app.add_typer(backend_types_app, name="backends", help="Manage backends")
 files_app = Typer(no_args_is_help=True)
 app.add_typer(files_app, name="files", help="Manage files")
 results_app = Typer(no_args_is_help=True)
 app.add_typer(results_app, name="results", help="Manage results")
 final_results_app = Typer(no_args_is_help=True)
 app.add_typer(final_results_app, name="final_results", help="Manage final results")
+
+console = Console()
+
+
+@backend_types_app.command("list")
+def list_backend_types() -> None:
+    """Run a file locally.
+
+    Run a Hybrid Quantum/Classical Algorithm locally. The quantum part will be run with QXEmulator.
+    """
+    backend = RemoteBackend()
+    backend_types = backend.get_backend_types().items
+    table = Table("id", "name", "status", "is_hardware", "supports_raw_data", "number_of_qubits", "max_number_of_shots")
+    for backend_type in backend_types:
+        table.add_row(
+            str(backend_type.id),
+            backend_type.name,
+            str(backend_type.status.name),
+            str(backend_type.is_hardware),
+            str(backend_type.supports_raw_data),
+            str(backend_type.nqubits),
+            str(backend_type.max_number_of_shots),
+        )
+    console.print(table)
 
 
 def load_algorithm_from_file(file_path: Path) -> FileAlgorithm:
