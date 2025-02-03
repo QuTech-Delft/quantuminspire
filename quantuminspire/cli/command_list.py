@@ -2,7 +2,6 @@
 
 import asyncio
 import webbrowser
-from enum import Enum
 from pathlib import Path
 from typing import Optional
 
@@ -27,13 +26,6 @@ results_app = Typer(no_args_is_help=True)
 app.add_typer(results_app, name="results", help="Manage results")
 final_results_app = Typer(no_args_is_help=True)
 app.add_typer(final_results_app, name="final_results", help="Manage final results")
-
-
-class Destination(str, Enum):
-    """Enumeration of potential destinations for projects."""
-
-    LOCAL = "local"
-    REMOTE = "remote"
 
 
 def load_algorithm_from_file(file_path: Path) -> FileAlgorithm:
