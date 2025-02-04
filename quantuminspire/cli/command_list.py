@@ -63,10 +63,7 @@ def load_algorithm_from_file(file_path: Path) -> FileAlgorithm:
     elif file_path.suffix == ".cq":
         algorithm = CqasmAlgorithm("", str(file_path))
     else:
-        raise ValueError(
-            f"Unsupported file type: {
-                         file_path.suffix}. Supported types are .py and .cq"
-        )
+        raise ValueError(f"Unsupported file type: {file_path.suffix}. Supported types are .py and .cq")
 
     algorithm.read_file(file_path)
     return algorithm
@@ -185,14 +182,8 @@ def login(
     auth_session = OauthDeviceSession(settings.auths[host_url])
 
     login_info = auth_session.initialize_authorization()
-    typer.echo(
-        f"Please continue logging in by opening: {
-               login_info['verification_uri_complete']} in your browser"
-    )
-    typer.echo(
-        f"If promped to verify a code, please confirm it is as follows: {
-               login_info['user_code']}"
-    )
+    typer.echo(f"Please continue logging in by opening: {login_info['verification_uri_complete']} in your browser")
+    typer.echo(f"If promped to verify a code, please confirm it is as follows: {login_info['user_code']}")
     webbrowser.open(login_info["verification_uri_complete"], new=2)
     tokens = auth_session.poll_for_tokens()
     settings.store_tokens(host_url, tokens)
