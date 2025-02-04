@@ -1,4 +1,4 @@
-"""Example Hybrid Quantum/Classical Algorithm for Quantum Inspire 2.
+"""Example Hybrid Quantum/Classical Algorithm for Quantum Inspire.
 
 The algorithm is the Quantum Approximate Optimization Algorithm, as documented on
 https://www.quantuminspire.com/kbase/qaoa/

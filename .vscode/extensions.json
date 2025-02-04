@@ -1,0 +1,7 @@
+{
+    "recommendations": [
+        "ms-python.vscode-pylance",
+        "editorconfig.editorconfig",
+        "tamasfe.even-better-toml"
+    ]
+}

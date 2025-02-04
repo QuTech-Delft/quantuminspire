@@ -1,5 +1,5 @@
+import datetime
 import json
-from datetime import datetime
 from typing import Any, Generator
 
 import pytest
@@ -47,7 +47,7 @@ def mocked_responses() -> Generator[responses.RequestsMock, None, None]:
         yield responses_mock
 
 
-@freeze_time(datetime.utcfromtimestamp(1000000))
+@freeze_time(datetime.datetime.fromtimestamp(1000000, datetime.UTC))
 def test_initialize_authorization(
     mocked_responses: responses.RequestsMock, mocked_device_session: OauthDeviceSession
 ) -> None:
@@ -81,7 +81,7 @@ def test_poll_for_tokens(mocked_responses: responses.RequestsMock, mocked_device
 
 
 @pytest.mark.parametrize("error", ["authorization_pending", "slow_down"])
-@freeze_time(datetime.utcfromtimestamp(1000000), tick=True)
+@freeze_time(datetime.datetime.fromtimestamp(1000000, datetime.UTC), tick=True)
 def test_poll_for_tokens_expired(
     error: str, mocked_responses: responses.RequestsMock, mocked_device_session: OauthDeviceSession
 ) -> None:
@@ -111,7 +111,7 @@ def test_refresh(mocked_responses: responses.RequestsMock, mocked_device_session
     assert mocked_device_session._token_info.access_token == "secret"
 
 
-@freeze_time(datetime.utcfromtimestamp(1000000))
+@freeze_time(datetime.datetime.fromtimestamp(1000000, datetime.UTC))
 def test_refresh_still_valid(
     mocked_responses: responses.RequestsMock, mocked_device_session: OauthDeviceSession
 ) -> None:
