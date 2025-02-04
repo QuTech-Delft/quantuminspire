@@ -6,7 +6,7 @@ authors = ["Quantum Inspire <support@quantum-inspire.com>"]
 license = "Apache-2.0"
 readme = "README.md"
 homepage = "https://www.quantum-inspire.com"
-repository = "https://github.com/quantuminspire"
+repository = "https://github.com/qutech-delft/quantuminspire"
 classifiers = [
   'Development Status :: 4 - Beta',
   'Programming Language :: Python :: 3',
