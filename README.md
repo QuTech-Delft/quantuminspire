@@ -33,11 +33,12 @@ The CLI can be used to upload files to Quantum Inspire. These files can both be 
 qi files upload <filename> <backend_id>
 ```
 
-The CLI will assume that files with the extension `.cq` are quantum circuits, while files with a `.py` extension are python files. For the `backend_type` use any of the id's in the list below:
+The CLI will assume that files with the extension `.cq` are quantum circuits, while files with a `.py` extension are python files. The list of backends (and their properties)
+can be retrieved using the following command, from which id field can be read.
 
-* QX emulator, id = 1
-* Spin-2+, id = 2
-* Starmon-7, id = 3
+```bash
+qi backends list
+```
 
 ## Get results
 
