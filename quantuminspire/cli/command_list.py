@@ -36,9 +36,9 @@ console = Console()
 
 @backend_types_app.command("list")
 def list_backend_types() -> None:
-    """Run a file locally.
+    """List backends.
 
-    Run a Hybrid Quantum/Classical Algorithm locally. The quantum part will be run with QXEmulator.
+    List all available backends and their configuration.
     """
     backend = RemoteBackend()
     backend_types = backend.get_backend_types().items

@@ -118,7 +118,7 @@ class RemoteBackend(BaseBackend):
         return asyncio.run(self._get_final_results(job_id))
 
     def get_backend_types(self) -> Any:
-        """Get final results for algorithm/circuit."""
+        """Get backend types."""
         return asyncio.run(self._get_backend_types())
 
     async def _create_flow(
