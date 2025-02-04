@@ -20,6 +20,7 @@ from compute_api_client import (
     AlgorithmIn,
     AlgorithmsApi,
     ApiClient,
+    BackendTypesApi,
     BatchJob,
     BatchJobIn,
     BatchJobsApi,
@@ -99,6 +100,11 @@ class RemoteBackend(BaseBackend):
 
             return await self._read_final_results_for_job(api_client, job)
 
+    async def _get_backend_types(self) -> Any:
+        async with ApiClient(self._configuration) as api_client:
+            api_instance = BackendTypesApi(api_client)
+            return await api_instance.read_backend_types_backend_types_get()
+
     def get_job(self, job_id: int) -> Any:
         """Get job for algorithm/circuit."""
         return asyncio.run(self._get_job(job_id))
@@ -110,6 +116,10 @@ class RemoteBackend(BaseBackend):
     def get_final_results(self, job_id: int) -> Any:
         """Get final results for algorithm/circuit."""
         return asyncio.run(self._get_final_results(job_id))
+
+    def get_backend_types(self) -> Any:
+        """Get backend types."""
+        return asyncio.run(self._get_backend_types())
 
     async def _create_flow(
         self,

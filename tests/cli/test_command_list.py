@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock
 
-from compute_api_client import JobStatus
+from compute_api_client import BackendStatus, JobStatus
 from pytest_mock import MockerFixture
 from typer.testing import CliRunner
 
@@ -9,6 +9,29 @@ from quantuminspire.sdk.models.cqasm_algorithm import CqasmAlgorithm
 from quantuminspire.sdk.models.hybrid_algorithm import HybridAlgorithm
 
 runner = CliRunner()
+
+
+def test_backend_list(mocker: MockerFixture) -> None:
+    class MockBackendType:
+        id = 1
+        name = "Mock backend"
+        status = BackendStatus.IDLE
+        is_hardware = True
+        supports_raw_data = True
+        nqubits = 4
+        max_number_of_shots = 2048
+
+    mock_remote_backend_inst = MagicMock()
+    paginated_mock = MagicMock()
+
+    paginated_mock.items = [MockBackendType()]
+    mock_remote_backend_inst.get_backend_types.return_value = paginated_mock
+    mocker.patch("quantuminspire.cli.command_list.RemoteBackend", return_value=mock_remote_backend_inst)
+
+    result = runner.invoke(app, ["backends", "list"])
+
+    assert result.exit_code == 0
+    mock_remote_backend_inst.get_backend_types.assert_called_once()
 
 
 def test_file_upload_hybrid(mocker: MockerFixture) -> None:

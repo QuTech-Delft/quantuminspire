@@ -18,6 +18,7 @@ def compute_api_client(mocker: MockerFixture) -> None:
     mocker.patch("quantuminspire.util.api.remote_backend.Algorithm", return_value=MagicMock())
     mocker.patch("quantuminspire.util.api.remote_backend.AlgorithmIn", return_value=MagicMock())
     mocker.patch("quantuminspire.util.api.remote_backend.AlgorithmsApi", return_value=AsyncMock())
+    mocker.patch("quantuminspire.util.api.remote_backend.BackendTypesApi", return_value=AsyncMock())
     mocker.patch("quantuminspire.util.api.remote_backend.BatchJob", return_value=MagicMock())
     mocker.patch("quantuminspire.util.api.remote_backend.BatchJobIn", return_value=MagicMock())
     mocker.patch("quantuminspire.util.api.remote_backend.BatchJobsApi", return_value=AsyncMock())
@@ -82,6 +83,16 @@ def test_run(
     backend = RemoteBackend()
     backend.run(MagicMock(), 10)
     api_client.assert_has_calls([call().__aenter__(), call().__aexit__(None, None, None)])
+
+
+def test_get_backend_types(
+    mocker: MockerFixture, api_client: MagicMock, mocked_settings: MagicMock, mocked_authentication: MagicMock
+) -> None:
+    backend = RemoteBackend()
+    backend_types_api_instance = AsyncMock()
+    mocker.patch("quantuminspire.util.api.remote_backend.BackendTypesApi", return_value=backend_types_api_instance)
+    backend.get_backend_types()
+    backend_types_api_instance.read_backend_types_backend_types_get.assert_called_once()
 
 
 def test_get_job(
