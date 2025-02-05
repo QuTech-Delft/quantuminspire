@@ -56,6 +56,23 @@ def list_backend_types() -> None:
     console.print(table)
 
 
+@backend_types_app.command("get")
+def get_backend_types(backend_type_id: int = typer.Argument(..., help="The id of the backend type")) -> None:
+    """Get a backend.
+
+    Get the configuration of a specific backend.
+    """
+    backend = RemoteBackend()
+    backend_types = backend.get_backend_types().items
+
+    backend_type = next((bt for bt in backend_types if bt.id == backend_type_id), None)
+    if backend_type is None:
+        console.print(f"Backend type with id {backend_type_id} not found.")
+        raise typer.Exit(1)
+    else:
+        console.print(backend_type.model_dump())
+
+
 def load_algorithm_from_file(file_path: Path) -> FileAlgorithm:
     """Load an algorithm from a file."""
     if file_path.suffix == ".py":

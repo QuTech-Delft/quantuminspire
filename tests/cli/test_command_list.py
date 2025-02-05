@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock
 
 from compute_api_client import BackendStatus, JobStatus
+from pydantic import BaseModel
 from pytest_mock import MockerFixture
 from typer.testing import CliRunner
 
@@ -31,6 +32,38 @@ def test_backend_list(mocker: MockerFixture) -> None:
     result = runner.invoke(app, ["backends", "list"])
 
     assert result.exit_code == 0
+    mock_remote_backend_inst.get_backend_types.assert_called_once()
+
+
+def test_backend_get(mocker: MockerFixture) -> None:
+    class MockBackendType(BaseModel):
+        id: int = 1
+        name: str = "Mock backend"
+
+    mock_remote_backend_inst = MagicMock()
+    paginated_mock = MagicMock()
+
+    paginated_mock.items = [MockBackendType()]
+    mock_remote_backend_inst.get_backend_types.return_value = paginated_mock
+    mocker.patch("quantuminspire.cli.command_list.RemoteBackend", return_value=mock_remote_backend_inst)
+
+    result = runner.invoke(app, ["backends", "get", "1"])
+
+    assert result.exit_code == 0
+    mock_remote_backend_inst.get_backend_types.assert_called_once()
+
+
+def test_backend_get_no_backend(mocker: MockerFixture) -> None:
+    mock_remote_backend_inst = MagicMock()
+    paginated_mock = MagicMock()
+
+    paginated_mock.items = []
+    mock_remote_backend_inst.get_backend_types.return_value = paginated_mock
+    mocker.patch("quantuminspire.cli.command_list.RemoteBackend", return_value=mock_remote_backend_inst)
+
+    result = runner.invoke(app, ["backends", "get", "1"])
+
+    assert result.exit_code == 1
     mock_remote_backend_inst.get_backend_types.assert_called_once()
 
 
