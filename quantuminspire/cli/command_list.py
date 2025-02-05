@@ -19,7 +19,7 @@ from quantuminspire.util.api.local_backend import LocalBackend
 from quantuminspire.util.api.remote_backend import RemoteBackend
 from quantuminspire.util.authentication import OauthDeviceSession
 from quantuminspire.util.configuration import Settings, Url
-from quantuminspire.util.utils import _run_async
+from quantuminspire.util.utils import run_async
 
 app = Typer(add_completion=False, no_args_is_help=True)
 backend_types_app = Typer(no_args_is_help=True)
@@ -177,7 +177,7 @@ def login(
     settings.default_host = host_url
 
     if not override_auth_config:
-        _run_async(settings.fetch_auth_settings(host_url))
+        run_async(settings.fetch_auth_settings(host_url))
 
     auth_session = OauthDeviceSession(settings.auths[host_url])
 
