@@ -101,7 +101,7 @@ class Settings(BaseSettings):  # pylint: disable=too-few-public-methods
 
     auths: Dict[Url, AuthSettings]
 
-    default_host: Url = "https://api.qi2.quantum-inspire.com"
+    default_host: Url = "https://api.quantum-inspire.com"
 
     @property
     def default_auth_settings(self) -> AuthSettings:
