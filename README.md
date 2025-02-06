@@ -29,11 +29,16 @@ This will open a browser window that will allow you to login or create an accoun
 
 The CLI can be used to upload files to Quantum Inspire. These files can both be hybrid and quantum circuits.
 
+**IMPORTANT**: Submitting a (python) `.py` file for hybrid algorithms requires a [specific format](https://qutech-delft.github.io/qiskit-quantuminspire/hybrid/basics.html). 
+Not all `.py` files are valid for submission.
+
 ```bash
 qi files upload <filename> <backend_id>
 ```
 
-The CLI will assume that files with the extension `.cq` are quantum circuits, while files with a `.py` extension are python files. The list of backends (and their properties)
+The CLI will assume that files with the extension `.cq` are quantum circuits, while files with a `.py` extension are python files. 
+
+The list of backends (and their properties)
 can be retrieved using the following command, from which id field can be read.
 
 ```bash
