@@ -1485,13 +1485,13 @@ files = [
 
 [[package]]
 name = "qi-compute-api-client"
-version = "0.45.0"
+version = "0.47.0"
 description = "An API client for the Compute Job Manager of Quantum Inspire."
 optional = false
-python-versions = "<4.0,>=3.8"
+python-versions = "<4.0,>=3.9"
 files = [
-    {file = "qi_compute_api_client-0.45.0-py3-none-any.whl", hash = "sha256:d10fa4a4f75ab00df31d8ec9e036ee775744f66068d55299a60116a519ef02a9"},
-    {file = "qi_compute_api_client-0.45.0.tar.gz", hash = "sha256:7fa88cdfe707e468169d3aeb4d3e3587809ec8ec0340a2018c6d5b36310b0be4"},
+    {file = "qi_compute_api_client-0.47.0-py3-none-any.whl", hash = "sha256:3a6510ec4b08b123f7935ab66b5af04eceab4c2a9a7a17d4e3f8c2323b9bc1d0"},
+    {file = "qi_compute_api_client-0.47.0.tar.gz", hash = "sha256:ad21b1bf22f74a6fab21a2dcf9fdb1a663bea4e6688744c7eebcc65dad9c0f83"},
 ]
 
 [package.dependencies]
@@ -1499,6 +1499,7 @@ aiohttp = ">=3.10.5,<4.0.0"
 pydantic = ">=2.10.4,<3.0.0"
 python-dateutil = ">=2.8.2,<3.0.0"
 requests = ">=2.31.0,<3.0.0"
+typing-extensions = ">=4.12.2,<5.0.0"
 urllib3 = ">=2.0.0,<3.0.0"
 
 [[package]]
@@ -2063,4 +2064,4 @@ local = ["qxelarator"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "8a679e34dbca65f13bb10c9e83d25638b0b7839fab22d6318022ffb78b12189b"
+content-hash = "93993cfc805e6e02ecf907763f342ef2ac81e510ddeb5ade261e3b1fb20ae309"
