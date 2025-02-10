@@ -43,7 +43,7 @@ def execute(qi: QuantumInterface) -> None:
         print(result.shots_done)
 
 
-def finalize(list_of_measurements: Dict[int, List[Any]]) -> Dict[str, Any]:
+def finalize(list_of_measurements: List[Dict[str, Dict[str, int]]]) -> Dict[str, Any]:
     """Aggregate the results from all iterations into one final result.
 
     Args:

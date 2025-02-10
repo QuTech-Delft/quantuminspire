@@ -26,7 +26,7 @@ import numpy as np
 from opensquirrel.circuit_builder import CircuitBuilder
 from opensquirrel.ir import Bit, Float, Qubit
 from opensquirrel.writer import writer
-from qi2_shared.hybrid.quantum_interface import ExecuteCircuitResult, QuantumInterface
+from qi2_shared.hybrid.quantum_interface import QuantumInterface
 from qiskit_algorithms.optimizers import SPSA
 
 
@@ -102,7 +102,7 @@ m = 2**number_of_qubits
 p0 = np.random.random(m) + 0.2
 p0 = p0 / np.sum(p0)
 target_distribution = {k: p0[k] for k in range(m)}
-dt = AverageDecreaseTermination(N=35)
+dt = AverageDecreaseTermination(N=60)
 out_distribution = None
 
 
@@ -167,7 +167,7 @@ def execute(qi: QuantumInterface) -> None:
     out_distribution = counts_to_distr(qi.execute_circuit(cqasm, 2000).results)
 
 
-def finalize(list_of_measurements: List[ExecuteCircuitResult]) -> Dict[str, Any]:
+def finalize(list_of_measurements: List[Dict[str, Dict[str, int]]]) -> Dict[str, Any]:
     global out_distribution
 
     return {"avg_decrease": dt.values, "target_distribution": target_distribution, "out_distribution": out_distribution}
