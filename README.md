@@ -15,7 +15,7 @@ pipx install quantuminspire
 
 Afterwards, running `qi --help` should show a help menu.
 
-> **⚠️** Installing quantuminspire using pipx **inside a conda environment** may cause dependency conflicts with other packages. This can result in unexpected behavior and prevent you from using the tool correctly. To avoid these issues, 
+> **⚠️** Installing quantuminspire using pipx **inside a conda environment** may cause conflicts with other packages. This can result in unexpected behavior and prevent you from using the tool correctly. To avoid these issues, 
 > it is strongly recommended to install and run pipx on your system instead. The [pipx installation guide](https://github.com/pypa/pipx) details how you can use different package managers (eg. brew, apt and scoop) to achieve this.
 
 ## Using the CLI to login
