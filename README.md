@@ -7,13 +7,16 @@ Currently, functionality of the tool is still limited, but the tool is required 
 
 ## Installation
 
-The recommended way of installing the CLI is to use pipx. After following the [pipx installation instructions](https://github.com/pypa/pipx), clone this repository and run the following command in the repository root:
+The recommended way of installing the CLI is to use `pipx`. After following the [pipx installation instructions](https://pipx.pypa.io/stable/installation), run the following command:
 
 ```bash
-pipx install .
+pipx install quantuminspire
 ```
 
 Afterwards, running `qi --help` should show a help menu.
+
+> **⚠️** Installing quantuminspire using pipx **inside a conda environment** may cause conflicts with other packages. This can result in unexpected behavior and prevent you from using the tool correctly. To avoid these issues, 
+> it is strongly recommended to install and run pipx on your system instead. The [pipx installation guide](https://github.com/pypa/pipx) details how you can use different package managers (eg. brew, apt and scoop) to achieve this.
 
 ## Using the CLI to login
 
