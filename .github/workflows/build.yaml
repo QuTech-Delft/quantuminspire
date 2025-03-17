@@ -25,9 +25,9 @@ jobs:
       - name: PyInstaller
         run: |
           poetry install
-          poetry run pyinstaller ./quantuminspire/cli/_pyinstaller.py -F -n qi --distpath dist
+          poetry run pyinstaller ./quantuminspire/cli/_pyinstaller.py -F -n qi
       - name: Archive code coverage results
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.os }}
-          path: dist/qi
+          path: ${{ github.workspace }}/dist/qi
