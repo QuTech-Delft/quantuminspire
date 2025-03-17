@@ -1,0 +1,30 @@
+name: Build
+
+on: workflow_dispatch
+
+jobs:
+  executable:
+    name: Build PyInstaller package ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [
+          ubuntu-latest,  # Linux/x64
+          windows-latest,  # Windows/x64
+          macos-14  # MacOS/ARM64
+        ]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: QuTech-Delft/GitHub-Actions/actions/python/poetry-setup@master
+        with:
+          python-version: 3.12
+          poetry-version: 1.8.5
+      - name: PyInstaller
+        run: |
+          poetry install
+          poetry run pyinstaller ./quantuminspire/cli/_pyinstaller.py -F -n qi
+      - name: Archive code coverage results
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.os }}
+          path: dist/qi
