@@ -12,7 +12,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 language governing permissions and limitations under the License.
 """
 
-import asyncio
 from typing import Any, List
 
 from compute_api_client import (
@@ -51,6 +50,7 @@ from quantuminspire.sdk.models.job_options import JobOptions
 from quantuminspire.util.api.base_backend import BaseBackend
 from quantuminspire.util.authentication import Configuration, OauthDeviceSession
 from quantuminspire.util.configuration import Settings
+from quantuminspire.util.helpers import run_async
 
 
 class RemoteBackend(BaseBackend):
@@ -78,7 +78,7 @@ class RemoteBackend(BaseBackend):
         options: JobOptions = JobOptions(),
     ) -> int:
         """Execute provided algorithm/circuit."""
-        return asyncio.run(self._create_flow(program, backend_type_id, job_options=options))
+        return run_async(self._create_flow(program, backend_type_id, job_options=options))
 
     async def _get_job(self, job_id: int) -> Any:
         async with ApiClient(self._configuration) as api_client:
@@ -107,19 +107,19 @@ class RemoteBackend(BaseBackend):
 
     def get_job(self, job_id: int) -> Any:
         """Get job for algorithm/circuit."""
-        return asyncio.run(self._get_job(job_id))
+        return run_async(self._get_job(job_id))
 
     def get_results(self, job_id: int) -> Any:
         """Get results for algorithm/circuit."""
-        return asyncio.run(self._get_results(job_id))
+        return run_async(self._get_results(job_id))
 
     def get_final_results(self, job_id: int) -> Any:
         """Get final results for algorithm/circuit."""
-        return asyncio.run(self._get_final_results(job_id))
+        return run_async(self._get_final_results(job_id))
 
     def get_backend_types(self) -> Any:
         """Get backend types."""
-        return asyncio.run(self._get_backend_types())
+        return run_async(self._get_backend_types())
 
     async def _create_flow(
         self,
