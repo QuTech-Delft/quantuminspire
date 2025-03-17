@@ -18,10 +18,24 @@ jobs:
         ]
     steps:
       - uses: actions/checkout@v4
-      - uses: QuTech-Delft/GitHub-Actions/actions/python/poetry-setup@master
+      # - uses: QuTech-Delft/GitHub-Actions/actions/python/poetry-setup@master
+      #   with:
+      #     python-version: 3.12
+      #     poetry-version: 1.8.5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: 3.12
-          poetry-version: 1.8.5
+      - run: |
+          python3.12 -m pip install --user pipx
+          python3.12 -m pipx ensurepath
+        shell: bash
+      - if: ${{ inputs.poetry-version != 'latest' && inputs.poetry-version != 'main' }}
+        run: |
+          pipx install poetry==1.8.5
+        shell: bash
+
       - name: PyInstaller
         run: |
           poetry install
