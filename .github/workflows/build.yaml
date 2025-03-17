@@ -23,6 +23,7 @@ jobs:
       #     python-version: 3.12
       #     poetry-version: 1.8.5
 
+      # Copied over from other actions with slight changes to force pipx to use Python 3.12
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
