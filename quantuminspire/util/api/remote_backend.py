@@ -12,7 +12,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 language governing permissions and limitations under the License.
 """
 
-from typing import Any, List
+from typing import Any, List, cast
 
 from compute_api_client import (
     Algorithm,
@@ -44,13 +44,13 @@ from compute_api_client import (
     ResultsApi,
     ShareType,
 )
+from qi2_shared.utils import run_async
 
 from quantuminspire.sdk.models.base_algorithm import BaseAlgorithm
 from quantuminspire.sdk.models.job_options import JobOptions
 from quantuminspire.util.api.base_backend import BaseBackend
 from quantuminspire.util.authentication import Configuration, OauthDeviceSession
 from quantuminspire.util.configuration import Settings
-from quantuminspire.util.helpers import run_async
 
 
 class RemoteBackend(BaseBackend):
@@ -78,7 +78,7 @@ class RemoteBackend(BaseBackend):
         options: JobOptions = JobOptions(),
     ) -> int:
         """Execute provided algorithm/circuit."""
-        return run_async(self._create_flow(program, backend_type_id, job_options=options))
+        return cast(int, run_async(self._create_flow(program, backend_type_id, job_options=options)))
 
     async def _get_job(self, job_id: int) -> Any:
         async with ApiClient(self._configuration) as api_client:

@@ -6,6 +6,7 @@ from typing import Optional
 
 import typer
 from compute_api_client import JobStatus
+from qi2_shared.utils import run_async
 from rich import print
 from rich.console import Console
 from rich.table import Table
@@ -19,7 +20,6 @@ from quantuminspire.util.api.local_backend import LocalBackend
 from quantuminspire.util.api.remote_backend import RemoteBackend
 from quantuminspire.util.authentication import OauthDeviceSession
 from quantuminspire.util.configuration import Settings, Url
-from quantuminspire.util.helpers import run_async
 
 app = Typer(add_completion=False, no_args_is_help=True)
 backend_types_app = Typer(no_args_is_help=True)
