@@ -1,12 +1,12 @@
 """Module containing the commands for the Quantum Inspire CLI."""
 
-import asyncio
 import webbrowser
 from pathlib import Path
 from typing import Optional
 
 import typer
 from compute_api_client import JobStatus
+from qi2_shared.utils import run_async
 from rich import print
 from rich.console import Console
 from rich.table import Table
@@ -194,7 +194,7 @@ def login(
     settings.default_host = host_url
 
     if not override_auth_config:
-        asyncio.run(settings.fetch_auth_settings(host_url))
+        run_async(settings.fetch_auth_settings(host_url))
 
     auth_session = OauthDeviceSession(settings.auths[host_url])
 

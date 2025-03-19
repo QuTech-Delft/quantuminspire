@@ -24,7 +24,7 @@ qi = "quantuminspire.cli.command_list:app"
 python = "^3.9"
 typer = {extras = ["all"], version = "^0.15.1"}
 pydantic = "^2.10.6"
-qi-compute-api-client = "^0.47.0"
+qi-compute-api-client = "^0.49.0"
 qxelarator = {version = "^0.7.4", optional = true}
 pydantic-settings = "^2.7.1"
 qiskit = "1.0.2"

@@ -15,6 +15,7 @@ from compute_api_client import ApiClient, AuthConfigApi, Configuration, MembersA
 from pydantic import BaseModel, BeforeValidator, HttpUrl
 from pydantic.fields import Field, FieldInfo
 from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
+from qi2_shared.utils import run_async
 from typing_extensions import Annotated
 
 Url = Annotated[str, BeforeValidator(lambda value: str(HttpUrl(value)).rstrip("/"))]
@@ -196,7 +197,7 @@ class Settings(BaseSettings):  # pylint: disable=too-few-public-methods
 
     @classmethod
     def get_team_member_id(cls, host: str, access_token: str) -> int:
-        return asyncio.run(cls._validate_token_and_retrieve_team_member_id(host, access_token))
+        return cast(int, run_async(cls._validate_token_and_retrieve_team_member_id(host, access_token)))
 
     @classmethod
     async def _validate_token_and_retrieve_team_member_id(cls, host: str, access_token: str) -> int:
