@@ -15,8 +15,8 @@ pipx install quantuminspire
 
 Afterwards, running `qi --help` should show a help menu.
 
-> **⚠️** Installing quantuminspire using pipx **inside a conda environment** may cause conflicts with other packages. This can result in unexpected behavior and prevent you from using the tool correctly. To avoid these issues, 
-> it is strongly recommended to install and run pipx on your system instead. The [pipx installation guide](https://github.com/pypa/pipx) details how you can use different package managers (eg. brew, apt and scoop) to achieve this.
+> **⚠️** Installing quantuminspire using pipx **inside a conda environment** may cause conflicts with other packages. This can result in unexpected behavior and prevent you from using the tool correctly. To avoid these issues,
+> it is strongly recommended to install and run pipx on a system Python installation instead, downloaded from the official Python website.
 
 ## Using the CLI to login
 
@@ -32,14 +32,14 @@ This will open a browser window that will allow you to login or create an accoun
 
 The CLI can be used to upload files to Quantum Inspire. These files can both be hybrid and quantum circuits.
 
-**IMPORTANT**: Submitting a (python) `.py` file for hybrid algorithms requires a [specific format](https://qutech-delft.github.io/qiskit-quantuminspire/hybrid/basics.html). 
+**IMPORTANT**: Submitting a (python) `.py` file for hybrid algorithms requires a [specific format](https://qutech-delft.github.io/qiskit-quantuminspire/hybrid/basics.html).
 Not all `.py` files are valid for submission.
 
 ```bash
 qi files upload <filename> <backend_id>
 ```
 
-The CLI will assume that files with the extension `.cq` are quantum circuits, while files with a `.py` extension are python files. 
+The CLI will assume that files with the extension `.cq` are quantum circuits, while files with a `.py` extension are python files.
 
 The list of backends (and their properties)
 can be retrieved using the following command, from which id field can be read.
