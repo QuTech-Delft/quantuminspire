@@ -1599,33 +1599,33 @@ visualization = ["Pillow (>=4.2.1)", "matplotlib (>=3.3)", "pydot", "pylatexenc 
 
 [[package]]
 name = "qxelarator"
-version = "0.8.0"
+version = "0.9.0"
 description = "qxelarator Python Package"
 optional = true
 python-versions = "*"
 groups = ["main"]
 markers = "extra == \"local\""
 files = [
-    {file = "qxelarator-0.8.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:8c7ccd1346f6047cb06e470a01bfbd2af28f83751672be91936111f365b9ef31"},
-    {file = "qxelarator-0.8.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:2ce42f926b557ca732ed4b1a1c459b3fa49b97b2c3c24b78ad122d04462d0640"},
-    {file = "qxelarator-0.8.0-cp310-cp310-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:90806acd32688d4465daaa644e1bc8f8c18f6cd1cf314be616ede6dcafaf5499"},
-    {file = "qxelarator-0.8.0-cp310-cp310-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:8438e564dbf290ff05587ef67207d4c474604c69763fec72339eeba8b36ad9d7"},
-    {file = "qxelarator-0.8.0-cp310-cp310-win_amd64.whl", hash = "sha256:d80423744cd6b2808182d79fd9a85b48237d06633af82d43fc99994db5c542f8"},
-    {file = "qxelarator-0.8.0-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:fdfe7a35da67fc3f06eb9f7402411dc12a16cd862bbff858793186c13fdba7f1"},
-    {file = "qxelarator-0.8.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:4247fd57a655d491a6e7d70619d1bda85a8209d0376b5626e6694a26272b5c25"},
-    {file = "qxelarator-0.8.0-cp311-cp311-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:bc61413ec2c7c7e7fd9079e90812180d04a21842715f9db08ae871619a8d60c8"},
-    {file = "qxelarator-0.8.0-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:c9035edce620ceacb30c53a6bd0c52db499581af20f7ac56aa568cba2ef8ab53"},
-    {file = "qxelarator-0.8.0-cp311-cp311-win_amd64.whl", hash = "sha256:cbdb06c95c830381fecd8f530339fa676ab8529e783c071f2a892d2f9029e8f4"},
-    {file = "qxelarator-0.8.0-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:1f3f79c64abe6a81efd74b6adae49ed4795e9262e6b5116affcdff1b04a183d4"},
-    {file = "qxelarator-0.8.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:4b2465ce922feef2a27a23aaa1bb57ed3fb0d13f04279c3237289d48b60c5159"},
-    {file = "qxelarator-0.8.0-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:aeee0c44fa69d8d806bafed49c521048fd33619dbe27e58e16d05fd9a9335d75"},
-    {file = "qxelarator-0.8.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:76b439a3db6d677c8ce185c10d7cfea840e9e13031622f253ad3148b0e1f7cfb"},
-    {file = "qxelarator-0.8.0-cp312-cp312-win_amd64.whl", hash = "sha256:af039786def7afe78ee02877b2235c4877ebb0bd2773ce1d8d8129f5e0318613"},
-    {file = "qxelarator-0.8.0-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:a7fb1650741c68e01218d74ad2dc98f7c821127ea2778e71c48781c50d638ae8"},
-    {file = "qxelarator-0.8.0-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:4443e7522695886899fb3f97c3b575ddd90a0698a925876cdb93a3d45ecf3eb6"},
-    {file = "qxelarator-0.8.0-cp39-cp39-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:fd6c8a4a5cfc2f8a80dbf0c087dc40cd435b739a4ac521f7d8be59fb90111cc4"},
-    {file = "qxelarator-0.8.0-cp39-cp39-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:0b9ad550caa9c73613c7d1c8fd835bd85c7704e83e7657ef6ed978ef7db232f9"},
-    {file = "qxelarator-0.8.0-cp39-cp39-win_amd64.whl", hash = "sha256:7d758ea5980270d15fdf264dbe69fd4dad141a51b2756759a37824f79459eb70"},
+    {file = "qxelarator-0.9.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:e01470d74e41f361e662ed02118a55509a987060d23f40718ca9109469a9eb9e"},
+    {file = "qxelarator-0.9.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:068a8bcd70049df07f1b893e1163198000d9b8cc07f908ff8d5a1c6108af2962"},
+    {file = "qxelarator-0.9.0-cp310-cp310-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:bf887af380dc1c08f0800e1213fcceeb9a5769d3596af0def0f7ff79528c7780"},
+    {file = "qxelarator-0.9.0-cp310-cp310-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:ae73ef08740cf175ce26f23dcb9131edb19374bfa30edb5c4852a2640c30eea2"},
+    {file = "qxelarator-0.9.0-cp310-cp310-win_amd64.whl", hash = "sha256:ab68770c2a061d22fd1094e6d9df82f976c7053430ea00c2a2da207afbf5271f"},
+    {file = "qxelarator-0.9.0-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:c95a59e24b9e36f7f3548fd740f372b993783ddae1faa56f9ec78ce27477ab24"},
+    {file = "qxelarator-0.9.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:7c4ef7e380e141c3ac477f57d96c26ca5ad7c4bf189d2a5eb5bf9c1efd3a5e7d"},
+    {file = "qxelarator-0.9.0-cp311-cp311-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:a7ee9adfe06ab71540f56b155e17b606509dda50df9ee104c9ca7cda2c2bb9fd"},
+    {file = "qxelarator-0.9.0-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:8aef3c37daebc3a39113ac35ce4dc80bafc250c7ae9b0e86aa6d8a74032b5397"},
+    {file = "qxelarator-0.9.0-cp311-cp311-win_amd64.whl", hash = "sha256:7eab0c062ad51ee50a79a8b92ba7620e895276c05a10b14dbaf9a33182390aff"},
+    {file = "qxelarator-0.9.0-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:66e14351e429f68fb3258fa7e70fa1b17a06b1b6615c798d5dfd06c05db64b63"},
+    {file = "qxelarator-0.9.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:c4c5b7973c2fc2c945a16cfad4732d2e8da47149244572f647bed7abc0d7a1c4"},
+    {file = "qxelarator-0.9.0-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:8f85d99dc18bd7fbb45d00c45867e4ba47fd70f503ef1c0a69f3cafaa263b284"},
+    {file = "qxelarator-0.9.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:b7c5b1a8ba61aa6345b5deefab8145a2459a6b4ebda4862e1890290d5b1a8929"},
+    {file = "qxelarator-0.9.0-cp312-cp312-win_amd64.whl", hash = "sha256:a4200a7db0e401b3fbba058614a41681029f8c5d50904241bdb02e4c13a8a33d"},
+    {file = "qxelarator-0.9.0-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:d9b51b22a57a26dfeedb728683f5897d644313a91fdcd4258be1bfcc012418af"},
+    {file = "qxelarator-0.9.0-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:329d0aee5e40c40b090603fbf71446d9fd88b7f8444fc938944a8821aebf4359"},
+    {file = "qxelarator-0.9.0-cp39-cp39-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:03c9308211ad1e9e57a089e5a4d890c97acde56bec9628741f3416a5e9f21930"},
+    {file = "qxelarator-0.9.0-cp39-cp39-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:19f99e330d1a6b29d11c4152e46d60296fe53c649a0cc4378b501a388ae0193d"},
+    {file = "qxelarator-0.9.0-cp39-cp39-win_amd64.whl", hash = "sha256:9f46352295c3cd8ac222e84a2efa78050b4709915311381cd18835ee265c1ba7"},
 ]
 
 [package.dependencies]
@@ -2158,4 +2158,4 @@ local = ["qxelarator"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.9"
-content-hash = "e50edba364454b177141cbe7df3ad6b76c2efc96028646df8260dc9dc5be4372"
+content-hash = "bacf8100f60043baf6d6d27e33a54c0b50e0ff0fbe64e9f4ef1a45927cad95f4"
