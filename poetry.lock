@@ -1977,14 +1977,14 @@ typing-extensions = ">=3.7.4.3"
 
 [[package]]
 name = "types-oauthlib"
-version = "3.2.0.20250514"
+version = "3.2.0.20250516"
 description = "Typing stubs for oauthlib"
 optional = false
 python-versions = ">=3.9"
 groups = ["dev"]
 files = [
-    {file = "types_oauthlib-3.2.0.20250514-py3-none-any.whl", hash = "sha256:ab2dcfdadec0ba1488994ae989d867b085964429165c80e2453d75bcdd6f8a97"},
-    {file = "types_oauthlib-3.2.0.20250514.tar.gz", hash = "sha256:965e9cdff76ef5233a399d4da4eb6a1ea931b932ff31140d02a9ecf54d2ee1a0"},
+    {file = "types_oauthlib-3.2.0.20250516-py3-none-any.whl", hash = "sha256:5799235528bc9bd262827149a1633ff55ae6e5a5f5f151f4dae74359783a31b3"},
+    {file = "types_oauthlib-3.2.0.20250516.tar.gz", hash = "sha256:56bf2cffdb8443ae718d4e83008e3fbd5f861230b4774e6d7799527758119d9a"},
 ]
 
 [[package]]
