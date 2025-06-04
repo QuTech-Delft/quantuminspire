@@ -191,7 +191,7 @@ class Settings(BaseSettings):  # pylint: disable=too-few-public-methods
                     member_id = int(input("Please enter one of the given ids: "))
                     if member_id not in member_ids:
                         raise ValueError
-                    return cast(int, member_id)
+                    return member_id
                 except ValueError:
                     typer.echo("Invalid input. Please enter a valid id or CTRL + C to cancel.")
 
