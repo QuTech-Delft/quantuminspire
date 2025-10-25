@@ -5,9 +5,7 @@
 	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
 	"image": "mcr.microsoft.com/devcontainers/python:1-3.12-bookworm",
 	"features": {
-		"ghcr.io/devcontainers-extra/features/poetry:2": {
-			"version": "1.8.5"
-		},
+		"ghcr.io/devcontainers-extra/features/poetry:2": {},
 		"ghcr.io/devcontainers-extra/features/tox:2": {}
 	}
 	// Features to add to the dev container. More info: https://containers.dev/features.

@@ -1,0 +1,32 @@
+{
+  "editor.wordWrap": "on",
+  "editor.wordWrapColumn": 120,
+  "python.analysis.autoImportCompletions": true,
+  "python.analysis.completeFunctionParens": true,
+  "python.analysis.diagnosticSeverityOverrides": {
+    "reportUnknownLambdaType": "none",
+    "reportUnknownParameterType": "warning",
+    "reportUnknownMemberType": "warning",
+    "reportUnknownArgumentType": "warning",
+    "reportUnknownVariableType": "warning",
+    "reportMissingTypeStubs": "none"
+  },
+  "python.analysis.typeCheckingMode": "strict",
+  "python.terminal.activateEnvironment": false,
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": false,
+  "[markdown]": {
+    "editor.wordWrap": "on",
+    "editor.rulers": [
+      120
+    ]
+  },
+  "[python]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.codeActionsOnSave": {
+      "source.fixAll": "explicit",
+      "source.organizeImports": "explicit"
+    },
+  },
+}
