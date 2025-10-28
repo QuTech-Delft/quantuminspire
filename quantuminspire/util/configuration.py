@@ -18,7 +18,7 @@ from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, Settings
 from qi2_shared.utils import run_async
 from typing_extensions import Annotated
 
-Url = Annotated[str, BeforeValidator(lambda value: str(HttpUrl(value)).rstrip("/"))]
+Url = Annotated[str, BeforeValidator(lambda value: str(HttpUrl(value.replace("http://", "https://"))).rstrip("/"))]
 
 
 def ensure_config_file_exists(file_path: Path, file_encoding: Optional[str] = None) -> None:
@@ -159,7 +159,6 @@ class Settings(BaseSettings):  # pylint: disable=too-few-public-methods
         This functions stores the team_member_id, access and refresh tokens in the config.json file.
         """
         self.auths[host].tokens = tokens
-        print("WE ARE GETTING THE MEMBER ID NOW")
         member_id = self.get_team_member_id(host=host, access_token=tokens.access_token)
         self.auths[host].team_member_id = member_id
         self.write_settings_to_file()
