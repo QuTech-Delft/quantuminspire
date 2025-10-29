@@ -18,7 +18,7 @@ from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, Settings
 from qi2_shared.utils import run_async
 from typing_extensions import Annotated
 
-Url = Annotated[str, BeforeValidator(lambda value: str(HttpUrl(value.replace("http://", "https://"))).rstrip("/"))]
+Url = Annotated[str, BeforeValidator(lambda value: str(HttpUrl(value)).rstrip("/").replace("http://", "https://"))]
 
 
 def ensure_config_file_exists(file_path: Path, file_encoding: Optional[str] = None) -> None:
