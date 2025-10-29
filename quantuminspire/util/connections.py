@@ -12,8 +12,8 @@ def add_protocol(url: str) -> str:
     parsed = urlparse(url)
 
     if parsed.scheme:
-        if parsed.scheme is 'http':
-            print("WARNING: Using 'http' protocol is not allowed. Consider using 'https'.")
+        if parsed.scheme == 'http':
+            raise ValueError("Using 'http' protocol is not allowed. Consider using 'https'.")
         return url
 
     # Try HTTPS first
