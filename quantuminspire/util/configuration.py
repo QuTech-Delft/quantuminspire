@@ -17,8 +17,17 @@ from pydantic.fields import Field, FieldInfo
 from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
 from qi2_shared.utils import run_async
 from typing_extensions import Annotated
+from connections import add_protocol
 
-Url = Annotated[str, BeforeValidator(lambda value: str(HttpUrl(value)).rstrip("/").replace("http://", "https://"))]
+Url = Annotated[
+    str,
+    BeforeValidator(
+        lambda value: add_protocol(
+            str(HttpUrl(value))
+            .rstrip("/")
+        )
+    )
+]
 
 
 def ensure_config_file_exists(file_path: Path, file_encoding: Optional[str] = None) -> None:
