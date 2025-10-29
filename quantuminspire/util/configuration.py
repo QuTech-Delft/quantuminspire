@@ -179,7 +179,7 @@ class Settings(BaseSettings):  # pylint: disable=too-few-public-methods
         )
 
     @staticmethod
-    async def _fetch_team_member_id(host: str, access_token: str) -> int:
+    async def _fetch_team_member_id(host: Url, access_token: str) -> int:
         config = Configuration(host=host, access_token=access_token)
         async with ApiClient(config) as api_client:
             api_instance = MembersApi(api_client)
