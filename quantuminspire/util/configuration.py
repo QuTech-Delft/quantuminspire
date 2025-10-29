@@ -19,15 +19,7 @@ from qi2_shared.utils import run_async
 from typing_extensions import Annotated
 from quantuminspire.util.connections import add_protocol
 
-Url = Annotated[
-    str,
-    BeforeValidator(
-        lambda value: add_protocol(
-            str(HttpUrl(value))
-            .rstrip("/")
-        )
-    )
-]
+Url = Annotated[str, BeforeValidator(lambda value: str(HttpUrl(value)).rstrip("/"))]
 
 
 def ensure_config_file_exists(file_path: Path, file_encoding: Optional[str] = None) -> None:
@@ -167,6 +159,7 @@ class Settings(BaseSettings):  # pylint: disable=too-few-public-methods
 
         This functions stores the team_member_id, access and refresh tokens in the config.json file.
         """
+        host = add_protocol(host)
         self.auths[host].tokens = tokens
         member_id = self.get_team_member_id(host=host, access_token=tokens.access_token)
         self.auths[host].team_member_id = member_id
@@ -179,7 +172,7 @@ class Settings(BaseSettings):  # pylint: disable=too-few-public-methods
         )
 
     @staticmethod
-    async def _fetch_team_member_id(host: Url, access_token: str) -> int:
+    async def _fetch_team_member_id(host: str, access_token: str) -> int:
         config = Configuration(host=host, access_token=access_token)
         async with ApiClient(config) as api_client:
             api_instance = MembersApi(api_client)
