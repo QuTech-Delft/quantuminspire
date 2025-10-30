@@ -19,6 +19,7 @@ The protocol will be determined automatically.')
     # Try HTTPS first
     try:
         response = requests.head(f"https://{url}", timeout=3, allow_redirects=True)
+        print("response.status_code:", response.status_code)
         if response.status_code < 400:
             return f"https://{url}"
     except requests.RequestException:
