@@ -203,7 +203,10 @@ def login(
     typer.echo(f"If promped to verify a code, please confirm it is as follows: {login_info['user_code']}")
     webbrowser.open(login_info["verification_uri_complete"], new=2)
     tokens = auth_session.poll_for_tokens()
-    settings.store_tokens(host_url, tokens)
+    try:
+        settings.store_tokens(host_url, tokens)
+    except PermissionError:
+        raise ValueError("URL is incorrect")
     typer.echo("Login successful!")
     typer.echo(f"Using member ID {settings.auths[host].team_member_id}")
 

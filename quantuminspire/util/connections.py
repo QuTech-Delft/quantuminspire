@@ -2,7 +2,7 @@
 from urllib.parse import urlparse
 
 import requests
-
+import logging
 
 def add_protocol(url: str) -> str:
     """Add 'https://' protocol to the URL if not already present.
@@ -12,8 +12,8 @@ def add_protocol(url: str) -> str:
     parsed = urlparse(url)
 
     if parsed.scheme:
-        if parsed.scheme == 'http' and not parsed.netloc.startswith('localhost'):
-            print("WARNING: Using 'http' protocol is not allowed. Consider using 'https'.")
+        logging.warn('It is not necessary to specify the protocol in the URL. \
+        The protocol will be determined automatically.')
         return url
 
     # Try HTTPS first
