@@ -15,7 +15,7 @@ jobs:
       - uses: QuTech-Delft/GitHub-Actions/actions/python/tox-static-check@master
         with:
           python-version: 3.12
-          poetry-version: 1.8.5
+          poetry-version: 2.2.1
   unit-test:
     name: Unit testing
     strategy:
@@ -39,7 +39,7 @@ jobs:
       - uses: QuTech-Delft/GitHub-Actions/actions/python/tox-unit-test@master
         with:
           python-version: 3.12
-          poetry-version: 1.8.5
+          poetry-version: 2.2.1
   complete:
     # see https://github.community/t/status-check-for-a-matrix-jobs/127354/7
     name: Report status
@@ -71,4 +71,3 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           merge-method: squash
-          
