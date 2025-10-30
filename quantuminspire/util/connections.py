@@ -13,7 +13,7 @@ def add_protocol(url: str) -> str:
 
     if parsed.scheme:
         logging.warn('It is not necessary to specify the protocol in the URL. \
-        The protocol will be determined automatically.')
+The protocol will be determined automatically.')
         return url
 
     # Try HTTPS first
