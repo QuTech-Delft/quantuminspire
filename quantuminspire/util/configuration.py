@@ -160,7 +160,6 @@ class Settings(BaseSettings):  # pylint: disable=too-few-public-methods
 
         This functions stores the team_member_id, access and refresh tokens in the config.json file.
         """
-        host = add_protocol(host)
         self.auths[host].tokens = tokens
         try:
             member_id = self.get_team_member_id(host=host, access_token=tokens.access_token)
