@@ -6,17 +6,11 @@ from typer import Typer
 app = Typer(add_completion=False, no_args_is_help=True)
 backend_types_app = Typer(no_args_is_help=True)
 config_app = Typer(no_args_is_help=True)
-final_results_app = Typer(no_args_is_help=True)
 jobs_app = Typer(no_args_is_help=True)
-projects_app = Typer(no_args_is_help=True)
-results_app = Typer(no_args_is_help=True)
 
 app.add_typer(backend_types_app, name="backends", help="Manage backends")
 app.add_typer(config_app, name="config", help="Manage configuration")
-app.add_typer(final_results_app, name="final-results", help="Manage final results")
 app.add_typer(jobs_app, name="jobs", help="Manage jobs")
-app.add_typer(projects_app, name="projects", help="Manage projects")
-app.add_typer(results_app, name="results", help="Manage results")
 
 
 @app.command("login")
@@ -54,8 +48,8 @@ def run_job(
     typer.echo("Job submitted successfully!")
 
 
-@jobs_app.command("get")
-def get_job(
+@jobs_app.command("inspect")
+def inspect_job(
     id: Optional[int] = typer.Argument(None, help="The ID of the job to retrieve."),
 ) -> None:
     """Retrieve information about a specific job."""
@@ -64,7 +58,7 @@ def get_job(
     typer.echo("Job details: {...}")  # Placeholder for actual job details
 
 
-@results_app.command("get")
+@jobs_app.command("result")
 def get_result(
     id: Optional[int] = typer.Argument(None, help="The ID of the job to retrieve the result for."),
 ) -> None:
@@ -73,7 +67,7 @@ def get_result(
     typer.echo("Result details: {...}")  # Placeholder for actual result details
 
 
-@final_results_app.command("get")
+@jobs_app.command("final-result")
 def get_final_result(
     id: Optional[int] = typer.Argument(None, help="The ID of the job to retrieve the result for."),
 ) -> None:

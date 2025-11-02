@@ -45,43 +45,43 @@ def test_run_job_persisting_id() -> None:
     assert "Job submitted successfully!" in result.stdout
 
 
-def test_get_job() -> None:
-    result = runner.invoke(app, ["jobs", "get", "123"])
+def test_inspect_job() -> None:
+    result = runner.invoke(app, ["jobs", "inspect", "123"])
 
     assert "Retrieving job with ID '123'..." in result.stdout
     assert "Job details: {...}" in result.stdout
 
 
-def test_get_job_without_id() -> None:
-    result = runner.invoke(app, ["jobs", "get"])
+def test_inspect_job_without_id() -> None:
+    result = runner.invoke(app, ["jobs", "inspect"])
 
     assert "Retrieving job with ID 'None'..." in result.stdout
     assert "Job details: {...}" in result.stdout
 
 
 def test_get_result() -> None:
-    result = runner.invoke(app, ["results", "get", "456"])
+    result = runner.invoke(app, ["jobs", "result", "456"])
 
     assert "Retrieving result with ID '456'..." in result.stdout
     assert "Result details: {...}" in result.stdout
 
 
 def test_get_result_without_id() -> None:
-    result = runner.invoke(app, ["results", "get"])
+    result = runner.invoke(app, ["jobs", "result"])
 
     assert "Retrieving result with ID 'None'..." in result.stdout
     assert "Result details: {...}" in result.stdout
 
 
 def test_get_final_result() -> None:
-    result = runner.invoke(app, ["final-results", "get", "789"])
+    result = runner.invoke(app, ["jobs", "final-result", "789"])
 
     assert "Retrieving final result with ID '789'..." in result.stdout
     assert "Final result details: {...}" in result.stdout
 
 
 def test_get_final_result_without_id() -> None:
-    result = runner.invoke(app, ["final-results", "get"])
+    result = runner.invoke(app, ["jobs", "final-result"])
 
     assert "Retrieving final result with ID 'None'..." in result.stdout
     assert "Final result details: {...}" in result.stdout
