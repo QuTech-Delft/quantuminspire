@@ -28,7 +28,7 @@ classifiers = [
 ]
 
 [project.scripts]
-qi = "quantuminspire.cli.command_list:app"
+qi = "quantuminspire.cli:app"
 
 [dependency-groups]
 dev = [
@@ -45,10 +45,11 @@ dev = [
     "types-oauthlib>=3.2.0.20240806",
     "responses>=0.25.6",
     "freezegun>=1.5.1",
+    "mutmut (>=3.3.1,<4.0.0)",
 ]
 
 [tool.pytest.ini_options]
-addopts = "-v --cov --cov-report term-missing:skip-covered --cov-report xml"
+# addopts = "-v --cov --cov-report term-missing:skip-covered --cov-report xml"
 asyncio_mode = "auto"
 testpaths = ["tests"]
 asyncio_default_fixture_loop_scope = "function"
@@ -92,6 +93,13 @@ ignore_missing_imports = true
 show_error_codes = true
 plugins = ["pydantic.mypy"]
 exclude = ["examples/", "tests/sdk/qiskit/", "scratch"]
+
+[tool.mutmut]
+paths_to_mutate = ["quantuminspire/"]
+pytest_add_cli_args_test_selection = ["tests/"]
+max_stack_depth = 8
+mutate_only_covered_lines = true
+
 
 [tool.ruff]
 lint.select = ["E", "F", "I"]

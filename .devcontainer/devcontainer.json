@@ -7,6 +7,15 @@
 	"features": {
 		"ghcr.io/devcontainers-extra/features/poetry:2": {},
 		"ghcr.io/devcontainers-extra/features/tox:2": {}
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-python.vscode-pylance",
+				"editorconfig.editorconfig",
+				"tamasfe.even-better-toml"
+			]
+		}
 	}
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
