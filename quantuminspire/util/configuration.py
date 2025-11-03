@@ -18,7 +18,6 @@ from pydantic.fields import Field, FieldInfo
 from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
 from qi2_shared.utils import run_async
 from typing_extensions import Annotated
-from quantuminspire.util.connections import add_protocol
 
 Url = Annotated[str, BeforeValidator(lambda value: str(HttpUrl(value)).rstrip("/"))]
 

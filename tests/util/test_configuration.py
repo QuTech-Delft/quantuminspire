@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 import jwt
 import pytest
 from compute_api_client import Member
+from compute_api_client.exceptions import ForbiddenException
 from pytest_mock import MockerFixture
 
 import quantuminspire.util.configuration as configuration
@@ -91,6 +92,15 @@ def test_store_tokens(mocked_config_file: MagicMock, mocker: MockerFixture) -> N
     mocker.patch("quantuminspire.util.configuration.Settings.get_team_member_id", return_value=1)
     settings = configuration.Settings()
     settings.store_tokens("https://host", EXAMPLE_TOKENINFO)
+
+
+def test_store_tokens_member_id_fails(mocked_config_file: MagicMock, mocker: MockerFixture) -> None:
+    mocker.patch("quantuminspire.util.configuration.Settings.get_team_member_id", side_effect=ForbiddenException())
+    settings = configuration.Settings()
+    with pytest.raises(
+        PermissionError, match="Could not retrieve team member ID. Please check your access token and host URL."
+    ):
+        settings.store_tokens("https://host", EXAMPLE_TOKENINFO)
 
 
 def test_owner_id_none(mocked_config_file: MagicMock) -> None:

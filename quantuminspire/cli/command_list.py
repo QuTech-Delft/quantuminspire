@@ -19,8 +19,8 @@ from quantuminspire.sdk.models.job_options import JobOptions
 from quantuminspire.util.api.local_backend import LocalBackend
 from quantuminspire.util.api.remote_backend import RemoteBackend
 from quantuminspire.util.authentication import OauthDeviceSession
-from quantuminspire.util.connections import add_protocol
 from quantuminspire.util.configuration import Settings, Url
+from quantuminspire.util.connections import add_protocol
 
 app = Typer(add_completion=False, no_args_is_help=True)
 backend_types_app = Typer(no_args_is_help=True)
