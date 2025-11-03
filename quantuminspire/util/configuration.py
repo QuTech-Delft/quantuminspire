@@ -12,6 +12,7 @@ from typing import Any, Dict, Optional, Tuple, Type, cast
 import jwt
 import typer
 from compute_api_client import ApiClient, AuthConfigApi, Configuration, MembersApi
+from compute_api_client.exceptions import ForbiddenException
 from pydantic import BaseModel, BeforeValidator, HttpUrl
 from pydantic.fields import Field, FieldInfo
 from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
@@ -159,7 +160,10 @@ class Settings(BaseSettings):  # pylint: disable=too-few-public-methods
         This functions stores the team_member_id, access and refresh tokens in the config.json file.
         """
         self.auths[host].tokens = tokens
-        member_id = self.get_team_member_id(host=host, access_token=tokens.access_token)
+        try:
+            member_id = self.get_team_member_id(host=host, access_token=tokens.access_token)
+        except ForbiddenException:
+            raise PermissionError("Could not retrieve team member ID. Please check your access token and host URL.")
         self.auths[host].team_member_id = member_id
         self.write_settings_to_file()
 
