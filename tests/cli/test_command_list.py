@@ -199,6 +199,7 @@ def test_login(mocker: MockerFixture, mocked_config_file: MagicMock) -> None:
     webbrowser_open = mocker.patch("quantuminspire.cli.command_list.webbrowser.open")
     store_tokens = mocker.patch("quantuminspire.cli.command_list.Settings.store_tokens")
     fetch_auth = mocker.patch("quantuminspire.cli.command_list.Settings.fetch_auth_settings")
+    add_protocol = mocker.patch("quantuminspire.cli.command_list.add_protocol", return_value="https://host")
 
     result = runner.invoke(app, ["login", "https://host"])
 
@@ -208,7 +209,19 @@ def test_login(mocker: MockerFixture, mocked_config_file: MagicMock) -> None:
     device_session.initialize_authorization.assert_called_once()
     device_session.poll_for_tokens.assert_called_once()
     store_tokens.assert_called_once()
+    add_protocol.assert_called_once_with("https://host")
     assert "Login successful!" in result.stdout
+
+
+def test_login_store_tokens_failure(mocker: MockerFixture, mocked_config_file: MagicMock) -> None:
+    mocker.patch("quantuminspire.cli.command_list.OauthDeviceSession")()
+    mocker.patch("quantuminspire.cli.command_list.webbrowser.open")
+    mocker.patch("quantuminspire.cli.command_list.Settings.store_tokens", side_effect=PermissionError())
+    mocker.patch("quantuminspire.cli.command_list.Settings.fetch_auth_settings")
+    mocker.patch("quantuminspire.cli.command_list.add_protocol", return_value="https://host")
+
+    result = runner.invoke(app, ["login", "https://host"])
+    assert "Your host URL is incorrect." in str(result.exception)
 
 
 def test_set_default_host(mocker: MockerFixture, mocked_config_file: MagicMock) -> None:

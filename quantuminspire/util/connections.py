@@ -1,8 +1,8 @@
-
+import logging
 from urllib.parse import urlparse
 
 import requests
-import logging
+
 
 def add_protocol(url: str) -> str:
     """Add 'https://' protocol to the URL if not already present.
@@ -12,14 +12,15 @@ def add_protocol(url: str) -> str:
     parsed = urlparse(url)
 
     if parsed.scheme:
-        logging.warn('It is not necessary to specify the protocol in the URL. \
-The protocol will be determined automatically.')
+        logging.warning(
+            "It is not necessary to specify the protocol in the URL. \
+The protocol will be determined automatically."
+        )
         return url
 
     # Try HTTPS first
     try:
         response = requests.head(f"https://{url}/docs", timeout=3, allow_redirects=True)
-        print("response.status_code:", response.status_code)
         if response.status_code < 400:
             return f"https://{url}"
     except requests.RequestException:
