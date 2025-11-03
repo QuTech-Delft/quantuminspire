@@ -193,7 +193,6 @@ def login(
     host = host or settings.default_host
     host = add_protocol(host)
     host_url = Url(host)
-    print('HOST URL', host_url)
 
     settings.default_host = host_url
 
@@ -210,7 +209,7 @@ def login(
     try:
         settings.store_tokens(host_url, tokens)
     except PermissionError:
-        raise ValueError("URL is incorrect")
+        raise ValueError("Your host URL is incorrect.")
     typer.echo("Login successful!")
     typer.echo(f"Using member ID {settings.auths[host].team_member_id}")
 
