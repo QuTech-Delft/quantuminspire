@@ -2,20 +2,20 @@ import logging
 from urllib.parse import urlparse
 
 import requests
+import typer
 
 
 def add_protocol(url: str) -> str:
-    """Add 'https://' protocol to the URL if not already present.
+    """Add 'https://' or 'http://' protocol to the URL if not already present.
     Args:
         url: The URL to which to add the protocol.
     """
     parsed = urlparse(url)
 
     if parsed.scheme:
-        logging.warning(
+        typer.echo(typer.style(
             "It is not necessary to specify the protocol in the URL. \
-The protocol will be determined automatically."
-        )
+The protocol will be determined automatically.", fg=typer.colors.YELLOW))
         return url
 
     # Try HTTPS first
