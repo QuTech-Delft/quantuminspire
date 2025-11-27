@@ -211,7 +211,7 @@ def login(
     except PermissionError:
         typer.echo(
             typer.style(
-                "Your host URL is incorrect.",
+                "LOGIN FAILED - Your host URL is incorrect.",
                 fg=typer.colors.RED,
             )
         )
