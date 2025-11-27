@@ -7,7 +7,7 @@ from pytest_mock import MockerFixture
 from quantuminspire.util.connections import add_protocol
 
 
-def test_url_with_scheme(capsys: CaptureFixture) -> None:
+def test_url_with_scheme(capsys: CaptureFixture[str]) -> None:
     test_url = "https://test_url.com"
     result_url = add_protocol(test_url)
 
