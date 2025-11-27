@@ -221,7 +221,8 @@ def test_login_store_tokens_failure(mocker: MockerFixture, mocked_config_file: M
     mocker.patch("quantuminspire.cli.command_list.add_protocol", return_value="https://host")
 
     result = runner.invoke(app, ["login", "https://host"])
-    assert "Your host URL is incorrect." in str(result.exception)
+    assert result.exit_code == 1
+    assert "LOGIN FAILED - Your host URL is incorrect." in result.stdout
 
 
 def test_set_default_host(mocker: MockerFixture, mocked_config_file: MagicMock) -> None:
