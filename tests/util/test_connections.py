@@ -15,6 +15,7 @@ def test_url_with_scheme(capsys: CaptureFixture[str]) -> None:
     captured = capsys.readouterr()
     assert "It is not necessary to specify the protocol in the URL" in captured.out
 
+
 def test_https_works(mocker: MockerFixture) -> None:
     test_url = "test_url.com"
 
