@@ -31,5 +31,3 @@ The protocol will be determined automatically.",
     except requests.RequestException:
         # Fall back to HTTP
         return f"http://{url}"
-
-
