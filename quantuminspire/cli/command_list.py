@@ -209,7 +209,13 @@ def login(
     try:
         settings.store_tokens(host_url, tokens)
     except PermissionError:
-        raise ValueError("Your host URL is incorrect.")
+        typer.echo(
+            typer.style(
+                "Your host URL is incorrect.",
+                fg=typer.colors.RED,
+            )
+        )
+        raise typer.Exit(1)
     typer.echo("Login successful!")
     typer.echo(f"Using member ID {settings.auths[host].team_member_id}")
 
