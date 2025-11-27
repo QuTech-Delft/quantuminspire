@@ -26,8 +26,10 @@ The protocol will be determined automatically.",
         response = requests.head(f"https://{url}/docs", timeout=3, allow_redirects=True)
         if response.status_code < 400:
             return f"https://{url}"
+        else:
+            return f"http://{url}"
     except requests.RequestException:
-        pass
+        # Fall back to HTTP
+        return f"http://{url}"
 
-    # Fall back to HTTP
-    return f"http://{url}"
+
