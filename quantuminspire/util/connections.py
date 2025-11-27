@@ -1,4 +1,3 @@
-import logging
 from urllib.parse import urlparse
 
 import requests
@@ -13,9 +12,13 @@ def add_protocol(url: str) -> str:
     parsed = urlparse(url)
 
     if parsed.scheme:
-        typer.echo(typer.style(
-            "It is not necessary to specify the protocol in the URL. \
-The protocol will be determined automatically.", fg=typer.colors.YELLOW))
+        typer.echo(
+            typer.style(
+                "It is not necessary to specify the protocol in the URL. \
+The protocol will be determined automatically.",
+                fg=typer.colors.YELLOW,
+            )
+        )
         return url
 
     # Try HTTPS first
