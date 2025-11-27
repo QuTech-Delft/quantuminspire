@@ -20,6 +20,7 @@ from quantuminspire.util.api.local_backend import LocalBackend
 from quantuminspire.util.api.remote_backend import RemoteBackend
 from quantuminspire.util.authentication import OauthDeviceSession
 from quantuminspire.util.configuration import Settings, Url
+from quantuminspire.util.connections import add_protocol
 
 app = Typer(add_completion=False, no_args_is_help=True)
 backend_types_app = Typer(no_args_is_help=True)
@@ -190,7 +191,9 @@ def login(
     """
     settings = Settings()
     host = host or settings.default_host
+    host = add_protocol(host)
     host_url = Url(host)
+
     settings.default_host = host_url
 
     if not override_auth_config:
@@ -203,7 +206,16 @@ def login(
     typer.echo(f"If promped to verify a code, please confirm it is as follows: {login_info['user_code']}")
     webbrowser.open(login_info["verification_uri_complete"], new=2)
     tokens = auth_session.poll_for_tokens()
-    settings.store_tokens(host_url, tokens)
+    try:
+        settings.store_tokens(host_url, tokens)
+    except PermissionError:
+        typer.echo(
+            typer.style(
+                "LOGIN FAILED - Your host URL is incorrect.",
+                fg=typer.colors.RED,
+            )
+        )
+        raise typer.Exit(1)
     typer.echo("Login successful!")
     typer.echo(f"Using member ID {settings.auths[host].team_member_id}")
 
