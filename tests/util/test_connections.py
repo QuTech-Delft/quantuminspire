@@ -1,19 +1,19 @@
 from unittest.mock import MagicMock
 
 import requests
-from pytest import LogCaptureFixture
+from pytest import CaptureFixture
 from pytest_mock import MockerFixture
 
 from quantuminspire.util.connections import add_protocol
 
 
-def test_url_with_scheme(caplog: LogCaptureFixture) -> None:
+def test_url_with_scheme(capsys: CaptureFixture) -> None:
     test_url = "https://test_url.com"
     result_url = add_protocol(test_url)
 
     assert result_url == test_url
-    assert "It is not necessary to specify the protocol in the URL" in caplog.text
-
+    captured = capsys.readouterr()
+    assert "It is not necessary to specify the protocol in the URL" in captured.out
 
 def test_https_works(mocker: MockerFixture) -> None:
     test_url = "test_url.com"
