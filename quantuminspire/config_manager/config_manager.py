@@ -1,0 +1,253 @@
+from enum import StrEnum
+from typing import Any, Dict, List, Optional, Tuple
+
+from quantuminspire.settings.base_settings import BaseConfigSettings
+from quantuminspire.settings.project_settings import ProjectSettings
+from quantuminspire.settings.user_settings import UserSettings
+
+
+class ConfigScopes(StrEnum):
+    USER = "USER"
+    PROJECT = "PROJECT"
+    SHARED = "SHARED"
+
+
+class ConfigManager:
+    """Manage configuration settings across project and user level scopes."""
+
+    _SETTING_SCOPE = {
+        "default_host": ConfigScopes.USER,
+        "backend_type": ConfigScopes.SHARED,
+        "project": ConfigScopes.PROJECT,
+        "algorithm": ConfigScopes.PROJECT,
+        "job": ConfigScopes.PROJECT,
+    }
+
+    def __init__(
+        self, project_settings: Optional[ProjectSettings] = None, user_settings: Optional[UserSettings] = None
+    ) -> None:
+        self._project_settings = project_settings or ProjectSettings()
+        self._user_settings = user_settings or UserSettings()
+
+        self._configurable_keys = self._compute_flattened_keys()
+
+    def _compute_flattened_keys(self) -> List[str]:
+        """Compute all configurable field keys across settings as a flat list.
+
+        This method collects and flattens all fields from each settings object
+        ensuring each key appears only once.
+
+        Returns:
+            A list of all unique configurable field keys in dot-separated notation.
+        """
+        keys: set[str] = set()
+        for setting in self._settings_priority:
+            keys.update(BaseConfigSettings.flatten_fields(setting))
+        return list(keys)
+
+    @property
+    def _settings_priority(self) -> List[BaseConfigSettings]:
+        """Return the list of settings objects in priority order for resolving values.
+
+        The first object has the highest priority when retrieving a setting, followed
+        by the next in the list. Typically, the order is:
+
+            1. Project settings (higher priority)
+            2. User settings (lower priority)
+
+        Returns:
+            A list of BaseConfigSettings instances in priority order.
+        """
+        return [self._project_settings, self._user_settings]
+
+    def _get_source_and_value(self, key: str) -> Tuple[str, Any]:
+        """Get the value of a setting and the source settings object that provides it.
+
+        This method searches through all configured settings objects in a defined
+        priority order (typically project → user) to determine the value for a given
+        key and which settings object it came from.
+
+        The resolution follows these rules:
+            1. Skip any settings object that does not have the requested attribute.
+            2. Return the first non-None value found, along with its source.
+            3. If all values are None but the attribute exists in at least one object,
+            return the last seen source and value (even if None).
+
+        Args:
+            key: The dot-separated setting key to retrieve.
+
+        Returns:
+            A tuple (source_name, value):
+                - source_name: The class name of the settings object that provided the value.
+                - value: The resolved value of the setting (can be None if all values are None).
+
+        Examples:
+            # Suppose project settings has `backend_type=None` and user settings has `backend_type=2`
+            source, value = config._get_source_and_value("backend_type")
+            # Returns ('UserSettings', 2)
+
+            # If the attribute exists only in project settings as None
+            source, value = config._get_source_and_value("project.id")
+            # Returns ('ProjectSettings', None)
+        """
+
+        last_value = None
+        last_source = None
+
+        for setting in self._settings_priority:
+            source_name = setting.__class__.__name__
+            try:
+                value = setting.get_value(key)
+            except AttributeError:
+                continue  # Attribute not on this settings object, try next
+
+            # Track last seen attribute (even if None)
+            last_value = value
+            last_source = source_name
+
+            # If value is not None, return immediately
+            if value is not None:
+                return last_source, last_value
+
+        # Fallback: attribute existed but all values were None
+        assert last_source is not None
+        return last_source, last_value
+
+    def get(self, key: str) -> Any:
+        """Retrieve the value of a configurable setting by key.
+
+        Args:
+            key: The dot-separated setting key to retrieve.
+
+        Returns:
+            The current value of the setting.
+
+        Raises:
+            ValueError: If the key is not a valid configurable setting.
+        """
+        if key not in self._configurable_keys:
+            raise ValueError(f"Key '{key}' is invalid")
+        _, value = self._get_source_and_value(key)
+        return value
+
+    def _get_setting_for_scope(
+        self, scope: ConfigScopes, is_global: bool
+    ) -> Tuple[BaseConfigSettings, Optional[BaseConfigSettings]]:
+        """Return the primary and secondary settings objects for a given scope.
+
+        Args:
+            scope: The configuration scope (PROJECT, USER, or SHARED).
+            is_global: If True, indicates a user-level/global operation for SHARED scope.
+
+        Returns:
+            A tuple (primary, secondary), where:
+                - primary: The settings object where the value should be set or retrieved.
+                - secondary: The other settings object for SHARED scope (may be None for PROJECT/USER).
+
+        Notes:
+            - For SHARED scope, the primary and secondary depend on is_global:
+                - is_global=True: primary=user, secondary=project
+                - is_global=False: primary=project, secondary=user
+        """
+
+        match scope:
+            case ConfigScopes.PROJECT:
+                return self._project_settings, None
+            case ConfigScopes.USER:
+                return self._user_settings, None
+            case ConfigScopes.SHARED:
+                if is_global:
+                    return self._user_settings, self._project_settings
+                return self._project_settings, self._user_settings
+            case _:  # pragma: no cover
+                raise ValueError(f"Unknown scope: {scope}")
+
+    def set(self, key: str, value: Any, is_global: bool = False) -> None:
+        """Set the value of a configurable setting in the appropriate scope.
+
+        Args:
+            key: The dot-separated setting key to set.
+            value: The value to assign to the setting.
+            is_global: If True, set the setting in the user-level/global scope;
+                        else set in the project-level/local scope (default is False).
+
+        Raises:
+            ValueError: If the key is not configurable or the scope is disallowed
+                (e.g., setting a user-only key in project scope or vice versa).
+
+        Notes:
+            - When a shared setting is set in the user-level/global scope, it will clear the
+            corresponding value in the project-level/local scope to maintain precedence.
+        """
+
+        if key not in self._configurable_keys:
+            raise ValueError(f"Key '{key}' is invalid")
+
+        base = key.split(".")[0]
+        scope = self._SETTING_SCOPE[base]
+
+        # Explicit error for disallowed scope
+        user_scope_invalid = scope == ConfigScopes.USER and not is_global
+        project_scope_invalid = scope == ConfigScopes.PROJECT and is_global
+
+        if user_scope_invalid or project_scope_invalid:
+            raise ValueError(f"'{key}' can only be set on {scope.value} settings.")
+
+        primary, other = self._get_setting_for_scope(scope, is_global)
+
+        if primary is self._user_settings and other is not None:
+            other.clear(key)
+
+        primary.set_value(key, value)
+
+    def _resolve_field_values(self) -> dict[str, Any]:
+        """Collect all configurable fields with their current value and source.
+
+        Returns:
+            A flat dictionary mapping each configurable key to a dict with:
+                'value': the current value of the setting
+                'source': the settings object it came from
+        """
+
+        flat: dict[str, Any] = {}
+        for key in self._configurable_keys:
+            source, value = self._get_source_and_value(key)
+            flat[key] = {"value": value, "source": source}
+        return flat
+
+    def _group_fields(self, flat_fields: dict[str, Any]) -> dict[str, Any]:
+        """Group flat dot-notation fields by their top-level key.
+
+        Args:
+            flat_fields: A dictionary of flat dot-notation keys to value/source dicts.
+
+        Returns:
+            A nested dictionary grouped by top-level keys.
+            Example:
+                Flat: {'project.name': {...}, 'project.id': {...}, 'algorithm.type': {...}}
+                Grouped: {'project': {'name': {...}, 'id': {...}}, 'algorithm': {'type': {...}}}
+        """
+
+        grouped_fields: dict[str, Any] = {}
+        for key, info in flat_fields.items():
+            parts = key.split(".")
+            if len(parts) == 1:
+                grouped_fields[parts[0]] = info
+            else:
+                top, rest = parts[0], ".".join(parts[1:])
+                grouped_fields.setdefault(top, {})[rest] = info
+        return grouped_fields
+
+    def inspect(self) -> Dict[str, Any]:
+        """Return all configurable settings with their values and sources, grouped by top-level key.
+
+        This method collects all settings from the underlying sources and returns them
+        as a nested dictionary, with top-level keys grouping related fields.
+
+        Returns:
+            A nested dictionary of settings with structure:
+                {'project': {'name': {'value': ..., 'source': ...}, ...},
+                'algorithm': {'type': {'value': ..., 'source': ...}, ...}, ...}
+        """
+
+        return self._group_fields(self._resolve_field_values())
