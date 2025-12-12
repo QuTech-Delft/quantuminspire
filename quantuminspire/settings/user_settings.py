@@ -13,7 +13,8 @@ class UserSettings(BaseConfigSettings):
 
     @classmethod
     def base_dir(cls) -> Path:
-        return Path.home()
+        return Path("/workspaces/quantuminspire2/nischal/global")
+        # return Path.home()
 
     @classmethod
     def default_factory(cls) -> Dict[str, Any]:

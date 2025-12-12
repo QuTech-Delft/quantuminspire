@@ -1,8 +1,10 @@
 import copy
 from pathlib import Path
 from typing import Any, Dict, Optional
+from unittest.mock import patch
 
 import pytest
+from pytest_mock import MockerFixture
 
 from quantuminspire.config_manager.config_manager import ConfigManager
 from quantuminspire.settings.project_settings import ProjectSettings
@@ -24,14 +26,14 @@ class DummyUserSettings(TestBaseDirMixin, UserSettings):
 
 @pytest.fixture
 def project_settings(tmp_path: Path) -> DummyProjectSettings:
-    DummyProjectSettings._override_base_dir = tmp_path / "project"
+    DummyProjectSettings._override_base_dir = tmp_path
     instance = DummyProjectSettings()
     return instance
 
 
 @pytest.fixture
 def user_settings(tmp_path: Path) -> DummyUserSettings:
-    DummyUserSettings._override_base_dir = tmp_path / "user"
+    DummyUserSettings._override_base_dir = tmp_path
     instance = DummyUserSettings()
     return instance
 
@@ -46,19 +48,19 @@ def config_manager(project_settings: DummyProjectSettings, user_settings: DummyU
 def default_settings_map() -> Dict[str, Any]:
     settings_scopes: Dict[str, Any] = {
         "algorithm": {
-            "id": {"value": None, "source": "DummyProjectSettings"},
-            "store_raw_data": {"value": False, "source": "DummyProjectSettings"},
-            "algorithm_type": {"value": "quantum", "source": "DummyProjectSettings"},
-            "num_shots": {"value": 1024, "source": "DummyProjectSettings"},
+            "id": {"value": None, "source": "dummyprojectsettings"},
+            "store_raw_data": {"value": False, "source": "dummyprojectsettings"},
+            "algorithm_type": {"value": "quantum", "source": "dummyprojectsettings"},
+            "num_shots": {"value": 1024, "source": "dummyprojectsettings"},
         },
-        "job": {"id": {"value": None, "source": "DummyProjectSettings"}},
+        "job": {"id": {"value": None, "source": "dummyprojectsettings"}},
         "project": {
-            "id": {"value": None, "source": "DummyProjectSettings"},
-            "name": {"value": "Example Project", "source": "DummyProjectSettings"},
-            "description": {"value": "Example Project", "source": "DummyProjectSettings"},
+            "id": {"value": None, "source": "dummyprojectsettings"},
+            "name": {"value": "Example Project", "source": "dummyprojectsettings"},
+            "description": {"value": "Example Project", "source": "dummyprojectsettings"},
         },
-        "backend_type": {"value": None, "source": "DummyUserSettings"},
-        "default_host": {"value": "https://api.quantum-inspire.com", "source": "DummyUserSettings"},
+        "backend_type": {"value": None, "source": "dummyusersettings"},
+        "default_host": {"value": "https://api.quantum-inspire.com", "source": "dummyusersettings"},
     }
 
     return copy.deepcopy(settings_scopes)
@@ -128,16 +130,16 @@ def test_set_invalid_key(config_manager: ConfigManager, key: str, value: Any) ->
 
 
 @pytest.mark.parametrize(
-    "key, value, is_global",
+    "key, value, is_user",
     [
         ("project.description", "Example Project", True),
         ("default_host", "https://api.quantum-inspire.com", False),
     ],
 )
-def test_set_invalid_scopes(config_manager: ConfigManager, key: str, value: Any, is_global: bool) -> None:
+def test_set_invalid_scopes(config_manager: ConfigManager, key: str, value: Any, is_user: bool) -> None:
 
     with pytest.raises(ValueError):
-        config_manager.set(key, value, is_global)
+        config_manager.set(key, value, is_user)
 
 
 @pytest.mark.parametrize(
@@ -156,7 +158,7 @@ def test_set_invalid_scopes(config_manager: ConfigManager, key: str, value: Any,
 def test_set_project_scopes(config_manager: ConfigManager, key: str, old_value: Any, new_value: Any) -> None:
     # Act & Assert
     assert config_manager.get(key) == old_value
-    config_manager.set(key, new_value, is_global=False)
+    config_manager.set(key, new_value, is_user=False)
     assert config_manager.get(key) == new_value
 
 
@@ -169,7 +171,7 @@ def test_set_project_scopes(config_manager: ConfigManager, key: str, old_value: 
 def test_set_user_scopes(config_manager: ConfigManager, key: str, old_value: Any, new_value: Any) -> None:
     # Act & Assert
     assert config_manager.get(key) == old_value
-    config_manager.set(key, new_value, is_global=True)
+    config_manager.set(key, new_value, is_user=True)
     assert config_manager.get(key) == new_value
 
 
@@ -186,7 +188,7 @@ def test_shared_scope_user_precedence_clears_project_scope(
     config_manager._project_settings.set_value(key, project_value)
 
     # Act
-    config_manager.set(key, user_value, is_global=True)
+    config_manager.set(key, user_value, is_user=True)
 
     # Assert
     assert config_manager._project_settings.get_value(key) is None
@@ -206,7 +208,7 @@ def test_shared_scope_project_precedence_without_overwriting_user(
     config_manager._user_settings.set_value(key, user_value)
 
     # Act
-    config_manager.set(key, project_value, is_global=False)
+    config_manager.set(key, project_value, is_user=False)
 
     # Assert
     assert config_manager._user_settings.get_value(key) == user_value
@@ -216,9 +218,9 @@ def test_shared_scope_project_precedence_without_overwriting_user(
 @pytest.mark.parametrize(
     "project_value, user_value, expected_value, expected_setting",
     [
-        (500, 600, 500, "DummyProjectSettings"),
-        (None, 600, 600, "DummyUserSettings"),
-        (None, None, None, "DummyUserSettings"),
+        (500, 600, 500, "dummyprojectsettings"),
+        (None, 600, 600, "dummyusersettings"),
+        (None, None, None, "dummyusersettings"),
     ],
 )
 def test_inspect_merger(
@@ -238,3 +240,19 @@ def test_inspect_merger(
     default_settings_map[backend_type_key]["source"] = expected_setting
 
     assert config_manager.inspect() == default_settings_map
+
+def test_config_manager_raises_if_project_not_initialised(mocker: MockerFixture, user_settings: DummyUserSettings):
+    mocker.patch(
+        "quantuminspire.config_manager.config_manager.ProjectSettings",
+        side_effect=FileNotFoundError
+    )
+
+    with pytest.raises(RuntimeError, match="Project not initialised"):
+        ConfigManager(user_settings=user_settings)
+
+
+def test_init_calls_initialize(tmp_path: Path):
+    with patch.object(ProjectSettings, "initialize") as mock_init:
+        ConfigManager.init(path=tmp_path)
+
+        mock_init.assert_called_once_with(tmp_path)

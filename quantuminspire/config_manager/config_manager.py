@@ -1,4 +1,4 @@
-from enum import StrEnum
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from quantuminspire.settings.base_settings import BaseConfigSettings
@@ -6,44 +6,52 @@ from quantuminspire.settings.project_settings import ProjectSettings
 from quantuminspire.settings.user_settings import UserSettings
 
 
-class ConfigScopes(StrEnum):
-    USER = "USER"
-    PROJECT = "PROJECT"
-    SHARED = "SHARED"
-
-
 class ConfigManager:
     """Manage configuration settings across project and user level scopes."""
-
-    _SETTING_SCOPE = {
-        "default_host": ConfigScopes.USER,
-        "backend_type": ConfigScopes.SHARED,
-        "project": ConfigScopes.PROJECT,
-        "algorithm": ConfigScopes.PROJECT,
-        "job": ConfigScopes.PROJECT,
-    }
 
     def __init__(
         self, project_settings: Optional[ProjectSettings] = None, user_settings: Optional[UserSettings] = None
     ) -> None:
-        self._project_settings = project_settings or ProjectSettings()
+        try:
+            self._project_settings = project_settings or ProjectSettings()
+        except FileNotFoundError:
+            raise RuntimeError("Project not initialised. Please run ConfigManager.init() from project root.")
         self._user_settings = user_settings or UserSettings()
-
         self._configurable_keys = self._compute_flattened_keys()
 
-    def _compute_flattened_keys(self) -> List[str]:
-        """Compute all configurable field keys across settings as a flat list.
+    def _compute_flattened_keys(self) -> Dict[str, List[BaseConfigSettings]]:
+        """
+        Build a mapping of flattened configuration field keys to the settings objects
+        that define them.
 
-        This method collects and flattens all fields from each settings object
-        ensuring each key appears only once.
+        This method inspects each settings object in priority order, extracts its
+        flattened field keys, and produces a dictionary where each key is a
+        dot-notation field path (e.g. "backend_type", "project.name") and the value
+        is a list of settings instances that declare that field.
 
         Returns:
-            A list of all unique configurable field keys in dot-separated notation.
+                A mapping of field paths to the settings objects that define them.
+                Example:
+                    {
+                        "backend_type": [ProjectSettings, UserSettings],
+                        "project.name": [ProjectSettings],
+                    }
         """
-        keys: set[str] = set()
+        # Stores flattened keys for each settings class name
+        flattened_keys_by_class: Dict[str, List[str]] = {
+            setting.__class__.__name__: BaseConfigSettings.flatten_fields(setting)
+            for setting in self._settings_priority
+        }
+
+        # Maps each flattened key to the settings objects that define it
+        keys_to_settings: Dict[str, List[BaseConfigSettings]] = {}
+
         for setting in self._settings_priority:
-            keys.update(BaseConfigSettings.flatten_fields(setting))
-        return list(keys)
+            class_name = setting.__class__.__name__
+            for field_key in flattened_keys_by_class[class_name]:
+                keys_to_settings.setdefault(field_key, []).append(setting)
+
+        return keys_to_settings
 
     @property
     def _settings_priority(self) -> List[BaseConfigSettings]:
@@ -94,8 +102,8 @@ class ConfigManager:
         last_value = None
         last_source = None
 
-        for setting in self._settings_priority:
-            source_name = setting.__class__.__name__
+        for setting in self._configurable_keys[key]:
+            source_name = setting.__class__.__name__.lower()
             try:
                 value = setting.get_value(key)
             except AttributeError:
@@ -130,45 +138,13 @@ class ConfigManager:
         _, value = self._get_source_and_value(key)
         return value
 
-    def _get_setting_for_scope(
-        self, scope: ConfigScopes, is_global: bool
-    ) -> Tuple[BaseConfigSettings, Optional[BaseConfigSettings]]:
-        """Return the primary and secondary settings objects for a given scope.
-
-        Args:
-            scope: The configuration scope (PROJECT, USER, or SHARED).
-            is_global: If True, indicates a user-level/global operation for SHARED scope.
-
-        Returns:
-            A tuple (primary, secondary), where:
-                - primary: The settings object where the value should be set or retrieved.
-                - secondary: The other settings object for SHARED scope (may be None for PROJECT/USER).
-
-        Notes:
-            - For SHARED scope, the primary and secondary depend on is_global:
-                - is_global=True: primary=user, secondary=project
-                - is_global=False: primary=project, secondary=user
-        """
-
-        match scope:
-            case ConfigScopes.PROJECT:
-                return self._project_settings, None
-            case ConfigScopes.USER:
-                return self._user_settings, None
-            case ConfigScopes.SHARED:
-                if is_global:
-                    return self._user_settings, self._project_settings
-                return self._project_settings, self._user_settings
-            case _:  # pragma: no cover
-                raise ValueError(f"Unknown scope: {scope}")
-
-    def set(self, key: str, value: Any, is_global: bool = False) -> None:
+    def set(self, key: str, value: Any, is_user: bool = False) -> None:
         """Set the value of a configurable setting in the appropriate scope.
 
         Args:
             key: The dot-separated setting key to set.
             value: The value to assign to the setting.
-            is_global: If True, set the setting in the user-level/global scope;
+            is_user: If True, set the setting in the user-level/global scope;
                         else set in the project-level/local scope (default is False).
 
         Raises:
@@ -183,22 +159,31 @@ class ConfigManager:
         if key not in self._configurable_keys:
             raise ValueError(f"Key '{key}' is invalid")
 
-        base = key.split(".")[0]
-        scope = self._SETTING_SCOPE[base]
+        key_settings = self._configurable_keys[key]
 
-        # Explicit error for disallowed scope
-        user_scope_invalid = scope == ConfigScopes.USER and not is_global
-        project_scope_invalid = scope == ConfigScopes.PROJECT and is_global
+        # A key that exists in both Project and User settings
+        is_shared = len(key_settings) == 2
 
-        if user_scope_invalid or project_scope_invalid:
-            raise ValueError(f"'{key}' can only be set on {scope.value} settings.")
+        target_setting = None
 
-        primary, other = self._get_setting_for_scope(scope, is_global)
+        if is_shared:
+            project_settings, user_settings = key_settings
+            if is_user:
+                target_setting = user_settings
+                # clear the project override
+                project_settings.clear(key)
+            else:
+                target_setting = key_settings[0]
+        else:
+            target_setting = key_settings[0]
+            user_scope_invalid = target_setting is self._user_settings and not is_user
+            project_scope_invalid = target_setting is self._project_settings and is_user
 
-        if primary is self._user_settings and other is not None:
-            other.clear(key)
+            if user_scope_invalid or project_scope_invalid:
+                raise ValueError(f"Invalid scope for '{key}'.")
 
-        primary.set_value(key, value)
+        assert target_setting is not None
+        target_setting.set_value(key, value)
 
     def _resolve_field_values(self) -> dict[str, Any]:
         """Collect all configurable fields with their current value and source.
@@ -251,3 +236,9 @@ class ConfigManager:
         """
 
         return self._group_fields(self._resolve_field_values())
+
+    @classmethod
+    def init(cls, path: Optional[Path] = None) -> None:
+        directory = path or Path.cwd()
+        ProjectSettings.initialize(directory)
+
