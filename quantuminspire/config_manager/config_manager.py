@@ -20,22 +20,19 @@ class ConfigManager:
         self._configurable_keys = self._compute_flattened_keys()
 
     def _compute_flattened_keys(self) -> Dict[str, List[BaseConfigSettings]]:
-        """
-        Build a mapping of flattened configuration field keys to the settings objects
-        that define them.
+        """Build a mapping of flattened configuration field keys to the settings objects that define them.
 
-        This method inspects each settings object in priority order, extracts its
-        flattened field keys, and produces a dictionary where each key is a
-        dot-notation field path (e.g. "backend_type", "project.name") and the value
-        is a list of settings instances that declare that field.
+        This method inspects each settings object in priority order, extracts its flattened field keys,
+        and produces a dictionary where each key is a dot-notation field path (e.g., "backend_type", "project.name")
+        and the value is a list of settings instances that declare that field.
 
         Returns:
-                A mapping of field paths to the settings objects that define them.
-                Example:
-                    {
-                        "backend_type": [ProjectSettings, UserSettings],
-                        "project.name": [ProjectSettings],
-                    }
+            A mapping of field paths to the settings objects that define them.
+            Example:
+                {
+                    "backend_type": [ProjectSettings, UserSettings],
+                    "project.name": [ProjectSettings],
+                }
         """
         # Stores flattened keys for each settings class name
         flattened_keys_by_class: Dict[str, List[str]] = {
@@ -92,26 +89,22 @@ class ConfigManager:
         Examples:
             # Suppose project settings has `backend_type=None` and user settings has `backend_type=2`
             source, value = config._get_source_and_value("backend_type")
-            # Returns ('UserSettings', 2)
+            # Returns ('usersettings', 2)
 
             # If the attribute exists only in project settings as None
             source, value = config._get_source_and_value("project.id")
-            # Returns ('ProjectSettings', None)
+            # Returns ('projectsettings', None)
         """
 
         last_value = None
         last_source = None
 
         for setting in self._configurable_keys[key]:
-            source_name = setting.__class__.__name__.lower()
-            try:
-                value = setting.get_value(key)
-            except AttributeError:
-                continue  # Attribute not on this settings object, try next
+            value = setting.get_value(key)
 
             # Track last seen attribute (even if None)
             last_value = value
-            last_source = source_name
+            last_source = setting.__class__.__name__.lower()
 
             # If value is not None, return immediately
             if value is not None:
@@ -161,25 +154,20 @@ class ConfigManager:
 
         key_settings = self._configurable_keys[key]
 
-        # A key that exists in both Project and User settings
-        is_shared = len(key_settings) == 2
-
         target_setting = None
 
-        if is_shared:
+        if len(key_settings) == 2:  # shared key
             project_settings, user_settings = key_settings
+            target_setting = user_settings if is_user else project_settings
+
+            # Clear project override if setting user-level value
             if is_user:
-                target_setting = user_settings
-                # clear the project override
                 project_settings.clear(key)
-            else:
-                target_setting = key_settings[0]
         else:
             target_setting = key_settings[0]
-            user_scope_invalid = target_setting is self._user_settings and not is_user
-            project_scope_invalid = target_setting is self._project_settings and is_user
-
-            if user_scope_invalid or project_scope_invalid:
+            if (target_setting is self._user_settings and not is_user) or (
+                target_setting is self._project_settings and is_user
+            ):
                 raise ValueError(f"Invalid scope for '{key}'.")
 
         assert target_setting is not None
@@ -239,6 +227,15 @@ class ConfigManager:
 
     @classmethod
     def init(cls, path: Optional[Path] = None) -> None:
+        """Initialize a project configuration in the given directory.
+
+        This method creates the necessary project configuration file(s)
+        at the specified path, or in the current working directory if no path
+        is provided, by calling `ProjectSettings.initialize`.
+
+        Args:
+            path: The directory where the project configuration
+                should be initialized. Defaults to the current working directory.
+        """
         directory = path or Path.cwd()
         ProjectSettings.initialize(directory)
-

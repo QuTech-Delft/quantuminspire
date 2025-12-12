@@ -241,17 +241,17 @@ def test_inspect_merger(
 
     assert config_manager.inspect() == default_settings_map
 
-def test_config_manager_raises_if_project_not_initialised(mocker: MockerFixture, user_settings: DummyUserSettings):
-    mocker.patch(
-        "quantuminspire.config_manager.config_manager.ProjectSettings",
-        side_effect=FileNotFoundError
-    )
+
+def test_config_manager_raises_if_project_not_initialised(
+    mocker: MockerFixture, user_settings: DummyUserSettings
+) -> None:
+    mocker.patch("quantuminspire.config_manager.config_manager.ProjectSettings", side_effect=FileNotFoundError)
 
     with pytest.raises(RuntimeError, match="Project not initialised"):
         ConfigManager(user_settings=user_settings)
 
 
-def test_init_calls_initialize(tmp_path: Path):
+def test_init_calls_initialize(tmp_path: Path) -> None:
     with patch.object(ProjectSettings, "initialize") as mock_init:
         ConfigManager.init(path=tmp_path)
 

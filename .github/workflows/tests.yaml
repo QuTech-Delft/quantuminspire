@@ -24,10 +24,9 @@ jobs:
         os:
           - ubuntu-latest
           - macos-15-intel # runs x64
-          - macos-14 # runs arm64
+          - macos-15 # runs arm64
           - windows-latest
         python-version:
-          - "3.9"
           - "3.10"
           - "3.11"
           - "3.12"

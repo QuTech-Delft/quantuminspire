@@ -11,12 +11,10 @@ class ProjectSettings(BaseConfigSettings):
     project: Project = Project()
     job: Job = Job()
 
-
     @classmethod
     def find_project_root(cls, start: Path | None = None) -> Path:
         """Search upward from start until the project marker is found."""
-        if start is None:
-            start = Path.cwd()
+        start = start or Path.cwd()
 
         current = start.resolve()
 

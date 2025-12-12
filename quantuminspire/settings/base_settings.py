@@ -60,7 +60,6 @@ class BaseConfigSettings(BaseSettings, ABC):  # pylint: disable=too-few-public-m
 
     backend_type: Optional[int] = Field(None)
 
-
     @classmethod
     def file_marker(cls) -> List[str]:
         """Return the full JSON file path (base_dir + subpath)."""
