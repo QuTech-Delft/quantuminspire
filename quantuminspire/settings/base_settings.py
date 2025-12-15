@@ -55,7 +55,6 @@ class BaseConfigSettings(BaseSettings, ABC):  # pylint: disable=too-few-public-m
 
     model_config = SettingsConfigDict(
         env_file_encoding="utf-8",
-        env_prefix="QI2_",
     )
 
     backend_type: Optional[int] = Field(None)
