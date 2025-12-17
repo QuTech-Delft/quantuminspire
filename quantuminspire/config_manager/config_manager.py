@@ -131,14 +131,14 @@ class ConfigManager:
         _, value = self._get_source_and_value(key)
         return value
 
-    def set(self, key: str, value: Any, is_user: bool = False) -> None:
+    def set(self, key: str, value: Any, is_user: bool) -> None:
         """Set the value of a configurable setting in the appropriate scope.
 
         Args:
             key: The dot-separated setting key to set.
             value: The value to assign to the setting.
             is_user: If True, set the setting in the user-level/global scope;
-                        else set in the project-level/local scope (default is False).
+                        else set in the project-level/local scope.
 
         Raises:
             ValueError: If the key is not configurable or the scope is disallowed
@@ -226,7 +226,7 @@ class ConfigManager:
         return self._group_fields(self._resolve_field_values())
 
     @classmethod
-    def init(cls, path: Optional[Path] = None) -> None:
+    def initialize(cls, path: Path) -> None:
         """Initialize a project configuration in the given directory.
 
         This method creates the necessary project configuration file(s)
@@ -237,5 +237,4 @@ class ConfigManager:
             path: The directory where the project configuration
                 should be initialized. Defaults to the current working directory.
         """
-        directory = path or Path.cwd()
-        ProjectSettings.initialize(directory)
+        ProjectSettings.initialize(path)
