@@ -39,6 +39,9 @@ def logout(
 def run_job(
     file: str = typer.Argument(..., help="The path to the hybrid algorithm or quantum circuit."),
     name: Optional[str] = typer.Option(None, help="The name of the file."),
+    num_shots: Optional[str] = typer.Option(None, help="The Number of shots"),
+    store_raw_data: Optional[str] = typer.Option(None, help="Whether to store data for each shot."),
+    backend_type_id: Optional[int] = typer.Option(None, help="The backendtype id."),
     persist: bool = typer.Option(False, help="Store the project and algorithm the file is uploaded to."),
 ) -> None:
     """Run a new job on Quantum Inspire."""
