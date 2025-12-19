@@ -136,8 +136,8 @@ def test_set(api_instance: QIApi) -> None:
 @pytest.mark.parametrize(
     "persist",
     [
-        (True,),
-        (False,),
+        True,
+        False,
     ],
 )
 def test_submit_job(
@@ -170,7 +170,7 @@ def test_submit_job(
     with patch.object(api_instance, "_get_job_options", return_value=resolved_options) as mocked_get_job_options:
 
         # Act
-        _ = api_instance.submit_job(file_path, file_name, num_shots, store_raw_data, backend_type_id, persist=persist)
+        _ = api_instance.submit_job(file_path, file_name, num_shots, store_raw_data, backend_type_id, persist)
 
         # Assert
         mocked_get_job_options.assert_called_with(file_name, num_shots, store_raw_data, backend_type_id)

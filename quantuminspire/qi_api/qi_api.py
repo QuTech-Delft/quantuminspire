@@ -8,8 +8,9 @@ from compute_api_client import (
 )
 from pydantic import TypeAdapter
 
+from quantuminspire.auth_manager.auth_manager import AuthManager
 from quantuminspire.config_manager.config_manager import ConfigManager
-from quantuminspire.job_manager.job_manager import AuthManager, JobManager, JobOptions
+from quantuminspire.job_manager.job_manager import JobManager, JobOptions
 from quantuminspire.settings.models import Url
 
 
@@ -71,7 +72,7 @@ class QIApi:
     def inspect(self) -> Dict[str, Any]:
         return self._config_manager.inspect()
 
-    def get(self, key: str) -> Dict[str, Any]:
+    def get(self, key: str) -> Any:
         return self._config_manager.get(key)
 
     def set(self, key: str, value: Any, is_user: bool = False) -> None:

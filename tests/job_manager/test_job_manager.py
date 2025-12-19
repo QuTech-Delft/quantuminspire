@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Any, Dict
+
 import pytest
 from compute_api_client import Job
 
@@ -31,18 +32,19 @@ def test_get_final_result(job_manager: JobManager) -> None:
 
     assert job_manager.get_final_result(123) is None
 
+
 def test_run_flow(job_manager: JobManager) -> None:
 
     options: Dict[str, Any] = {
-            "file_path": Path.cwd(),
-            "project_id": 1,
-            "project_name": "some-project",
-            "project_description": "some-project",
-            "backend_type": 1,
-            "number_of_shots": 1,
-            "raw_data_enabled": False,
-            "algorithm_name": "some-name",
-        }
+        "file_path": Path.cwd(),
+        "project_id": 1,
+        "project_name": "some-project",
+        "project_description": "some-project",
+        "backend_type": 1,
+        "number_of_shots": 1,
+        "raw_data_enabled": False,
+        "algorithm_name": "some-name",
+    }
 
     job_options = job_manager.run_flow(JobOptions(**options))
 
