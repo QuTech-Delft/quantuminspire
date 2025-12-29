@@ -4,10 +4,10 @@ from unittest.mock import Mock, call, patch
 
 import pytest
 
-from quantuminspire.auth_manager.auth_manager import AuthManager
-from quantuminspire.config_manager.config_manager import ConfigManager
-from quantuminspire.job_manager.job_manager import JobManager, JobOptions
-from quantuminspire.qi_api.qi_api import QIApi
+from quantuminspire.api import Api
+from quantuminspire.managers.auth_manager import AuthManager
+from quantuminspire.managers.config_manager import ConfigManager
+from quantuminspire.managers.job_manager import JobManager, JobOptions
 
 
 @pytest.fixture
@@ -26,8 +26,8 @@ def mock_job_manager() -> Mock:
 
 
 @pytest.fixture
-def api_instance(mock_config_manager: Mock, mock_auth_manager: Mock, mock_job_manager: Mock) -> QIApi:
-    return QIApi(mock_config_manager, mock_auth_manager, mock_job_manager)
+def api_instance(mock_config_manager: Mock, mock_auth_manager: Mock, mock_job_manager: Mock) -> Api:
+    return Api(mock_config_manager, mock_auth_manager, mock_job_manager)
 
 
 @pytest.mark.parametrize(
@@ -37,7 +37,7 @@ def api_instance(mock_config_manager: Mock, mock_auth_manager: Mock, mock_job_ma
         (None, "https://default_hostname.com"),  # default from config
     ],
 )
-def test_login(api_instance: QIApi, mock_config_manager: Mock, hostname: str | None, expected_hostname: str) -> None:
+def test_login(api_instance: Api, mock_config_manager: Mock, hostname: str | None, expected_hostname: str) -> None:
     # Arrange
     if hostname is None:
         mock_config_manager.get.return_value = expected_hostname
@@ -51,7 +51,7 @@ def test_login(api_instance: QIApi, mock_config_manager: Mock, hostname: str | N
     login_mock.assert_called_with(expected_hostname)
 
 
-def test_get_backend_types(api_instance: QIApi) -> None:
+def test_get_backend_types(api_instance: Api) -> None:
     # Arrange & act
     api_instance.get_backend_types()
 
@@ -71,7 +71,7 @@ def test_get_backend_types(api_instance: QIApi) -> None:
     ],
 )
 def test_job_methods(
-    api_instance: QIApi,
+    api_instance: Api,
     mock_config_manager: Mock,
     job_id: int | None,
     expected_job_id: int,
@@ -89,18 +89,18 @@ def test_job_methods(
     getattr(api_instance._job_manager, job_manager_method).assert_called_once_with(expected_job_id)
 
 
-def test_inspect(api_instance: QIApi) -> None:
+def test_view_settings(api_instance: Api) -> None:
     # Arrange & act
-    api_instance.inspect()
+    api_instance.view_settings()
 
     # assert
     inspect_mock = cast(Mock, api_instance._config_manager.inspect)
     inspect_mock.assert_called_once()
 
 
-def test_initialize(api_instance: QIApi, tmp_path: Path) -> None:
+def test_initialize_project(api_instance: Api, tmp_path: Path) -> None:
     # Arrange & act
-    api_instance.initialize(tmp_path)
+    api_instance.initialize_project(tmp_path)
 
     # assert
     initialize_mock = cast(Mock, api_instance._config_manager.initialize)
@@ -108,12 +108,12 @@ def test_initialize(api_instance: QIApi, tmp_path: Path) -> None:
     initialize_mock.assert_called_once_with(tmp_path)
 
 
-def test_get(api_instance: QIApi) -> None:
+def test_get_setting(api_instance: Api) -> None:
     # Arrange
     key = "project.id"
 
     # Act
-    api_instance.get(key)
+    api_instance.get_setting(key)
 
     # assert
     get_mock = cast(Mock, api_instance._config_manager.get)
@@ -121,12 +121,12 @@ def test_get(api_instance: QIApi) -> None:
     get_mock.assert_called_once_with(key)
 
 
-def test_set(api_instance: QIApi) -> None:
+def test_set_setting(api_instance: Api) -> None:
     # Arrange
     key, value = "project.id", 3
 
     # Act
-    api_instance.set(key, value)
+    api_instance.set_setting(key, value)
 
     # assert
     set_mock = cast(Mock, api_instance._config_manager.set)
@@ -141,7 +141,7 @@ def test_set(api_instance: QIApi) -> None:
     ],
 )
 def test_submit_job(
-    api_instance: QIApi,
+    api_instance: Api,
     mock_job_manager: Mock,
     mock_config_manager: Mock,
     persist: bool,
@@ -222,7 +222,7 @@ def test_submit_job(
     ],
 )
 def test_get_resolved_job_options(
-    api_instance: QIApi,
+    api_instance: Api,
     mock_config_manager: Mock,
     file_name: str | None,
     num_shots: int | None,

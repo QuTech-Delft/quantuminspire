@@ -4,8 +4,8 @@ from typing import Any, Dict
 import pytest
 from compute_api_client import Job
 
-from quantuminspire.auth_manager.auth_manager import AuthManager
-from quantuminspire.job_manager.job_manager import JobManager, JobOptions
+from quantuminspire.managers.auth_manager import AuthManager
+from quantuminspire.managers.job_manager import JobManager, JobOptions
 
 
 @pytest.fixture

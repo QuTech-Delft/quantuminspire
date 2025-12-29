@@ -230,8 +230,7 @@ class ConfigManager:
         """Initialize a project configuration in the given directory.
 
         This method creates the necessary project configuration file(s)
-        at the specified path, or in the current working directory if no path
-        is provided, by calling `ProjectSettings.initialize`.
+        at the specified path, by calling `ProjectSettings.initialize`.
 
         Args:
             path: The directory where the project configuration

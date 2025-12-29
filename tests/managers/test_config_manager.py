@@ -6,7 +6,7 @@ from unittest.mock import patch
 import pytest
 from pytest_mock import MockerFixture
 
-from quantuminspire.config_manager.config_manager import ConfigManager
+from quantuminspire.managers.config_manager import ConfigManager
 from quantuminspire.settings.project_settings import ProjectSettings
 from quantuminspire.settings.user_settings import UserSettings
 from tests.conftest import TestBaseDirMixin
@@ -245,7 +245,7 @@ def test_inspect_merger(
 def test_config_manager_raises_if_project_not_initialised(
     mocker: MockerFixture, user_settings: DummyUserSettings
 ) -> None:
-    mocker.patch("quantuminspire.config_manager.config_manager.ProjectSettings", side_effect=FileNotFoundError)
+    mocker.patch("quantuminspire.managers.config_manager.ProjectSettings", side_effect=FileNotFoundError)
 
     with pytest.raises(RuntimeError, match="Project not initialised"):
         ConfigManager(user_settings=user_settings)

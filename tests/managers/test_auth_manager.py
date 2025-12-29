@@ -1,6 +1,6 @@
 import pytest
 
-from quantuminspire.auth_manager.auth_manager import AuthManager
+from quantuminspire.managers.auth_manager import AuthManager
 
 
 @pytest.fixture

@@ -12,7 +12,7 @@ from compute_api_client import (
 )
 from pydantic import BaseModel, Field
 
-from quantuminspire.auth_manager.auth_manager import AuthManager
+from quantuminspire.managers.auth_manager import AuthManager
 
 
 class JobOptions(BaseModel):

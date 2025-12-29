@@ -8,13 +8,13 @@ from compute_api_client import (
 )
 from pydantic import TypeAdapter
 
-from quantuminspire.auth_manager.auth_manager import AuthManager
-from quantuminspire.config_manager.config_manager import ConfigManager
-from quantuminspire.job_manager.job_manager import JobManager, JobOptions
+from quantuminspire.managers.auth_manager import AuthManager
+from quantuminspire.managers.config_manager import ConfigManager
+from quantuminspire.managers.job_manager import JobManager, JobOptions
 from quantuminspire.settings.models import Url
 
 
-class QIApi:
+class Api:
 
     def __init__(
         self,
@@ -65,17 +65,17 @@ class QIApi:
         assert job_id is not None
         return self._job_manager.get_final_result(job_id)
 
-    def initialize(self, path: Optional[Path] = None) -> None:
+    def initialize_project(self, path: Optional[Path] = None) -> None:
         init_dir = path or Path.cwd()
         self._config_manager.initialize(init_dir)
 
-    def inspect(self) -> Dict[str, Any]:
+    def view_settings(self) -> Dict[str, Any]:
         return self._config_manager.inspect()
 
-    def get(self, key: str) -> Any:
+    def get_setting(self, key: str) -> Any:
         return self._config_manager.get(key)
 
-    def set(self, key: str, value: Any, is_user: bool = False) -> None:
+    def set_setting(self, key: str, value: Any, is_user: bool = False) -> None:
         return self._config_manager.set(key, value, is_user)
 
     def _get_job_options(
