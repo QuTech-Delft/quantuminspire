@@ -21,19 +21,46 @@ def test_base_dir_calls_find_project_root(tmp_path: Path) -> None:
         assert result == fake_root
 
 
-def test_find_project_root_not_found(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    "start_subdirs",
+    [
+        [],  # No marker at all
+        ["nested", "folder"],  # Marker exists exactly at end path
+    ],
+)
+def test_find_project_root_not_found_cases(tmp_path: Path, start_subdirs: List[str]) -> None:
+    """
+    Test cases where project root is not usable:
+      1. No marker exists at all
+      2. Marker exists exactly at the `end` path (should raise even if marker exists)
+    """
+    # Arrange
+    start_path = tmp_path.joinpath(*start_subdirs)
+    start_path.mkdir(parents=True, exist_ok=True)
 
-    with pytest.raises(FileNotFoundError):
-        ProjectSettings.find_project_root(start=tmp_path)
+    if start_subdirs:
+        marker_location = tmp_path / ".quantuminspire" / "config.json"
+        marker_location.parent.mkdir(parents=True, exist_ok=True)
+        marker_location.write_text("{}")
+
+    # Act / Assert
+    with pytest.raises(FileNotFoundError, match="Project root not found"):
+        ProjectSettings.find_project_root(start=start_path, end=tmp_path)
 
 
-@pytest.mark.parametrize("nested_path", [([]), (["a", "b", "c"])])  # marker in current dir  # marker in parent dir
+@pytest.mark.parametrize(
+    "nested_path",
+    [
+        [],  # marker in current dir
+        ["a", "b", "c"],  # marker in parent dir
+    ],
+)
 def test_find_project_root(tmp_path: Path, nested_path: List[str]) -> None:
     # Arrange
     start_path = tmp_path.joinpath(*nested_path)
     start_path.mkdir(parents=True, exist_ok=True)
 
-    marker_path = tmp_path / ".quantuminspire" / "projectsettings.json"
+    marker_path = tmp_path / ".quantuminspire" / "config.json"
     marker_path.parent.mkdir(parents=True, exist_ok=True)
     marker_path.write_text("{}")
 
