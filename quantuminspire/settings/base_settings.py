@@ -62,7 +62,7 @@ class BaseConfigSettings(BaseSettings, ABC):  # pylint: disable=too-few-public-m
     @classmethod
     def file_marker(cls) -> List[str]:
         """Return the full JSON file path (base_dir + subpath)."""
-        return [".quantuminspire", cls.__name__.lower() + ".json"]
+        return [".quantuminspire", "config.json"]
 
     @classmethod
     def json_file(cls, path: Optional[Path] = None) -> Path:

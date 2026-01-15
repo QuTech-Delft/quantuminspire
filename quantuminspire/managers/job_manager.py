@@ -36,6 +36,7 @@ class JobManager:
         options: Dict[str, Any] = {
             "file_path": Path.cwd(),
             "project_id": 1,
+            "job_id": 1,
             "project_name": "some-project",
             "project_description": "some-project",
             "backend_type": 1,
@@ -71,7 +72,7 @@ class JobManager:
     def get_job(self, job_id: int) -> Job:
 
         options: Dict[str, Any] = {
-            "id": 1,
+            "id": job_id,
             "created_on": datetime(2022, 11, 3, 17, 20, 56, 36676, tzinfo=timezone.utc),
             "file_id": 1,
             "algorithm_type": AlgorithmType.QUANTUM,

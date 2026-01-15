@@ -102,15 +102,12 @@ class ConfigManager:
         for setting in self._configurable_keys[key]:
             value = setting.get_value(key)
 
-            # Track last seen attribute (even if None)
             last_value = value
-            last_source = setting.__class__.__name__.lower()
+            last_source = setting.__class__.__name__.lower().removesuffix("settings")
 
-            # If value is not None, return immediately
             if value is not None:
                 return last_source, last_value
 
-        # Fallback: attribute existed but all values were None
         assert last_source is not None
         return last_source, last_value
 
@@ -168,7 +165,9 @@ class ConfigManager:
             if (target_setting is self._user_settings and not is_user) or (
                 target_setting is self._project_settings and is_user
             ):
-                raise ValueError(f"Invalid scope for '{key}'.")
+                raise ValueError(
+                    f"Scope mismatch for '{key}'. Expected: 'is_user={not is_user}', " f"Provided 'is_user={is_user}'."
+                )
 
         assert target_setting is not None
         target_setting.set_value(key, value)
