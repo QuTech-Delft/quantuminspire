@@ -12,7 +12,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 language governing permissions and limitations under the License.
 """
 
-from typing import Any, List, cast
+import asyncio
+from typing import Any, List, Union, cast
 
 from compute_api_client import (
     Algorithm,
@@ -37,6 +38,7 @@ from compute_api_client import (
     JobStatus,
     Language,
     LanguagesApi,
+    PageProject,
     Project,
     ProjectIn,
     ProjectsApi,
@@ -44,6 +46,7 @@ from compute_api_client import (
     ResultsApi,
     ShareType,
 )
+from qi2_shared.pagination import PageReader
 from qi2_shared.utils import run_async
 
 from quantuminspire.sdk.models.base_algorithm import BaseAlgorithm
@@ -223,3 +226,24 @@ class RemoteBackend(BaseBackend):
     async def _read_final_results_for_job(api_client: ApiClient, job: Job) -> List[FinalResult]:
         api_instance = FinalResultsApi(api_client)
         return await api_instance.read_final_result_by_job_id_final_results_job_job_id_get(job.id)  # type: ignore
+
+    async def _get_projects(self, **kwargs: Any) -> List[Project]:
+        async with ApiClient(self._configuration) as api_client:
+            page_reader = PageReader[PageProject, Project]()
+            projects_api = ProjectsApi(api_client)
+            return await page_reader.get_all(projects_api.read_projects_projects_get, **kwargs)  # type: ignore
+
+    def get_projects(self, **kwargs: Any) -> List[Project]:
+        """Get all projects for a user."""
+        return run_async(self._get_projects(**kwargs))  # type: ignore
+
+    async def _delete_projects(self, ids: List[int]) -> None:
+        async with ApiClient(self._configuration) as api_client:
+            projects_api = ProjectsApi(api_client)
+            projects_delete_tasks = [projects_api.delete_project_projects_id_delete(_id) for _id in ids]
+            await asyncio.gather(*projects_delete_tasks)
+
+    def delete_projects(self, project_ids: Union[int, List[int]]) -> None:
+        """Delete projects for a user."""
+        project_ids = [project_ids] if isinstance(project_ids, int) else project_ids
+        run_async(self._delete_projects(project_ids))
