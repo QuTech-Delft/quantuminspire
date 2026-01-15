@@ -222,8 +222,8 @@ def test_shared_scope_project_precedence_without_overwriting_user(
     "project_value, user_value, expected_value, expected_setting",
     [
         (500, 600, 500, "dummyproject"),
-        # (None, 600, 600, "dummyuser"),
-        # (None, None, None, "dummyuser"),
+        (None, 600, 600, "dummyuser"),
+        (None, None, None, "dummyuser"),
     ],
 )
 def test_inspect_merger(
