@@ -2,7 +2,7 @@
 
 import webbrowser
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 
 import typer
 from compute_api_client import JobStatus
@@ -31,6 +31,9 @@ results_app = Typer(no_args_is_help=True)
 app.add_typer(results_app, name="results", help="Manage results")
 final_results_app = Typer(no_args_is_help=True)
 app.add_typer(final_results_app, name="final_results", help="Manage final results")
+
+projects_app = Typer(no_args_is_help=True)
+app.add_typer(projects_app, name="projects", help="Manage projects")
 
 console = Console()
 
@@ -229,3 +232,97 @@ def set_default_host(
     settings.default_host = Url(host)
     settings.write_settings_to_file()
     typer.echo(f"Default host set to {host}")
+
+
+@projects_app.command("list")
+def list_projects(
+    print_projects: bool = typer.Option(False, "--print", "-p", help="Print full project list"),
+    name: Optional[str] = typer.Option(
+        None,
+        "--name",
+        help="Filter projects matching this name or description pattern",
+    ),
+    exact: bool = typer.Option(
+        False,
+        "--exact",
+        help="If set, match project name exactly instead of substring search",
+    ),
+) -> None:
+    """List projects.
+
+    List all user_projects.
+    """
+    backend = RemoteBackend()
+
+    filters = {}
+
+    if name and exact:
+        filters["name"] = name
+    elif name and not exact:
+        filters["search"] = name
+
+    projects = backend.get_projects(**filters)
+
+    if not projects:
+        console.print("No projects found")
+        return
+
+    console.print(f"Found {len(projects)} projects \n")
+
+    if not print_projects:
+        return
+
+    table = Table("id", "name", "description")
+
+    for project in projects:
+        table.add_row(
+            str(project.id),
+            str(project.name),
+            str(project.description),
+        )
+    console.print(table)
+
+
+@projects_app.command("delete")
+def delete_projects(
+    project_ids: Optional[List[int]] = typer.Argument(None, help="List of project IDs to delete"),
+    name: Optional[str] = typer.Option(
+        None,
+        "--name",
+        help="Delete projects matching this name or description pattern",
+    ),
+    exact: bool = typer.Option(
+        False,
+        "--exact",
+        help="If set, match project name exactly instead of substring search",
+    ),
+) -> None:
+    backend = RemoteBackend()
+
+    filters = {}
+
+    if name and exact:
+        filters["name"] = name
+    elif name and not exact:
+        filters["search"] = name
+
+    if project_ids:
+        ids = project_ids
+    else:
+        ids = [project.id for project in backend.get_projects(**filters)]
+        if name and not ids:
+            typer.echo(f"No projects match the name or description '{name}'.")
+            raise typer.Exit()
+
+    if not (project_ids or name):
+        confirm_message = "You did not provide a name or IDs. This will delete ALL your projects. Are you sure?"
+    else:
+        confirm_message = "Are you sure you want to continue?"
+
+    typer.echo(f"{len(ids)} project(s) will be deleted.")
+
+    if not typer.confirm(confirm_message):
+        typer.echo("Aborted.")
+        raise typer.Abort()
+
+    backend.delete_projects(ids)

@@ -1,5 +1,8 @@
+from collections import namedtuple
+from typing import Dict, List
 from unittest.mock import MagicMock
 
+import pytest
 from compute_api_client import BackendStatus, JobStatus
 from pydantic import BaseModel
 from pytest_mock import MockerFixture
@@ -8,6 +11,7 @@ from typer.testing import CliRunner
 from quantuminspire.cli.command_list import app
 from quantuminspire.sdk.models.cqasm_algorithm import CqasmAlgorithm
 from quantuminspire.sdk.models.hybrid_algorithm import HybridAlgorithm
+from quantuminspire.util.api.remote_backend import RemoteBackend
 
 runner = CliRunner()
 
@@ -232,3 +236,178 @@ def test_set_default_host(mocker: MockerFixture, mocked_config_file: MagicMock) 
     assert result.exit_code == 0, repr(result.exception)
     write_settings_to_file.assert_called_once()
     assert f"Default host set to {host}" in result.stdout
+
+
+Project = namedtuple("Project", ["id", "name", "description"])
+
+
+@pytest.mark.parametrize(
+    "cli_args, project_list, expected_message, expected_filters",
+    [
+        # 1. No projects exist
+        (["projects", "list"], [], "No projects found", {}),
+        # 2. Multiple projects exist, --print not set
+        (
+            ["projects", "list"],
+            [
+                Project(id=1, name="proj1", description="desc1"),
+                Project(id=2, name="proj2", description="desc2"),
+            ],
+            "Found 2 projects",
+            {},
+        ),
+        # 3. Multiple projects exist, --print set
+        (
+            ["projects", "list", "--print"],
+            [
+                Project(id=1, name="proj1", description="desc1"),
+                Project(id=2, name="proj2", description="desc2"),
+            ],
+            "Found 2 projects",
+            {},
+        ),
+        # 4. No projects match --name filter (substring)
+        (
+            ["projects", "list", "--name", "nomatch"],
+            [],
+            "No projects found",
+            {"search": "nomatch"},
+        ),
+        # 5. Projects match --name filter (substring)
+        (
+            ["projects", "list", "--name", "proj"],
+            [
+                Project(id=1, name="proj1", description="desc1"),
+                Project(id=2, name="proj2", description="desc2"),
+            ],
+            "Found 2 projects",
+            {"search": "proj"},
+        ),
+        # 6. Projects match --name with --exact
+        (
+            ["projects", "list", "--name", "proj1", "--exact"],
+            [
+                Project(id=1, name="proj1", description="desc1"),
+            ],
+            "Found 1 projects",
+            {"name": "proj1"},
+        ),
+    ],
+)
+def test_project_list(
+    mocker: MockerFixture,
+    cli_args: List[str],
+    project_list: List[Project],
+    expected_message: str,
+    expected_filters: Dict[str, str],
+) -> None:
+    # Arrange
+    mock_backend = MagicMock(spec=RemoteBackend)
+    mock_backend.get_projects.return_value = project_list
+    mocker.patch("quantuminspire.cli.command_list.RemoteBackend", return_value=mock_backend)
+
+    # Act
+    result = runner.invoke(app, cli_args)
+
+    # Assert
+    assert result.exit_code == 0
+
+    assert expected_message in result.stdout
+
+    if "--print" in cli_args and project_list:
+        assert all(project.name in result.stdout for project in project_list)
+
+    mock_backend.get_projects.assert_called_once_with(**expected_filters)
+
+
+def test_delete_projects_by_ids(mocker: MockerFixture) -> None:
+    backend = MagicMock(spec=RemoteBackend)
+    mocker.patch("quantuminspire.cli.command_list.RemoteBackend", return_value=backend)
+    mocker.patch("typer.confirm", return_value=True)
+
+    result = runner.invoke(app, ["projects", "delete", "1", "2"])
+
+    assert result.exit_code == 0
+    assert "2 project(s) will be deleted." in result.stdout
+
+    backend.get_projects.assert_not_called()
+    backend.delete_projects.assert_called_once_with([1, 2])
+
+
+def test_delete_projects_by_name_substring(mocker: MockerFixture) -> None:
+    backend = MagicMock(spec=RemoteBackend)
+    backend.get_projects.return_value = [
+        Project(id=1, name="quantum1", description=""),
+        Project(id=2, name="quantum2", description=""),
+    ]
+    mocker.patch("quantuminspire.cli.command_list.RemoteBackend", return_value=backend)
+    mocker.patch("typer.confirm", return_value=True)
+
+    result = runner.invoke(app, ["projects", "delete", "--name", "quantum"])
+
+    assert "2 project(s) will be deleted." in result.stdout
+    backend.get_projects.assert_called_once_with(search="quantum")
+    backend.delete_projects.assert_called_once_with([1, 2])
+
+
+def test_delete_projects_by_exact_name(mocker: MockerFixture) -> None:
+    backend = MagicMock(spec=RemoteBackend)
+    backend.get_projects.return_value = [Project(id=1, name="proj1", description="")]
+    mocker.patch("quantuminspire.cli.command_list.RemoteBackend", return_value=backend)
+    mocker.patch("typer.confirm", return_value=True)
+
+    result = runner.invoke(app, ["projects", "delete", "--name", "proj1", "--exact"])
+
+    assert "1 project(s) will be deleted." in result.stdout
+    backend.get_projects.assert_called_once_with(name="proj1")
+    backend.delete_projects.assert_called_once_with([1])
+
+
+def test_delete_all_projects(mocker: MockerFixture) -> None:
+    backend = MagicMock(spec=RemoteBackend)
+    backend.get_projects.return_value = [
+        Project(id=1, name="proj1", description=""),
+        Project(id=2, name="proj2", description=""),
+    ]
+    mocker.patch("quantuminspire.cli.command_list.RemoteBackend", return_value=backend)
+    mocker.patch("typer.confirm", return_value=True)
+
+    result = runner.invoke(app, ["projects", "delete"])
+
+    assert "2 project(s) will be deleted." in result.stdout
+    backend.get_projects.assert_called_once_with()
+    backend.delete_projects.assert_called_once_with([1, 2])
+
+
+def test_delete_by_name_no_matches(mocker: MockerFixture) -> None:
+    backend = MagicMock(spec=RemoteBackend)
+    backend.get_projects.return_value = []
+    mocker.patch("quantuminspire.cli.command_list.RemoteBackend", return_value=backend)
+
+    result = runner.invoke(app, ["projects", "delete", "--name", "nomatch"])
+
+    assert "No projects match the name or description 'nomatch'." in result.stdout
+    backend.delete_projects.assert_not_called()
+
+
+def test_delete_projects_abort(mocker: MockerFixture) -> None:
+    backend = MagicMock(spec=RemoteBackend)
+    mocker.patch("quantuminspire.cli.command_list.RemoteBackend", return_value=backend)
+    mocker.patch("typer.confirm", return_value=False)
+
+    result = runner.invoke(app, ["projects", "delete", "1", "2"])
+
+    assert "Aborted." in result.stdout
+    backend.delete_projects.assert_not_called()
+
+
+def test_delete_ids_ignore_name_filter(mocker: MockerFixture) -> None:
+    backend = MagicMock(spec=RemoteBackend)
+    mocker.patch("quantuminspire.cli.command_list.RemoteBackend", return_value=backend)
+    mocker.patch("typer.confirm", return_value=True)
+
+    result = runner.invoke(app, ["projects", "delete", "1", "2", "3", "--name", "some-name"])
+
+    assert "3 project(s) will be deleted." in result.stdout
+    backend.get_projects.assert_not_called()
+    backend.delete_projects.assert_called_once_with([1, 2, 3])

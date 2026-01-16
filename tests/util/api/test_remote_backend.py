@@ -1,7 +1,9 @@
+from datetime import datetime, timezone
+from typing import List, Union
 from unittest.mock import AsyncMock, MagicMock, call
 
 import pytest
-from compute_api_client import JobStatus, Language
+from compute_api_client import JobStatus, Language, PageProject, Project
 from pytest_mock import MockerFixture
 
 from quantuminspire.util.api.remote_backend import RemoteBackend
@@ -247,3 +249,68 @@ async def test__get_language_for_algorithm_fail(
     # Act/Assert
     with pytest.raises(ValueError):
         _ = await backend._get_language_for_algorithm(api_client, algorithm_mock)
+
+
+def test_get_projects(
+    mocker: MockerFixture,
+    api_client: MagicMock,
+    compute_api_client: None,
+    mocked_settings: MagicMock,
+    mocked_authentication: MagicMock,
+) -> None:
+    # Arrange
+
+    backend = RemoteBackend()
+
+    expected_project = Project(
+        id=1,
+        name="MyProject",
+        created_on=datetime(2022, 11, 3, 17, 20, 56, 36676, tzinfo=timezone.utc),
+        description="",
+        starred=False,
+        owner_id=1,
+    )
+
+    page_projects = PageProject(items=[expected_project], total=1, page=1, size=1, pages=1)
+
+    projects_api_instance = AsyncMock()
+    projects_api_instance.read_projects_projects_get.return_value = page_projects
+    mocker.patch("quantuminspire.util.api.remote_backend.ProjectsApi", return_value=projects_api_instance)
+
+    # Act
+    all_projects = backend.get_projects()
+
+    # Assert
+    assert all_projects == [expected_project]
+
+
+@pytest.mark.parametrize(
+    "project_ids",
+    [
+        (1),  # single integer
+        ([1, 2, 3]),  # list of integers
+    ],
+)
+def test_delete_projects(
+    mocker: MockerFixture,
+    project_ids: Union[int, List[int]],
+    compute_api_client: None,
+    mocked_settings: MagicMock,
+    mocked_authentication: MagicMock,
+) -> None:
+    # Arrange
+    backend = RemoteBackend()
+
+    projects_api_instance = AsyncMock()
+    projects_api_instance.delete_project_projects_id_delete.return_value = None
+    mocker.patch("quantuminspire.util.api.remote_backend.ProjectsApi", return_value=projects_api_instance)
+
+    # Act
+    backend.delete_projects(project_ids)
+
+    # Assert
+    assert (
+        projects_api_instance.delete_project_projects_id_delete.await_count == len(project_ids)
+        if isinstance(project_ids, list)
+        else 1
+    )

@@ -61,6 +61,117 @@ The previous command outputs a job ID for the job that was just started. Use thi
 qi results get <job_id>
 ```
 
+
+## List projects
+
+List all projects belonging to the current user. You can optionally filter projects by name, either using substring matching (default) or exact matching.
+
+### Usage
+
+```bash
+qi projects list
+```
+
+### Options
+
+* `--print, -p`
+  Print the full project list as a table.
+
+* `--name <name>`
+  Filter projects by name or description using substring matching.
+
+* `--exact`
+  When used with `--name`, only return projects whose name exactly matches the given value.
+
+### Examples
+
+List all projects:
+
+```bash
+qi projects list
+```
+
+List projects whose name or description contains `"quantum"`:
+
+```bash
+qi projects list --name quantum
+```
+
+List projects whose name is exactly `"my-project"`:
+
+```bash
+qi projects list --name my-project --exact
+```
+
+Print the full project list:
+
+```bash
+qi projects list --print
+```
+
+---
+
+## Delete projects
+
+Delete one or more projects by ID, by name, or delete all projects after confirmation.
+
+> ⚠️ **Deleting projects is irreversible.**
+> You will always be prompted for confirmation before deletion.
+
+### Usage
+
+```bash
+qi projects delete [PROJECT_IDS...]
+```
+
+### Options
+
+* `PROJECT_IDS`
+  One or more project IDs to delete.
+
+* `--name <name>`
+  Delete projects matching this name or description pattern.
+
+* `--exact`
+  When used with `--name`, only delete projects whose name exactly matches the given value.
+
+### Behavior and precedence
+
+* If **project IDs are provided**, `--name` and `--exact` are ignored.
+* If no IDs are provided:
+
+  * `--name` filters projects by substring match
+  * `--name` + `--exact` performs an exact name match
+* If **no IDs and no name** are provided, **all projects** will be deleted after confirmation.
+
+### Examples
+
+Delete projects by ID:
+
+```bash
+qi projects delete 1 2 3
+```
+
+Delete projects whose name or description contains `"quantum"`:
+
+```bash
+qi projects delete --name quantum
+```
+
+Delete the project with the exact name `"my-project"`:
+
+```bash
+qi projects delete --name my-project --exact
+```
+
+Delete **all projects**:
+
+```bash
+qi projects delete
+```
+
+> You will be asked to confirm before deletion.
+
 **Note**: Mostly useful for quantum circuits.
 
 ## Get final results
