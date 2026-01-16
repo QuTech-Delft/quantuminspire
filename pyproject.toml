@@ -38,7 +38,7 @@ pyjwt = "^2.10.1"
 local = ["qxelarator"]
 
 [tool.poetry.group.dev.dependencies]
-pytest = { extras = ["toml"], version = "^8.3.4" }
+pytest = { extras = ["toml"], version = ">=8.3.4,<10.0.0" }
 pytest-cov = ">=6,<8"
 coverage = { extras = ["toml"], version = "^7.6.10" }
 mypy = "^1.14"
