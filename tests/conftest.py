@@ -1,23 +1,13 @@
-from typing import Any
+from pathlib import Path
+from typing import Optional
 
-import pytest
-from pytest_mock import MockerFixture
-
-CONFIGURATION = """
-{
-  "auths": {
-    "https://host": {
-      "well_known_endpoint": "https://some_url"
-    }
-  },
-  "default_host": "https://host"
-}
-"""
+from pydantic import PrivateAttr
 
 
-@pytest.fixture
-def mocked_config_file(mocker: MockerFixture) -> Any:
-    config_file = mocker.patch("quantuminspire.util.configuration.Path")()
-    config_file.exists.return_value = True
-    config_file.read_text.return_value = CONFIGURATION
-    return config_file
+class TestBaseDirMixin:
+    _override_base_dir: Optional[Path] = PrivateAttr(default=None)
+
+    @classmethod
+    def base_dir(cls) -> Path:
+        assert cls._override_base_dir is not None
+        return cls._override_base_dir
