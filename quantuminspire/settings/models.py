@@ -7,6 +7,7 @@ Url = Annotated[str, BeforeValidator(lambda value: str(HttpUrl(value)).rstrip("/
 
 class Algorithm(BaseModel):
     id: Optional[int] = Field(None)
+    name: str = Field("Example Algorithm")
     algorithm_type: str = Field("quantum")
     num_shots: int = Field(1024)
     store_raw_data: bool = Field(False)

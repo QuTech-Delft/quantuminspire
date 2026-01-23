@@ -65,9 +65,10 @@ class Api:
         assert job_id is not None
         return self._job_manager.get_final_result(job_id)
 
-    def initialize_project(self, path: Optional[Path] = None) -> None:
+    @staticmethod
+    def initialize_project(path: Optional[Path] = None) -> None:
         init_dir = path or Path.cwd()
-        self._config_manager.initialize(init_dir)
+        ConfigManager.initialize(init_dir)
 
     def view_settings(self) -> Dict[str, Any]:
         return self._config_manager.inspect()
