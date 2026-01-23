@@ -12,15 +12,18 @@ class ProjectSettings(BaseConfigSettings):
     job: Job = Job()
 
     @classmethod
-    def find_project_root(cls, start: Path | None = None) -> Path:
+    def find_project_root(cls, start: Path | None = None, end: Path | None = None) -> Path:
         """Search upward from start until the project marker is found."""
         start = start or Path.cwd()
-
+        end = end or Path.home()
         current = start.resolve()
+        end_resolved = end.resolve()
 
         while True:
             marker = current.joinpath(*cls.file_marker())
             if marker.exists():
+                if current == end_resolved:
+                    raise FileNotFoundError("Project root not found")
                 return current
 
             if current.parent == current:  # Reached filesystem root

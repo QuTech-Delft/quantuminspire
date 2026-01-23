@@ -48,19 +48,20 @@ def config_manager(project_settings: DummyProjectSettings, user_settings: DummyU
 def default_settings_map() -> Dict[str, Any]:
     settings_scopes: Dict[str, Any] = {
         "algorithm": {
-            "id": {"value": None, "source": "dummyprojectsettings"},
-            "store_raw_data": {"value": False, "source": "dummyprojectsettings"},
-            "algorithm_type": {"value": "quantum", "source": "dummyprojectsettings"},
-            "num_shots": {"value": 1024, "source": "dummyprojectsettings"},
+            "id": {"value": None, "source": "dummyproject"},
+            "name": {"value": "Example Algorithm", "source": "dummyproject"},
+            "store_raw_data": {"value": False, "source": "dummyproject"},
+            "algorithm_type": {"value": "quantum", "source": "dummyproject"},
+            "num_shots": {"value": 1024, "source": "dummyproject"},
         },
-        "job": {"id": {"value": None, "source": "dummyprojectsettings"}},
+        "job": {"id": {"value": None, "source": "dummyproject"}},
         "project": {
-            "id": {"value": None, "source": "dummyprojectsettings"},
-            "name": {"value": "Example Project", "source": "dummyprojectsettings"},
-            "description": {"value": "Example Project", "source": "dummyprojectsettings"},
+            "id": {"value": None, "source": "dummyproject"},
+            "name": {"value": "Example Project", "source": "dummyproject"},
+            "description": {"value": "Example Project", "source": "dummyproject"},
         },
-        "backend_type": {"value": None, "source": "dummyusersettings"},
-        "default_host": {"value": "https://api.quantum-inspire.com", "source": "dummyusersettings"},
+        "backend_type": {"value": None, "source": "dummyuser"},
+        "default_host": {"value": "https://api.quantum-inspire.com", "source": "dummyuser"},
     }
 
     return copy.deepcopy(settings_scopes)
@@ -91,6 +92,7 @@ def test_get_invalid_key(config_manager: ConfigManager, key: str) -> None:
         ("algorithm.num_shots", 1024),
         ("project.name", "Example Project"),
         ("algorithm.id", None),
+        ("algorithm.name", "Example Algorithm"),
     ],
 )
 def test_get_valid_key(config_manager: ConfigManager, key: str, expected_value: Any) -> None:
@@ -105,6 +107,7 @@ def test_configurable_field_names(config_manager: ConfigManager) -> None:
         "job.id",
         "algorithm.algorithm_type",
         "algorithm.id",
+        "algorithm.name",
         "default_host",
         "algorithm.num_shots",
         "project.description",
@@ -218,9 +221,9 @@ def test_shared_scope_project_precedence_without_overwriting_user(
 @pytest.mark.parametrize(
     "project_value, user_value, expected_value, expected_setting",
     [
-        (500, 600, 500, "dummyprojectsettings"),
-        (None, 600, 600, "dummyusersettings"),
-        (None, None, None, "dummyusersettings"),
+        (500, 600, 500, "dummyproject"),
+        (None, 600, 600, "dummyuser"),
+        (None, None, None, "dummyuser"),
     ],
 )
 def test_inspect_merger(
