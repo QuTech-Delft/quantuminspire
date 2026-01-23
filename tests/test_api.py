@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Any, Dict, cast
+from unittest import mock
 from unittest.mock import Mock, call, patch
 
 import pytest
@@ -98,14 +99,13 @@ def test_view_settings(api_instance: Api) -> None:
     inspect_mock.assert_called_once()
 
 
-def test_initialize_project(api_instance: Api, tmp_path: Path) -> None:
-    # Arrange & act
-    api_instance.initialize_project(tmp_path)
+def test_initialize_project(tmp_path: Path) -> None:
+    with mock.patch("quantuminspire.api.ConfigManager.initialize") as initialize_mock:
+        # Arrange & Act
+        Api.initialize_project(tmp_path)
 
-    # assert
-    initialize_mock = cast(Mock, api_instance._config_manager.initialize)
-
-    initialize_mock.assert_called_once_with(tmp_path)
+        # assert
+        initialize_mock.assert_called_once_with(tmp_path)
 
 
 def test_get_setting(api_instance: Api) -> None:
