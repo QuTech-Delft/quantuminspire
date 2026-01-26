@@ -16,21 +16,31 @@ from quantuminspire.util.api.remote_backend import RemoteBackend
 runner = CliRunner()
 
 
-def test_backend_list(mocker: MockerFixture) -> None:
+@pytest.fixture
+def mock_remote_backend_inst() -> MagicMock:
+    class MockMessage:
+        content = "This is backend 1"
+
     class MockBackendType:
-        id = 1
+        id = 10
         name = "Mock backend"
         status = BackendStatus.IDLE
         is_hardware = True
         supports_raw_data = True
         nqubits = 4
         max_number_of_shots = 2048
+        messages = {"backend 1": MockMessage()}
 
     mock_remote_backend_inst = MagicMock()
     paginated_mock = MagicMock()
 
     paginated_mock.items = [MockBackendType()]
     mock_remote_backend_inst.get_backend_types.return_value = paginated_mock
+
+    return mock_remote_backend_inst
+
+
+def test_backend_list(mocker: MockerFixture, mock_remote_backend_inst: MagicMock) -> None:
     mocker.patch("quantuminspire.cli.command_list.RemoteBackend", return_value=mock_remote_backend_inst)
 
     result = runner.invoke(app, ["backends", "list"])
@@ -71,8 +81,7 @@ def test_backend_get_no_backend(mocker: MockerFixture) -> None:
     mock_remote_backend_inst.get_backend_types.assert_called_once()
 
 
-def test_file_upload_hybrid(mocker: MockerFixture) -> None:
-    mock_remote_backend_inst = MagicMock()
+def test_file_upload_hybrid(mocker: MockerFixture, mock_remote_backend_inst: MagicMock) -> None:
     mocker.patch("quantuminspire.cli.command_list.RemoteBackend", return_value=mock_remote_backend_inst)
     mocker.patch("quantuminspire.cli.command_list.Path.read_text")
 
@@ -81,11 +90,12 @@ def test_file_upload_hybrid(mocker: MockerFixture) -> None:
     assert result.exit_code == 0
     mock_remote_backend_inst.run.assert_called_once()
     assert type(mock_remote_backend_inst.run.call_args.args[0]) is HybridAlgorithm
+    assert "backend 1" in result.stdout
+    assert "This is backend 1" in result.stdout
 
 
-def test_file_upload_no_suffix(mocker: MockerFixture) -> None:
-    mock_remote_backend_inst = MagicMock()
-    mocker.patch("quantuminspire.cli.command_list.RemoteBackend", return_value=mock_remote_backend_inst)
+def test_file_upload_no_suffix(mocker: MockerFixture, mock_remote_backend_inst: MagicMock) -> None:
+    mocker.patch("quantuminspire.cli.command_list.RemoteBackend").return_value = mock_remote_backend_inst
     mocker.patch("quantuminspire.cli.command_list.Path.read_text")
 
     result = runner.invoke(app, ["files", "upload", "hqca_circuit", "10"])
@@ -93,9 +103,8 @@ def test_file_upload_no_suffix(mocker: MockerFixture) -> None:
     assert type(result.exception) is ValueError
 
 
-def test_file_upload_cqasm(mocker: MockerFixture) -> None:
-    mock_remote_backend_inst = MagicMock()
-    mocker.patch("quantuminspire.cli.command_list.RemoteBackend", return_value=mock_remote_backend_inst)
+def test_file_upload_cqasm(mocker: MockerFixture, mock_remote_backend_inst: MagicMock) -> None:
+    mocker.patch("quantuminspire.cli.command_list.RemoteBackend").return_value = mock_remote_backend_inst
     mocker.patch("quantuminspire.cli.command_list.Path.read_text")
 
     result = runner.invoke(app, ["files", "upload", "simple_circuit.cq", "10"])
@@ -103,6 +112,40 @@ def test_file_upload_cqasm(mocker: MockerFixture) -> None:
     assert result.exit_code == 0
     mock_remote_backend_inst.run.assert_called_once()
     assert type(mock_remote_backend_inst.run.call_args.args[0]) is CqasmAlgorithm
+
+
+def test_file_upload_echo_backend_messages(mocker: MockerFixture, mock_remote_backend_inst: MagicMock) -> None:
+    mocker.patch("quantuminspire.cli.command_list.RemoteBackend").return_value = mock_remote_backend_inst
+    mocker.patch("quantuminspire.cli.command_list.Path.read_text")
+
+    result = runner.invoke(app, ["files", "upload", "simple_circuit.cq", "10"])
+
+    assert result.exit_code == 0
+    assert "backend 1" in result.stdout
+    assert "This is backend 1" in result.stdout
+
+
+def test_do_not_echo_backend_messages(mocker: MockerFixture) -> None:
+    class MockBackendType:
+        id = 10
+        name = "Mock backend"
+        status = BackendStatus.IDLE
+        is_hardware = True
+        supports_raw_data = True
+        nqubits = 4
+        max_number_of_shots = 2048
+        messages: dict[str, str] = {}
+
+    mock_remote_backend_inst = MagicMock()
+    paginated_mock = MagicMock()
+    paginated_mock.items = [MockBackendType]
+    mock_remote_backend_inst.get_backend_types.return_value = paginated_mock
+
+    mocker.patch("quantuminspire.cli.command_list.RemoteBackend").return_value = mock_remote_backend_inst
+    mocker.patch("quantuminspire.cli.command_list.Path.read_text")
+
+    result = runner.invoke(app, ["files", "upload", "simple_circuit.cq", "10"])
+    assert result.exit_code == 0
 
 
 def test_file_run(mocker: MockerFixture) -> None:
@@ -138,9 +181,7 @@ def test_results_get_failed_job(mocker: MockerFixture) -> None:
 
     result = runner.invoke(app, ["results", "get", "1"])
 
-    print(result.stdout)
-
-    assert result.stdout == "Job failed.\nTrace id: trace_id\n"
+    assert result.stderr == "Job failed.\nTrace id: trace_id\n"
     assert result.exit_code == 1
 
 
@@ -177,7 +218,7 @@ def test_final_results_get_failed_job(mocker: MockerFixture) -> None:
 
     result = runner.invoke(app, ["final_results", "get", "1"])
 
-    assert result.stdout == "Job failed.\nTrace id: trace_id\n"
+    assert result.stderr == "Job failed.\nTrace id: trace_id\n"
     assert result.exit_code == 1
 
 

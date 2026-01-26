@@ -46,8 +46,14 @@ def list_backend_types() -> None:
     """
     backend = RemoteBackend()
     backend_types = backend.get_backend_types().items
-    table = Table("id", "name", "status", "is_hardware", "supports_raw_data", "number_of_qubits", "max_number_of_shots")
+    table = Table(
+        "id", "name", "status", "is_hardware", "supports_raw_data", "number_of_qubits", "max_number_of_shots", "message"
+    )
     for backend_type in backend_types:
+        message = ""
+        for backend in backend_type.messages.keys():
+            message += f"{backend}: {backend_type.messages[backend].content}\n"
+
         table.add_row(
             str(backend_type.id),
             backend_type.name,
@@ -56,6 +62,7 @@ def list_backend_types() -> None:
             str(backend_type.supports_raw_data),
             str(backend_type.nqubits),
             str(backend_type.max_number_of_shots),
+            message.rstrip("\n"),
         )
     console.print(table)
 
@@ -108,6 +115,22 @@ def upload_files(
     Upload a file containing either a Hybrid (.py) or a Quantum (.cq) algorithm, and run it on the QI platform.
     """
     backend = RemoteBackend()
+
+    backend_types = backend.get_backend_types().items
+    backend_type = next((bt for bt in backend_types if bt.id == backend_type_id), None)
+    if backend_type and backend_type.messages and len(backend_type.messages.keys()) > 0:
+        for backend_name in backend_type.messages.keys():
+            typer.echo(
+                f"{typer.style(
+                    backend_name, 
+                    fg=typer.colors.BLUE, 
+                    bold=True
+                )}: {typer.style(
+                    backend_type.messages[backend_name].content, 
+                    fg=typer.colors.BLUE
+                )}",
+            )
+
     program = load_algorithm_from_file(Path(name))
     program.read_file(Path(name))
     job_options = JobOptions(number_of_shots=num_shots, raw_data_enabled=store_raw_data)
