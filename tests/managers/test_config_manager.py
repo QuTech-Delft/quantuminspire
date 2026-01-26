@@ -34,7 +34,7 @@ def project_settings(tmp_path: Path) -> DummyProjectSettings:
 @pytest.fixture
 def user_settings(tmp_path: Path) -> DummyUserSettings:
     DummyUserSettings._override_base_dir = tmp_path
-    instance = DummyUserSettings()
+    instance = DummyUserSettings(auths={})
     return instance
 
 
@@ -259,3 +259,7 @@ def test_init_calls_initialize(tmp_path: Path) -> None:
         ConfigManager.initialize(path=tmp_path)
 
         mock_init.assert_called_once_with(tmp_path)
+
+
+def test_user_settings(config_manager: ConfigManager) -> None:
+    assert isinstance(config_manager.user_settings, UserSettings)
