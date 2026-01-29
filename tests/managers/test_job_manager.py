@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Any, Dict
+from unittest.mock import MagicMock
 
 import pytest
 from compute_api_client import Job
@@ -10,7 +11,7 @@ from quantuminspire.managers.job_manager import JobManager, JobOptions
 
 @pytest.fixture
 def auth_manager() -> AuthManager:
-    return AuthManager()
+    return AuthManager(MagicMock())
 
 
 @pytest.fixture

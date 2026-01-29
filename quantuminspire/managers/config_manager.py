@@ -19,6 +19,10 @@ class ConfigManager:
         self._user_settings = user_settings or UserSettings()
         self._configurable_keys = self._compute_flattened_keys()
 
+    @property
+    def user_settings(self) -> UserSettings:
+        return self._user_settings
+
     def _compute_flattened_keys(self) -> Dict[str, List[BaseConfigSettings]]:
         """Build a mapping of flattened configuration field keys to the settings objects that define them.
 
