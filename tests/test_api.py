@@ -1,9 +1,11 @@
 from pathlib import Path
-from typing import Any, Dict, cast
+from typing import Any, Dict, Optional, cast
 from unittest import mock
-from unittest.mock import Mock, call, patch
+from unittest.mock import MagicMock, Mock, call, patch
 
 import pytest
+import requests
+from pytest_mock import MockerFixture
 
 from quantuminspire.api import Api
 from quantuminspire.managers.auth_manager import AuthManager
@@ -38,18 +40,63 @@ def api_instance(mock_config_manager: Mock, mock_auth_manager: Mock, mock_job_ma
         (None, "https://default_hostname.com"),  # default from config
     ],
 )
-def test_login(api_instance: Api, mock_config_manager: Mock, hostname: str | None, expected_hostname: str) -> None:
+def test_login_force(
+    api_instance: Api, mock_config_manager: Mock, hostname: Optional[str], expected_hostname: str
+) -> None:
     # Arrange
     if hostname is None:
         mock_config_manager.get.return_value = expected_hostname
+
+    # Act
+    api_instance.login(hostname, force=True)
+
+    # Assert
+    login_mock = cast(Mock, api_instance._auth_manager.login)
+    refresh_mock = cast(Mock, api_instance._auth_manager.refresh_tokens)
+    set_mock = cast(Mock, api_instance._config_manager.set)
+
+    login_mock.assert_called_with(expected_hostname, False)
+    refresh_mock.assert_not_called()
+    set_mock.assert_called_once_with("default_host", expected_hostname, True)
+
+
+def test_login_user_not_authenticated(api_instance: Api) -> None:
+    # Arrange
+    hostname = "https://example.com"
+    login_required_mock = cast(Mock, api_instance._auth_manager.login_required)
+    login_required_mock.return_value = True
 
     # Act
     api_instance.login(hostname)
 
     # Assert
     login_mock = cast(Mock, api_instance._auth_manager.login)
+    refresh_mock = cast(Mock, api_instance._auth_manager.refresh_tokens)
+    set_mock = cast(Mock, api_instance._config_manager.set)
 
-    login_mock.assert_called_with(expected_hostname)
+    login_mock.assert_called_with(hostname, False)
+    refresh_mock.assert_not_called()
+    set_mock.assert_called_once_with("default_host", hostname, True)
+
+
+def test_login_user_already_authenticated(api_instance: Api) -> None:
+    # Arrange
+    hostname = "https://example.com"
+
+    login_required_mock = cast(Mock, api_instance._auth_manager.login_required)
+    login_required_mock.return_value = False
+
+    # Act
+    api_instance.login(hostname)
+
+    # Assert
+    login_mock = cast(Mock, api_instance._auth_manager.login)
+    refresh_mock = cast(Mock, api_instance._auth_manager.refresh_tokens)
+    set_mock = cast(Mock, api_instance._config_manager.set)
+
+    refresh_mock.assert_called_with(hostname)
+    login_mock.assert_not_called()
+    set_mock.assert_not_called()
 
 
 def test_get_backend_types(api_instance: Api) -> None:
@@ -259,3 +306,43 @@ def test_get_resolved_job_options(
     # Assert resolved values
     for key, value in expected_resolved.items():
         assert options[key] == value
+
+
+def test_resolve_protocol_url_with_scheme() -> None:
+    test_url = "https://test_url.com"
+    result_url = Api._resolve_protocol(test_url)
+
+    assert result_url == test_url
+
+
+def test_resolve_protocol_https_works(mocker: MockerFixture) -> None:
+    test_url = "test_url.com"
+
+    mock_head_response = MagicMock()
+    mock_head_response.status_code = 200
+
+    mocker.patch("requests.head", return_value=mock_head_response)
+    result_url = Api._resolve_protocol(test_url)
+
+    assert result_url == f"https://{test_url}"
+
+
+def test_resolve_protocol_https_fails(mocker: MockerFixture) -> None:
+    test_url = "test_url.com"
+
+    mock_head_response = MagicMock()
+    mock_head_response.status_code = 404
+
+    mocker.patch("requests.head", return_value=mock_head_response)
+    result_url = Api._resolve_protocol(test_url)
+
+    assert result_url == f"http://{test_url}"
+
+
+def test_resolve_protocol_requests_raises_exception(mocker: MockerFixture) -> None:
+    test_url = "test_url.com"
+
+    mocker.patch("requests.head", side_effect=requests.RequestException)
+    result_url = Api._resolve_protocol(test_url)
+
+    assert result_url == f"http://{test_url}"
