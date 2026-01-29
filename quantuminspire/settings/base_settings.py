@@ -82,6 +82,11 @@ class BaseConfigSettings(BaseSettings, ABC):  # pylint: disable=too-few-public-m
         """Return default JSON content."""
         raise NotImplementedError
 
+    @classmethod
+    def system_managed_fields(cls) -> set[str]:
+        """Return a set of top-level field names that are system-managed and thus not user modifiable."""
+        return set()
+
     # R0913: Too many arguments (6/5) (too-many-arguments)
     @classmethod
     def settings_customise_sources(  # pylint: disable=R0913
@@ -173,14 +178,22 @@ class BaseConfigSettings(BaseSettings, ABC):  # pylint: disable=too-few-public-m
         """
 
         fields: List[str] = []
+        system_fields: set[str] = set()
+        try:
+            settings_cls = cast("type[BaseConfigSettings]", obj.__class__)
+            system_fields = settings_cls.system_managed_fields()
+        except AttributeError:
+            system_fields = set()
 
         for field_name, _ in obj.__class__.model_fields.items():
+            if field_name in system_fields:
+                continue
+
             full_key = f"{prefix}.{field_name}" if prefix else field_name
 
             value = getattr(obj, field_name)
 
             if isinstance(value, BaseModel):
-                # Recurse into nested BaseModel fields
                 nested_fields = BaseConfigSettings.flatten_fields(value, prefix=full_key)
                 fields.extend(nested_fields)
             else:
