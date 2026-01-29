@@ -61,13 +61,7 @@ class AuthManager:
 
     def login_required(self, host: Url) -> bool:
         """Return True if a full login flow is required for the host."""
-        if not self._is_authenticated(host):
-            return True
-
-        if not self._is_refresh_token_valid(host):
-            return True
-
-        return False
+        return not (self._is_authenticated(host) and self._is_refresh_token_valid(host))
 
     def login(self, host: Url, override_auth_config: bool) -> None:
         """Perform an interactive OAuth login for the given host.
@@ -88,13 +82,18 @@ class AuthManager:
         auth_session = OauthDeviceSession(host_auth_settings)
 
         login_info = auth_session.initialize_authorization()
-        print(f"Please continue logging in by opening: {login_info['verification_uri_complete']} in your browser")
-        print(f"If promped to verify a code, please confirm it is as follows: {login_info['user_code']}")
+        login_url = login_info["verification_uri_complete"]
+        message = (
+            "Opening login page. "
+            "If the web page does not open automatically, please open: "
+            f"{login_url} in your browser"
+            f"If promped to verify a code, please confirm it is as follows: {login_info['user_code']}"
+        )
+        print(message)
         webbrowser.open(login_info["verification_uri_complete"], new=2)
         tokens = auth_session.poll_for_tokens()
         self._store_tokens(host, tokens)
-        print("Login successful!")
-        print(f"Using member ID {host_auth_settings.team_member_id}")
+        print(f"Login successful! Using member ID {host_auth_settings.team_member_id}")
 
     async def _fetch_auth_settings(self, host: Url) -> None:
         """Fetch suggested auth settings for host."""
