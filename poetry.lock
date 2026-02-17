@@ -2394,19 +2394,19 @@ files = [
 
 [[package]]
 name = "typer"
-version = "0.23.2"
+version = "0.24.0"
 description = "Typer, build great CLIs. Easy to code. Based on Python type hints."
 optional = false
-python-versions = ">=3.9"
+python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "typer-0.23.2-py3-none-any.whl", hash = "sha256:e9c8dc380f82450b3c851a9b9d5a0edf95d1d6456ae70c517d8b06a50c7a9978"},
-    {file = "typer-0.23.2.tar.gz", hash = "sha256:a99706a08e54f1aef8bb6a8611503808188a4092808e86addff1828a208af0de"},
+    {file = "typer-0.24.0-py3-none-any.whl", hash = "sha256:5fc435a9c8356f6160ed6e85a6301fdd6e3d8b2851da502050d1f92c5e9eddc8"},
+    {file = "typer-0.24.0.tar.gz", hash = "sha256:f9373dc4eff901350694f519f783c29b6d7a110fc0dcc11b1d7e353b85ca6504"},
 ]
 
 [package.dependencies]
 annotated-doc = ">=0.0.2"
-click = {version = ">=8.2.1", markers = "python_version >= \"3.10\""}
+click = ">=8.2.1"
 rich = ">=12.3.0"
 shellingham = ">=1.3.0"
 
@@ -2644,4 +2644,4 @@ local = ["qxelarator"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.14"
-content-hash = "7841441f829638936fae070f2932443f64fd0d9cd3cb312bbb2216dff1acc82f"
+content-hash = "704a611fdeb9a49744d6e2c10a139044189296eb5e2493596570e78ede81ca73"
