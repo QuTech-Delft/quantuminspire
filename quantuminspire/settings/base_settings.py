@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, cast
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from pydantic.fields import FieldInfo
 from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
 
@@ -56,8 +56,6 @@ class BaseConfigSettings(BaseSettings, ABC):  # pylint: disable=too-few-public-m
     model_config = SettingsConfigDict(
         env_file_encoding="utf-8",
     )
-
-    backend_type: Optional[int] = Field(None)
 
     @classmethod
     def file_marker(cls) -> List[str]:

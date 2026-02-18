@@ -21,7 +21,7 @@ class DummyTestSettings(TestBaseDirMixin, BaseConfigSettings):
 
     @classmethod
     def default_factory(cls) -> Dict[str, Any]:
-        return {"test_model": {"foo": 123, "bar": "hello"}, "backend_type": None}
+        return {"test_model": {"foo": 123, "bar": "hello"}}
 
 
 @pytest.fixture
@@ -40,31 +40,11 @@ def test_json_file_exists(test_settings: DummyTestSettings) -> None:
     assert read_data == test_settings.default_factory()
     assert test_settings.test_model.foo == 123
     assert test_settings.test_model.bar == "hello"
-    assert test_settings.backend_type is None
-
-
-def test_get_value_simple_field(test_settings: DummyTestSettings) -> None:
-    assert test_settings.get_value("backend_type") is None
 
 
 def test_get_value_nested_field(test_settings: DummyTestSettings) -> None:
     assert test_settings.get_value("test_model.foo") == 123
     assert test_settings.get_value("test_model.bar") == "hello"
-
-
-def test_set_value_simple_field(test_settings: DummyTestSettings) -> None:
-
-    read_data_before = json.loads(test_settings.json_file().read_text("utf-8"))
-    new_backend_type = 100
-
-    # Act
-    test_settings.set_value("backend_type", new_backend_type)
-    read_data_after = json.loads(test_settings.json_file().read_text("utf-8"))
-
-    # Assert
-    assert test_settings.get_value("backend_type") == new_backend_type
-    assert read_data_before["backend_type"] is None
-    assert read_data_after["backend_type"] == new_backend_type
 
 
 def test_set_value_nested_field(test_settings: DummyTestSettings) -> None:
@@ -86,7 +66,7 @@ def test_flatten_fields(test_settings: DummyTestSettings) -> None:
     flattened_fields = BaseConfigSettings.flatten_fields(test_settings)
 
     # Assert
-    assert flattened_fields == ["backend_type", "test_model.foo", "test_model.bar"]
+    assert flattened_fields == ["test_model.foo", "test_model.bar"]
 
 
 def test_ensure_file_path_exists_for_coverage(tmp_path: Path) -> None:

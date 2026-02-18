@@ -1,16 +1,19 @@
+from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional, cast
+from typing import Any, Optional, cast
 from unittest import mock
-from unittest.mock import MagicMock, Mock, call, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 import requests
+from compute_api_client import Algorithm, AlgorithmType, Job, JobStatus, Project
 from pytest_mock import MockerFixture
 
 from quantuminspire.api import Api
 from quantuminspire.managers.auth_manager import AuthManager
 from quantuminspire.managers.config_manager import ConfigManager
 from quantuminspire.managers.job_manager import JobManager, JobOptions
+from quantuminspire.settings.models import LocalAlgorithm
 
 
 @pytest.fixture
@@ -137,6 +140,37 @@ def test_job_methods(
     getattr(api_instance._job_manager, job_manager_method).assert_called_once_with(expected_job_id)
 
 
+def test_wait_for_job_completion_success(api_instance: Api, mock_config_manager: Mock) -> None:
+    # Arrange
+    job_id = 1
+    completed_job = Mock(spec=Job)
+    completed_job.id = job_id
+    completed_job.status = JobStatus.COMPLETED
+
+    with patch.object(api_instance, "get_job", return_value=completed_job):
+        # Act
+        result = api_instance.wait_for_job_completion(job_id, timeout=10)
+
+        # Assert
+        assert result == completed_job
+
+
+def test_wait_for_job_completion_timeout(api_instance: Api, mock_config_manager: Mock) -> None:
+    # Arrange
+    job_id = 1
+    running_job = Mock(spec=Job)
+    running_job.id = job_id
+    running_job.status = JobStatus.RUNNING
+
+    with (
+        patch.object(api_instance, "get_job", return_value=running_job),
+        patch("time.sleep"),
+    ):
+        # Act & Assert
+        with pytest.raises(TimeoutError, match=f"Job {job_id} did not complete within 1 seconds"):
+            api_instance.wait_for_job_completion(job_id, timeout=1)
+
+
 def test_view_settings(api_instance: Api) -> None:
     # Arrange & act
     api_instance.view_settings()
@@ -195,7 +229,7 @@ def test_submit_job(
 ) -> None:
     # Arrange
     file_path = "path/to/file.py"
-    file_name = "TestAlgorithm"
+    algorithm_name = "TestAlgorithm"
     num_shots = 100
     store_raw_data = False
     backend_type_id = 1
@@ -203,109 +237,90 @@ def test_submit_job(
     resolved_options = {
         "project_name": "TestProject",
         "project_description": "Test description",
-        "backend_type": backend_type_id,
+        "backend_type_id": backend_type_id,
         "number_of_shots": num_shots,
         "raw_data_enabled": store_raw_data,
-        "algorithm_name": file_name,
+        "algorithm_name": algorithm_name,
         "project_id": 1,
         "job_id": 1,
+        "algorithm_id": 1,
     }
 
     returned_job_options = JobOptions(**(resolved_options | {"file_path": Path(file_path)}))
     mock_job_manager.run_flow.return_value = returned_job_options
 
-    with patch.object(api_instance, "_get_job_options", return_value=resolved_options) as mocked_get_job_options:
+    with (
+        patch.object(api_instance, "_get_job_options", return_value=resolved_options) as mocked_get_job_options,
+        patch.object(api_instance, "add_algorithm_to_settings") as mocked_resolve_algorithm_setting,
+    ):
 
         # Act
-        _ = api_instance.submit_job(file_path, file_name, num_shots, store_raw_data, backend_type_id, persist)
+        _ = api_instance.submit_job(file_path, algorithm_name, num_shots, store_raw_data, backend_type_id, persist)
 
         # Assert
-        mocked_get_job_options.assert_called_with(file_name, num_shots, store_raw_data, backend_type_id)
-
-        expected_calls = [
-            call("project.id", returned_job_options.project_id, is_user=False),
-        ]
+        mocked_get_job_options.assert_called_with(algorithm_name, num_shots, store_raw_data, backend_type_id)
 
         if persist:
-            expected_calls.extend(
-                [
-                    call("job.id", returned_job_options.job_id, is_user=False),
-                    call("algorithm.name", returned_job_options.algorithm_name, is_user=False),
-                ]
+            local_algorithm = LocalAlgorithm(
+                id=returned_job_options.algorithm_id,
+                file_path=str(returned_job_options.file_path),
+                num_shots=returned_job_options.number_of_shots,
+                store_raw_data=returned_job_options.raw_data_enabled,
+                job_id=returned_job_options.job_id,
+                backend_type_id=returned_job_options.backend_type_id,
+            )
+            mocked_resolve_algorithm_setting.assert_called_once_with(
+                returned_job_options.algorithm_name, local_algorithm
             )
 
-        mock_config_manager.set.assert_has_calls(expected_calls)
 
-
-@pytest.mark.parametrize(
-    "file_name,num_shots,store_raw_data,backend_type_id,expected_resolved",
-    [
-        # all explicit values
-        (
-            "MyAlgorithm",
-            100,
-            True,
-            1,
-            {
-                "backend_type": 1,
-                "number_of_shots": 100,
-                "raw_data_enabled": True,
-                "algorithm_name": "MyAlgorithm",
-            },
-        ),
-        # all resolved from config
-        (
-            None,
-            None,
-            None,
-            None,
-            {
-                "backend_type": 2,
-                "number_of_shots": 1024,
-                "raw_data_enabled": False,
-                "algorithm_name": "DefaultAlgorithm",
-            },
-        ),
-    ],
-)
-def test_get_resolved_job_options(
+def test_submit_job_persist_false_algorithm_name_none(
     api_instance: Api,
+    mock_job_manager: Mock,
     mock_config_manager: Mock,
-    file_name: str | None,
-    num_shots: int | None,
-    store_raw_data: bool | None,
-    backend_type_id: int | None,
-    expected_resolved: Dict[str, Any],
 ) -> None:
-    # Arrange: config defaults
-    config_values = {
-        "project.id": 42,
-        "project.name": "TestProject",
-        "project.description": "Test description",
-        "backend_type": 2,
-        "algorithm.num_shots": 1024,
-        "algorithm.store_raw_data": False,
-        "algorithm.name": "DefaultAlgorithm",
+    file_path = "path/to/file.py"
+    algorithm_name = None
+    num_shots = 100
+    store_raw_data = False
+    backend_type_id = 1
+
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    options = {
+        "project_name": f"Project created on {timestamp}",
+        "project_description": "Project created for non-persistent algorithm",
+        "backend_type_id": backend_type_id,
+        "number_of_shots": num_shots,
+        "raw_data_enabled": store_raw_data,
+        "algorithm_name": f"Algorithm created on {timestamp}",
     }
 
-    mock_config_manager.get.side_effect = lambda key: config_values[key]
+    returned_job_options = JobOptions(**(options | {"file_path": Path(file_path)}))
+    mock_job_manager.run_flow.return_value = returned_job_options
 
-    # Act
-    options = api_instance._get_job_options(
-        file_name=file_name,
-        num_shots=num_shots,
-        store_raw_data=store_raw_data,
-        backend_type_id=backend_type_id,
-    )
+    result = api_instance.submit_job(file_path, algorithm_name, num_shots, store_raw_data, backend_type_id, False)
+    assert result == returned_job_options
 
-    # Assert static config values
-    assert options["project_id"] == 42
-    assert options["project_name"] == "TestProject"
-    assert options["project_description"] == "Test description"
 
-    # Assert resolved values
-    for key, value in expected_resolved.items():
-        assert options[key] == value
+def test_submit_job_persist_true_algorithm_name_none(
+    api_instance: Api,
+    mock_job_manager: Mock,
+    mock_config_manager: Mock,
+) -> None:
+
+    with pytest.raises(ValueError, match="algorithm_name must be provided when persist is True"):
+        _ = api_instance.submit_job("", None, None, False, None, True)
+
+
+def test_submit_job_persist_false_algorithm_name_none_backend_type_id_none(
+    api_instance: Api,
+    mock_job_manager: Mock,
+    mock_config_manager: Mock,
+) -> None:
+
+    with pytest.raises(ValueError, match="backend_type_id not provided"):
+        _ = api_instance.submit_job("", None, None, False, None, False)
 
 
 def test_resolve_protocol_url_with_scheme() -> None:
@@ -346,3 +361,363 @@ def test_resolve_protocol_requests_raises_exception(mocker: MockerFixture) -> No
     result_url = Api._resolve_protocol(test_url)
 
     assert result_url == f"http://{test_url}"
+
+
+@pytest.mark.parametrize(
+    "num_shots,store_raw_data,backend_type_id,expected_backend_type_id,expected_num_shots,expected_store_raw_data",
+    [
+        (100, True, 2, 2, 100, True),  # with overrides
+        (None, None, None, 1, 500, False),  # with defaults from local_algorithm
+    ],
+)
+def test_get_job_options(
+    api_instance: Api,
+    mock_config_manager: Mock,
+    num_shots: Optional[int],
+    store_raw_data: Optional[bool],
+    backend_type_id: Optional[int],
+    expected_backend_type_id: int,
+    expected_num_shots: int,
+    expected_store_raw_data: bool,
+) -> None:
+    # Arrange
+    algorithm_name = "TestAlgorithm"
+
+    project_id = 42
+    project_name = "TestProject"
+    project_description = "Test Description"
+
+    algorithm_id = 10
+    default_num_shots = 500
+    default_store_raw_data = False
+    default_backend_type_id = 1
+
+    local_algorithm = LocalAlgorithm(
+        id=algorithm_id,
+        file_path="path/to/algorithm.py",
+        num_shots=default_num_shots,
+        store_raw_data=default_store_raw_data,
+        job_id=None,
+        backend_type_id=default_backend_type_id,
+    )
+
+    def get_side_effect(key: str) -> Any:
+        config_values = {
+            "project.id": project_id,
+            "project.name": project_name,
+            "project.description": project_description,
+            "project.algorithms": {algorithm_name: local_algorithm},
+        }
+        return config_values.get(key)
+
+    mock_config_manager.get.side_effect = get_side_effect
+
+    result = api_instance._get_job_options(algorithm_name, num_shots, store_raw_data, backend_type_id)
+
+    assert result == {
+        "project_id": project_id,
+        "project_name": project_name,
+        "project_description": project_description,
+        "algorithm_id": algorithm_id,
+        "algorithm_name": algorithm_name,
+        "backend_type_id": expected_backend_type_id,
+        "number_of_shots": expected_num_shots,
+        "raw_data_enabled": expected_store_raw_data,
+    }
+
+
+def test_get_local_algorithm(api_instance: Api, mock_config_manager: Mock) -> None:
+    # Arrange
+    algorithm_name = "TestAlgorithm"
+    local_algorithm = LocalAlgorithm(
+        id=1,
+        file_path="path/to/algorithm.py",
+        num_shots=100,
+        store_raw_data=True,
+        job_id=5,
+        backend_type_id=2,
+    )
+
+    mock_config_manager.get.return_value = {algorithm_name: local_algorithm}
+
+    # Act
+    result = api_instance._get_local_algorithm(algorithm_name)
+
+    # Assert
+    assert result == local_algorithm
+    mock_config_manager.get.assert_called_once_with("project.algorithms")
+
+
+def test_get_local_algorithm_not_found(api_instance: Api, mock_config_manager: Mock) -> None:
+    # Arrange
+    algorithm_name = "NonExistentAlgorithm"
+    mock_config_manager.get.return_value = {}
+
+    # Act & Assert
+    with pytest.raises(ValueError, match=f"Algorithm '{algorithm_name}' not found in settings."):
+        api_instance._get_local_algorithm(algorithm_name)
+
+
+def test_add_algorithm_to_settings(api_instance: Api, mock_config_manager: Mock) -> None:
+    # Arrange
+    algorithm_name = "NewAlgorithm"
+    existing_algorithm = LocalAlgorithm(
+        id=1,
+        file_path="path/to/old_algorithm.py",
+        num_shots=50,
+        store_raw_data=False,
+        job_id=1,
+        backend_type_id=1,
+    )
+    new_algorithm = LocalAlgorithm(
+        id=2,
+        file_path="path/to/new_algorithm.py",
+        num_shots=100,
+        store_raw_data=True,
+        job_id=2,
+        backend_type_id=2,
+    )
+
+    existing_algorithms = {"OldAlgorithm": existing_algorithm}
+    mock_config_manager.get.return_value = existing_algorithms
+
+    # Act
+    api_instance.add_algorithm_to_settings(algorithm_name, new_algorithm)
+
+    # Assert
+    mock_config_manager.get.assert_called_once_with("project.algorithms")
+    expected_algorithms = {
+        "OldAlgorithm": existing_algorithm,
+        algorithm_name: new_algorithm,
+    }
+    mock_config_manager.set.assert_called_once_with("project.algorithms", expected_algorithms, is_user=False)
+
+
+def test_add_algorithm_to_settings_overwrite_existing(api_instance: Api, mock_config_manager: Mock) -> None:
+    # Arrange
+    algorithm_name = "TestAlgorithm"
+    old_algorithm = LocalAlgorithm(
+        id=1,
+        file_path="path/to/old.py",
+        num_shots=50,
+        store_raw_data=False,
+        job_id=1,
+        backend_type_id=1,
+    )
+    updated_algorithm = LocalAlgorithm(
+        id=1,
+        file_path="path/to/updated.py",
+        num_shots=200,
+        store_raw_data=True,
+        job_id=3,
+        backend_type_id=2,
+    )
+
+    existing_algorithms = {algorithm_name: old_algorithm}
+    mock_config_manager.get.return_value = existing_algorithms
+
+    # Act
+    api_instance.add_algorithm_to_settings(algorithm_name, updated_algorithm)
+
+    # Assert
+    expected_algorithms = {algorithm_name: updated_algorithm}
+    mock_config_manager.set.assert_called_once_with("project.algorithms", expected_algorithms, is_user=False)
+
+
+def test_initialize_remote_project(api_instance: Api, mock_config_manager: Mock, mock_job_manager: Mock) -> None:
+    # Arrange
+    project_name = "TestProject"
+    project_description = "Test project description"
+    host = "https://example.com"
+    owner_id = 42
+
+    mock_user_settings = Mock()
+    mock_auth_info = Mock()
+    mock_auth_info.owner_id = owner_id
+    mock_user_settings.auths = {host: mock_auth_info}
+
+    mock_config_manager.get.return_value = host
+    mock_config_manager.user_settings = mock_user_settings
+
+    expected_project = Mock(spec=Project)
+    mock_job_manager.create_project.return_value = expected_project
+
+    # Act
+    result = api_instance.initialize_remote_project(project_name, project_description)
+
+    # Assert
+    mock_config_manager.get.assert_called_once_with("default_host")
+    mock_job_manager.create_project.assert_called_once_with(owner_id, project_name, project_description)
+    assert result == expected_project
+
+
+def test_create_remote_algorithm_with_file(api_instance: Api, mock_job_manager: Mock) -> None:
+    # Arrange
+    project_id = 1
+    algorithm_name = "TestAlgorithm"
+    file_path = "path/to/algorithm.py"
+
+    expected_algorithm_type = AlgorithmType.QUANTUM
+    expected_algorithm = Mock(spec=Algorithm)
+
+    mock_job_manager.get_algorithm_type.return_value = expected_algorithm_type
+    mock_job_manager.create_algorithm.return_value = expected_algorithm
+
+    # Act
+    result = api_instance.create_remote_algorithm(project_id, algorithm_name, file_path)
+
+    # Assert
+    mock_job_manager.get_algorithm_type.assert_called_once_with(Path(file_path))
+    mock_job_manager.create_algorithm.assert_called_once_with(project_id, algorithm_name, expected_algorithm_type)
+    assert result == expected_algorithm
+
+
+def test_create_remote_algorithm_without_file(api_instance: Api, mock_job_manager: Mock) -> None:
+    # Arrange
+    project_id = 1
+    algorithm_name = "TestAlgorithm"
+    file_path = ""
+
+    expected_algorithm = Mock(spec=Algorithm)
+    mock_job_manager.create_algorithm.return_value = expected_algorithm
+
+    # Act
+    result = api_instance.create_remote_algorithm(project_id, algorithm_name, file_path)
+
+    # Assert
+    mock_job_manager.get_algorithm_type.assert_not_called()
+    mock_job_manager.create_algorithm.assert_called_once_with(project_id, algorithm_name, AlgorithmType.HYBRID)
+    assert result == expected_algorithm
+
+
+def test_get_algorithm_setting(api_instance: Api, mock_config_manager: Mock) -> None:
+    # Arrange
+    algorithm_name = "TestAlgorithm"
+    setting_name = "num_shots"
+    expected_value = 1024
+
+    local_algorithm = LocalAlgorithm(
+        id=1,
+        file_path="path/to/algorithm.py",
+        num_shots=expected_value,
+        store_raw_data=True,
+        job_id=5,
+        backend_type_id=2,
+    )
+
+    mock_config_manager.get.return_value = {algorithm_name: local_algorithm}
+
+    # Act
+    result = api_instance.get_algorithm_setting(algorithm_name, setting_name)
+
+    # Assert
+    assert result == expected_value
+    mock_config_manager.get.assert_called_once_with("project.algorithms")
+
+
+def test_set_setting_user_setting(api_instance: Api, mock_config_manager: Mock) -> None:
+    # Arrange
+    key = "default_host"
+    value = "https://example.com"
+
+    # Act
+    api_instance.set_setting(key, value, is_user=True)
+
+    # Assert
+    mock_config_manager.set.assert_called_once_with(key, value, True)
+
+
+def test_set_setting_project_setting(api_instance: Api, mock_config_manager: Mock) -> None:
+    # Arrange
+    key = "project.name"
+    value = "MyProject"
+
+    # Act
+    api_instance.set_setting(key, value, is_user=False)
+
+    # Assert
+    mock_config_manager.set.assert_called_once_with(key, value, False)
+
+
+def test_set_algorithm_setting(api_instance: Api, mock_config_manager: Mock) -> None:
+    # Arrange
+    algorithm_name = "TestAlgorithm"
+    setting_name = "num_shots"
+    new_value = 1024
+
+    old_local_algorithm = LocalAlgorithm(
+        id=1,
+        file_path="path/to/algorithm.py",
+        num_shots=100,
+        store_raw_data=True,
+        job_id=5,
+        backend_type_id=2,
+    )
+    new_local_algorithm = LocalAlgorithm(
+        id=1,
+        file_path="path/to/algorithm.py",
+        num_shots=new_value,
+        store_raw_data=True,
+        job_id=5,
+        backend_type_id=2,
+    )
+
+    mock_config_manager.get.return_value = {algorithm_name: old_local_algorithm}
+
+    with patch.object(api_instance, "add_algorithm_to_settings") as mocked_resolve_algorithm_setting:
+
+        # Act
+        api_instance.set_algorithm_setting(algorithm_name, setting_name, new_value)
+
+        # Assert
+        mock_config_manager.get.assert_called_with("project.algorithms")
+        mocked_resolve_algorithm_setting.assert_called_once_with(algorithm_name, new_local_algorithm)
+
+
+def test_resolve_algorithm_setting_with_override(api_instance: Api, mock_config_manager: Mock) -> None:
+    # Arrange
+    algorithm_name = "TestAlgorithm"
+    setting_name = "num_shots"
+    override_value = 1024
+
+    local_algorithm = LocalAlgorithm(
+        id=1,
+        file_path="path/to/algorithm.py",
+        num_shots=100,
+        store_raw_data=True,
+        job_id=5,
+        backend_type_id=2,
+    )
+
+    mock_config_manager.get.return_value = {algorithm_name: local_algorithm}
+
+    # Act
+    result = api_instance._resolve_algorithm_setting(override_value, setting_name, algorithm_name)
+
+    # Assert
+    assert result == override_value
+
+
+def test_resolve_algorithm_setting_without_override(api_instance: Api, mock_config_manager: Mock) -> None:
+    # Arrange
+    algorithm_name = "TestAlgorithm"
+    setting_name = "num_shots"
+    default_value = 100
+
+    local_algorithm = LocalAlgorithm(
+        id=1,
+        file_path="path/to/algorithm.py",
+        num_shots=default_value,
+        store_raw_data=True,
+        job_id=5,
+        backend_type_id=2,
+    )
+
+    mock_config_manager.get.return_value = {algorithm_name: local_algorithm}
+
+    # Act
+    result = api_instance._resolve_algorithm_setting(None, setting_name, algorithm_name)
+
+    # Assert
+    assert result == default_value
+    mock_config_manager.get.assert_called_once_with("project.algorithms")
