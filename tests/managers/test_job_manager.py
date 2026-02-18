@@ -146,12 +146,17 @@ def test_invoke(job_manager: JobManager, mocker: MockerFixture) -> None:
 
     mock_api_class = mocker.MagicMock(return_value=mock_api_instance)
     mock_client = mocker.MagicMock()
+    mock_config = mocker.MagicMock()
 
-    with patch("quantuminspire.managers.job_manager.ApiClient") as mock_api_client_class:
+    with (
+        patch("quantuminspire.managers.job_manager.ApiClient") as mock_api_client_class,
+        patch("quantuminspire.managers.job_manager.config", return_value=mock_config) as mock_config_func,
+    ):
         mock_api_client_class.return_value.__aenter__.return_value = mock_client
 
         result = JobManager._invoke(mock_api_class, "some_method", "arg1", "arg2", kwarg1="value1")
 
+        mock_config_func.assert_called_once()
         mock_api_class.assert_called_once_with(mock_client)
         mock_api_method.assert_called_once_with("arg1", "arg2", kwarg1="value1")
         assert result == mock_result
