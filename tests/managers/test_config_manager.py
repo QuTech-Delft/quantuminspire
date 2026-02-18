@@ -15,17 +15,13 @@ from tests.conftest import TestBaseDirMixin
 
 class DummyProjectSettings(TestBaseDirMixin, ProjectSettings):
     """Test implementation of ProjectSettings using a temporary directory."""
-
     shared_setting: str = "shared setting project"
-    pass
 
 
 class DummyUserSettings(TestBaseDirMixin, UserSettings):
     """Test implementation of UserSettings using a temporary directory."""
-
     test_setting: str = "some test setting"
     shared_setting: str = "shared setting user"
-    pass
 
 
 @pytest.fixture
