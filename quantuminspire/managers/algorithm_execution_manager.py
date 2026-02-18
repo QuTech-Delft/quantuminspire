@@ -37,8 +37,7 @@ class AlgorithmExecutionManager:
         algorithm_name: Optional[str] = None,
         persist: bool = False,
     ) -> JobOptions:
-        """
-        Executes the algorithm located at the specified path.
+        """Executes the algorithm located at the specified path.
 
         Args:
             path_to_file (str): The file path to the algorithm to be executed.
