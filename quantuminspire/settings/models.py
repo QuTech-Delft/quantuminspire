@@ -1,13 +1,23 @@
 from typing import Annotated, Optional
 
-from pydantic import BaseModel, BeforeValidator, Field, HttpUrl
+from pydantic import AfterValidator, BaseModel, BeforeValidator, Field, HttpUrl
 
 Url = Annotated[str, BeforeValidator(lambda value: str(HttpUrl(value)).rstrip("/"))]
 
+def _validate_algorithm_name(value: str) -> str:
+    if not value or not value.strip():
+        raise ValueError("Algorithm name cannot be empty")
+    if any(char in value for char in ['"', "\\"]):
+        raise ValueError("Algorithm name cannot contain double quotes or backslashes")
+    if any(ord(char) < 32 for char in value):
+        raise ValueError("Algorithm name cannot contain control characters")
+    return value
+
+AlgorithmName = Annotated[str, BeforeValidator(lambda value: str(value)), AfterValidator(_validate_algorithm_name)]
 
 class LocalAlgorithm(BaseModel):
-    id: int = Field(1)
     file_path: str = Field("")
+    id: Optional[int] = Field(1)
     backend_type_id: Optional[int] = Field(None)
     job_id: Optional[int] = Field(None)
     num_shots: Optional[int] = Field(None)

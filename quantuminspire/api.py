@@ -1,4 +1,3 @@
-import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, cast
@@ -19,7 +18,8 @@ from pydantic import TypeAdapter
 from quantuminspire.managers.auth_manager import AuthManager
 from quantuminspire.managers.config_manager import ConfigManager
 from quantuminspire.managers.job_manager import JobManager, JobOptions
-from quantuminspire.settings.models import LocalAlgorithm, Url
+from quantuminspire.settings.models import AlgorithmName, LocalAlgorithm, Url
+from quantuminspire.settings.user_settings import UserSettings
 
 
 class Api:
@@ -29,10 +29,22 @@ class Api:
         config_manager: Optional[ConfigManager] = None,
         auth_manager: Optional[AuthManager] = None,
         job_manager: Optional[JobManager] = None,
+        host: Optional[str] = None,
+        persist_data_path: Optional[Path] = None
     ) -> None:
-        self._config_manager = config_manager or ConfigManager()
+        if host is not None:
+            init_dir = persist_data_path or Path.cwd()
+            ConfigManager.initialize(init_dir)
+            user_settings = UserSettings(default_host=host)
+            self._config_manager = config_manager or ConfigManager(user_settings=user_settings)
+        else:
+            self._config_manager = config_manager or ConfigManager()
+
         self._auth_manager = auth_manager or AuthManager(user_settings=self._config_manager.user_settings)
         self._job_manager = job_manager or JobManager(self._config_manager)
+
+        if host is not None:
+            self.login()
 
     def login(self, hostname: Optional[str] = None, override_auth_config: bool = False, force: bool = False) -> None:
         host_url: Optional[Url] = None
@@ -50,6 +62,154 @@ class Api:
 
     def login_required(self, host: Url) -> bool:
         return self._auth_manager.login_required(host)
+
+    def execute_algorithm(
+        self,
+        path_to_file: str,
+        backend_type_id: Optional[int] = None,
+        num_shots: Optional[int] = None,
+        store_raw_data: Optional[bool] = False,
+        algorithm_name: Optional[str] = None,
+        persist: bool = False,
+    ) -> JobOptions:
+        """Executes the algorithm located at the specified path.
+
+        Args:
+            path_to_file (str): The file path to the algorithm to be executed.
+            backend_type_id (int): The backend type ID to execute the algorithm on.
+            num_shots (Optional[int]): The number of shots to execute the algorithm with.
+            store_raw_data (Optional[bool]): Whether to store the raw data from the execution.
+            algorithm_name (Optional[str]): The name of the algorithm to be used for persistence.
+                Required if persist is True.
+            persist (bool): Whether to persist the algorithm in the project settings.
+
+        Returns:
+            JobOptions: The job options for the submitted job.
+        """
+        if persist:
+            self.check_project_id()
+
+            if not algorithm_name:
+                raise ValueError(
+                    "algorithm_name is required when you want to persist the data. "
+                    "Please add it to the function call of execute_algorithm()"
+                )
+
+            algorithms = self.get_setting("project.algorithms")
+            if algorithm_name not in algorithms.keys():
+                self.initialize_algorithm(algorithm_name=algorithm_name, file_path=path_to_file)
+
+        return self.submit_job(
+            file_path=path_to_file,
+            algorithm_name=algorithm_name,
+            backend_type_id=backend_type_id,
+            num_shots=num_shots,
+            store_raw_data=store_raw_data,
+            persist=persist,
+        )
+
+    def initialize_project(self, project_name: str, project_description: str = "", path: Optional[str] = None) -> None:
+        """Initialize a remote project, storing its settings locally.
+
+        Does nothing if a project is already initialized.
+
+        Args:
+            project_name (str): The name of the project.
+            project_description (Optional[str]): An optional description for the project.
+            path (Optional[str]): An optional path to initialize the ConfigManager with.
+            Defaults to current working directory.
+        """
+
+        init_dir = Path(path) if path is not None else Path.cwd()
+        ConfigManager.initialize(init_dir)
+        try:
+            self.check_project_id()
+        except RuntimeError:
+            remote_project: Project = self.initialize_remote_project(project_name, project_description)
+            self.set_setting("project.id", remote_project.id)
+            self.set_setting("project.name", remote_project.name)
+            self.set_setting("project.description", remote_project.description)
+            self.set_setting("project.algorithms", {})
+
+
+    def initialize_algorithm(
+        self,
+        algorithm_name: str,
+        file_path: str = "",
+        backend_type_id: Optional[int] = None,
+        num_shots: Optional[int] = None,
+        store_raw_data: Optional[bool] = False,
+    ) -> None:
+        """Create a remote algorithm and register it in local settings.
+
+        Args:
+            algorithm_name (str): The name of the algorithm.
+            file_path (str): Path to the algorithm file.
+            backend_type_id (Optional[int]): Default backend type ID.
+            num_shots (Optional[int]): Default number of shots.
+            store_raw_data (Optional[bool]): Whether to store raw data by default.
+        """
+        self.check_project_id()
+        project_id = self.get_setting("project.id")
+
+        algorithm_name = TypeAdapter(AlgorithmName).validate_python(algorithm_name)
+
+        remote_algorithm = self.create_remote_algorithm(project_id, algorithm_name, file_path)
+        local_algorithm: LocalAlgorithm = LocalAlgorithm(
+            id=remote_algorithm.id,
+            file_path=file_path,
+            backend_type_id=backend_type_id,
+            num_shots=num_shots,
+            store_raw_data=store_raw_data,
+        )
+        self._add_algorithm_to_settings(algorithm_name, local_algorithm)
+
+    def get_status(
+        self, algorithm_name: str, wait: Optional[bool] = False, timeout: Optional[int] = 10
+    ) -> JobStatus:
+        """Get the status of the most recent job for the given algorithm.
+
+        Args:
+            algorithm_name (str): The name of the algorithm.
+            wait (Optional[bool]): Whether to wait for job completion before returning.
+            timeout (Optional[int]): Maximum seconds to wait when wait=True.
+
+        Returns:
+            JobStatus: The current status of the job.
+        """
+        job_id = self.get_algorithm_setting(algorithm_name, "job_id")
+
+        if wait:
+            try:
+                return self._job_manager.wait_for_job_completion(job_id, timeout=timeout).status
+            except TimeoutError:
+                print("Timeout while waiting for job completion. Returning current status.")
+
+        return self.get_job(job_id).status
+
+    def get_algorithm_final_result(self, algorithm_name: str) -> FinalResult | None:
+        """Get the final result of the most recent job for the given algorithm.
+
+        Args:
+            algorithm_name (str): The name of the algorithm.
+
+        Returns:
+            FinalResult | None: The final result of the job, or None if not available.
+        """
+        job_id = self.get_algorithm_setting(algorithm_name, "job_id")
+        return self.get_final_result(job_id)
+
+    def check_project_id(self) -> None:
+        """Verify that a project is initialized in the current settings.
+
+        Raises:
+            RuntimeError: If no project ID is found in the settings.
+        """
+        try:
+            if self.get_setting("project.id") is None:
+                raise RuntimeError("No project found. Please create a project by calling initialize_project()")
+        except ValueError:
+            raise RuntimeError("No project found. Please create a project by calling initialize_project()")
 
     def submit_job(
         self,
@@ -90,7 +250,7 @@ class Api:
                 job_id=job_options.job_id,
                 backend_type_id=backend_type_id,
             )
-            self.add_algorithm_to_settings(job_options.algorithm_name, local_algorithm)
+            self._add_algorithm_to_settings(job_options.algorithm_name, local_algorithm)
 
         return job_options
 
@@ -107,41 +267,26 @@ class Api:
         assert job_id is not None
         return self._job_manager.get_final_result(job_id)
 
-    def wait_for_job_completion(self, job_id: Optional[int] = None, timeout: Optional[int] = 60) -> Job:
-        start_time = time.time()
+    def get_final_result_by_algorithm_name(self, algorithm_name: str) -> FinalResult | None:
+        job_id = self.get_algorithm_setting(algorithm_name, "job_id")
+        return self.get_final_result(job_id)
 
-        print("Waiting for job to complete...")
-        while True:
-            job = self.get_job(job_id)
-
-            if job.status not in [JobStatus.PLANNED, JobStatus.RUNNING]:
-                return job
-
-            if timeout is not None and time.time() - start_time >= timeout:
-                raise TimeoutError(f"Job {job.id} did not complete within {timeout} seconds")
-
-            time.sleep(1)
 
     def _get_local_algorithm(self, algorithm_name: str) -> LocalAlgorithm:
-        algorithms = self._config_manager.get("project.algorithms")
+        algorithms = self.get_setting("project.algorithms")
         try:
             local_algorithm: LocalAlgorithm = algorithms[algorithm_name]
             return local_algorithm
         except KeyError:
             raise ValueError(f"Algorithm '{algorithm_name}' not found in settings.")
 
-    def add_algorithm_to_settings(self, algorithm_name: str, local_algorithm: LocalAlgorithm) -> None:
-        algorithms = self._config_manager.get("project.algorithms")
+    def _add_algorithm_to_settings(self, algorithm_name: str, local_algorithm: LocalAlgorithm) -> None:
+        algorithms = self.get_setting("project.algorithms")
         algorithms[algorithm_name] = local_algorithm
-        self._config_manager.set("project.algorithms", algorithms, is_user=False)
-
-    @staticmethod
-    def initialize_project(path: Optional[Path] = None) -> None:
-        init_dir = path or Path.cwd()
-        ConfigManager.initialize(init_dir)
+        self.set_setting("project.algorithms", algorithms, is_user=False)
 
     def initialize_remote_project(self, project_name: str, project_description: Optional[str] = "") -> Project:
-        host = self._config_manager.get("default_host")
+        host = self.get_setting("default_host")
         owner_id = self._config_manager.user_settings.auths[host].owner_id
         return self._job_manager.create_project(owner_id, project_name, cast(str, project_description))
 
@@ -168,7 +313,7 @@ class Api:
     def set_algorithm_setting(self, algorithm_name: str, setting_name: str, value: Any) -> None:
         local_algorithm = self._get_local_algorithm(algorithm_name)
         setattr(local_algorithm, setting_name, value)
-        self.add_algorithm_to_settings(algorithm_name, local_algorithm)
+        self._add_algorithm_to_settings(algorithm_name, local_algorithm)
 
     def _get_job_options(
         self,

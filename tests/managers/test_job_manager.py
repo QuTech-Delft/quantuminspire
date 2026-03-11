@@ -1,5 +1,5 @@
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from compute_api_client import (
@@ -24,6 +24,7 @@ from compute_api_client import (
     Job,
     JobIn,
     JobsApi,
+    JobStatus,
     Language,
     PageLanguage,
     Project,
@@ -184,6 +185,36 @@ def test_get_job(job_manager: JobManager, mock_job: Job) -> None:
             "read_job_jobs_id_get",
             id=1,
         )
+
+def test_wait_for_job_completion_success(job_manager: JobManager) -> None:
+    # Arrange
+    job_id = 1
+    completed_job = Mock(spec=Job)
+    completed_job.id = job_id
+    completed_job.status = JobStatus.COMPLETED
+
+    with patch.object(job_manager, "get_job", return_value=completed_job):
+        # Act
+        result = job_manager.wait_for_job_completion(job_id, timeout=10)
+
+        # Assert
+        assert result == completed_job
+
+
+def test_wait_for_job_completion_timeout(job_manager: JobManager) -> None:
+    # Arrange
+    job_id = 1
+    running_job = Mock(spec=Job)
+    running_job.id = job_id
+    running_job.status = JobStatus.RUNNING
+
+    with (
+        patch.object(job_manager, "get_job", return_value=running_job),
+        patch("time.sleep"),
+    ):
+        # Act & Assert
+        with pytest.raises(TimeoutError, match=f"Job {job_id} did not complete within 1 seconds"):
+            job_manager.wait_for_job_completion(job_id, timeout=1)
 
 
 def test_get_final_result(job_manager: JobManager, mock_final_result: FinalResult) -> None:

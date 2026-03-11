@@ -1,3 +1,4 @@
+import time
 from pathlib import Path
 from typing import Any, Awaitable, Callable, List, Optional, Type
 
@@ -24,6 +25,7 @@ from compute_api_client import (
     Job,
     JobIn,
     JobsApi,
+    JobStatus,
     Language,
     LanguagesApi,
     PageBackendType,
@@ -129,6 +131,21 @@ class JobManager:
 
     def get_job(self, job_id: int) -> Job:
         return self._invoke(JobsApi, "read_job_jobs_id_get", id=job_id)
+
+    def wait_for_job_completion(self, job_id: int, timeout: Optional[int] = 60) -> Job:
+        start_time = time.time()
+
+        print("Waiting for job to complete...")
+        while True:
+            job = self.get_job(job_id)
+
+            if job.status not in [JobStatus.PLANNED, JobStatus.RUNNING]:
+                return job
+
+            if timeout is not None and time.time() - start_time >= timeout:
+                raise TimeoutError(f"Job {job.id} did not complete within {timeout} seconds")
+
+            time.sleep(1)
 
     def get_final_result(self, job_id: int) -> FinalResult | None:
         return self._invoke(FinalResultsApi, "read_final_result_by_job_id_final_results_job_job_id_get", job_id)
