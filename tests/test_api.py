@@ -35,6 +35,7 @@ def mock_job_manager() -> Mock:
 def api_instance(mock_config_manager: Mock, mock_auth_manager: Mock, mock_job_manager: Mock) -> Api:
     return Api(mock_config_manager, mock_auth_manager, mock_job_manager)
 
+
 @pytest.fixture
 def mock_get_setting() -> Any:
     def _get_setting(key: str) -> Any:
@@ -44,6 +45,7 @@ def mock_get_setting() -> Any:
         }.get(key)
 
     return _get_setting
+
 
 @pytest.fixture
 def mock_get_algorithm_setting() -> Any:
@@ -60,7 +62,62 @@ def mock_get_algorithm_setting() -> Any:
     return _get_algorithm_setting
 
 
+def test_init_api_with_host_creates_user_settings_and_config_manager(mocker: MockerFixture) -> None:
+    # Arrange
+    host = "https://example.com"
+    mock_user_settings = MagicMock()
+    mock_config_manager_instance = MagicMock(spec=ConfigManager)
+    mock_config_manager_instance.user_settings = mock_user_settings
 
+    mock_user_settings_cls = mocker.patch("quantuminspire.api.UserSettings", return_value=mock_user_settings)
+    mock_config_manager_cls = mocker.patch(
+        "quantuminspire.api.ConfigManager", return_value=mock_config_manager_instance
+    )
+    mocker.patch("quantuminspire.api.AuthManager")
+    mocker.patch("quantuminspire.api.JobManager")
+    mock_login = mocker.patch.object(Api, "login")
+
+    # Act
+    Api(host=host)
+
+    # Assert
+    mock_user_settings_cls.assert_called_once_with(default_host=host)
+    mock_config_manager_cls.assert_called_once_with(user_settings=mock_user_settings)
+    mock_login.assert_called_once()
+
+
+def test_init_api_without_host_creates_default_config_manager(mocker: MockerFixture) -> None:
+    # Arrange
+    mock_config_manager_instance = MagicMock(spec=ConfigManager)
+    mock_config_manager_cls = mocker.patch(
+        "quantuminspire.api.ConfigManager", return_value=mock_config_manager_instance
+    )
+    mocker.patch("quantuminspire.api.AuthManager")
+    mocker.patch("quantuminspire.api.JobManager")
+
+    # Act
+    Api()
+
+    # Assert
+    mock_config_manager_cls.assert_called_once_with()
+
+
+def test_init_api_with_host_uses_provided_config_manager(
+    mock_config_manager: Mock, mock_auth_manager: Mock, mock_job_manager: Mock, mocker: MockerFixture
+) -> None:
+    # Arrange
+    host = "https://example.com"
+    mocker.patch("quantuminspire.api.UserSettings")
+    mock_login = mocker.patch.object(Api, "login")
+
+    # Act
+    api = Api(
+        config_manager=mock_config_manager, auth_manager=mock_auth_manager, job_manager=mock_job_manager, host=host
+    )
+
+    # Assert
+    assert api._config_manager is mock_config_manager
+    mock_login.assert_called_once()
 
 
 @pytest.mark.parametrize(
@@ -138,9 +195,8 @@ def test_get_backend_types(api_instance: Api) -> None:
 
     get_backend_types_mock.assert_called_once()
 
-def test_execute_algorithm(
-    api_instance: Api, mocker: MockerFixture
-) -> None:
+
+def test_execute_algorithm(api_instance: Api, mocker: MockerFixture) -> None:
     algorithm_name = "Some algorithm"
     file_name = "some_file.py"
 
@@ -163,9 +219,7 @@ def test_execute_algorithm(
     mock_submit_job = mocker.patch.object(api_instance, "submit_job", return_value=expected_job_options)
 
     # Act
-    result = api_instance.execute_algorithm(
-        file_name, algorithm_name=algorithm_name, backend_type_id=1, persist=True
-    )
+    result = api_instance.execute_algorithm(file_name, algorithm_name=algorithm_name, backend_type_id=1, persist=True)
 
     # Assert
     mock_submit_job.assert_called_once_with(
@@ -177,6 +231,7 @@ def test_execute_algorithm(
         persist=True,
     )
     assert result == expected_job_options
+
 
 def test_execute_algorithm_with_persist_true_and_no_algorithm_name(
     api_instance: Api,
@@ -192,9 +247,9 @@ def test_execute_algorithm_with_persist_true_and_no_algorithm_name(
             persist=True,
         )
 
+
 def test_execute_algorithm_with_persist_true_creates_algorithm_if_not_exists(
-    api_instance: Api,
-    mocker: MockerFixture
+    api_instance: Api, mocker: MockerFixture
 ) -> None:
     algorithm_name = "Some algorithm"
     file_name = "some_file.py"
@@ -204,17 +259,12 @@ def test_execute_algorithm_with_persist_true_creates_algorithm_if_not_exists(
     with patch.object(api_instance, "initialize_algorithm") as mock_init_algorithm:
 
         api_instance.initialize_project("Dummy project")
-        api_instance.execute_algorithm(
-            file_name, algorithm_name=algorithm_name, backend_type_id=1, persist=True
-        )
+        api_instance.execute_algorithm(file_name, algorithm_name=algorithm_name, backend_type_id=1, persist=True)
 
         mock_init_algorithm.assert_called_once_with(algorithm_name=algorithm_name, file_path=file_name)
 
 
-def test_algorithm_with_persist_false(
-    api_instance: Api,
-    mocker: MockerFixture
-) -> None:
+def test_algorithm_with_persist_false(api_instance: Api, mocker: MockerFixture) -> None:
     file_name = "some_file.py"
     mock_submit_job = mocker.patch.object(api_instance, "submit_job")
 
@@ -225,28 +275,21 @@ def test_algorithm_with_persist_false(
     )
 
     mock_submit_job.assert_called_once_with(
-        file_path=file_name,
-        algorithm_name=None,
-        backend_type_id=1,
-        num_shots=None,
-        store_raw_data=False,
-        persist=False
+        file_path=file_name, algorithm_name=None, backend_type_id=1, num_shots=None, store_raw_data=False, persist=False
     )
 
-def test_initialize_project_no_project_id(
-    api_instance: Api, mocker: MockerFixture
-) -> None:
+
+def test_initialize_project_no_project_id(api_instance: Api, mocker: MockerFixture) -> None:
     project_name = "Dummy project"
     project_description = "Dummy description"
 
     mock_remote_project = MagicMock(id=1, name=project_name, description=project_description)
 
-    mocker.patch.object(
-        api_instance, "check_project_id", side_effect=RuntimeError("No project initialized")
-    )
+    mocker.patch.object(api_instance, "check_project_id", side_effect=RuntimeError("No project initialized"))
 
-    mock_initialize_remote_project = (
-        mocker.patch.object(api_instance, "initialize_remote_project", return_value=mock_remote_project))
+    mock_initialize_remote_project = mocker.patch.object(
+        api_instance, "initialize_remote_project", return_value=mock_remote_project
+    )
     mock_set_setting = mocker.patch.object(api_instance, "set_setting")
 
     api_instance.initialize_project(project_name, project_description)
@@ -261,9 +304,7 @@ def test_initialize_project_no_project_id(
     mock_set_setting.assert_has_calls(expected_calls, any_order=True)
 
 
-def test_initialize_project(
-    api_instance: Api, mocker: MockerFixture, tmp_path: Path
-) -> None:
+def test_initialize_project(api_instance: Api, mocker: MockerFixture, tmp_path: Path) -> None:
     project_name = "Dummy project"
     project_description = "Dummy description"
 
@@ -296,7 +337,8 @@ def test_initialize_algorithm(
     )
 
     mock_create_remote_algorithm = mocker.patch.object(
-        api_instance, "create_remote_algorithm", return_value=mock_remote_algorithm)
+        api_instance, "create_remote_algorithm", return_value=mock_remote_algorithm
+    )
     mock_add_algorithm_to_settings = mocker.patch.object(api_instance, "_add_algorithm_to_settings")
 
     api_instance.initialize_algorithm(algorithm_name, file_path)
@@ -305,9 +347,8 @@ def test_initialize_algorithm(
     mock_create_remote_algorithm.assert_called_once_with(project_id, algorithm_name, file_path)
     mock_add_algorithm_to_settings.assert_called_once_with(algorithm_name, local_algorithm)
 
-def test_get_status(
-    api_instance: Api, mock_get_algorithm_setting: Any, mocker: MockerFixture
-) -> None:
+
+def test_get_status(api_instance: Api, mock_get_algorithm_setting: Any, mocker: MockerFixture) -> None:
     mocker.patch.object(api_instance, "get_algorithm_setting", side_effect=mock_get_algorithm_setting)
 
     algorithm_name = "Some algorithm"
@@ -335,6 +376,7 @@ def test_get_status_with_wait_and_timeout(
     mock_wait.assert_called_once_with(job_id, timeout=5)
     assert status == mock_job.status
 
+
 def test_get_status_with_wait_and_timeout_exceeds_timeout(
     api_instance: Api, mock_get_algorithm_setting: Any, mock_job_manager: Mock, mocker: MockerFixture
 ) -> None:
@@ -347,6 +389,7 @@ def test_get_status_with_wait_and_timeout_exceeds_timeout(
     api_instance.get_status(algorithm_name, True, 5)
 
     mock_wait.assert_called_once_with(job_id, timeout=5)
+
 
 def test_get_final_result_by_algorithm_name(
     api_instance: Api, mock_get_algorithm_setting: Any, mocker: MockerFixture
@@ -363,23 +406,18 @@ def test_get_final_result_by_algorithm_name(
     assert final_result == expected_result
 
 
-def test_check_project_id_with_valid_project(
-    api_instance: Api, mock_get_setting: Any, mocker: MockerFixture
-) -> None:
+def test_check_project_id_with_valid_project(api_instance: Api, mock_get_setting: Any, mocker: MockerFixture) -> None:
     mocker.patch.object(api_instance, "get_setting", side_effect=mock_get_setting)
     api_instance.check_project_id()
 
 
-def test_check_project_id_raises_error_when_no_project(
-    api_instance: Api, mocker: MockerFixture
-) -> None:
+def test_check_project_id_raises_error_when_no_project(api_instance: Api, mocker: MockerFixture) -> None:
     mocker.patch.object(api_instance, "get_setting", return_value=None)
 
     with pytest.raises(RuntimeError, match="No project found. Please create a project by calling initialize_project()"):
         api_instance.check_project_id()
 
     mocker.patch.object(api_instance, "get_setting", side_effect=ValueError)
-
 
     with pytest.raises(RuntimeError, match="No project found. Please create a project by calling initialize_project()"):
         api_instance.check_project_id()

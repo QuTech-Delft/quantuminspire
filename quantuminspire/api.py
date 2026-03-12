@@ -30,11 +30,8 @@ class Api:
         auth_manager: Optional[AuthManager] = None,
         job_manager: Optional[JobManager] = None,
         host: Optional[str] = None,
-        persist_data_path: Optional[Path] = None
     ) -> None:
         if host is not None:
-            init_dir = persist_data_path or Path.cwd()
-            ConfigManager.initialize(init_dir)
             user_settings = UserSettings(default_host=host)
             self._config_manager = config_manager or ConfigManager(user_settings=user_settings)
         else:
@@ -131,7 +128,6 @@ class Api:
             self.set_setting("project.description", remote_project.description)
             self.set_setting("project.algorithms", {})
 
-
     def initialize_algorithm(
         self,
         algorithm_name: str,
@@ -164,9 +160,7 @@ class Api:
         )
         self._add_algorithm_to_settings(algorithm_name, local_algorithm)
 
-    def get_status(
-        self, algorithm_name: str, wait: Optional[bool] = False, timeout: Optional[int] = 10
-    ) -> JobStatus:
+    def get_status(self, algorithm_name: str, wait: Optional[bool] = False, timeout: Optional[int] = 10) -> JobStatus:
         """Get the status of the most recent job for the given algorithm.
 
         Args:
@@ -186,18 +180,6 @@ class Api:
                 print("Timeout while waiting for job completion. Returning current status.")
 
         return self.get_job(job_id).status
-
-    def get_algorithm_final_result(self, algorithm_name: str) -> FinalResult | None:
-        """Get the final result of the most recent job for the given algorithm.
-
-        Args:
-            algorithm_name (str): The name of the algorithm.
-
-        Returns:
-            FinalResult | None: The final result of the job, or None if not available.
-        """
-        job_id = self.get_algorithm_setting(algorithm_name, "job_id")
-        return self.get_final_result(job_id)
 
     def check_project_id(self) -> None:
         """Verify that a project is initialized in the current settings.
@@ -270,7 +252,6 @@ class Api:
     def get_final_result_by_algorithm_name(self, algorithm_name: str) -> FinalResult | None:
         job_id = self.get_algorithm_setting(algorithm_name, "job_id")
         return self.get_final_result(job_id)
-
 
     def _get_local_algorithm(self, algorithm_name: str) -> LocalAlgorithm:
         algorithms = self.get_setting("project.algorithms")

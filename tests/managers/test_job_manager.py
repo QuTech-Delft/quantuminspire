@@ -186,6 +186,7 @@ def test_get_job(job_manager: JobManager, mock_job: Job) -> None:
             id=1,
         )
 
+
 def test_wait_for_job_completion_success(job_manager: JobManager) -> None:
     # Arrange
     job_id = 1

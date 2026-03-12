@@ -28,6 +28,7 @@ def test_algorithm_name_with_control_characters_raises_error() -> None:
     with pytest.raises(ValueError, match="Algorithm name cannot contain control characters"):
         TypeAdapter(AlgorithmName).validate_python("name with control char \x01")
 
+
 @pytest.mark.parametrize(
     "valid_name",
     [

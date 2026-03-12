@@ -4,6 +4,7 @@ from pydantic import AfterValidator, BaseModel, BeforeValidator, Field, HttpUrl
 
 Url = Annotated[str, BeforeValidator(lambda value: str(HttpUrl(value)).rstrip("/"))]
 
+
 def _validate_algorithm_name(value: str) -> str:
     if not value or not value.strip():
         raise ValueError("Algorithm name cannot be empty")
@@ -13,7 +14,9 @@ def _validate_algorithm_name(value: str) -> str:
         raise ValueError("Algorithm name cannot contain control characters")
     return value
 
+
 AlgorithmName = Annotated[str, BeforeValidator(lambda value: str(value)), AfterValidator(_validate_algorithm_name)]
+
 
 class LocalAlgorithm(BaseModel):
     file_path: str = Field("")
