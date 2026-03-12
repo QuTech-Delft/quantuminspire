@@ -1,0 +1,17 @@
+{
+    "project": {
+        "id": 43957,
+        "name": "My first project",
+        "description": "This is a description of my first project.",
+        "algorithms": {
+            "My first algorithm": {
+                "id": 45843,
+                "file_path": "../test_algorithms/quantum.cq",
+                "backend_type_id": null,
+                "job_id": null,
+                "num_shots": null,
+                "store_raw_data": false
+            }
+        }
+    }
+}
