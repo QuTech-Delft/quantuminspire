@@ -35,11 +35,10 @@ from compute_api_client import (
     ProjectsApi,
     ShareType,
 )
+from compute_api_client.exceptions import NotFoundException
 from pydantic import BaseModel, Field
 from qi2_shared.client import config
 from qi2_shared.utils import run_async
-
-from quantuminspire.managers.config_manager import ConfigManager
 
 
 class JobOptions(BaseModel):
@@ -56,10 +55,6 @@ class JobOptions(BaseModel):
 
 
 class JobManager:
-
-    def __init__(self, config_manager: ConfigManager) -> None:
-        self._config_manager = config_manager
-
     @staticmethod
     def _invoke(
         api_class: Type[Any],
@@ -75,11 +70,8 @@ class JobManager:
 
         return run_async(_execute())
 
-    def run_flow(self, job_options: JobOptions) -> JobOptions:
-
-        host = self._config_manager.get("default_host")
-        owner_id = self._config_manager.user_settings.auths[host].owner_id
-        if job_options.project_id is None:
+    def run_flow(self, job_options: JobOptions, owner_id: int) -> JobOptions:
+        if job_options.project_id is None or self.read_project(job_options.project_id) is None:
             project = self.create_project(
                 owner_id=owner_id,
                 project_name=job_options.project_name,
@@ -103,7 +95,15 @@ class JobManager:
             )
             job_options.algorithm_id = algorithm.id
         else:
-            algorithm = self._read_algorithm(algorithm_id=job_options.algorithm_id)
+            try:
+                algorithm = self._read_algorithm(algorithm_id=job_options.algorithm_id)
+            except NotFoundException:
+                algorithm = self.create_algorithm(
+                    project_id=job_options.project_id,
+                    algorithm_name=job_options.algorithm_name,
+                    algorithm_type=algorithm_type,
+                )
+                job_options.algorithm_id = algorithm.id
 
         commit = self._create_commit(algorithm_id=algorithm.id)
         language: Language = self._get_language_for_algorithm(algorithm_type=algorithm_type)
@@ -133,7 +133,7 @@ class JobManager:
         return self._invoke(JobsApi, "read_job_jobs_id_get", id=job_id)
 
     def wait_for_job_completion(self, job_id: int, timeout: Optional[int] = 60) -> Job:
-        start_time = time.time()
+        start_time = time.monotonic()
 
         print("Waiting for job to complete...")
         while True:
@@ -142,7 +142,7 @@ class JobManager:
             if job.status not in [JobStatus.PLANNED, JobStatus.RUNNING]:
                 return job
 
-            if timeout is not None and time.time() - start_time >= timeout:
+            if timeout is not None and time.monotonic() - start_time >= timeout:
                 raise TimeoutError(f"Job {job.id} did not complete within {timeout} seconds")
 
             time.sleep(1)
@@ -166,6 +166,12 @@ class JobManager:
             starred=False,
         )
         return self._invoke(ProjectsApi, "create_project_projects_post", obj)
+
+    def read_project(self, project_id: int) -> Project | None:
+        try:
+            return self._invoke(ProjectsApi, "read_project_projects_id_get", project_id)
+        except NotFoundException:
+            return None
 
     def _update_project(self, project_id: int, project_name: str, project_description: str) -> Project:
         obj = ProjectPatch(name=project_name, description=project_description)

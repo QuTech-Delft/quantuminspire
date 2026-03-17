@@ -33,6 +33,7 @@ from compute_api_client import (
     ProjectsApi,
     ShareType,
 )
+from compute_api_client.exceptions import NotFoundException
 from pytest_mock import MockerFixture
 
 from quantuminspire.managers.config_manager import ConfigManager
@@ -48,8 +49,8 @@ def config_manager() -> ConfigManager:
 
 
 @pytest.fixture
-def job_manager(config_manager: ConfigManager) -> JobManager:
-    return JobManager(config_manager)
+def job_manager() -> JobManager:
+    return JobManager()
 
 
 @pytest.fixture
@@ -132,11 +133,6 @@ def mock_backend_type(mocker: MockerFixture) -> MagicMock:
 def mock_final_result(mocker: MockerFixture) -> MagicMock:
     mock: MagicMock = mocker.MagicMock(spec=FinalResult)
     return mock
-
-
-def test_init_with_config_manager(config_manager: ConfigManager) -> None:
-    job_manager = JobManager(config_manager)
-    assert job_manager._config_manager == config_manager
 
 
 def test_invoke(job_manager: JobManager, mocker: MockerFixture) -> None:
@@ -314,6 +310,7 @@ def test_run_flow_creates_new_project_and_algorithm(
     mock_page_language.total = (1,)
     mock_page_language.page = (1,)
     mock_page_language.size = 50
+    mock_owner_id = 123
 
     with (
         patch.object(JobManager, "_invoke") as mock_invoke,
@@ -330,7 +327,7 @@ def test_run_flow_creates_new_project_and_algorithm(
             mock_batch_job,
         ]
 
-        job_manager.run_flow(job_options)
+        job_manager.run_flow(job_options, owner_id=mock_owner_id)
 
         mock_enqueue_batch_job.assert_called_once_with(batch_job_id=mock_batch_job.id)
 
@@ -365,6 +362,7 @@ def test_run_flow_with_existing_project_and_algorithm(
     job_options.file_path = test_file
 
     mock_page_language = mocker.MagicMock(items=[mock_language], total=1, page=1, size=50)
+    mock_owner_id = 123
 
     with (
         patch.object(JobManager, "_invoke") as mock_invoke,
@@ -373,6 +371,7 @@ def test_run_flow_with_existing_project_and_algorithm(
         patch.object(JobManager, "_read_algorithm", return_value=mock_algorithm) as mock_read_algorithm,
     ):
         mock_invoke.side_effect = [
+            mock_algorithm,
             mock_commit,
             mock_page_language,
             mock_file,
@@ -381,7 +380,7 @@ def test_run_flow_with_existing_project_and_algorithm(
             mock_batch_job,
         ]
 
-        job_manager.run_flow(job_options)
+        job_manager.run_flow(job_options, mock_owner_id)
 
         mock_enqueue_batch_job.assert_called_once_with(batch_job_id=mock_batch_job.id)
 
@@ -392,6 +391,60 @@ def test_run_flow_with_existing_project_and_algorithm(
         )
         mock_read_algorithm.assert_called_once_with(
             algorithm_id=job_options.algorithm_id,
+        )
+
+
+def test_run_flow_remote_project_and_algorithm_do_not_exist(
+    job_manager: JobManager,
+    job_options: JobOptions,
+    mock_project: Project,
+    mock_algorithm: Algorithm,
+    mock_commit: Commit,
+    mock_language: Language,
+    mock_file: File,
+    mock_batch_job: BatchJob,
+    mock_job: Job,
+    tmp_path: Path,
+    mocker: MockerFixture,
+) -> None:
+    job_options.project_id = 2
+    job_options.algorithm_id = 2
+
+    test_file = tmp_path / "test_algorithm.cq"
+    test_file.write_text("version 3.0\nqubit[2] q\nH q[0]")
+    job_options.file_path = test_file
+
+    mock_page_language = mocker.MagicMock(items=[mock_language], total=1, page=1, size=50)
+    mock_owner_id = 123
+
+    with (
+        patch.object(JobManager, "_invoke") as mock_invoke,
+        patch.object(JobManager, "_enqueue_batch_job") as mock_enqueue_batch_job,
+        patch.object(JobManager, "create_project", return_value=mock_project) as mock_create_project,
+        patch.object(JobManager, "_read_algorithm", side_effect=NotFoundException),
+        patch.object(JobManager, "create_algorithm", return_value=mock_algorithm) as mock_create_algorithm,
+    ):
+        mock_invoke.side_effect = [
+            None,
+            mock_commit,
+            mock_page_language,
+            mock_file,
+            mock_batch_job,
+            mock_job,
+            mock_batch_job,
+        ]
+
+        job_manager.run_flow(job_options, mock_owner_id)
+
+        mock_enqueue_batch_job.assert_called_once_with(batch_job_id=mock_batch_job.id)
+
+        mock_create_project.assert_called_once_with(
+            owner_id=mock_owner_id,
+            project_name=job_options.project_name,
+            project_description=job_options.project_description,
+        )
+        mock_create_algorithm.assert_called_once_with(
+            project_id=mock_project.id, algorithm_name=job_options.algorithm_name, algorithm_type=AlgorithmType.QUANTUM
         )
 
 
@@ -413,6 +466,29 @@ def test_update_project(job_manager: JobManager, mock_project: Project) -> None:
             result_project_id,
             ProjectPatch(name=result_project_name, description=result_project_description),
         )
+
+
+def test_read_project(job_manager: JobManager, mock_project: Project) -> None:
+    with patch.object(JobManager, "_invoke", return_value=mock_project) as mock_invoke:
+        job_manager.read_project(project_id=1)
+
+        mock_invoke.assert_called_once_with(
+            ProjectsApi,
+            "read_project_projects_id_get",
+            1,
+        )
+
+
+def test_read_project_exception(job_manager: JobManager, mock_project: Project) -> None:
+    with patch.object(JobManager, "_invoke", side_effect=NotFoundException) as mock_invoke:
+        result = job_manager.read_project(project_id=1)
+
+        mock_invoke.assert_called_once_with(
+            ProjectsApi,
+            "read_project_projects_id_get",
+            1,
+        )
+        assert result is None
 
 
 def test_read_algorithm(job_manager: JobManager, mock_algorithm: Algorithm) -> None:

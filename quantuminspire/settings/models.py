@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Annotated, Optional
 
 from pydantic import AfterValidator, BaseModel, BeforeValidator, Field, HttpUrl
@@ -19,8 +20,8 @@ AlgorithmName = Annotated[str, BeforeValidator(lambda value: str(value)), AfterV
 
 
 class LocalAlgorithm(BaseModel):
-    file_path: str = Field("")
-    id: Optional[int] = Field(1)
+    file_path: Path = Field(Path(""))
+    id: Optional[int] = Field(None)
     backend_type_id: Optional[int] = Field(None)
     job_id: Optional[int] = Field(None)
     num_shots: Optional[int] = Field(None)

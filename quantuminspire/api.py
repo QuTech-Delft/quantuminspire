@@ -1,12 +1,13 @@
+from collections.abc import Callable
 from datetime import datetime
+from functools import wraps
 from pathlib import Path
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Concatenate, Dict, List, Optional, ParamSpec, TypeVar, cast
 from urllib.parse import urlparse
 
 import requests
 from compute_api_client import (
     Algorithm,
-    AlgorithmType,
     BackendType,
     FinalResult,
     Job,
@@ -21,8 +22,29 @@ from quantuminspire.managers.job_manager import JobManager, JobOptions
 from quantuminspire.settings.models import AlgorithmName, LocalAlgorithm, Url
 from quantuminspire.settings.user_settings import UserSettings
 
+P = ParamSpec("P")
+R = TypeVar("R")
+
 
 class Api:
+
+    @staticmethod
+    def _refresh_auth_tokens(
+        fn: Callable[Concatenate["Api", P], R],
+    ) -> Callable[Concatenate["Api", P], R]:
+
+        @wraps(fn)
+        def wrapped(self: "Api", *args: P.args, **kwargs: P.kwargs) -> R:
+            hostname = self._config_manager.get("default_host")
+
+            if self._login_required(hostname):
+                self.login(hostname)
+            else:
+                self._auth_manager.refresh_tokens(hostname)
+
+            return fn(self, *args, **kwargs)
+
+        return wrapped
 
     def __init__(
         self,
@@ -38,7 +60,7 @@ class Api:
             self._config_manager = config_manager or ConfigManager()
 
         self._auth_manager = auth_manager or AuthManager(user_settings=self._config_manager.user_settings)
-        self._job_manager = job_manager or JobManager(self._config_manager)
+        self._job_manager = job_manager or JobManager()
 
         if host is not None:
             self.login()
@@ -50,41 +72,28 @@ class Api:
 
         resolved_host = self._resolve(host_url, "default_host")
 
-        if force or self.login_required(resolved_host):
+        if force or self._login_required(resolved_host):
             self._auth_manager.login(resolved_host, override_auth_config)
             self.set_setting("default_host", resolved_host, is_user=True)
         else:
             print("Already logged in, simply refreshing tokens")
             self._auth_manager.refresh_tokens(resolved_host)
 
-    def login_required(self, host: Url) -> bool:
+    def _login_required(self, host: Url) -> bool:
         return self._auth_manager.login_required(host)
 
     def execute_algorithm(
         self,
-        path_to_file: str,
+        path_to_file: Path,
         backend_type_id: Optional[int] = None,
         num_shots: Optional[int] = None,
         store_raw_data: Optional[bool] = False,
         algorithm_name: Optional[str] = None,
         persist: bool = False,
     ) -> JobOptions:
-        """Executes the algorithm located at the specified path.
-
-        Args:
-            path_to_file (str): The file path to the algorithm to be executed.
-            backend_type_id (int): The backend type ID to execute the algorithm on.
-            num_shots (Optional[int]): The number of shots to execute the algorithm with.
-            store_raw_data (Optional[bool]): Whether to store the raw data from the execution.
-            algorithm_name (Optional[str]): The name of the algorithm to be used for persistence.
-                Required if persist is True.
-            persist (bool): Whether to persist the algorithm in the project settings.
-
-        Returns:
-            JobOptions: The job options for the submitted job.
-        """
+        """Executes the algorithm located at the specified path."""
         if persist:
-            self.check_project_id()
+            self._check_project_id()
 
             if not algorithm_name:
                 raise ValueError(
@@ -96,7 +105,7 @@ class Api:
             if algorithm_name not in algorithms.keys():
                 self.initialize_algorithm(algorithm_name=algorithm_name, file_path=path_to_file)
 
-        return self.submit_job(
+        job = self._submit_job(
             file_path=path_to_file,
             algorithm_name=algorithm_name,
             backend_type_id=backend_type_id,
@@ -105,47 +114,47 @@ class Api:
             persist=persist,
         )
 
+        if not persist:
+            print("Successfully executed algorithm with job id:", job.job_id)
+        return job
+
+    @_refresh_auth_tokens
     def initialize_project(self, project_name: str, project_description: str = "", path: Optional[str] = None) -> None:
         """Initialize a remote project, storing its settings locally.
 
         Does nothing if a project is already initialized.
-
-        Args:
-            project_name (str): The name of the project.
-            project_description (Optional[str]): An optional description for the project.
-            path (Optional[str]): An optional path to initialize the ConfigManager with.
-            Defaults to current working directory.
         """
 
         init_dir = Path(path) if path is not None else Path.cwd()
         ConfigManager.initialize(init_dir)
+
         try:
-            self.check_project_id()
+            self._check_project_id()
+            project_id = self.get_setting("project.id")
+            remote_project = self._job_manager.read_project(project_id)
+            if remote_project is None:
+                remote_project = self.initialize_remote_project(project_name, project_description)
         except RuntimeError:
-            remote_project: Project = self.initialize_remote_project(project_name, project_description)
-            self.set_setting("project.id", remote_project.id)
-            self.set_setting("project.name", remote_project.name)
-            self.set_setting("project.description", remote_project.description)
+            remote_project = self.initialize_remote_project(project_name, project_description)
+
+        assert isinstance(remote_project, Project)
+        self.set_setting("project.id", remote_project.id)
+        self.set_setting("project.name", remote_project.name)
+        self.set_setting("project.description", remote_project.description)
+        try:
+            self.get_setting("project.algorithms")
+        except ValueError:
             self.set_setting("project.algorithms", {})
 
     def initialize_algorithm(
         self,
         algorithm_name: str,
-        file_path: str = "",
+        file_path: Path = Path(""),
         backend_type_id: Optional[int] = None,
         num_shots: Optional[int] = None,
         store_raw_data: Optional[bool] = False,
     ) -> None:
-        """Create a remote algorithm and register it in local settings.
-
-        Args:
-            algorithm_name (str): The name of the algorithm.
-            file_path (str): Path to the algorithm file.
-            backend_type_id (Optional[int]): Default backend type ID.
-            num_shots (Optional[int]): Default number of shots.
-            store_raw_data (Optional[bool]): Whether to store raw data by default.
-        """
-        self.check_project_id()
+        self._check_project_id()
         project_id = self.get_setting("project.id")
 
         algorithm_name = TypeAdapter(AlgorithmName).validate_python(algorithm_name)
@@ -160,42 +169,36 @@ class Api:
         )
         self._add_algorithm_to_settings(algorithm_name, local_algorithm)
 
-    def get_status(self, algorithm_name: str, wait: Optional[bool] = False, timeout: Optional[int] = 10) -> JobStatus:
-        """Get the status of the most recent job for the given algorithm.
-
-        Args:
-            algorithm_name (str): The name of the algorithm.
-            wait (Optional[bool]): Whether to wait for job completion before returning.
-            timeout (Optional[int]): Maximum seconds to wait when wait=True.
-
-        Returns:
-            JobStatus: The current status of the job.
-        """
+    @_refresh_auth_tokens
+    def get_status_by_algorithm_name(
+        self, algorithm_name: str, wait: Optional[bool] = False, timeout: Optional[int] = 10
+    ) -> JobStatus:
+        """Get the status of the most recent job for the given algorithm."""
         job_id = self.get_algorithm_setting(algorithm_name, "job_id")
+        return self.get_status_by_job_id(job_id, wait=wait, timeout=timeout)
 
+    @_refresh_auth_tokens
+    def get_status_by_job_id(self, job_id: int, wait: Optional[bool] = False, timeout: Optional[int] = 10) -> JobStatus:
         if wait:
             try:
                 return self._job_manager.wait_for_job_completion(job_id, timeout=timeout).status
             except TimeoutError:
                 print("Timeout while waiting for job completion. Returning current status.")
 
-        return self.get_job(job_id).status
+        return self._get_job(job_id).status
 
-    def check_project_id(self) -> None:
-        """Verify that a project is initialized in the current settings.
-
-        Raises:
-            RuntimeError: If no project ID is found in the settings.
-        """
+    def _check_project_id(self) -> None:
+        """Verify that a project is initialized in the current settings."""
         try:
             if self.get_setting("project.id") is None:
                 raise RuntimeError("No project found. Please create a project by calling initialize_project()")
         except ValueError:
             raise RuntimeError("No project found. Please create a project by calling initialize_project()")
 
-    def submit_job(
+    @_refresh_auth_tokens
+    def _submit_job(
         self,
-        file_path: str,
+        file_path: Path,
         algorithm_name: Optional[str],
         num_shots: Optional[int] = None,
         store_raw_data: Optional[bool] = None,
@@ -221,37 +224,41 @@ class Api:
         else:
             options = self._get_job_options(cast(str, algorithm_name), num_shots, store_raw_data, backend_type_id)
 
-        job_options = self._job_manager.run_flow(JobOptions(**(options | {"file_path": Path(file_path)})))
+        host = self._config_manager.get("default_host")
+        owner_id = self._config_manager.user_settings.auths[host].owner_id
+        job_options = self._job_manager.run_flow(JobOptions(**(options | {"file_path": file_path})), owner_id)
 
         if persist:
             local_algorithm = LocalAlgorithm(
                 id=job_options.algorithm_id,
-                file_path=str(job_options.file_path),
+                file_path=job_options.file_path,
                 num_shots=job_options.number_of_shots,
                 store_raw_data=job_options.raw_data_enabled,
                 job_id=job_options.job_id,
                 backend_type_id=backend_type_id,
             )
             self._add_algorithm_to_settings(job_options.algorithm_name, local_algorithm)
+            self.set_setting("project.id", job_options.project_id)
+            self.set_setting("project.name", job_options.project_name)
+            self.set_setting("project.description", job_options.project_description)
 
         return job_options
 
+    @_refresh_auth_tokens
     def get_backend_types(self) -> List[BackendType]:
         return self._job_manager.get_backend_types()
 
-    def get_job(self, job_id: Optional[int] = None) -> Job:
-        job_id = self._resolve(job_id, "job.id")
-        assert job_id is not None
+    @_refresh_auth_tokens
+    def _get_job(self, job_id: int) -> Job:
         return self._job_manager.get_job(job_id)
-
-    def get_final_result(self, job_id: Optional[int] = None) -> FinalResult | None:
-        job_id = self._resolve(job_id, "job.id")
-        assert job_id is not None
-        return self._job_manager.get_final_result(job_id)
 
     def get_final_result_by_algorithm_name(self, algorithm_name: str) -> FinalResult | None:
         job_id = self.get_algorithm_setting(algorithm_name, "job_id")
-        return self.get_final_result(job_id)
+        return self.get_final_result_by_job_id(job_id)
+
+    @_refresh_auth_tokens
+    def get_final_result_by_job_id(self, job_id: int) -> FinalResult | None:
+        return self._job_manager.get_final_result(job_id)
 
     def _get_local_algorithm(self, algorithm_name: str) -> LocalAlgorithm:
         algorithms = self.get_setting("project.algorithms")
@@ -266,16 +273,15 @@ class Api:
         algorithms[algorithm_name] = local_algorithm
         self.set_setting("project.algorithms", algorithms, is_user=False)
 
+    @_refresh_auth_tokens
     def initialize_remote_project(self, project_name: str, project_description: Optional[str] = "") -> Project:
         host = self.get_setting("default_host")
         owner_id = self._config_manager.user_settings.auths[host].owner_id
         return self._job_manager.create_project(owner_id, project_name, cast(str, project_description))
 
-    def create_remote_algorithm(self, project_id: int, algorithm_name: str, file_path: str) -> Algorithm:
-        if file_path:
-            algorithm_type = self._job_manager.get_algorithm_type(Path(file_path))
-        else:
-            algorithm_type = AlgorithmType.HYBRID
+    @_refresh_auth_tokens
+    def create_remote_algorithm(self, project_id: int, algorithm_name: str, file_path: Path) -> Algorithm:
+        algorithm_type = self._job_manager.get_algorithm_type(file_path)
         return self._job_manager.create_algorithm(project_id, algorithm_name, algorithm_type)
 
     def view_settings(self) -> Dict[str, Any]:
@@ -326,11 +332,8 @@ class Api:
 
     @staticmethod
     def _resolve_protocol(url: str) -> str:
-        """Add 'https://' protocol to the URL if not already present.
+        """Add 'https://' protocol to the URL if not already present."""
 
-        Args:
-            url: The URL to which to add the protocol.
-        """
         parsed = urlparse(url)
 
         if parsed.scheme:
