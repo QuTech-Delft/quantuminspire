@@ -20,14 +20,6 @@ class TestBaseDirMixin:
 
 @pytest.fixture(autouse=True)
 def mock_refresh_auth_tokens(request: pytest.FixtureRequest, monkeypatch: MonkeyPatch) -> None:
-    """Replace every method decorated with @_refresh_auth_tokens with its
-    original (unwrapped) function.  functools.wraps stores the original
-    callable on the ``__wrapped__`` attribute, so we can discover all
-    decorated methods without enumerating them by name.
-
-    Tests marked with ``@pytest.mark.keep_auth_tokens_wrapper`` opt out of
-    this patching so they can exercise the decorator itself.
-    """
     if request.node.get_closest_marker("keep_auth_tokens_wrapper"):
         return
 

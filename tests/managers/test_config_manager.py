@@ -1,10 +1,9 @@
 import copy
 from pathlib import Path
 from typing import Any, Dict, Optional
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
-from pytest_mock import MockerFixture
 
 from quantuminspire.managers.config_manager import ConfigManager
 from quantuminspire.settings.models import Project
@@ -177,6 +176,7 @@ def test_shared_scope_user_precedence_clears_project_scope(
     config_manager: ConfigManager, key: str, user_value: Any, project_value: Any
 ) -> None:
     # Arrange & Act
+    assert config_manager._project_settings is not None
     config_manager._project_settings.set_value(key, project_value)
 
     # Act
@@ -197,6 +197,7 @@ def test_shared_scope_project_precedence_without_overwriting_user(
     config_manager: ConfigManager, key: str, user_value: Any, project_value: Any
 ) -> None:
     # Arrange
+    assert config_manager._project_settings is not None
     config_manager._user_settings.set_value(key, user_value)
 
     # Act
@@ -225,6 +226,7 @@ def test_inspect_merger(
 ) -> None:
 
     shared_setting_key = "shared_setting"
+    assert config_manager._project_settings is not None
     config_manager._project_settings.set_value(shared_setting_key, project_value)
     config_manager._user_settings.set_value(shared_setting_key, user_value)
 
@@ -234,20 +236,55 @@ def test_inspect_merger(
     assert config_manager.inspect() == default_settings_map
 
 
-def test_config_manager_raises_if_project_not_initialised(
-    mocker: MockerFixture, user_settings: DummyUserSettings
+def test_settings_priority_without_project_settings(user_settings: DummyUserSettings) -> None:
+    config_manager = ConfigManager(project_settings=None, user_settings=user_settings)
+    priority = config_manager._settings_priority
+    assert priority == [user_settings]
+
+
+def test_settings_priority_with_project_settings(
+    config_manager: ConfigManager,
+    project_settings: DummyProjectSettings,
+    user_settings: DummyUserSettings,
 ) -> None:
-    mocker.patch("quantuminspire.managers.config_manager.ProjectSettings", side_effect=FileNotFoundError)
-
-    with pytest.raises(RuntimeError, match="Project not initialised"):
-        ConfigManager(user_settings=user_settings)
+    priority = config_manager._settings_priority
+    assert priority == [project_settings, user_settings]
 
 
-def test_init_calls_initialize(tmp_path: Path) -> None:
+def test_initialize_with_existing_project_settings(config_manager: ConfigManager, tmp_path: Path) -> None:
+    original_project_settings = config_manager._project_settings
+    original_keys = config_manager._configurable_keys
+
     with patch.object(ProjectSettings, "initialize") as mock_init:
-        ConfigManager.initialize(path=tmp_path)
+        config_manager.initialize(path=tmp_path)
 
         mock_init.assert_called_once_with(tmp_path)
+        assert config_manager._project_settings is original_project_settings
+        assert config_manager._configurable_keys == original_keys
+
+
+def test_initialize_without_project_settings(user_settings: DummyUserSettings, tmp_path: Path) -> None:
+    config_manager = ConfigManager(project_settings=None, user_settings=user_settings)
+    mock_project_settings = MagicMock(spec=ProjectSettings)
+
+    assert config_manager._project_settings is None
+
+    with (
+        patch.object(ProjectSettings, "initialize"),
+        patch(
+            "quantuminspire.managers.config_manager.ProjectSettings", return_value=mock_project_settings
+        ) as mock_project_settings_class,
+        patch.object(
+            config_manager, "_compute_flattened_keys", return_value=MagicMock()
+        ) as mock_compute_flattened_keys,
+    ):
+        mock_instance = mock_project_settings_class.return_value
+
+        config_manager.initialize(path=tmp_path)
+
+        mock_project_settings_class.assert_called_once()
+        assert config_manager._project_settings is mock_instance
+        mock_compute_flattened_keys.assert_called_once()
 
 
 def test_user_settings(config_manager: ConfigManager) -> None:

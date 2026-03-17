@@ -53,17 +53,15 @@ class Api:
         job_manager: Optional[JobManager] = None,
         host: Optional[str] = None,
     ) -> None:
-        if host is not None:
-            user_settings = UserSettings(default_host=host)
-            self._config_manager = config_manager or ConfigManager(user_settings=user_settings)
-        else:
-            self._config_manager = config_manager or ConfigManager()
+        user_settings = UserSettings()
+        self._config_manager = config_manager or ConfigManager(user_settings=user_settings)
+
+        if host:
+            resolved_host = self._resolve_protocol(host)
+            self._config_manager.set("default_host", resolved_host, is_user=True)
 
         self._auth_manager = auth_manager or AuthManager(user_settings=self._config_manager.user_settings)
         self._job_manager = job_manager or JobManager()
-
-        if host is not None:
-            self.login()
 
     def login(self, hostname: Optional[str] = None, override_auth_config: bool = False, force: bool = False) -> None:
         host_url: Optional[Url] = None
@@ -121,12 +119,11 @@ class Api:
     @_refresh_auth_tokens
     def initialize_project(self, project_name: str, project_description: str = "", path: Optional[str] = None) -> None:
         """Initialize a remote project, storing its settings locally.
-
         Does nothing if a project is already initialized.
         """
 
         init_dir = Path(path) if path is not None else Path.cwd()
-        ConfigManager.initialize(init_dir)
+        self._config_manager.initialize(init_dir)
 
         try:
             self._check_project_id()

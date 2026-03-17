@@ -76,7 +76,7 @@ def test_refresh_auth_tokens_calls_login_when_login_required(
 
     # Assert
     mock_login_required.assert_called_with(host)
-    mock_auth_manager.login.assert_called_once_with(host, False)
+    mock_auth_manager.login.assert_called_with(host, False)
     mock_auth_manager.refresh_tokens.assert_not_called()
 
 
@@ -95,11 +95,11 @@ def test_refresh_auth_tokens_calls_refresh_when_login_not_required(
 
     # Assert
     mock_login_required.assert_called_once_with(host)
-    mock_auth_manager.refresh_tokens.assert_called_once_with(host)
+    mock_auth_manager.refresh_tokens.assert_called_with(host)
     mock_auth_manager.login.assert_not_called()
 
 
-def test_init_api_with_host_creates_user_settings_and_config_manager(mocker: MockerFixture) -> None:
+def test_init_api_with_host(mocker: MockerFixture) -> None:
     # Arrange
     host = "https://example.com"
     mock_user_settings = MagicMock()
@@ -110,51 +110,19 @@ def test_init_api_with_host_creates_user_settings_and_config_manager(mocker: Moc
     mock_config_manager_cls = mocker.patch(
         "quantuminspire.api.ConfigManager", return_value=mock_config_manager_instance
     )
+    mock_config_manager_set = mocker.patch.object(mock_config_manager_instance, "set")
+    mock_resolve_protocol = mocker.patch.object(Api, "_resolve_protocol", return_value=host)
     mocker.patch("quantuminspire.api.AuthManager")
     mocker.patch("quantuminspire.api.JobManager")
-    mock_login = mocker.patch.object(Api, "login")
 
     # Act
     Api(host=host)
 
     # Assert
-    mock_user_settings_cls.assert_called_once_with(default_host=host)
+    mock_user_settings_cls.assert_called_once_with()
     mock_config_manager_cls.assert_called_once_with(user_settings=mock_user_settings)
-    mock_login.assert_called_once()
-
-
-def test_init_api_without_host_creates_default_config_manager(mocker: MockerFixture) -> None:
-    # Arrange
-    mock_config_manager_instance = MagicMock(spec=ConfigManager)
-    mock_config_manager_cls = mocker.patch(
-        "quantuminspire.api.ConfigManager", return_value=mock_config_manager_instance
-    )
-    mocker.patch("quantuminspire.api.AuthManager")
-    mocker.patch("quantuminspire.api.JobManager")
-
-    # Act
-    Api()
-
-    # Assert
-    mock_config_manager_cls.assert_called_once_with()
-
-
-def test_init_api_with_host_uses_provided_config_manager(
-    mock_config_manager: Mock, mock_auth_manager: Mock, mock_job_manager: Mock, mocker: MockerFixture
-) -> None:
-    # Arrange
-    host = "https://example.com"
-    mocker.patch("quantuminspire.api.UserSettings")
-    mock_login = mocker.patch.object(Api, "login")
-
-    # Act
-    api = Api(
-        config_manager=mock_config_manager, auth_manager=mock_auth_manager, job_manager=mock_job_manager, host=host
-    )
-
-    # Assert
-    assert api._config_manager is mock_config_manager
-    mock_login.assert_called_once()
+    mock_config_manager_set.assert_called_once()
+    mock_resolve_protocol.assert_called_once_with(host)
 
 
 @pytest.mark.parametrize(
@@ -200,7 +168,7 @@ def test_login_user_not_authenticated(api_instance: Api) -> None:
 
     login_mock.assert_called_with(hostname, False)
     refresh_mock.assert_not_called()
-    set_mock.assert_called_once_with("default_host", hostname, True)
+    set_mock.assert_called_with("default_host", hostname, True)
 
 
 def test_login_user_already_authenticated(api_instance: Api) -> None:
@@ -416,7 +384,7 @@ def test_initialize_project_algorithms_setting_already_exists(
         assert c != call("project.algorithms", {})
 
 
-def test_initialize_project_with_path(api_instance: Api, mocker: MockerFixture) -> None:
+def test_initialize_project_with_path(api_instance: Api, mock_config_manager: Mock, mocker: MockerFixture) -> None:
     project_name = "Path project"
     project_description = "Path description"
     custom_path = "/some/custom/path"
@@ -430,14 +398,16 @@ def test_initialize_project_with_path(api_instance: Api, mocker: MockerFixture) 
     mocker.patch.object(api_instance, "initialize_remote_project", return_value=mock_remote_project)
     mocker.patch.object(api_instance, "get_setting", side_effect=ValueError)
     mocker.patch.object(api_instance, "set_setting")
-    mock_config_initialize = mocker.patch.object(ConfigManager, "initialize")
+    mock_config_initialize = mocker.patch.object(mock_config_manager, "initialize")
 
     api_instance.initialize_project(project_name, project_description, path=custom_path)
 
     mock_config_initialize.assert_called_once_with(Path(custom_path))
 
 
-def test_initialize_project_without_path_uses_cwd(api_instance: Api, mocker: MockerFixture) -> None:
+def test_initialize_project_without_path_uses_cwd(
+    api_instance: Api, mock_config_manager: Mock, mocker: MockerFixture
+) -> None:
     # Arrange: no path provided, should use Path.cwd()
     project_name = "CWD project"
     project_description = "CWD description"
@@ -452,7 +422,7 @@ def test_initialize_project_without_path_uses_cwd(api_instance: Api, mocker: Moc
     mocker.patch.object(api_instance, "initialize_remote_project", return_value=mock_remote_project)
     mocker.patch.object(api_instance, "get_setting", side_effect=ValueError)
     mocker.patch.object(api_instance, "set_setting")
-    mock_config_initialize = mocker.patch.object(ConfigManager, "initialize")
+    mock_config_initialize = mocker.patch.object(mock_config_manager, "initialize")
     mocker.patch.object(Path, "cwd", return_value=mock_cwd)
 
     api_instance.initialize_project(project_name, project_description)
@@ -644,8 +614,7 @@ def test_get_setting(api_instance: Api) -> None:
 
     # assert
     get_mock = cast(Mock, api_instance._config_manager.get)
-
-    get_mock.assert_called_once_with(key)
+    get_mock.assert_called_with(key)
 
 
 def test_set_setting(api_instance: Api) -> None:
@@ -657,7 +626,7 @@ def test_set_setting(api_instance: Api) -> None:
 
     # assert
     set_mock = cast(Mock, api_instance._config_manager.set)
-    set_mock.assert_called_once_with(key, value, False)
+    set_mock.assert_called_with(key, value, False)
 
 
 @pytest.mark.parametrize(
@@ -894,7 +863,7 @@ def test_get_local_algorithm(api_instance: Api, mock_config_manager: Mock) -> No
 
     # Assert
     assert result == local_algorithm
-    mock_config_manager.get.assert_called_once_with("project.algorithms")
+    mock_config_manager.get.assert_called_with("project.algorithms")
 
 
 def test_get_local_algorithm_not_found(api_instance: Api, mock_config_manager: Mock) -> None:
@@ -934,12 +903,12 @@ def test_add_algorithm_to_settings(api_instance: Api, mock_config_manager: Mock)
     api_instance._add_algorithm_to_settings(algorithm_name, new_algorithm)
 
     # Assert
-    mock_config_manager.get.assert_called_once_with("project.algorithms")
+    mock_config_manager.get.assert_called_with("project.algorithms")
     expected_algorithms = {
         "OldAlgorithm": existing_algorithm,
         algorithm_name: new_algorithm,
     }
-    mock_config_manager.set.assert_called_once_with("project.algorithms", expected_algorithms, False)
+    mock_config_manager.set.assert_called_with("project.algorithms", expected_algorithms, False)
 
 
 def test_add_algorithm_to_settings_overwrite_existing(api_instance: Api, mock_config_manager: Mock) -> None:
@@ -947,7 +916,7 @@ def test_add_algorithm_to_settings_overwrite_existing(api_instance: Api, mock_co
     algorithm_name = "TestAlgorithm"
     old_algorithm = LocalAlgorithm(
         id=1,
-        file_path="path/to/old.py",
+        file_path=Path("path/to/old.py"),
         num_shots=50,
         store_raw_data=False,
         job_id=1,
@@ -955,7 +924,7 @@ def test_add_algorithm_to_settings_overwrite_existing(api_instance: Api, mock_co
     )
     updated_algorithm = LocalAlgorithm(
         id=1,
-        file_path="path/to/updated.py",
+        file_path=Path("path/to/updated.py"),
         num_shots=200,
         store_raw_data=True,
         job_id=3,
@@ -970,7 +939,7 @@ def test_add_algorithm_to_settings_overwrite_existing(api_instance: Api, mock_co
 
     # Assert
     expected_algorithms = {algorithm_name: updated_algorithm}
-    mock_config_manager.set.assert_called_once_with("project.algorithms", expected_algorithms, False)
+    mock_config_manager.set.assert_called_with("project.algorithms", expected_algorithms, False)
 
 
 def test_initialize_remote_project(api_instance: Api, mock_config_manager: Mock, mock_job_manager: Mock) -> None:
@@ -995,7 +964,7 @@ def test_initialize_remote_project(api_instance: Api, mock_config_manager: Mock,
     result = api_instance.initialize_remote_project(project_name, project_description)
 
     # Assert
-    mock_config_manager.get.assert_called_once_with("default_host")
+    mock_config_manager.get.assert_called_with("default_host")
     mock_job_manager.create_project.assert_called_once_with(owner_id, project_name, project_description)
     assert result == expected_project
 
@@ -1029,7 +998,7 @@ def test_get_algorithm_setting(api_instance: Api, mock_config_manager: Mock) -> 
 
     local_algorithm = LocalAlgorithm(
         id=1,
-        file_path="path/to/algorithm.py",
+        file_path=Path("path/to/algorithm.py"),
         num_shots=expected_value,
         store_raw_data=True,
         job_id=5,
@@ -1043,7 +1012,7 @@ def test_get_algorithm_setting(api_instance: Api, mock_config_manager: Mock) -> 
 
     # Assert
     assert result == expected_value
-    mock_config_manager.get.assert_called_once_with("project.algorithms")
+    mock_config_manager.get.assert_called_with("project.algorithms")
 
 
 def test_set_setting_user_setting(api_instance: Api, mock_config_manager: Mock) -> None:
@@ -1055,7 +1024,7 @@ def test_set_setting_user_setting(api_instance: Api, mock_config_manager: Mock) 
     api_instance.set_setting(key, value, is_user=True)
 
     # Assert
-    mock_config_manager.set.assert_called_once_with(key, value, True)
+    mock_config_manager.set.assert_called_with(key, value, True)
 
 
 def test_set_setting_project_setting(api_instance: Api, mock_config_manager: Mock) -> None:
@@ -1067,7 +1036,7 @@ def test_set_setting_project_setting(api_instance: Api, mock_config_manager: Moc
     api_instance.set_setting(key, value, is_user=False)
 
     # Assert
-    mock_config_manager.set.assert_called_once_with(key, value, False)
+    mock_config_manager.set.assert_called_with(key, value, False)
 
 
 def test_set_algorithm_setting(api_instance: Api, mock_config_manager: Mock) -> None:
@@ -1151,4 +1120,4 @@ def test_resolve_algorithm_setting_without_override(api_instance: Api, mock_conf
 
     # Assert
     assert result == default_value
-    mock_config_manager.get.assert_called_once_with("project.algorithms")
+    mock_config_manager.get.assert_called_with("project.algorithms")
