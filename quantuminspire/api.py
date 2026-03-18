@@ -119,6 +119,7 @@ class Api:
     @_refresh_auth_tokens
     def initialize_project(self, project_name: str, project_description: str = "", path: Optional[str] = None) -> None:
         """Initialize a remote project, storing its settings locally.
+
         Does nothing if a project is already initialized.
         """
 
