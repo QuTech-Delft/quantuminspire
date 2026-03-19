@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -33,7 +34,7 @@ from compute_api_client import (
     ProjectsApi,
     ShareType,
 )
-from compute_api_client.exceptions import NotFoundException
+from compute_api_client.exceptions import ForbiddenException, NotFoundException
 from pytest_mock import MockerFixture
 
 from quantuminspire.managers.config_manager import ConfigManager
@@ -367,7 +368,7 @@ def test_run_flow_with_existing_project_and_algorithm(
     with (
         patch.object(JobManager, "_invoke") as mock_invoke,
         patch.object(JobManager, "_enqueue_batch_job") as mock_enqueue_batch_job,
-        patch.object(JobManager, "_update_project", return_value=mock_project) as mock_update_project,
+        patch.object(JobManager, "update_project", return_value=mock_project) as mock_update_project,
         patch.object(JobManager, "_read_algorithm", return_value=mock_algorithm) as mock_read_algorithm,
     ):
         mock_invoke.side_effect = [
@@ -421,7 +422,7 @@ def test_run_flow_remote_project_and_algorithm_do_not_exist(
         patch.object(JobManager, "_invoke") as mock_invoke,
         patch.object(JobManager, "_enqueue_batch_job") as mock_enqueue_batch_job,
         patch.object(JobManager, "create_project", return_value=mock_project) as mock_create_project,
-        patch.object(JobManager, "_read_algorithm", side_effect=NotFoundException),
+        patch.object(JobManager, "_read_algorithm", return_value=None),
         patch.object(JobManager, "create_algorithm", return_value=mock_algorithm) as mock_create_algorithm,
     ):
         mock_invoke.side_effect = [
@@ -454,7 +455,7 @@ def test_update_project(job_manager: JobManager, mock_project: Project) -> None:
         result_project_name = "updated-project"
         result_project_description = "Updated description"
 
-        job_manager._update_project(
+        job_manager.update_project(
             project_id=result_project_id,
             project_name=result_project_name,
             project_description=result_project_description,
@@ -479,8 +480,15 @@ def test_read_project(job_manager: JobManager, mock_project: Project) -> None:
         )
 
 
-def test_read_project_exception(job_manager: JobManager, mock_project: Project) -> None:
-    with patch.object(JobManager, "_invoke", side_effect=NotFoundException) as mock_invoke:
+@pytest.mark.parametrize(
+    "side_effect",
+    [
+        NotFoundException,
+        ForbiddenException,
+    ],
+)
+def test_read_project_exception(job_manager: JobManager, mock_project: Project, side_effect: Any) -> None:
+    with patch.object(JobManager, "_invoke", side_effect=side_effect) as mock_invoke:
         result = job_manager.read_project(project_id=1)
 
         mock_invoke.assert_called_once_with(
@@ -500,6 +508,25 @@ def test_read_algorithm(job_manager: JobManager, mock_algorithm: Algorithm) -> N
             "read_algorithm_algorithms_id_get",
             1,
         )
+
+
+@pytest.mark.parametrize(
+    "side_effect",
+    [
+        NotFoundException,
+        ForbiddenException,
+    ],
+)
+def test_read_algorithm_exception(job_manager: JobManager, side_effect: Any, mock_algorithm: Algorithm) -> None:
+    with patch.object(JobManager, "_invoke", side_effect=side_effect) as mock_invoke:
+        result = job_manager._read_algorithm(algorithm_id=1)
+
+        mock_invoke.assert_called_once_with(
+            AlgorithmsApi,
+            "read_algorithm_algorithms_id_get",
+            1,
+        )
+        assert result is None
 
 
 def test_create_commit(job_manager: JobManager, mock_commit: Commit) -> None:

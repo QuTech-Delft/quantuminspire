@@ -62,6 +62,17 @@ class JobManager:
         *args: Any,
         **kwargs: Any,
     ) -> Any:
+        """Invoke an API method asynchronously using the given API class and method name.
+
+        Args:
+            api_class: The API class to instantiate.
+            method_name: The name of the method to call on the API instance.
+            *args: Positional arguments to pass to the API method.
+            **kwargs: Keyword arguments to pass to the API method.
+
+        Returns:
+            The result returned by the API method.
+        """
         async def _execute() -> Any:
             async with ApiClient(config()) as client:
                 api_instance = api_class(client)
@@ -71,6 +82,15 @@ class JobManager:
         return run_async(_execute())
 
     def run_flow(self, job_options: JobOptions, owner_id: int) -> JobOptions:
+        """Run the full job submission flow, creating or updating all required remote resources.
+
+        Args:
+            job_options: Options describing the job to submit, including project, algorithm, and execution settings.
+            owner_id: The ID of the owner under which remote resources are created.
+
+        Returns:
+            The updated JobOptions with all remote resource IDs populated, including the submitted job ID.
+        """
         if job_options.project_id is None or self.read_project(job_options.project_id) is None:
             project = self.create_project(
                 owner_id=owner_id,
@@ -124,14 +144,36 @@ class JobManager:
         return job_options
 
     def get_backend_types(self) -> List[BackendType]:
+        """Retrieve all available backend types.
+
+        Returns:
+            A list of all available backend types.
+        """
         backend_types_page: PageBackendType = self._invoke(BackendTypesApi, "read_backend_types_backend_types_get")
         items: List[BackendType] = backend_types_page.items
         return items
 
     def get_job(self, job_id: int) -> Job:
+        """Retrieve a job by its ID.
+
+        Args:
+            job_id: The ID of the job to retrieve.
+
+        Returns:
+            The Job object for the given ID.
+        """
         return self._invoke(JobsApi, "read_job_jobs_id_get", id=job_id)
 
     def wait_for_job_completion(self, job_id: int, timeout: float) -> Job:
+        """Poll until the job has finished or the timeout is reached.
+
+        Args:
+            job_id: The ID of the job to wait for.
+            timeout: Maximum number of seconds to wait before raising a TimeoutError.
+
+        Returns:
+            The completed Job object once it leaves the PLANNED or RUNNING state.
+        """
         start_time = time.monotonic()
 
         print("Waiting for job to complete...")
@@ -147,10 +189,26 @@ class JobManager:
             time.sleep(1)
 
     def get_final_result(self, job_id: int) -> FinalResult | None:
+        """Retrieve the final result of a job by its ID.
+
+        Args:
+            job_id: The ID of the job to retrieve the result for.
+
+        Returns:
+            The FinalResult object for the job, or None if no result is available yet.
+        """
         return self._invoke(FinalResultsApi, "read_final_result_by_job_id_final_results_job_job_id_get", job_id)
 
     @staticmethod
     def get_algorithm_type(file_path: Path) -> AlgorithmType:
+        """Determine the algorithm type from the file extension.
+
+        Args:
+            file_path: Path to the algorithm file.
+
+        Returns:
+            AlgorithmType.HYBRID for .py files, or AlgorithmType.QUANTUM for .cq files.
+        """
         if file_path.suffix == ".py":
             return AlgorithmType.HYBRID
         elif file_path.suffix == ".cq":
@@ -158,6 +216,16 @@ class JobManager:
         raise ValueError("Incorrect file type. Supported types are .py and .cq")
 
     def create_project(self, owner_id: int, project_name: str, project_description: str) -> Project:
+        """Create a new remote project.
+
+        Args:
+            owner_id: The ID of the owner of the project.
+            project_name: Name of the project to create.
+            project_description: Description of the project.
+
+        Returns:
+            The created Project object.
+        """
         obj = ProjectIn(
             owner_id=owner_id,
             name=project_name,
@@ -167,16 +235,44 @@ class JobManager:
         return self._invoke(ProjectsApi, "create_project_projects_post", obj)
 
     def read_project(self, project_id: int) -> Project | None:
+        """Retrieve a remote project by its ID.
+
+        Args:
+            project_id: The ID of the project to retrieve.
+
+        Returns:
+            The Project object if found, or None if the project does not exist or access is forbidden.
+        """
         try:
             return self._invoke(ProjectsApi, "read_project_projects_id_get", project_id)
         except (NotFoundException, ForbiddenException):
             return None
 
     def update_project(self, project_id: int, project_name: str, project_description: str) -> Project:
+        """Update an existing remote project.
+
+        Args:
+            project_id: The ID of the project to update.
+            project_name: New name for the project.
+            project_description: New description for the project.
+
+        Returns:
+            The updated Project object.
+        """
         obj = ProjectPatch(name=project_name, description=project_description)
         return self._invoke(ProjectsApi, "partial_update_project_projects_id_patch", project_id, obj)
 
     def create_algorithm(self, project_id: int, algorithm_name: str, algorithm_type: AlgorithmType) -> Algorithm:
+        """Create a new remote algorithm within a project.
+
+        Args:
+            project_id: The ID of the project to create the algorithm in.
+            algorithm_name: Name of the algorithm to create.
+            algorithm_type: The type of the algorithm (HYBRID or QUANTUM).
+
+        Returns:
+            The created Algorithm object.
+        """
         obj = AlgorithmIn(
             project_id=project_id,
             type=algorithm_type,
@@ -186,12 +282,28 @@ class JobManager:
         return self._invoke(AlgorithmsApi, "create_algorithm_algorithms_post", obj)
 
     def _read_algorithm(self, algorithm_id: int) -> Algorithm | None:
+        """Retrieve a remote algorithm by its ID.
+
+        Args:
+            algorithm_id: The ID of the algorithm to retrieve.
+
+        Returns:
+            The Algorithm object if found, or None if the algorithm does not exist or access is forbidden.
+        """
         try:
             return self._invoke(AlgorithmsApi, "read_algorithm_algorithms_id_get", algorithm_id)
         except (NotFoundException, ForbiddenException):
             return None
 
     def _create_commit(self, algorithm_id: int) -> Commit:
+        """Create a new commit for the given algorithm.
+
+        Args:
+            algorithm_id: The ID of the algorithm to create a commit for.
+
+        Returns:
+            The created Commit object.
+        """
         obj = CommitIn(
             description="Commit created by SDK",
             algorithm_id=algorithm_id,
@@ -199,6 +311,14 @@ class JobManager:
         return self._invoke(CommitsApi, "create_commit_commits_post", obj)
 
     def _get_language_for_algorithm(self, algorithm_type: AlgorithmType) -> Language:
+        """Retrieve the language associated with the given algorithm type.
+
+        Args:
+            algorithm_type: The algorithm type to look up a language for.
+
+        Returns:
+            The Language object matching the algorithm type.
+        """
         type_to_lang = {
             AlgorithmType.HYBRID: "python",
             AlgorithmType.QUANTUM: "cqasm",
@@ -215,7 +335,16 @@ class JobManager:
         raise ValueError(f"Language '{target_name}' not found in API")
 
     def _create_file(self, file_content: str, language_id: int, commit_id: int) -> File:
+        """Create a new file resource attached to a commit.
 
+        Args:
+            file_content: The source code content of the file.
+            language_id: The ID of the language the file is written in.
+            commit_id: The ID of the commit to attach the file to.
+
+        Returns:
+            The created File object.
+        """
         obj = FileIn(
             commit_id=commit_id,
             content=file_content,
@@ -227,16 +356,43 @@ class JobManager:
         return self._invoke(FilesApi, "create_file_files_post", obj)
 
     def _create_batch_job(self, backend_type_id: int) -> BatchJob:
+        """Create a new batch job for the given backend type.
+
+        Args:
+            backend_type_id: The ID of the backend type to run the batch job on.
+
+        Returns:
+            The created BatchJob object.
+        """
         obj = BatchJobIn(backend_type_id=backend_type_id)
         return self._invoke(BatchJobsApi, "create_batch_job_batch_jobs_post", obj)
 
     def _create_job(
         self, file_id: int, batch_job_id: int, num_shots: Optional[int], raw_data_enabled: Optional[bool]
     ) -> Job:
+        """Create a new job within a batch job.
+
+        Args:
+            file_id: The ID of the file to execute.
+            batch_job_id: The ID of the batch job to attach this job to.
+            num_shots: Number of shots to run.
+            raw_data_enabled: Whether to enable raw data collection for the job.
+
+        Returns:
+            The created Job object.
+        """
         obj = JobIn(
             file_id=file_id, batch_job_id=batch_job_id, number_of_shots=num_shots, raw_data_enabled=raw_data_enabled
         )
         return self._invoke(JobsApi, "create_job_jobs_post", obj)
 
     def _enqueue_batch_job(self, batch_job_id: int) -> BatchJob:
+        """Enqueue a batch job for execution.
+
+        Args:
+            batch_job_id: The ID of the batch job to enqueue.
+
+        Returns:
+            The updated BatchJob object after enqueuing.
+        """
         return self._invoke(BatchJobsApi, "enqueue_batch_job_batch_jobs_id_enqueue_patch", batch_job_id)

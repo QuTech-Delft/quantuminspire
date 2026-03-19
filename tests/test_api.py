@@ -106,7 +106,6 @@ def test_init_api_with_host(mocker: MockerFixture) -> None:
     mock_config_manager_instance = MagicMock(spec=ConfigManager)
     mock_config_manager_instance.user_settings = mock_user_settings
 
-    mock_user_settings_cls = mocker.patch("quantuminspire.api.UserSettings", return_value=mock_user_settings)
     mock_config_manager_cls = mocker.patch(
         "quantuminspire.api.ConfigManager", return_value=mock_config_manager_instance
     )
@@ -119,8 +118,7 @@ def test_init_api_with_host(mocker: MockerFixture) -> None:
     Api(host=host)
 
     # Assert
-    mock_user_settings_cls.assert_called_once_with()
-    mock_config_manager_cls.assert_called_once_with(user_settings=mock_user_settings)
+    mock_config_manager_cls.assert_called_once_with()
     mock_config_manager_set.assert_called_once()
     mock_resolve_protocol.assert_called_once_with(host)
 
@@ -314,6 +312,10 @@ def test_initialize_project_with_existing_project_id(api_instance: Api, mocker: 
     project_description = "Existing description"
 
     mock_remote_project = MagicMock(spec=Project)
+    mock_remote_updated_project = MagicMock(spec=Project)
+    mock_remote_updated_project.id = 1
+    mock_remote_updated_project.name = project_name
+    mock_remote_updated_project.description = project_description
     mock_remote_project.id = 1
     mock_remote_project.name = project_name
     mock_remote_project.description = project_description
@@ -321,15 +323,19 @@ def test_initialize_project_with_existing_project_id(api_instance: Api, mocker: 
     mocker.patch.object(api_instance, "_check_project_id")
     mocker.patch.object(api_instance, "get_setting", return_value=1)
     mock_read_project = mocker.patch.object(api_instance._job_manager, "read_project", return_value=mock_remote_project)
+    mock_update_project = mocker.patch.object(
+        api_instance._job_manager, "update_project", return_value=mock_remote_updated_project
+    )
     mocker.patch.object(api_instance, "initialize_remote_project")
     mock_set_setting = mocker.patch.object(api_instance, "set_setting")
 
     api_instance.initialize_project(project_name, project_description)
 
     mock_read_project.assert_called_once_with(1)
-    mock_set_setting.assert_any_call("project.id", mock_remote_project.id)
-    mock_set_setting.assert_any_call("project.name", mock_remote_project.name)
-    mock_set_setting.assert_any_call("project.description", mock_remote_project.description)
+    mock_update_project.assert_called_once_with(1, project_name, project_description)
+    mock_set_setting.assert_any_call("project.id", mock_remote_updated_project.id)
+    mock_set_setting.assert_any_call("project.name", mock_remote_updated_project.name)
+    mock_set_setting.assert_any_call("project.description", mock_remote_updated_project.description)
 
 
 def test_initialize_project_with_existing_project_id_but_remote_project_not_found(
@@ -371,10 +377,9 @@ def test_initialize_project_algorithms_setting_already_exists(
     mock_remote_project.description = project_description
 
     mocker.patch.object(api_instance, "_check_project_id")
-
     mocker.patch.object(api_instance, "get_setting", side_effect=mock_get_setting)
-
     mocker.patch.object(api_instance._job_manager, "read_project", return_value=mock_remote_project)
+    mocker.patch.object(api_instance._job_manager, "update_project", return_value=mock_remote_project)
     mock_set_setting = mocker.patch.object(api_instance, "set_setting")
 
     api_instance.initialize_project(project_name, project_description)
@@ -449,7 +454,7 @@ def test_initialize_algorithm(
     )
 
     mock_create_remote_algorithm = mocker.patch.object(
-        api_instance, "create_remote_algorithm", return_value=mock_remote_algorithm
+        api_instance, "_create_remote_algorithm", return_value=mock_remote_algorithm
     )
     mock_add_algorithm_to_settings = mocker.patch.object(api_instance, "_add_algorithm_to_settings")
 
@@ -982,7 +987,7 @@ def test_create_remote_algorithm_with_file(api_instance: Api, mock_job_manager: 
     mock_job_manager.create_algorithm.return_value = expected_algorithm
 
     # Act
-    result = api_instance.create_remote_algorithm(project_id, algorithm_name, file_path)
+    result = api_instance._create_remote_algorithm(project_id, algorithm_name, file_path)
 
     # Assert
     mock_job_manager.get_algorithm_type.assert_called_once_with(file_path)
