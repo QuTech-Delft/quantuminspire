@@ -35,7 +35,7 @@ from compute_api_client import (
     ProjectsApi,
     ShareType,
 )
-from compute_api_client.exceptions import NotFoundException
+from compute_api_client.exceptions import ForbiddenException, NotFoundException
 from pydantic import BaseModel, Field
 from qi2_shared.client import config
 from qi2_shared.utils import run_async
@@ -79,7 +79,7 @@ class JobManager:
             )
             job_options.project_id = project.id
         else:
-            self._update_project(
+            self.update_project(
                 project_id=job_options.project_id,
                 project_name=job_options.project_name,
                 project_description=job_options.project_description,
@@ -95,9 +95,8 @@ class JobManager:
             )
             job_options.algorithm_id = algorithm.id
         else:
-            try:
-                algorithm = self._read_algorithm(algorithm_id=job_options.algorithm_id)
-            except NotFoundException:
+            algorithm = self._read_algorithm(algorithm_id=job_options.algorithm_id)
+            if algorithm is None:
                 algorithm = self.create_algorithm(
                     project_id=job_options.project_id,
                     algorithm_name=job_options.algorithm_name,
@@ -132,7 +131,7 @@ class JobManager:
     def get_job(self, job_id: int) -> Job:
         return self._invoke(JobsApi, "read_job_jobs_id_get", id=job_id)
 
-    def wait_for_job_completion(self, job_id: int, timeout: Optional[int] = 60) -> Job:
+    def wait_for_job_completion(self, job_id: int, timeout: float) -> Job:
         start_time = time.monotonic()
 
         print("Waiting for job to complete...")
@@ -170,10 +169,10 @@ class JobManager:
     def read_project(self, project_id: int) -> Project | None:
         try:
             return self._invoke(ProjectsApi, "read_project_projects_id_get", project_id)
-        except NotFoundException:
+        except (NotFoundException, ForbiddenException):
             return None
 
-    def _update_project(self, project_id: int, project_name: str, project_description: str) -> Project:
+    def update_project(self, project_id: int, project_name: str, project_description: str) -> Project:
         obj = ProjectPatch(name=project_name, description=project_description)
         return self._invoke(ProjectsApi, "partial_update_project_projects_id_patch", project_id, obj)
 
@@ -186,8 +185,11 @@ class JobManager:
         )
         return self._invoke(AlgorithmsApi, "create_algorithm_algorithms_post", obj)
 
-    def _read_algorithm(self, algorithm_id: int) -> Algorithm:
-        return self._invoke(AlgorithmsApi, "read_algorithm_algorithms_id_get", algorithm_id)
+    def _read_algorithm(self, algorithm_id: int) -> Algorithm | None:
+        try:
+            return self._invoke(AlgorithmsApi, "read_algorithm_algorithms_id_get", algorithm_id)
+        except (NotFoundException, ForbiddenException):
+            return None
 
     def _create_commit(self, algorithm_id: int) -> Commit:
         obj = CommitIn(

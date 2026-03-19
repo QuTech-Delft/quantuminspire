@@ -20,7 +20,6 @@ from quantuminspire.managers.auth_manager import AuthManager
 from quantuminspire.managers.config_manager import ConfigManager
 from quantuminspire.managers.job_manager import JobManager, JobOptions
 from quantuminspire.settings.models import AlgorithmName, LocalAlgorithm, Url
-from quantuminspire.settings.user_settings import UserSettings
 
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -53,8 +52,7 @@ class Api:
         job_manager: Optional[JobManager] = None,
         host: Optional[str] = None,
     ) -> None:
-        user_settings = UserSettings()
-        self._config_manager = config_manager or ConfigManager(user_settings=user_settings)
+        self._config_manager = config_manager or ConfigManager()
 
         if host:
             resolved_host = self._resolve_protocol(host)
@@ -132,6 +130,8 @@ class Api:
             remote_project = self._job_manager.read_project(project_id)
             if remote_project is None:
                 remote_project = self.initialize_remote_project(project_name, project_description)
+            else:
+                remote_project = self._job_manager.update_project(project_id, project_name, project_description)
         except RuntimeError:
             remote_project = self.initialize_remote_project(project_name, project_description)
 
@@ -157,7 +157,7 @@ class Api:
 
         algorithm_name = TypeAdapter(AlgorithmName).validate_python(algorithm_name)
 
-        remote_algorithm = self.create_remote_algorithm(project_id, algorithm_name, file_path)
+        remote_algorithm = self._create_remote_algorithm(project_id, algorithm_name, file_path)
         local_algorithm: LocalAlgorithm = LocalAlgorithm(
             id=remote_algorithm.id,
             file_path=file_path,
@@ -169,14 +169,14 @@ class Api:
 
     @_refresh_auth_tokens
     def get_status_by_algorithm_name(
-        self, algorithm_name: str, wait: Optional[bool] = False, timeout: Optional[int] = 10
+        self, algorithm_name: str, wait: Optional[bool] = False, timeout: float = 60
     ) -> JobStatus:
         """Get the status of the most recent job for the given algorithm."""
         job_id = self.get_algorithm_setting(algorithm_name, "job_id")
         return self.get_status_by_job_id(job_id, wait=wait, timeout=timeout)
 
     @_refresh_auth_tokens
-    def get_status_by_job_id(self, job_id: int, wait: Optional[bool] = False, timeout: Optional[int] = 10) -> JobStatus:
+    def get_status_by_job_id(self, job_id: int, wait: Optional[bool] = False, timeout: float = 60) -> JobStatus:
         if wait:
             try:
                 return self._job_manager.wait_for_job_completion(job_id, timeout=timeout).status
@@ -278,7 +278,7 @@ class Api:
         return self._job_manager.create_project(owner_id, project_name, cast(str, project_description))
 
     @_refresh_auth_tokens
-    def create_remote_algorithm(self, project_id: int, algorithm_name: str, file_path: Path) -> Algorithm:
+    def _create_remote_algorithm(self, project_id: int, algorithm_name: str, file_path: Path) -> Algorithm:
         algorithm_type = self._job_manager.get_algorithm_type(file_path)
         return self._job_manager.create_algorithm(project_id, algorithm_name, algorithm_type)
 
