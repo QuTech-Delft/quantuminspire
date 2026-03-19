@@ -73,6 +73,7 @@ class JobManager:
         Returns:
             The result returned by the API method.
         """
+
         async def _execute() -> Any:
             async with ApiClient(config()) as client:
                 api_instance = api_class(client)
