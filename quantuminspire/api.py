@@ -71,8 +71,7 @@ class Api:
 
         if host is not None:
             host_url = TypeAdapter(Url).validate_python(self._resolve_protocol(host))
-            resolved_host = self._resolve_protocol(host_url)
-            self._config_manager.set("default_host", resolved_host, is_user=True)
+            self._config_manager.set("default_host", host_url, is_user=True)
 
         self._auth_manager = auth_manager or AuthManager(user_settings=self._config_manager.user_settings)
         self._job_manager = job_manager or JobManager()
@@ -191,7 +190,7 @@ class Api:
     def initialize_algorithm(
         self,
         algorithm_name: str,
-        file_path: Path = Path(""),
+        file_path: Path,
         backend_type_id: Optional[int] = None,
         num_shots: Optional[int] = None,
         store_raw_data: Optional[bool] = False,
