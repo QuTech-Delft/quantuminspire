@@ -7,7 +7,6 @@ from urllib.parse import urlparse
 
 import requests
 from compute_api_client import (
-    Algorithm,
     BackendType,
     FinalResult,
     Job,
@@ -70,8 +69,9 @@ class Api:
         """
         self._config_manager = config_manager or ConfigManager()
 
-        if host:
-            resolved_host = self._resolve_protocol(host)
+        if host is not None:
+            host_url = TypeAdapter(Url).validate_python(self._resolve_protocol(host))
+            resolved_host = self._resolve_protocol(host_url)
             self._config_manager.set("default_host", resolved_host, is_user=True)
 
         self._auth_manager = auth_manager or AuthManager(user_settings=self._config_manager.user_settings)
@@ -173,8 +173,7 @@ class Api:
         self._config_manager.initialize(init_dir)
 
         try:
-            self._check_project_id()
-            project_id = self.get_setting("project.id")
+            project_id = self._check_project_id()
             remote_project = self._job_manager.read_project(project_id)
             if remote_project is None:
                 remote_project = self.initialize_remote_project(project_name, project_description)
@@ -187,11 +186,8 @@ class Api:
         self.set_setting("project.id", remote_project.id)
         self.set_setting("project.name", remote_project.name)
         self.set_setting("project.description", remote_project.description)
-        try:
-            self.get_setting("project.algorithms")
-        except ValueError:
-            self.set_setting("project.algorithms", {})
 
+    @_refresh_auth_tokens
     def initialize_algorithm(
         self,
         algorithm_name: str,
@@ -209,13 +205,32 @@ class Api:
             num_shots: Number of shots for the algorithm.
             store_raw_data: Whether to store raw data from executions.
         """
-        self._check_project_id()
-        project_id = self.get_setting("project.id")
-
+        project_id = self._check_project_id()
         algorithm_name = TypeAdapter(AlgorithmName).validate_python(algorithm_name)
 
-        remote_algorithm = self._create_remote_algorithm(project_id, algorithm_name, file_path)
-        local_algorithm: LocalAlgorithm = LocalAlgorithm(
+        try:
+            local_algorithm = self._get_local_algorithm(algorithm_name)
+
+            if local_algorithm.id is None:
+                remote_algorithm = None
+            else:
+                remote_algorithm = self._job_manager.read_algorithm(local_algorithm.id)
+
+            if remote_algorithm is None:
+                remote_algorithm = self._job_manager.create_algorithm(
+                    project_id, algorithm_name, self._job_manager.get_algorithm_type(file_path)
+                )
+            else:
+                assert isinstance(local_algorithm.id, int)
+                remote_algorithm = self._job_manager.update_algorithm(
+                    project_id, local_algorithm.id, algorithm_name, self._job_manager.get_algorithm_type(file_path)
+                )
+        except ValueError:
+            remote_algorithm = self._job_manager.create_algorithm(
+                project_id, algorithm_name, self._job_manager.get_algorithm_type(file_path)
+            )
+
+        local_algorithm = LocalAlgorithm(
             id=remote_algorithm.id,
             file_path=file_path,
             backend_type_id=backend_type_id,
@@ -225,9 +240,7 @@ class Api:
         self._add_algorithm_to_settings(algorithm_name, local_algorithm)
 
     @_refresh_auth_tokens
-    def get_status_by_algorithm_name(
-        self, algorithm_name: str, wait: Optional[bool] = False, timeout: float = 60
-    ) -> JobStatus:
+    def get_status_by_algorithm_name(self, algorithm_name: str, wait: bool = False, timeout: float = 60) -> JobStatus:
         """Get the status of the most recent job for the given algorithm.
 
         Args:
@@ -242,7 +255,7 @@ class Api:
         return self.get_status_by_job_id(job_id, wait=wait, timeout=timeout)
 
     @_refresh_auth_tokens
-    def get_status_by_job_id(self, job_id: int, wait: Optional[bool] = False, timeout: float = 60) -> JobStatus:
+    def get_status_by_job_id(self, job_id: int, wait: bool = False, timeout: float = 60) -> JobStatus:
         """Get the status of the job with the given ID.
 
         Args:
@@ -261,17 +274,21 @@ class Api:
 
         return self._get_job(job_id).status
 
-    def _check_project_id(self) -> None:
+    def _check_project_id(self) -> int:
         """Verify that a project is initialized in the current settings.
 
         Raises:
             RuntimeError: If no project is found in the current settings.
         """
         try:
-            if self.get_setting("project.id") is None:
+            project_id = self.get_setting("project.id")
+            if project_id is None:
                 raise RuntimeError("No project found. Please create a project by calling initialize_project()")
         except ValueError:
             raise RuntimeError("No project found. Please create a project by calling initialize_project()")
+
+        assert isinstance(project_id, int)
+        return project_id
 
     @_refresh_auth_tokens
     def _submit_job(
@@ -421,21 +438,6 @@ class Api:
         host = self.get_setting("default_host")
         owner_id = self._config_manager.user_settings.auths[host].owner_id
         return self._job_manager.create_project(owner_id, project_name, cast(str, project_description))
-
-    @_refresh_auth_tokens
-    def _create_remote_algorithm(self, project_id: int, algorithm_name: str, file_path: Path) -> Algorithm:
-        """Create a new remote algorithm on the Quantum Inspire platform.
-
-        Args:
-            project_id: The ID of the project to create the algorithm in.
-            algorithm_name: Name of the algorithm to create.
-            file_path: Path to the algorithm file.
-
-        Returns:
-            The created Algorithm object.
-        """
-        algorithm_type = self._job_manager.get_algorithm_type(file_path)
-        return self._job_manager.create_algorithm(project_id, algorithm_name, algorithm_type)
 
     def view_settings(self) -> Dict[str, Any]:
         """Retrieve the current configuration settings.

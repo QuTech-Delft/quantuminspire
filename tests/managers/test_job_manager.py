@@ -369,7 +369,8 @@ def test_run_flow_with_existing_project_and_algorithm(
         patch.object(JobManager, "_invoke") as mock_invoke,
         patch.object(JobManager, "_enqueue_batch_job") as mock_enqueue_batch_job,
         patch.object(JobManager, "update_project", return_value=mock_project) as mock_update_project,
-        patch.object(JobManager, "_read_algorithm", return_value=mock_algorithm) as mock_read_algorithm,
+        patch.object(JobManager, "read_algorithm", return_value=mock_algorithm) as mock_read_algorithm,
+        patch.object(JobManager, "update_algorithm", return_value=mock_algorithm) as mock_update_algorithm,
     ):
         mock_invoke.side_effect = [
             mock_algorithm,
@@ -391,8 +392,9 @@ def test_run_flow_with_existing_project_and_algorithm(
             project_description=job_options.project_description,
         )
         mock_read_algorithm.assert_called_once_with(
-            algorithm_id=job_options.algorithm_id,
+            job_options.algorithm_id,
         )
+        mock_update_algorithm.assert_called_once()
 
 
 def test_run_flow_remote_project_and_algorithm_do_not_exist(
@@ -422,7 +424,7 @@ def test_run_flow_remote_project_and_algorithm_do_not_exist(
         patch.object(JobManager, "_invoke") as mock_invoke,
         patch.object(JobManager, "_enqueue_batch_job") as mock_enqueue_batch_job,
         patch.object(JobManager, "create_project", return_value=mock_project) as mock_create_project,
-        patch.object(JobManager, "_read_algorithm", return_value=None),
+        patch.object(JobManager, "read_algorithm", return_value=None),
         patch.object(JobManager, "create_algorithm", return_value=mock_algorithm) as mock_create_algorithm,
     ):
         mock_invoke.side_effect = [
@@ -501,7 +503,7 @@ def test_read_project_exception(job_manager: JobManager, mock_project: Project, 
 
 def test_read_algorithm(job_manager: JobManager, mock_algorithm: Algorithm) -> None:
     with patch.object(JobManager, "_invoke", return_value=mock_algorithm) as mock_invoke:
-        job_manager._read_algorithm(algorithm_id=1)
+        job_manager.read_algorithm(algorithm_id=1)
 
         mock_invoke.assert_called_once_with(
             AlgorithmsApi,
@@ -519,7 +521,7 @@ def test_read_algorithm(job_manager: JobManager, mock_algorithm: Algorithm) -> N
 )
 def test_read_algorithm_exception(job_manager: JobManager, side_effect: Any, mock_algorithm: Algorithm) -> None:
     with patch.object(JobManager, "_invoke", side_effect=side_effect) as mock_invoke:
-        result = job_manager._read_algorithm(algorithm_id=1)
+        result = job_manager.read_algorithm(algorithm_id=1)
 
         mock_invoke.assert_called_once_with(
             AlgorithmsApi,
@@ -527,6 +529,28 @@ def test_read_algorithm_exception(job_manager: JobManager, side_effect: Any, moc
             1,
         )
         assert result is None
+
+
+def test_update_algorithm(job_manager: JobManager, mock_algorithm: Algorithm) -> None:
+    with patch.object(JobManager, "_invoke", return_value=mock_algorithm) as mock_invoke:
+        job_manager.update_algorithm(
+            project_id=1,
+            algorithm_id=mock_algorithm.id,
+            algorithm_name=mock_algorithm.name,
+            algorithm_type=mock_algorithm.type,
+        )
+
+        mock_invoke.assert_called_once_with(
+            AlgorithmsApi,
+            "update_algorithm_algorithms_id_put",
+            mock_algorithm.id,
+            AlgorithmIn(
+                project_id=1,
+                type=mock_algorithm.type,
+                shared=ShareType.PRIVATE,
+                name=mock_algorithm.name,
+            ),
+        )
 
 
 def test_create_commit(job_manager: JobManager, mock_commit: Commit) -> None:

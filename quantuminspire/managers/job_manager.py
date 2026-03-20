@@ -108,7 +108,7 @@ class JobManager:
 
         algorithm_type: AlgorithmType = self.get_algorithm_type(file_path=job_options.file_path)
 
-        if job_options.algorithm_id is None:
+        if job_options.algorithm_id is None or self.read_algorithm(job_options.algorithm_id) is None:
             algorithm = self.create_algorithm(
                 project_id=job_options.project_id,
                 algorithm_name=job_options.algorithm_name,
@@ -116,14 +116,12 @@ class JobManager:
             )
             job_options.algorithm_id = algorithm.id
         else:
-            algorithm = self._read_algorithm(algorithm_id=job_options.algorithm_id)
-            if algorithm is None:
-                algorithm = self.create_algorithm(
-                    project_id=job_options.project_id,
-                    algorithm_name=job_options.algorithm_name,
-                    algorithm_type=algorithm_type,
-                )
-                job_options.algorithm_id = algorithm.id
+            algorithm = self.update_algorithm(
+                project_id=job_options.project_id,
+                algorithm_id=job_options.algorithm_id,
+                algorithm_name=job_options.algorithm_name,
+                algorithm_type=algorithm_type,
+            )
 
         commit = self._create_commit(algorithm_id=algorithm.id)
         language: Language = self._get_language_for_algorithm(algorithm_type=algorithm_type)
@@ -184,7 +182,7 @@ class JobManager:
             if job.status not in [JobStatus.PLANNED, JobStatus.RUNNING]:
                 return job
 
-            if timeout is not None and time.monotonic() - start_time >= timeout:
+            if time.monotonic() - start_time >= timeout:
                 raise TimeoutError(f"Job {job.id} did not complete within {timeout} seconds")
 
             time.sleep(1)
@@ -282,7 +280,7 @@ class JobManager:
         )
         return self._invoke(AlgorithmsApi, "create_algorithm_algorithms_post", obj)
 
-    def _read_algorithm(self, algorithm_id: int) -> Algorithm | None:
+    def read_algorithm(self, algorithm_id: int) -> Algorithm | None:
         """Retrieve a remote algorithm by its ID.
 
         Args:
@@ -295,6 +293,28 @@ class JobManager:
             return self._invoke(AlgorithmsApi, "read_algorithm_algorithms_id_get", algorithm_id)
         except (NotFoundException, ForbiddenException):
             return None
+
+    def update_algorithm(
+        self, project_id: int, algorithm_id: int, algorithm_name: str, algorithm_type: AlgorithmType
+    ) -> Algorithm:
+        """Update an existing remote algorithm.
+
+        Args:
+            project_id: The ID of the project the algorithm belongs to.
+            algorithm_id: The ID of the algorithm to update.
+            algorithm_name: New name for the algorithm.
+            algorithm_type: The type of the algorithm (HYBRID or QUANTUM).
+
+        Returns:
+            The updated Algorithm object.
+        """
+        obj = AlgorithmIn(
+            project_id=project_id,
+            type=algorithm_type,
+            shared=ShareType.PRIVATE,
+            name=algorithm_name,
+        )
+        return self._invoke(AlgorithmsApi, "update_algorithm_algorithms_id_put", algorithm_id, obj)
 
     def _create_commit(self, algorithm_id: int) -> Commit:
         """Create a new commit for the given algorithm.

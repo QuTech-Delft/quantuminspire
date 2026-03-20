@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, Mock, call, patch
 
 import pytest
 import requests
-from compute_api_client import Algorithm, AlgorithmType, Job, JobStatus, Project
+from compute_api_client import AlgorithmType, Job, JobStatus, Project
 from pytest_mock import MockerFixture
 
 from quantuminspire.api import Api
@@ -120,7 +120,7 @@ def test_init_api_with_host(mocker: MockerFixture) -> None:
     # Assert
     mock_config_manager_cls.assert_called_once_with()
     mock_config_manager_set.assert_called_once()
-    mock_resolve_protocol.assert_called_once_with(host)
+    mock_resolve_protocol.assert_called_with(host)
 
 
 @pytest.mark.parametrize(
@@ -236,12 +236,14 @@ def test_execute_algorithm(api_instance: Api, mocker: MockerFixture) -> None:
 
 def test_execute_algorithm_with_persist_true_and_no_algorithm_name(
     api_instance: Api,
+    mocker: MockerFixture,
 ) -> None:
     with pytest.raises(
         ValueError,
         match="algorithm_name is required when you want to persist the data. "
         "Please add it to the function call of execute_algorithm()",
     ):
+        mocker.patch.object(api_instance, "_check_project_id", return_value=1)
         api_instance.execute_algorithm(
             Path("some_file.py"),
             backend_type_id=1,
@@ -257,6 +259,7 @@ def test_execute_algorithm_with_persist_true_creates_algorithm_if_not_exists(
 
     mocker.patch.object(api_instance, "get_setting", return_value={"Some other algorithm": {}})
     mocker.patch.object(api_instance, "_submit_job")
+    mocker.patch.object(api_instance, "_check_project_id", return_value=1)
     with patch.object(api_instance, "initialize_algorithm") as mock_init_algorithm:
         api_instance.execute_algorithm(file_name, algorithm_name=algorithm_name, backend_type_id=1, persist=True)
 
@@ -300,7 +303,6 @@ def test_initialize_project_no_project_id(api_instance: Api, mocker: MockerFixtu
         call("project.id", mock_remote_project.id),
         call("project.name", mock_remote_project.name),
         call("project.description", mock_remote_project.description),
-        call("project.algorithms", {}),
     ]
 
     mock_initialize_remote_project.assert_called_once_with(project_name, project_description)
@@ -320,7 +322,7 @@ def test_initialize_project_with_existing_project_id(api_instance: Api, mocker: 
     mock_remote_project.name = project_name
     mock_remote_project.description = project_description
 
-    mocker.patch.object(api_instance, "_check_project_id")
+    mocker.patch.object(api_instance, "_check_project_id", return_value=1)
     mocker.patch.object(api_instance, "get_setting", return_value=1)
     mock_read_project = mocker.patch.object(api_instance._job_manager, "read_project", return_value=mock_remote_project)
     mock_update_project = mocker.patch.object(
@@ -437,14 +439,15 @@ def test_initialize_project_without_path_uses_cwd(
 
 def test_initialize_algorithm(
     api_instance: Api,
+    mock_job_manager: Mock,
     mock_get_setting: Any,
     mocker: MockerFixture,
 ) -> None:
-    check_project_id = mocker.patch.object(api_instance, "_check_project_id")
     mocker.patch.object(api_instance, "get_setting", side_effect=mock_get_setting)
 
     algorithm_name = "Some algorithm"
     file_path = Path("some_file.py")
+    algorithm_type = AlgorithmType.HYBRID
     project_id = mock_get_setting("project.id")
 
     mock_remote_algorithm = MagicMock(id=1)
@@ -453,16 +456,110 @@ def test_initialize_algorithm(
         file_path=file_path,
     )
 
+    check_project_id = mocker.patch.object(api_instance, "_check_project_id", return_value=project_id)
     mock_create_remote_algorithm = mocker.patch.object(
-        api_instance, "_create_remote_algorithm", return_value=mock_remote_algorithm
+        mock_job_manager, "create_algorithm", return_value=mock_remote_algorithm
     )
+    mocker.patch.object(mock_job_manager, "get_algorithm_type", return_value=algorithm_type)
     mock_add_algorithm_to_settings = mocker.patch.object(api_instance, "_add_algorithm_to_settings")
 
     api_instance.initialize_algorithm(algorithm_name, file_path)
 
     check_project_id.assert_called_once()
-    mock_create_remote_algorithm.assert_called_once_with(project_id, algorithm_name, Path(file_path))
+    mock_create_remote_algorithm.assert_called_once_with(project_id, algorithm_name, algorithm_type)
     mock_add_algorithm_to_settings.assert_called_once_with(algorithm_name, local_algorithm)
+
+
+def test_initialize_algorithm_local_exists_id_none_creates_remote(
+    api_instance: Api,
+    mock_job_manager: Mock,
+    mocker: MockerFixture,
+) -> None:
+    algorithm_name = "Some algorithm"
+    file_path = Path("some_file.py")
+    algorithm_type = AlgorithmType.HYBRID
+    project_id = 1
+
+    # Local algorithm exists but has no remote id yet
+    existing_local_algorithm = LocalAlgorithm(id=None, file_path=file_path)
+    mocker.patch.object(api_instance, "get_setting", return_value={algorithm_name: existing_local_algorithm})
+    mocker.patch.object(api_instance, "_check_project_id", return_value=project_id)
+    mocker.patch.object(mock_job_manager, "get_algorithm_type", return_value=algorithm_type)
+
+    mock_remote_algorithm = MagicMock(id=5)
+    mock_create = mocker.patch.object(mock_job_manager, "create_algorithm", return_value=mock_remote_algorithm)
+    mock_update = mocker.patch.object(mock_job_manager, "update_algorithm")
+    mock_add = mocker.patch.object(api_instance, "_add_algorithm_to_settings")
+
+    api_instance.initialize_algorithm(algorithm_name, file_path)
+
+    mock_create.assert_called_once_with(project_id, algorithm_name, algorithm_type)
+    mock_update.assert_not_called()
+    expected_local = LocalAlgorithm(id=mock_remote_algorithm.id, file_path=file_path)
+    mock_add.assert_called_once_with(algorithm_name, expected_local)
+
+
+def test_initialize_algorithm_local_exists_remote_not_found_creates_remote(
+    api_instance: Api,
+    mock_job_manager: Mock,
+    mocker: MockerFixture,
+) -> None:
+    algorithm_name = "Some algorithm"
+    file_path = Path("some_file.py")
+    algorithm_type = AlgorithmType.HYBRID
+    project_id = 1
+
+    # Local algorithm exists with a remote id, but remote no longer has it
+    existing_local_algorithm = LocalAlgorithm(id=99, file_path=file_path)
+    mocker.patch.object(api_instance, "get_setting", return_value={algorithm_name: existing_local_algorithm})
+    mocker.patch.object(api_instance, "_check_project_id", return_value=project_id)
+    mocker.patch.object(mock_job_manager, "get_algorithm_type", return_value=algorithm_type)
+    mocker.patch.object(mock_job_manager, "read_algorithm", return_value=None)
+
+    mock_remote_algorithm = MagicMock(id=99)
+    mock_create = mocker.patch.object(mock_job_manager, "create_algorithm", return_value=mock_remote_algorithm)
+    mock_update = mocker.patch.object(mock_job_manager, "update_algorithm")
+    mock_add = mocker.patch.object(api_instance, "_add_algorithm_to_settings")
+
+    api_instance.initialize_algorithm(algorithm_name, file_path)
+
+    mock_job_manager.read_algorithm.assert_called_once_with(99)
+    mock_create.assert_called_once_with(project_id, algorithm_name, algorithm_type)
+    mock_update.assert_not_called()
+    expected_local = LocalAlgorithm(id=mock_remote_algorithm.id, file_path=file_path)
+    mock_add.assert_called_once_with(algorithm_name, expected_local)
+
+
+def test_initialize_algorithm_local_exists_remote_found_updates_remote(
+    api_instance: Api,
+    mock_job_manager: Mock,
+    mocker: MockerFixture,
+) -> None:
+    algorithm_name = "Some algorithm"
+    file_path = Path("some_file.py")
+    algorithm_type = AlgorithmType.HYBRID
+    project_id = 1
+
+    existing_local_algorithm = LocalAlgorithm(id=42, file_path=file_path)
+    mocker.patch.object(api_instance, "get_setting", return_value={algorithm_name: existing_local_algorithm})
+    mocker.patch.object(api_instance, "_check_project_id", return_value=project_id)
+    mocker.patch.object(mock_job_manager, "get_algorithm_type", return_value=algorithm_type)
+
+    existing_remote_algorithm = MagicMock(id=42)
+    mocker.patch.object(mock_job_manager, "read_algorithm", return_value=existing_remote_algorithm)
+
+    updated_remote_algorithm = MagicMock(id=42)
+    mock_create = mocker.patch.object(mock_job_manager, "create_algorithm")
+    mock_update = mocker.patch.object(mock_job_manager, "update_algorithm", return_value=updated_remote_algorithm)
+    mock_add = mocker.patch.object(api_instance, "_add_algorithm_to_settings")
+
+    api_instance.initialize_algorithm(algorithm_name, file_path)
+
+    mock_job_manager.read_algorithm.assert_called_once_with(42)
+    mock_update.assert_called_once_with(project_id, 42, algorithm_name, algorithm_type)
+    mock_create.assert_not_called()
+    expected_local = LocalAlgorithm(id=updated_remote_algorithm.id, file_path=file_path)
+    mock_add.assert_called_once_with(algorithm_name, expected_local)
 
 
 def test_get_status_by_algorithm_name(
@@ -972,27 +1069,6 @@ def test_initialize_remote_project(api_instance: Api, mock_config_manager: Mock,
     mock_config_manager.get.assert_called_with("default_host")
     mock_job_manager.create_project.assert_called_once_with(owner_id, project_name, project_description)
     assert result == expected_project
-
-
-def test_create_remote_algorithm_with_file(api_instance: Api, mock_job_manager: Mock) -> None:
-    # Arrange
-    project_id = 1
-    algorithm_name = "TestAlgorithm"
-    file_path = Path("path/to/algorithm.py")
-
-    expected_algorithm_type = AlgorithmType.QUANTUM
-    expected_algorithm = Mock(spec=Algorithm)
-
-    mock_job_manager.get_algorithm_type.return_value = expected_algorithm_type
-    mock_job_manager.create_algorithm.return_value = expected_algorithm
-
-    # Act
-    result = api_instance._create_remote_algorithm(project_id, algorithm_name, file_path)
-
-    # Assert
-    mock_job_manager.get_algorithm_type.assert_called_once_with(file_path)
-    mock_job_manager.create_algorithm.assert_called_once_with(project_id, algorithm_name, expected_algorithm_type)
-    assert result == expected_algorithm
 
 
 def test_get_algorithm_setting(api_instance: Api, mock_config_manager: Mock) -> None:
