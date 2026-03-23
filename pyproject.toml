@@ -53,6 +53,9 @@ dev = [
 asyncio_mode = "auto"
 testpaths = ["tests"]
 asyncio_default_fixture_loop_scope = "function"
+markers = [
+    "keep_auth_tokens_wrapper: do not unwrap @_refresh_auth_tokens for this test",
+]
 
 
 [tool.coverage.run]

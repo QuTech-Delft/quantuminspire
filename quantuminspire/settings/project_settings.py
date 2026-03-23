@@ -2,14 +2,12 @@ from pathlib import Path
 from typing import Any, Dict
 
 from quantuminspire.settings.base_settings import BaseConfigSettings, ensure_config_file_exists
-from quantuminspire.settings.models import Algorithm, Job, Project
+from quantuminspire.settings.models import Project
 
 
 class ProjectSettings(BaseConfigSettings):
 
-    algorithm: Algorithm = Algorithm()
     project: Project = Project()
-    job: Job = Job()
 
     @classmethod
     def find_project_root(cls, start: Path | None = None, end: Path | None = None) -> Path:
