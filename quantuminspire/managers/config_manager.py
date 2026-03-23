@@ -13,9 +13,9 @@ class ConfigManager:
         self, project_settings: Optional[ProjectSettings] = None, user_settings: Optional[UserSettings] = None
     ) -> None:
         try:
-            self._project_settings = project_settings or ProjectSettings()
+            self._project_settings: ProjectSettings | None = project_settings or ProjectSettings()
         except FileNotFoundError:
-            raise RuntimeError("Project not initialised. Please run ConfigManager.init() from project root.")
+            self._project_settings = None
         self._user_settings = user_settings or UserSettings()
         self._configurable_keys = self._compute_flattened_keys()
 
@@ -67,7 +67,10 @@ class ConfigManager:
         Returns:
             A list of BaseConfigSettings instances in priority order.
         """
-        return [self._project_settings, self._user_settings]
+        if self._project_settings is None:
+            return [self._user_settings]
+        else:
+            return [self._project_settings, self._user_settings]
 
     def _get_source_and_value(self, key: str) -> Tuple[str, Any]:
         """Get the value of a setting and the source settings object that provides it.
@@ -228,8 +231,7 @@ class ConfigManager:
 
         return self._group_fields(self._resolve_field_values())
 
-    @classmethod
-    def initialize(cls, path: Path) -> None:
+    def initialize(self, path: Path) -> None:
         """Initialize a project configuration in the given directory.
 
         This method creates the necessary project configuration file(s)
@@ -240,3 +242,6 @@ class ConfigManager:
                 should be initialized. Defaults to the current working directory.
         """
         ProjectSettings.initialize(path)
+        if self._project_settings is None:
+            self._project_settings = ProjectSettings()
+            self._configurable_keys = self._compute_flattened_keys()

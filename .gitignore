@@ -342,3 +342,6 @@ $RECYCLE.BIN/
 # End of https://www.toptal.com/developers/gitignore/api/python,windows,macos,jetbrains+all,visualstudiocode
 
 mutants
+
+# Persisting algorithms
+**.quantuminspire

@@ -15,14 +15,14 @@ pipx install quantuminspire
 
 Afterwards, running `qi --help` should show a help menu.
 
-> [!NOTE]  
+> [!NOTE]
 > If your python version is newer then supported by quantuminspire, please run the following command: `pipx install quantuminspire --python /path/to/python3.12`.
 > Check which versions of python are supported by the tool.
 
 ### Installation using Conda
 
-> [!WARNING]  
-> Installing quantuminspire using pipx **inside a conda environment** may cause conflicts with other packages. This can result in unexpected behavior and prevent you from using the tool correctly. To avoid these issues, it is recommended to instead create a Conda environment from an `environment.yml` file. 
+> [!WARNING]
+> Installing quantuminspire using pipx **inside a conda environment** may cause conflicts with other packages. This can result in unexpected behavior and prevent you from using the tool correctly. To avoid these issues, it is recommended to instead create a Conda environment from an `environment.yml` file.
 
 Check you Conda version with `conda --version`, then run the appropriate command:
 
@@ -44,6 +44,10 @@ After creating the environment, you need to activate it (use your custom environ
 ```bash
 conda activate quantuminspire
 ```
+
+> [!NOTE]
+> If your python version is newer then supported by quantuminspire, please run the following command: `pipx install quantuminspire --python /path/to/python3.12`.
+> Check which versions of python are supported by the tool.
 
 ## Using the CLI to login
 
