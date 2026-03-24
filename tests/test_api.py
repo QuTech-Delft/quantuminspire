@@ -570,7 +570,7 @@ def test_get_status_by_algorithm_name(
     algorithm_name = "Some algorithm"
     job_id = mock_get_algorithm_setting(algorithm_name, "job_id")
     expected_status = JobStatus.COMPLETED
-    mock_get_job = mocker.patch.object(api_instance, "_get_job", return_value=MagicMock(status=expected_status))
+    mock_get_job = mocker.patch.object(api_instance, "get_job", return_value=MagicMock(status=expected_status))
 
     status = api_instance.get_status_by_algorithm_name(algorithm_name)
     mock_get_job.assert_called_once_with(job_id)
@@ -610,7 +610,7 @@ def test_get_status_by_algorithm_name_with_wait_and_timeout_exceeds_timeout(
 def test_get_status_by_job_id(api_instance: Api, mocker: MockerFixture) -> None:
     job_id = 243
     expected_status = JobStatus.COMPLETED
-    mock_get_job = mocker.patch.object(api_instance, "_get_job", return_value=MagicMock(status=expected_status))
+    mock_get_job = mocker.patch.object(api_instance, "get_job", return_value=MagicMock(status=expected_status))
 
     status = api_instance.get_status_by_job_id(job_id)
     mock_get_job.assert_called_once_with(job_id)
@@ -668,6 +668,47 @@ def test_get_final_result_by_job_id(api_instance: Api, mock_job_manager: Mock, m
     assert final_result == expected_result
 
 
+def test_get_latest_job_of_algorithm(api_instance: Api, mock_get_algorithm_setting: Any, mocker: MockerFixture) -> None:
+    mocker.patch.object(api_instance, "get_algorithm_setting", side_effect=mock_get_algorithm_setting)
+
+    algorithm_name = "Some algorithm"
+    job_id = mock_get_algorithm_setting(algorithm_name, "job_id")
+    expected_job = MagicMock(spec=Job)
+    mock_get_job = mocker.patch.object(api_instance, "get_job", return_value=expected_job)
+
+    result = api_instance.get_latest_job_of_algorithm(algorithm_name)
+
+    mock_get_job.assert_called_once_with(job_id)
+    assert result == expected_job
+
+
+def test_get_result_by_algorithm_name(
+    api_instance: Api, mock_get_algorithm_setting: Any, mocker: MockerFixture
+) -> None:
+    mocker.patch.object(api_instance, "get_algorithm_setting", side_effect=mock_get_algorithm_setting)
+
+    algorithm_name = "Some algorithm"
+    job_id = mock_get_algorithm_setting(algorithm_name, "job_id")
+    expected_result = MagicMock()
+    mock_get_result = mocker.patch.object(api_instance, "get_result_by_job_id", return_value=expected_result)
+
+    result = api_instance.get_result_by_algorithm_name(algorithm_name)
+
+    mock_get_result.assert_called_once_with(job_id)
+    assert result == expected_result
+
+
+def test_get_result_by_job_id(api_instance: Api, mock_job_manager: Mock, mocker: MockerFixture) -> None:
+    job_id = 243
+    expected_result = MagicMock()
+    mock_get_result = mocker.patch.object(mock_job_manager, "get_result", return_value=expected_result)
+
+    result = api_instance.get_result_by_job_id(job_id)
+
+    mock_get_result.assert_called_once_with(job_id)
+    assert result == expected_result
+
+
 def test_check_project_id_with_valid_project(api_instance: Api, mock_get_setting: Any, mocker: MockerFixture) -> None:
     mocker.patch.object(api_instance, "get_setting", side_effect=mock_get_setting)
     api_instance._check_project_id()
@@ -692,7 +733,7 @@ def test_get_job(api_instance: Api, mock_job_manager: Mock, mocker: MockerFixtur
 
     mock_get_job = mocker.patch.object(api_instance._job_manager, "get_job", return_value=expected_job)
 
-    result = api_instance._get_job(job_id)
+    result = api_instance.get_job(job_id)
 
     mock_get_job.assert_called_once_with(job_id)
     assert result == expected_job

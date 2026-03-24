@@ -28,10 +28,12 @@ from compute_api_client import (
     JobStatus,
     Language,
     PageLanguage,
+    PageResult,
     Project,
     ProjectIn,
     ProjectPatch,
     ProjectsApi,
+    ResultsApi,
     ShareType,
 )
 from compute_api_client.exceptions import ForbiddenException, NotFoundException
@@ -136,6 +138,12 @@ def mock_final_result(mocker: MockerFixture) -> MagicMock:
     return mock
 
 
+@pytest.fixture
+def mock_page_result(mocker: MockerFixture) -> MagicMock:
+    mock: MagicMock = mocker.MagicMock(spec=PageResult)
+    return mock
+
+
 def test_invoke(job_manager: JobManager, mocker: MockerFixture) -> None:
     mock_result = mocker.MagicMock()
     mock_api_method = mocker.AsyncMock(return_value=mock_result)
@@ -222,6 +230,17 @@ def test_get_final_result(job_manager: JobManager, mock_final_result: FinalResul
         mock_invoke.assert_called_once_with(
             FinalResultsApi,
             "read_final_result_by_job_id_final_results_job_job_id_get",
+            1,
+        )
+
+
+def test_get_result(job_manager: JobManager, mock_page_result: PageResult) -> None:
+    with patch.object(JobManager, "_invoke", return_value=mock_page_result) as mock_invoke:
+        job_manager.get_result(job_id=1)
+
+        mock_invoke.assert_called_once_with(
+            ResultsApi,
+            "read_results_by_job_id_results_job_job_id_get",
             1,
         )
 

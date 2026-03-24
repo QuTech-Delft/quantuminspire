@@ -29,10 +29,12 @@ from compute_api_client import (
     Language,
     LanguagesApi,
     PageBackendType,
+    PageResult,
     Project,
     ProjectIn,
     ProjectPatch,
     ProjectsApi,
+    ResultsApi,
     ShareType,
 )
 from compute_api_client.exceptions import ForbiddenException, NotFoundException
@@ -197,6 +199,17 @@ class JobManager:
             The FinalResult object for the job, or None if no result is available yet.
         """
         return self._invoke(FinalResultsApi, "read_final_result_by_job_id_final_results_job_job_id_get", job_id)
+
+    def get_result(self, job_id: int) -> PageResult | None:
+        """Retrieve the result of a job by its ID.
+
+        Args:
+            job_id: The ID of the job to retrieve the result for.
+
+        Returns:
+            The Result object for the job, or None if no result is available yet.
+        """
+        return self._invoke(ResultsApi, "read_results_by_job_id_results_job_job_id_get", job_id)
 
     @staticmethod
     def get_algorithm_type(file_path: Path) -> AlgorithmType:
