@@ -136,6 +136,7 @@ def mock_final_result(mocker: MockerFixture) -> MagicMock:
     mock: MagicMock = mocker.MagicMock(spec=FinalResult)
     return mock
 
+
 @pytest.fixture
 def mock_results() -> list[MagicMock]:
     return [
