@@ -1,6 +1,6 @@
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional, cast
+from typing import Any, Callable, Optional, cast
 from unittest.mock import MagicMock, Mock, call, patch
 
 import pytest
@@ -32,12 +32,21 @@ def mock_job_manager() -> Mock:
 
 
 @pytest.fixture
+def mock_remote_project() -> MagicMock:
+    mock_project = MagicMock(spec=Project)
+    mock_project.id = 1
+    mock_project.name = "TestProject"
+    mock_project.description = "Test description"
+    return mock_project
+
+
+@pytest.fixture
 def api_instance(mock_config_manager: Mock, mock_auth_manager: Mock, mock_job_manager: Mock) -> Api:
     return Api(mock_config_manager, mock_auth_manager, mock_job_manager)
 
 
 @pytest.fixture
-def mock_get_setting() -> Any:
+def mock_get_setting() -> Callable[[str], Any]:
     def _get_setting(key: str) -> Any:
         return {
             "project.id": 1,
@@ -48,7 +57,7 @@ def mock_get_setting() -> Any:
 
 
 @pytest.fixture
-def mock_get_algorithm_setting() -> Any:
+def mock_get_algorithm_setting() -> Callable[[str, str], Any]:
     def _get_algorithm_setting(algorithm_name: str, key: str) -> Any:
         algorithms = {
             "Some algorithm": {
@@ -281,14 +290,11 @@ def test_algorithm_with_persist_false(api_instance: Api, mocker: MockerFixture) 
     )
 
 
-def test_initialize_project_no_project_id(api_instance: Api, mocker: MockerFixture) -> None:
+def test_initialize_project_no_project_id(
+    api_instance: Api, mocker: MockerFixture, mock_remote_project: MagicMock
+) -> None:
     project_name = "Dummy project"
     project_description = "Dummy description"
-
-    mock_remote_project = MagicMock(spec=Project)
-    mock_remote_project.id = 1
-    mock_remote_project.name = project_name
-    mock_remote_project.description = project_description
 
     mocker.patch.object(api_instance, "_check_project_id", side_effect=RuntimeError("No project initialized"))
     mock_initialize_remote_project = mocker.patch.object(
@@ -309,18 +315,16 @@ def test_initialize_project_no_project_id(api_instance: Api, mocker: MockerFixtu
     mock_set_setting.assert_has_calls(expected_calls, any_order=True)
 
 
-def test_initialize_project_with_existing_project_id(api_instance: Api, mocker: MockerFixture) -> None:
+def test_initialize_project_with_existing_project_id(
+    api_instance: Api, mocker: MockerFixture, mock_remote_project: MagicMock
+) -> None:
     project_name = "Existing project"
     project_description = "Existing description"
 
-    mock_remote_project = MagicMock(spec=Project)
     mock_remote_updated_project = MagicMock(spec=Project)
     mock_remote_updated_project.id = 1
     mock_remote_updated_project.name = project_name
     mock_remote_updated_project.description = project_description
-    mock_remote_project.id = 1
-    mock_remote_project.name = project_name
-    mock_remote_project.description = project_description
 
     mocker.patch.object(api_instance, "_check_project_id", return_value=1)
     mocker.patch.object(api_instance, "get_setting", return_value=1)
@@ -341,15 +345,12 @@ def test_initialize_project_with_existing_project_id(api_instance: Api, mocker: 
 
 
 def test_initialize_project_with_existing_project_id_but_remote_project_not_found(
-    api_instance: Api, mocker: MockerFixture
+    api_instance: Api, mocker: MockerFixture, mock_remote_project: MagicMock
 ) -> None:
     project_name = "New project"
     project_description = "New description"
 
-    mock_remote_project = MagicMock(spec=Project)
     mock_remote_project.id = 2
-    mock_remote_project.name = project_name
-    mock_remote_project.description = project_description
 
     mocker.patch.object(api_instance, "_check_project_id")
     mocker.patch.object(api_instance, "get_setting", return_value=1)
@@ -368,15 +369,10 @@ def test_initialize_project_with_existing_project_id_but_remote_project_not_foun
 
 
 def test_initialize_project_algorithms_setting_already_exists(
-    api_instance: Api, mocker: MockerFixture, mock_get_setting: Any
+    api_instance: Api, mocker: MockerFixture, mock_get_setting: Any, mock_remote_project: MagicMock
 ) -> None:
     project_name = "Existing project"
     project_description = "Existing description"
-
-    mock_remote_project = MagicMock(spec=Project)
-    mock_remote_project.id = 1
-    mock_remote_project.name = project_name
-    mock_remote_project.description = project_description
 
     mocker.patch.object(api_instance, "_check_project_id")
     mocker.patch.object(api_instance, "get_setting", side_effect=mock_get_setting)
@@ -391,15 +387,12 @@ def test_initialize_project_algorithms_setting_already_exists(
         assert c != call("project.algorithms", {})
 
 
-def test_initialize_project_with_path(api_instance: Api, mock_config_manager: Mock, mocker: MockerFixture) -> None:
+def test_initialize_project_with_path(
+    api_instance: Api, mock_config_manager: Mock, mocker: MockerFixture, mock_remote_project: MagicMock
+) -> None:
     project_name = "Path project"
     project_description = "Path description"
     custom_path = "/some/custom/path"
-
-    mock_remote_project = MagicMock(spec=Project)
-    mock_remote_project.id = 1
-    mock_remote_project.name = project_name
-    mock_remote_project.description = project_description
 
     mocker.patch.object(api_instance, "_check_project_id", side_effect=RuntimeError("No project"))
     mocker.patch.object(api_instance, "initialize_remote_project", return_value=mock_remote_project)
@@ -413,16 +406,12 @@ def test_initialize_project_with_path(api_instance: Api, mock_config_manager: Mo
 
 
 def test_initialize_project_without_path_uses_cwd(
-    api_instance: Api, mock_config_manager: Mock, mocker: MockerFixture
+    api_instance: Api, mock_config_manager: Mock, mocker: MockerFixture, mock_remote_project: MagicMock
 ) -> None:
     # Arrange: no path provided, should use Path.cwd()
     project_name = "CWD project"
     project_description = "CWD description"
 
-    mock_remote_project = MagicMock(spec=Project)
-    mock_remote_project.id = 1
-    mock_remote_project.name = project_name
-    mock_remote_project.description = project_description
     mock_cwd = Path("/mocked/cwd")
 
     mocker.patch.object(api_instance, "_check_project_id", side_effect=RuntimeError("No project"))
@@ -682,7 +671,7 @@ def test_get_latest_job_of_algorithm(api_instance: Api, mock_get_algorithm_setti
     assert result == expected_job
 
 
-def test_get_result_by_algorithm_name(
+def test_get_results_by_algorithm_name(
     api_instance: Api, mock_get_algorithm_setting: Any, mocker: MockerFixture
 ) -> None:
     mocker.patch.object(api_instance, "get_algorithm_setting", side_effect=mock_get_algorithm_setting)
@@ -690,22 +679,22 @@ def test_get_result_by_algorithm_name(
     algorithm_name = "Some algorithm"
     job_id = mock_get_algorithm_setting(algorithm_name, "job_id")
     expected_result = MagicMock()
-    mock_get_result = mocker.patch.object(api_instance, "get_result_by_job_id", return_value=expected_result)
+    mock_get_results = mocker.patch.object(api_instance, "get_results_by_job_id", return_value=expected_result)
 
-    result = api_instance.get_result_by_algorithm_name(algorithm_name)
+    result = api_instance.get_results_by_algorithm_name(algorithm_name)
 
-    mock_get_result.assert_called_once_with(job_id)
+    mock_get_results.assert_called_once_with(job_id)
     assert result == expected_result
 
 
-def test_get_result_by_job_id(api_instance: Api, mock_job_manager: Mock, mocker: MockerFixture) -> None:
+def test_get_results_by_job_id(api_instance: Api, mock_job_manager: Mock, mocker: MockerFixture) -> None:
     job_id = 243
     expected_result = MagicMock()
-    mock_get_result = mocker.patch.object(mock_job_manager, "get_result", return_value=expected_result)
+    mock_get_results = mocker.patch.object(mock_job_manager, "get_results", return_value=expected_result)
 
-    result = api_instance.get_result_by_job_id(job_id)
+    result = api_instance.get_results_by_job_id(job_id)
 
-    mock_get_result.assert_called_once_with(job_id)
+    mock_get_results.assert_called_once_with(job_id)
     assert result == expected_result
 
 

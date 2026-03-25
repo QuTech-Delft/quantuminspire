@@ -28,12 +28,11 @@ from compute_api_client import (
     JobStatus,
     Language,
     PageLanguage,
-    PageResult,
     Project,
     ProjectIn,
     ProjectPatch,
     ProjectsApi,
-    ResultsApi,
+    Result,
     ShareType,
 )
 from compute_api_client.exceptions import ForbiddenException, NotFoundException
@@ -137,11 +136,12 @@ def mock_final_result(mocker: MockerFixture) -> MagicMock:
     mock: MagicMock = mocker.MagicMock(spec=FinalResult)
     return mock
 
-
 @pytest.fixture
-def mock_page_result(mocker: MockerFixture) -> MagicMock:
-    mock: MagicMock = mocker.MagicMock(spec=PageResult)
-    return mock
+def mock_results() -> list[MagicMock]:
+    return [
+        MagicMock(spec=Result, id=1),
+        MagicMock(spec=Result, id=2),
+    ]
 
 
 def test_invoke(job_manager: JobManager, mocker: MockerFixture) -> None:
@@ -166,6 +166,37 @@ def test_invoke(job_manager: JobManager, mocker: MockerFixture) -> None:
         mock_api_class.assert_called_once_with(mock_client)
         mock_api_method.assert_called_once_with("arg1", "arg2", kwarg1="value1")
         assert result == mock_result
+
+
+def test_get_results(job_manager: JobManager, mock_results: list[MagicMock], mocker: MockerFixture) -> None:
+    mock_get_all = mocker.AsyncMock(return_value=mock_results)
+    mock_page_reader_instance = mocker.MagicMock()
+    mock_page_reader_instance.get_all = mock_get_all
+
+    mock_api_instance = mocker.MagicMock()
+    mock_client = mocker.MagicMock()
+    mock_config = mocker.MagicMock()
+
+    with (
+        patch("quantuminspire.managers.job_manager.ApiClient") as mock_api_client_class,
+        patch("quantuminspire.managers.job_manager.config", return_value=mock_config) as mock_config_func,
+        patch(
+            "quantuminspire.managers.job_manager.ResultsApi", return_value=mock_api_instance
+        ) as mock_results_api_class,
+        patch("quantuminspire.managers.job_manager.PageReader") as mock_page_reader_class,
+    ):
+        mock_api_client_class.return_value.__aenter__.return_value = mock_client
+        mock_page_reader_class.__getitem__.return_value.return_value = mock_page_reader_instance
+
+        result = JobManager.get_results(job_id=1)
+
+        mock_config_func.assert_called_once()
+        mock_results_api_class.assert_called_once_with(mock_client)
+        mock_get_all.assert_called_once_with(
+            mock_api_instance.read_results_by_job_id_results_job_job_id_get,
+            job_id=1,
+        )
+        assert result == mock_results
 
 
 def test_get_backend_types(job_manager: JobManager, mock_backend_type: BackendType, mocker: MockerFixture) -> None:
@@ -230,17 +261,6 @@ def test_get_final_result(job_manager: JobManager, mock_final_result: FinalResul
         mock_invoke.assert_called_once_with(
             FinalResultsApi,
             "read_final_result_by_job_id_final_results_job_job_id_get",
-            1,
-        )
-
-
-def test_get_result(job_manager: JobManager, mock_page_result: PageResult) -> None:
-    with patch.object(JobManager, "_invoke", return_value=mock_page_result) as mock_invoke:
-        job_manager.get_result(job_id=1)
-
-        mock_invoke.assert_called_once_with(
-            ResultsApi,
-            "read_results_by_job_id_results_job_job_id_get",
             1,
         )
 

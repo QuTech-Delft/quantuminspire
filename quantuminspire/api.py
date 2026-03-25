@@ -6,7 +6,7 @@ from typing import Any, Concatenate, Dict, List, Optional, ParamSpec, TypeVar, c
 from urllib.parse import urlparse
 
 import requests
-from compute_api_client import BackendType, FinalResult, Job, JobStatus, PageResult, Project
+from compute_api_client import BackendType, FinalResult, Job, JobStatus, Project, Result
 from pydantic import TypeAdapter
 
 from quantuminspire.managers.auth_manager import AuthManager
@@ -402,7 +402,7 @@ class Api:
         """
         return self._job_manager.get_final_result(job_id)
 
-    def get_result_by_algorithm_name(self, algorithm_name: str) -> PageResult | None:
+    def get_results_by_algorithm_name(self, algorithm_name: str) -> list[Result] | None:
         """Get the result of the most recent job for the given algorithm.
 
         Args:
@@ -412,10 +412,10 @@ class Api:
             The result of the job, or None if not yet available.
         """
         job_id = self.get_algorithm_setting(algorithm_name, "job_id")
-        return self.get_result_by_job_id(job_id)
+        return self.get_results_by_job_id(job_id)
 
     @_refresh_auth_tokens
-    def get_result_by_job_id(self, job_id: int) -> PageResult | None:
+    def get_results_by_job_id(self, job_id: int) -> list[Result] | None:
         """Get the result of the job with the given ID.
 
         Args:
@@ -424,7 +424,7 @@ class Api:
         Returns:
             The result of the job, or None if not yet available.
         """
-        return self._job_manager.get_result(job_id)
+        return self._job_manager.get_results(job_id)
 
     def _get_local_algorithm(self, algorithm_name: str) -> LocalAlgorithm:
         """Retrieve the local algorithm settings for the given algorithm name.
