@@ -69,14 +69,21 @@ class JobManager:
     ) -> Any:
         """Invoke an API method asynchronously using the given API class and method name.
 
+        Opens an API client, instantiates the given API class, and calls the specified method.
+        If a page_reader is provided, all paginated results are fetched and returned; otherwise
+        the method is called directly and its result is returned.
+
         Args:
-            api_class: The API class to instantiate.
+            api_class: The API class to instantiate with the API client.
             method_name: The name of the method to call on the API instance.
+            page_reader: An optional PageReader used to fetch all pages of a paginated response.
+                If None, the method is called directly.
             *args: Positional arguments to pass to the API method.
             **kwargs: Keyword arguments to pass to the API method.
 
         Returns:
-            The result returned by the API method.
+            All items across pages if a page_reader is provided, otherwise the direct result
+            returned by the API method.
         """
 
         async def _execute() -> Any:
