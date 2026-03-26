@@ -29,15 +29,19 @@ from compute_api_client import (
     Language,
     LanguagesApi,
     PageBackendType,
+    PageResult,
     Project,
     ProjectIn,
     ProjectPatch,
     ProjectsApi,
+    Result,
+    ResultsApi,
     ShareType,
 )
 from compute_api_client.exceptions import ForbiddenException, NotFoundException
 from pydantic import BaseModel, Field
 from qi2_shared.client import config
+from qi2_shared.pagination import ItemType, PageReader, PageType
 from qi2_shared.utils import run_async
 
 
@@ -59,26 +63,38 @@ class JobManager:
     def _invoke(
         api_class: Type[Any],
         method_name: str,
+        page_reader: Optional[PageReader[PageType, ItemType]] = None,
         *args: Any,
         **kwargs: Any,
     ) -> Any:
         """Invoke an API method asynchronously using the given API class and method name.
 
+        Opens an API client, instantiates the given API class, and calls the specified method.
+        If a page_reader is provided, all paginated results are fetched and returned; otherwise
+        the method is called directly and its result is returned.
+
         Args:
-            api_class: The API class to instantiate.
+            api_class: The API class to instantiate with the API client.
             method_name: The name of the method to call on the API instance.
+            page_reader: An optional PageReader used to fetch all pages of a paginated response.
+                If None, the method is called directly.
             *args: Positional arguments to pass to the API method.
             **kwargs: Keyword arguments to pass to the API method.
 
         Returns:
-            The result returned by the API method.
+            All items across pages if a page_reader is provided, otherwise the direct result
+            returned by the API method.
         """
 
         async def _execute() -> Any:
             async with ApiClient(config()) as client:
                 api_instance = api_class(client)
                 method: Callable[..., Awaitable[Any]] = getattr(api_instance, method_name)
-                return await method(*args, **kwargs)
+
+                if page_reader is None:
+                    return await method(*args, **kwargs)
+                else:
+                    return await page_reader.get_all(method, **kwargs)
 
         return run_async(_execute())
 
@@ -197,6 +213,21 @@ class JobManager:
             The FinalResult object for the job, or None if no result is available yet.
         """
         return self._invoke(FinalResultsApi, "read_final_result_by_job_id_final_results_job_job_id_get", job_id)
+
+    def get_results(self, job_id: int) -> list[Result] | None:
+        """Retrieve the results of a job by its ID.
+
+        Args:
+            job_id: The ID of the job to retrieve the results for.
+
+        Returns:
+            The list of the Result object for the job, or None if no result is available yet.
+        """
+        page_reader = PageReader[PageResult, Result]()
+        results: list[Result] | None = self._invoke(
+            ResultsApi, "read_results_by_job_id_results_job_job_id_get", page_reader, job_id=job_id
+        )
+        return results
 
     @staticmethod
     def get_algorithm_type(file_path: Path) -> AlgorithmType:
