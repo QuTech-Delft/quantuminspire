@@ -6,13 +6,7 @@ from typing import Any, Concatenate, Dict, List, Optional, ParamSpec, TypeVar, c
 from urllib.parse import urlparse
 
 import requests
-from compute_api_client import (
-    BackendType,
-    FinalResult,
-    Job,
-    JobStatus,
-    Project,
-)
+from compute_api_client import BackendType, FinalResult, Job, JobStatus, Project, Result
 from pydantic import TypeAdapter
 
 from quantuminspire.managers.auth_manager import AuthManager
@@ -271,7 +265,7 @@ class Api:
             except TimeoutError:
                 print("Timeout while waiting for job completion. Returning current status.")
 
-        return self._get_job(job_id).status
+        return self.get_job(job_id).status
 
     def _check_project_id(self) -> int:
         """Verify that a project is initialized in the current settings.
@@ -361,7 +355,7 @@ class Api:
         return self._job_manager.get_backend_types()
 
     @_refresh_auth_tokens
-    def _get_job(self, job_id: int) -> Job:
+    def get_job(self, job_id: int) -> Job:
         """Retrieve job details by job ID.
 
         Args:
@@ -371,6 +365,18 @@ class Api:
             The Job object for the given job ID.
         """
         return self._job_manager.get_job(job_id)
+
+    def get_latest_job_of_algorithm(self, algorithm_name: str) -> Job:
+        """Retrieve the latest job of algorithm by name.
+
+        Args:
+            algorithm_name: Name of the algorithm.
+
+        Returns:
+            The Job object for the latest job of the given algorithm.
+        """
+        job_id = self.get_algorithm_setting(algorithm_name, "job_id")
+        return self.get_job(job_id)
 
     def get_final_result_by_algorithm_name(self, algorithm_name: str) -> FinalResult | None:
         """Get the final result of the most recent job for the given algorithm.
@@ -395,6 +401,30 @@ class Api:
             The final result of the job, or None if not yet available.
         """
         return self._job_manager.get_final_result(job_id)
+
+    def get_results_by_algorithm_name(self, algorithm_name: str) -> list[Result] | None:
+        """Get the result of the most recent job for the given algorithm.
+
+        Args:
+            algorithm_name: Name of the algorithm to get the result for.
+
+        Returns:
+            The result of the job, or None if not yet available.
+        """
+        job_id = self.get_algorithm_setting(algorithm_name, "job_id")
+        return self.get_results_by_job_id(job_id)
+
+    @_refresh_auth_tokens
+    def get_results_by_job_id(self, job_id: int) -> list[Result] | None:
+        """Get the result of the job with the given ID.
+
+        Args:
+            job_id: The ID of the job to get the result for.
+
+        Returns:
+            The result of the job, or None if not yet available.
+        """
+        return self._job_manager.get_results(job_id)
 
     def _get_local_algorithm(self, algorithm_name: str) -> LocalAlgorithm:
         """Retrieve the local algorithm settings for the given algorithm name.
