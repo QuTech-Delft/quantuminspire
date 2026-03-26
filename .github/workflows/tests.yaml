@@ -11,7 +11,7 @@ jobs:
     name: Static analysis
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: QuTech-Delft/GitHub-Actions/actions/python/tox-static-check@master
         with:
           python-version: 3.12
@@ -35,7 +35,7 @@ jobs:
     env:
       PYTHON_KEYRING_BACKEND: keyring.backends.null.Keyring
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: QuTech-Delft/GitHub-Actions/actions/python/tox-unit-test@master
         with:
           python-version: 3.12
@@ -66,7 +66,7 @@ jobs:
       pull-requests: write
       contents: write
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: QuTech-Delft/GitHub-Actions/actions/generic/auto-merge@master
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}

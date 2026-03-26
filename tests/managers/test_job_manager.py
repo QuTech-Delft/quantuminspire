@@ -32,6 +32,8 @@ from compute_api_client import (
     ProjectIn,
     ProjectPatch,
     ProjectsApi,
+    Result,
+    ResultsApi,
     ShareType,
 )
 from compute_api_client.exceptions import ForbiddenException, NotFoundException
@@ -136,6 +138,14 @@ def mock_final_result(mocker: MockerFixture) -> MagicMock:
     return mock
 
 
+@pytest.fixture
+def mock_results() -> list[MagicMock]:
+    return [
+        MagicMock(spec=Result, id=1),
+        MagicMock(spec=Result, id=2),
+    ]
+
+
 def test_invoke(job_manager: JobManager, mocker: MockerFixture) -> None:
     mock_result = mocker.MagicMock()
     mock_api_method = mocker.AsyncMock(return_value=mock_result)
@@ -152,12 +162,61 @@ def test_invoke(job_manager: JobManager, mocker: MockerFixture) -> None:
     ):
         mock_api_client_class.return_value.__aenter__.return_value = mock_client
 
-        result = JobManager._invoke(mock_api_class, "some_method", "arg1", "arg2", kwarg1="value1")
+        result = JobManager._invoke(mock_api_class, "some_method", None, "arg1", "arg2", kwarg1="value1")
 
         mock_config_func.assert_called_once()
         mock_api_class.assert_called_once_with(mock_client)
         mock_api_method.assert_called_once_with("arg1", "arg2", kwarg1="value1")
         assert result == mock_result
+
+
+def test_invoke_with_page_reader(job_manager: JobManager, mocker: MockerFixture) -> None:
+    mock_result = mocker.MagicMock()
+    mock_get_all = mocker.AsyncMock(return_value=mock_result)
+    mock_page_reader = mocker.MagicMock()
+    mock_page_reader.get_all = mock_get_all
+
+    mock_api_method = mocker.AsyncMock()
+    mock_api_instance = mocker.MagicMock()
+    setattr(mock_api_instance, "some_method", mock_api_method)
+
+    mock_api_class = mocker.MagicMock(return_value=mock_api_instance)
+    mock_client = mocker.MagicMock()
+    mock_config = mocker.MagicMock()
+
+    with (
+        patch("quantuminspire.managers.job_manager.ApiClient") as mock_api_client_class,
+        patch("quantuminspire.managers.job_manager.config", return_value=mock_config) as mock_config_func,
+    ):
+        mock_api_client_class.return_value.__aenter__.return_value = mock_client
+
+        result = JobManager._invoke(mock_api_class, "some_method", mock_page_reader, "arg1", kwarg1="value1")
+
+        mock_config_func.assert_called_once()
+        mock_api_class.assert_called_once_with(mock_client)
+        mock_api_method.assert_not_called()
+        mock_get_all.assert_called_once_with(mock_api_method, kwarg1="value1")
+        assert result == mock_result
+
+
+def test_get_results(job_manager: JobManager, mock_results: list[MagicMock], mocker: MockerFixture) -> None:
+    mock_page_reader_instance = mocker.MagicMock()
+
+    with (
+        patch.object(JobManager, "_invoke", return_value=mock_results) as mock_invoke,
+        patch("quantuminspire.managers.job_manager.PageReader") as mock_page_reader_class,
+    ):
+        mock_page_reader_class.__getitem__.return_value.return_value = mock_page_reader_instance
+
+        result = job_manager.get_results(job_id=1)
+
+        mock_invoke.assert_called_once_with(
+            ResultsApi,
+            "read_results_by_job_id_results_job_job_id_get",
+            mock_page_reader_instance,
+            job_id=1,
+        )
+        assert result == mock_results
 
 
 def test_get_backend_types(job_manager: JobManager, mock_backend_type: BackendType, mocker: MockerFixture) -> None:
