@@ -1,6 +1,6 @@
 import time
 from pathlib import Path
-from typing import Any, Awaitable, Callable, List, Optional, Type, cast
+from typing import Any, Awaitable, Callable, List, Optional, Type
 
 from compute_api_client import (
     Algorithm,
@@ -41,7 +41,7 @@ from compute_api_client import (
 from compute_api_client.exceptions import ForbiddenException, NotFoundException
 from pydantic import BaseModel, Field
 from qi2_shared.client import config
-from qi2_shared.pagination import PageReader
+from qi2_shared.pagination import ItemType, PageReader, PageType
 from qi2_shared.utils import run_async
 
 
@@ -63,6 +63,7 @@ class JobManager:
     def _invoke(
         api_class: Type[Any],
         method_name: str,
+        page_reader: Optional[PageReader[PageType, ItemType]] = None,
         *args: Any,
         **kwargs: Any,
     ) -> Any:
@@ -82,7 +83,11 @@ class JobManager:
             async with ApiClient(config()) as client:
                 api_instance = api_class(client)
                 method: Callable[..., Awaitable[Any]] = getattr(api_instance, method_name)
-                return await method(*args, **kwargs)
+
+                if page_reader is None:
+                    return await method(*args, **kwargs)
+                else:
+                    return await page_reader.get_all(method, **kwargs)
 
         return run_async(_execute())
 
@@ -202,8 +207,7 @@ class JobManager:
         """
         return self._invoke(FinalResultsApi, "read_final_result_by_job_id_final_results_job_job_id_get", job_id)
 
-    @staticmethod
-    def get_results(job_id: int) -> list[Result] | None:
+    def get_results(self, job_id: int) -> list[Result] | None:
         """Retrieve the results of a job by its ID.
 
         Args:
@@ -212,21 +216,11 @@ class JobManager:
         Returns:
             The list of the Result object for the job, or None if no result is available yet.
         """
-
-        async def _execute() -> list[Result] | None:
-            async with ApiClient(config()) as api_client:
-                page_reader = PageReader[PageResult, Result]()
-                results_api = ResultsApi(api_client)
-
-                return cast(
-                    list[Result] | None,
-                    await page_reader.get_all(
-                        results_api.read_results_by_job_id_results_job_job_id_get,
-                        job_id=job_id,
-                    ),
-                )
-
-        return cast(list[Result] | None, run_async(_execute()))
+        page_reader = PageReader[PageResult, Result]()
+        results: list[Result] | None = self._invoke(
+            ResultsApi, "read_results_by_job_id_results_job_job_id_get", page_reader, job_id=job_id
+        )
+        return results
 
     @staticmethod
     def get_algorithm_type(file_path: Path) -> AlgorithmType:
