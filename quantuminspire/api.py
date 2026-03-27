@@ -13,6 +13,7 @@ from compute_api_client import (
     Job,
     JobStatus,
     Project,
+    Result,
 )
 from pydantic import TypeAdapter
 
@@ -445,7 +446,7 @@ class Api:
         """
         return self._resource_manager.get_final_result(job_id)
 
-    def get_results_by_algorithm_name(self, algorithm_name: str) -> list[Result] | None:
+    def get_results_by_algorithm_name(self, algorithm_name: str) -> list[Result]:
         """Get the result of the most recent job for the given algorithm.
 
         Args:
@@ -458,7 +459,7 @@ class Api:
         return self.get_results_by_job_id(job_id)
 
     @_refresh_auth_tokens
-    def get_results_by_job_id(self, job_id: int) -> list[Result] | None:
+    def get_results_by_job_id(self, job_id: int) -> list[Result]:
         """Get the result of the job with the given ID.
 
         Args:
@@ -467,7 +468,7 @@ class Api:
         Returns:
             The result of the job, or None if not yet available.
         """
-        return self._job_manager.get_results(job_id)
+        return self._resource_manager.get_results(job_id)
 
     def _get_local_algorithm(self, algorithm_name: str) -> LocalAlgorithm:
         """Retrieve the local algorithm settings for the given algorithm name.

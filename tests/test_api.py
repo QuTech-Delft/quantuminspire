@@ -1,6 +1,6 @@
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional, cast
+from typing import Any, Callable, Dict, Optional, cast
 from unittest.mock import MagicMock, Mock, call, patch
 
 import pytest
@@ -380,7 +380,9 @@ def test_compile_file_without_algorithm_name(
     mock_resource_manager.run_compile_file_flow.assert_called_once()
 
 
-def test_initialize_project_no_project_id(api_instance: Api, mocker: MockerFixture) -> None:
+def test_initialize_project_no_project_id(
+    api_instance: Api, mock_remote_project: MagicMock, mocker: MockerFixture
+) -> None:
     project_name = "Dummy project"
     project_description = "Dummy description"
 
@@ -777,10 +779,10 @@ def test_get_results_by_algorithm_name(
     assert result == expected_result
 
 
-def test_get_results_by_job_id(api_instance: Api, mock_job_manager: Mock, mocker: MockerFixture) -> None:
+def test_get_results_by_job_id(api_instance: Api, mock_resource_manager: Mock, mocker: MockerFixture) -> None:
     job_id = 243
     expected_result = MagicMock()
-    mock_get_results = mocker.patch.object(mock_job_manager, "get_results", return_value=expected_result)
+    mock_get_results = mocker.patch.object(mock_resource_manager, "get_results", return_value=expected_result)
 
     result = api_instance.get_results_by_job_id(job_id)
 
