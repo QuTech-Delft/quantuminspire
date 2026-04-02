@@ -39,16 +39,7 @@ from compute_api_client import (
 from compute_api_client.exceptions import ForbiddenException, NotFoundException
 from pytest_mock import MockerFixture
 
-from quantuminspire.managers.config_manager import ConfigManager
 from quantuminspire.managers.resource_manager import CompileOptions, JobOptions, ResourceManager, ResourceOptions
-
-
-@pytest.fixture
-def config_manager() -> ConfigManager:
-    mock_manager: MagicMock = MagicMock(spec=ConfigManager)
-    mock_manager.get.return_value = "https://api.quantum-inspire.com"
-    mock_manager.user_settings.auths = {"https://api.quantum-inspire.com": MagicMock(owner_id=123)}
-    return mock_manager
 
 
 @pytest.fixture
@@ -174,7 +165,7 @@ def test_invoke(resource_manager: ResourceManager, mocker: MockerFixture) -> Non
     ):
         mock_api_client_class.return_value.__aenter__.return_value = mock_client
 
-        result = ResourceManager._invoke(mock_api_class, "some_method", None, "arg1", "arg2", kwarg1="value1")
+        result = ResourceManager._invoke(mock_api_class, "some_method", "arg1", "arg2", kwarg1="value1")
 
         mock_config_func.assert_called_once()
         mock_api_class.assert_called_once_with(mock_client)
@@ -202,7 +193,9 @@ def test_invoke_with_page_reader(resource_manager: ResourceManager, mocker: Mock
     ):
         mock_api_client_class.return_value.__aenter__.return_value = mock_client
 
-        result = ResourceManager._invoke(mock_api_class, "some_method", mock_page_reader, "arg1", kwarg1="value1")
+        result = ResourceManager._invoke(
+            mock_api_class, "some_method", "arg1", page_reader=mock_page_reader, kwarg1="value1"
+        )
 
         mock_config_func.assert_called_once()
         mock_api_class.assert_called_once_with(mock_client)
@@ -225,7 +218,7 @@ def test_get_results(resource_manager: ResourceManager, mock_results: list[Magic
         mock_invoke.assert_called_once_with(
             ResultsApi,
             "read_results_by_job_id_results_job_job_id_get",
-            mock_page_reader_instance,
+            page_reader=mock_page_reader_instance,
             job_id=1,
         )
         assert result == mock_results
@@ -242,7 +235,6 @@ def test_get_backend_types(
         mock_invoke.assert_called_once_with(
             BackendTypesApi,
             "read_backend_types_backend_types_get",
-            None,
         )
         assert result[0] == mock_backend_type
 
@@ -254,7 +246,6 @@ def test_get_job(resource_manager: ResourceManager, mock_job: Job) -> None:
         mock_invoke.assert_called_once_with(
             JobsApi,
             "read_job_jobs_id_get",
-            None,
             id=1,
         )
 
@@ -297,7 +288,6 @@ def test_get_final_result(resource_manager: ResourceManager, mock_final_result: 
         mock_invoke.assert_called_once_with(
             FinalResultsApi,
             "read_final_result_by_job_id_final_results_job_job_id_get",
-            None,
             1,
         )
 
@@ -334,7 +324,6 @@ def test_create_project(resource_manager: ResourceManager, mock_project: Project
         mock_invoke.assert_called_once_with(
             ProjectsApi,
             "create_project_projects_post",
-            None,
             ProjectIn(
                 owner_id=123,
                 name=mock_project.name,
@@ -355,7 +344,6 @@ def test_create_algorithm(resource_manager: ResourceManager, mock_algorithm: Alg
         mock_invoke.assert_called_once_with(
             AlgorithmsApi,
             "create_algorithm_algorithms_post",
-            None,
             AlgorithmIn(
                 project_id=1,
                 type=mock_algorithm.type,
@@ -374,8 +362,8 @@ def test_run_job_submission_flow(
     mock_job: Job,
 ) -> None:
     with (
-        patch.object(ResourceManager, "run_create_commit_flow", return_value=mock_commit) as mock_commit_flow,
-        patch.object(ResourceManager, "run_create_file_flow", return_value=mock_file) as mock_file_flow,
+        patch.object(ResourceManager, "_run_create_commit_flow", return_value=mock_commit) as mock_commit_flow,
+        patch.object(ResourceManager, "_run_create_file_flow", return_value=mock_file) as mock_file_flow,
         patch.object(ResourceManager, "_create_batch_job", return_value=mock_batch_job) as mock_create_batch_job,
         patch.object(ResourceManager, "_create_job", return_value=mock_job) as mock_create_job,
         patch.object(ResourceManager, "_enqueue_batch_job") as mock_enqueue_batch_job,
@@ -419,7 +407,7 @@ def test_run_create_commit_flow_no_project_no_algorithm(
         patch.object(ResourceManager, "create_algorithm", return_value=mock_algorithm) as mock_create_algorithm,
         patch.object(ResourceManager, "_create_commit", return_value=mock_commit) as mock_create_commit,
     ):
-        result = resource_manager.run_create_commit_flow(resource_options, owner_id=123)
+        result = resource_manager._run_create_commit_flow(resource_options, owner_id=123)
 
         mock_create_project.assert_called_once_with(
             owner_id=123,
@@ -461,7 +449,7 @@ def test_run_create_commit_flow_updates_existing_project_and_algorithm(
         patch.object(ResourceManager, "update_algorithm", return_value=mock_algorithm) as mock_update_algorithm,
         patch.object(ResourceManager, "_create_commit", return_value=mock_commit),
     ):
-        result = resource_manager.run_create_commit_flow(resource_options, owner_id=123)
+        result = resource_manager._run_create_commit_flow(resource_options, owner_id=123)
 
         mock_update_project.assert_called_once_with(
             project_id=1,
@@ -502,7 +490,7 @@ def test_run_create_commit_flow_project_not_found_remotely(
         patch.object(ResourceManager, "create_algorithm", return_value=mock_algorithm) as mock_create_algorithm,
         patch.object(ResourceManager, "_create_commit", return_value=mock_commit),
     ):
-        resource_manager.run_create_commit_flow(resource_options, owner_id=123)
+        resource_manager._run_create_commit_flow(resource_options, owner_id=123)
 
         mock_create_project.assert_called_once_with(
             owner_id=123,
@@ -542,7 +530,7 @@ def test_run_create_commit_flow_algorithm_not_found_remotely(
         patch.object(ResourceManager, "create_algorithm", return_value=mock_algorithm) as mock_create_algorithm,
         patch.object(ResourceManager, "_create_commit", return_value=mock_commit),
     ):
-        resource_manager.run_create_commit_flow(resource_options, owner_id=123)
+        resource_manager._run_create_commit_flow(resource_options, owner_id=123)
 
         mock_create_algorithm.assert_called_once_with(
             project_id=resource_options.project_id,
@@ -572,7 +560,7 @@ def test_run_create_file_flow(
         patch.object(ResourceManager, "_get_language_for_algorithm", return_value=mock_language),
         patch.object(ResourceManager, "_create_file", return_value=mock_file) as mock_create_file,
     ):
-        result = resource_manager.run_create_file_flow(resource_options, commit_id=1)
+        result = resource_manager._run_create_file_flow(resource_options, commit_id=1)
 
         mock_create_file.assert_called_once_with(
             file_content=file_content,
@@ -602,8 +590,8 @@ def test_run_compile_file_flow_success(
     mock_commit_files.items = [compiled_file_mock]
 
     with (
-        patch.object(ResourceManager, "run_create_commit_flow", return_value=mock_commit),
-        patch.object(ResourceManager, "run_create_file_flow", return_value=mock_file),
+        patch.object(ResourceManager, "_run_create_commit_flow", return_value=mock_commit),
+        patch.object(ResourceManager, "_run_create_file_flow", return_value=mock_file),
         patch.object(ResourceManager, "_invoke") as mock_invoke,
     ):
         mock_invoke.side_effect = [None, mock_commit_files]
@@ -613,7 +601,6 @@ def test_run_compile_file_flow_success(
         mock_invoke.assert_any_call(
             CommitsApi,
             "compile_commit_commits_id_compile_post",
-            None,
             mock_commit.id,
             CompilePayload(
                 compile_stage=compile_options.compile_stage,
@@ -623,7 +610,6 @@ def test_run_compile_file_flow_success(
         mock_invoke.assert_any_call(
             FilesApi,
             "read_files_files_get",
-            None,
             commit_id=mock_commit.id,
             generated=True,
         )
@@ -643,8 +629,8 @@ def test_run_compile_file_flow_no_compiled_file(
     mock_commit_files.items = []
 
     with (
-        patch.object(ResourceManager, "run_create_commit_flow", return_value=mock_commit),
-        patch.object(ResourceManager, "run_create_file_flow", return_value=mock_file),
+        patch.object(ResourceManager, "_run_create_commit_flow", return_value=mock_commit),
+        patch.object(ResourceManager, "_run_create_file_flow", return_value=mock_file),
         patch.object(ResourceManager, "_invoke") as mock_invoke,
     ):
         mock_invoke.side_effect = [None, mock_commit_files]
@@ -668,7 +654,6 @@ def test_update_project(resource_manager: ResourceManager, mock_project: Project
         mock_invoke.assert_called_once_with(
             ProjectsApi,
             "partial_update_project_projects_id_patch",
-            None,
             result_project_id,
             ProjectPatch(name=result_project_name, description=result_project_description),
         )
@@ -681,7 +666,6 @@ def test_read_project(resource_manager: ResourceManager, mock_project: Project) 
         mock_invoke.assert_called_once_with(
             ProjectsApi,
             "read_project_projects_id_get",
-            None,
             1,
         )
 
@@ -700,7 +684,6 @@ def test_read_project_exception(resource_manager: ResourceManager, mock_project:
         mock_invoke.assert_called_once_with(
             ProjectsApi,
             "read_project_projects_id_get",
-            None,
             1,
         )
         assert result is None
@@ -713,7 +696,6 @@ def test_read_algorithm(resource_manager: ResourceManager, mock_algorithm: Algor
         mock_invoke.assert_called_once_with(
             AlgorithmsApi,
             "read_algorithm_algorithms_id_get",
-            None,
             1,
         )
 
@@ -734,7 +716,6 @@ def test_read_algorithm_exception(
         mock_invoke.assert_called_once_with(
             AlgorithmsApi,
             "read_algorithm_algorithms_id_get",
-            None,
             1,
         )
         assert result is None
@@ -752,7 +733,6 @@ def test_update_algorithm(resource_manager: ResourceManager, mock_algorithm: Alg
         mock_invoke.assert_called_once_with(
             AlgorithmsApi,
             "update_algorithm_algorithms_id_put",
-            None,
             mock_algorithm.id,
             AlgorithmIn(
                 project_id=1,
@@ -770,7 +750,6 @@ def test_create_commit(resource_manager: ResourceManager, mock_commit: Commit) -
         mock_invoke.assert_called_once_with(
             CommitsApi,
             "create_commit_commits_post",
-            None,
             CommitIn(
                 description="Commit created by SDK",
                 algorithm_id=1,
@@ -825,7 +804,6 @@ def test_create_file(resource_manager: ResourceManager, mock_file: File) -> None
         mock_invoke.assert_called_once_with(
             FilesApi,
             "create_file_files_post",
-            None,
             FileIn(
                 commit_id=1,
                 content=file_content,
@@ -841,7 +819,7 @@ def test_create_batch_job(resource_manager: ResourceManager, mock_batch_job: Bat
         resource_manager._create_batch_job(backend_type_id=1)
 
         mock_invoke.assert_called_once_with(
-            BatchJobsApi, "create_batch_job_batch_jobs_post", None, BatchJobIn(backend_type_id=1)
+            BatchJobsApi, "create_batch_job_batch_jobs_post", BatchJobIn(backend_type_id=1)
         )
 
 
@@ -857,7 +835,6 @@ def test_create_job(resource_manager: ResourceManager, mock_job: Job) -> None:
         mock_invoke.assert_called_once_with(
             JobsApi,
             "create_job_jobs_post",
-            None,
             JobIn(file_id=1, batch_job_id=1, number_of_shots=1024, raw_data_enabled=False),
         )
 
@@ -866,4 +843,4 @@ def test_enqueue_batch_job(resource_manager: ResourceManager, mock_batch_job: Ba
     with patch.object(ResourceManager, "_invoke", return_value=mock_batch_job) as mock_invoke:
         resource_manager._enqueue_batch_job(batch_job_id=1)
 
-        mock_invoke.assert_called_once_with(BatchJobsApi, "enqueue_batch_job_batch_jobs_id_enqueue_patch", None, 1)
+        mock_invoke.assert_called_once_with(BatchJobsApi, "enqueue_batch_job_batch_jobs_id_enqueue_patch", 1)

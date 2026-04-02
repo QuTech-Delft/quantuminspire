@@ -108,7 +108,6 @@ def test_refresh_auth_tokens_calls_refresh_when_login_not_required(
     host = "https://example.com"
     mock_config_manager.get.return_value = host
     mock_login_required = mocker.patch.object(api_instance, "_login_required", return_value=False)
-    # mock_auth_manager.login_required.return_value = False
 
     # Act
     api_instance.get_backend_types()
@@ -643,7 +642,7 @@ def test_initialize_algorithm_local_exists_remote_found_updates_remote(
     mock_add.assert_called_once_with(algorithm_name, expected_local)
 
 
-def test_get_status_by_algorithm_name(
+def test_get_job_status_by_algorithm_name(
     api_instance: Api, mock_get_algorithm_setting: Any, mocker: MockerFixture
 ) -> None:
     mocker.patch.object(api_instance, "get_algorithm_setting", side_effect=mock_get_algorithm_setting)
@@ -653,12 +652,12 @@ def test_get_status_by_algorithm_name(
     expected_status = JobStatus.COMPLETED
     mock_get_job = mocker.patch.object(api_instance, "get_job", return_value=MagicMock(status=expected_status))
 
-    status = api_instance.get_status_by_algorithm_name(algorithm_name)
+    status = api_instance.get_job_status(algorithm_name=algorithm_name)
     mock_get_job.assert_called_once_with(job_id)
     assert status == expected_status
 
 
-def test_get_status_by_algorithm_name_with_wait_and_timeout(
+def test_get_job_status_by_algorithm_name_with_wait_and_timeout(
     api_instance: Api, mock_get_algorithm_setting: Any, mock_resource_manager: Mock, mocker: MockerFixture
 ) -> None:
     mocker.patch.object(api_instance, "get_algorithm_setting", side_effect=mock_get_algorithm_setting)
@@ -669,12 +668,12 @@ def test_get_status_by_algorithm_name_with_wait_and_timeout(
     mock_job.status = JobStatus.COMPLETED
     mock_wait = mocker.patch.object(mock_resource_manager, "wait_for_job_completion", return_value=mock_job)
 
-    status = api_instance.get_status_by_algorithm_name(algorithm_name, wait=True, timeout=5)
+    status = api_instance.get_job_status(algorithm_name=algorithm_name, wait=True, timeout=5)
     mock_wait.assert_called_once_with(job_id, timeout=5)
     assert status == mock_job.status
 
 
-def test_get_status_by_algorithm_name_with_wait_and_timeout_exceeds_timeout(
+def test_get_job_status_by_algorithm_name_with_wait_and_timeout_exceeds_timeout(
     api_instance: Api, mock_get_algorithm_setting: Any, mock_resource_manager: Mock, mocker: MockerFixture
 ) -> None:
     mocker.patch.object(api_instance, "get_algorithm_setting", side_effect=mock_get_algorithm_setting)
@@ -683,22 +682,22 @@ def test_get_status_by_algorithm_name_with_wait_and_timeout_exceeds_timeout(
     job_id = mock_get_algorithm_setting(algorithm_name, "job_id")
     mock_wait = mocker.patch.object(mock_resource_manager, "wait_for_job_completion", side_effect=TimeoutError)
 
-    api_instance.get_status_by_algorithm_name(algorithm_name, True, 5)
+    api_instance.get_job_status(algorithm_name=algorithm_name, wait=True, timeout=5)
 
     mock_wait.assert_called_once_with(job_id, timeout=5)
 
 
-def test_get_status_by_job_id(api_instance: Api, mocker: MockerFixture) -> None:
+def test_get_job_status_by_job_id(api_instance: Api, mocker: MockerFixture) -> None:
     job_id = 243
     expected_status = JobStatus.COMPLETED
     mock_get_job = mocker.patch.object(api_instance, "get_job", return_value=MagicMock(status=expected_status))
 
-    status = api_instance.get_status_by_job_id(job_id)
+    status = api_instance.get_job_status(job_id=job_id)
     mock_get_job.assert_called_once_with(job_id)
     assert status == expected_status
 
 
-def test_get_status_by_job_id_with_wait_and_timeout(
+def test_get_job_status_by_job_id_with_wait_and_timeout(
     api_instance: Api, mock_resource_manager: Mock, mocker: MockerFixture
 ) -> None:
     job_id = 243
@@ -706,18 +705,18 @@ def test_get_status_by_job_id_with_wait_and_timeout(
     mock_job.status = JobStatus.COMPLETED
     mock_wait = mocker.patch.object(mock_resource_manager, "wait_for_job_completion", return_value=mock_job)
 
-    status = api_instance.get_status_by_job_id(job_id, wait=True, timeout=5)
+    status = api_instance.get_job_status(job_id=job_id, wait=True, timeout=5)
     mock_wait.assert_called_once_with(job_id, timeout=5)
     assert status == mock_job.status
 
 
-def test_get_status_by_job_id_with_wait_and_timeout_exceeds_timeout(
+def test_get_job_status_by_job_id_with_wait_and_timeout_exceeds_timeout(
     api_instance: Api, mock_resource_manager: Mock, mocker: MockerFixture
 ) -> None:
     job_id = 243
     mock_wait = mocker.patch.object(mock_resource_manager, "wait_for_job_completion", side_effect=TimeoutError)
 
-    api_instance.get_status_by_job_id(job_id, True, 5)
+    api_instance.get_job_status(job_id=job_id, wait=True, timeout=5)
 
     mock_wait.assert_called_once_with(job_id, timeout=5)
 
@@ -731,10 +730,10 @@ def test_get_final_result_by_algorithm_name(
     job_id = mock_get_algorithm_setting(algorithm_name, "job_id")
     expected_result = MagicMock()
     mock_get_final_result = mocker.patch.object(
-        api_instance, "get_final_result_by_job_id", return_value=expected_result
+        api_instance._resource_manager, "get_final_result", return_value=expected_result
     )
 
-    final_result = api_instance.get_final_result_by_algorithm_name(algorithm_name)
+    final_result = api_instance.get_final_result(algorithm_name=algorithm_name)
     mock_get_final_result.assert_called_once_with(job_id)
     assert final_result == expected_result
 
@@ -744,22 +743,22 @@ def test_get_final_result_by_job_id(api_instance: Api, mock_resource_manager: Mo
     expected_result = MagicMock()
     mock_get_final_result = mocker.patch.object(mock_resource_manager, "get_final_result", return_value=expected_result)
 
-    final_result = api_instance.get_final_result_by_job_id(job_id)
+    final_result = api_instance.get_final_result(job_id=job_id)
     mock_get_final_result.assert_called_once_with(job_id)
     assert final_result == expected_result
 
 
-def test_get_latest_job_of_algorithm(api_instance: Api, mock_get_algorithm_setting: Any, mocker: MockerFixture) -> None:
+def test_get_job_by_algorithm_name(api_instance: Api, mock_get_algorithm_setting: Any, mocker: MockerFixture) -> None:
     mocker.patch.object(api_instance, "get_algorithm_setting", side_effect=mock_get_algorithm_setting)
 
     algorithm_name = "Some algorithm"
     job_id = mock_get_algorithm_setting(algorithm_name, "job_id")
     expected_job = MagicMock(spec=Job)
-    mock_get_job = mocker.patch.object(api_instance, "get_job", return_value=expected_job)
+    mock_resource_get_job = mocker.patch.object(api_instance._resource_manager, "get_job", return_value=expected_job)
 
-    result = api_instance.get_latest_job_of_algorithm(algorithm_name)
+    result = api_instance.get_job(algorithm_name=algorithm_name)
 
-    mock_get_job.assert_called_once_with(job_id)
+    mock_resource_get_job.assert_called_once_with(job_id)
     assert result == expected_job
 
 
@@ -771,9 +770,9 @@ def test_get_results_by_algorithm_name(
     algorithm_name = "Some algorithm"
     job_id = mock_get_algorithm_setting(algorithm_name, "job_id")
     expected_result = MagicMock()
-    mock_get_results = mocker.patch.object(api_instance, "get_results_by_job_id", return_value=expected_result)
+    mock_get_results = mocker.patch.object(api_instance._resource_manager, "get_results", return_value=expected_result)
 
-    result = api_instance.get_results_by_algorithm_name(algorithm_name)
+    result = api_instance.get_results(algorithm_name=algorithm_name)
 
     mock_get_results.assert_called_once_with(job_id)
     assert result == expected_result
@@ -784,7 +783,7 @@ def test_get_results_by_job_id(api_instance: Api, mock_resource_manager: Mock, m
     expected_result = MagicMock()
     mock_get_results = mocker.patch.object(mock_resource_manager, "get_results", return_value=expected_result)
 
-    result = api_instance.get_results_by_job_id(job_id)
+    result = api_instance.get_results(job_id=job_id)
 
     mock_get_results.assert_called_once_with(job_id)
     assert result == expected_result
@@ -814,10 +813,52 @@ def test_get_job(api_instance: Api, mock_resource_manager: Mock, mocker: MockerF
 
     mock_get_job = mocker.patch.object(api_instance._resource_manager, "get_job", return_value=expected_job)
 
-    result = api_instance.get_job(job_id)
+    result = api_instance.get_job(job_id=job_id)
 
     mock_get_job.assert_called_once_with(job_id)
     assert result == expected_job
+
+
+def test_get_job_id_with_explicit_job_id(api_instance: Api) -> None:
+    job_id = 42
+    assert api_instance._get_job_id(job_id, None) == job_id
+
+
+def test_get_job_id_with_algorithm_name(
+    api_instance: Api, mock_get_algorithm_setting: Any, mocker: MockerFixture
+) -> None:
+    mocker.patch.object(api_instance, "get_algorithm_setting", side_effect=mock_get_algorithm_setting)
+    algorithm_name = "Some algorithm"
+    expected_job_id = mock_get_algorithm_setting(algorithm_name, "job_id")
+    assert api_instance._get_job_id(None, algorithm_name) == expected_job_id
+
+
+def test_get_job_id_raises_when_neither_provided(api_instance: Api, mocker: MockerFixture) -> None:
+    mocker.patch.object(api_instance, "get_setting", return_value={})
+    with pytest.raises(ValueError, match="Please provide a job_id or algorithm_name"):
+        api_instance._get_job_id(None, None)
+
+
+def test_get_job_id_raises_when_neither_provided_and_multiple_algorithms(
+    api_instance: Api, mocker: MockerFixture
+) -> None:
+    mocker.patch.object(
+        api_instance,
+        "get_setting",
+        return_value={"algorithm_a": {}, "algorithm_b": {}},
+    )
+    with pytest.raises(ValueError, match="Please provide a job_id or algorithm_name"):
+        api_instance._get_job_id(None, None)
+
+
+def test_get_job_id_uses_single_algorithm_implicitly(
+    api_instance: Api, mock_get_algorithm_setting: Any, mocker: MockerFixture
+) -> None:
+    algorithm_name = "Some algorithm"
+    mocker.patch.object(api_instance, "get_setting", return_value={algorithm_name: {}})
+    mocker.patch.object(api_instance, "get_algorithm_setting", side_effect=mock_get_algorithm_setting)
+    expected_job_id = mock_get_algorithm_setting(algorithm_name, "job_id")
+    assert api_instance._get_job_id(None, None) == expected_job_id
 
 
 def test_view_settings(api_instance: Api) -> None:

@@ -72,8 +72,8 @@ class ResourceManager:
     def _invoke(
         api_class: Type[Any],
         method_name: str,
-        page_reader: Optional[PageReader[PageType, ItemType]] = None,
         *args: Any,
+        page_reader: Optional[PageReader[PageType, ItemType]] = None,
         **kwargs: Any,
     ) -> Any:
         """Invoke an API method asynchronously using the given API class and method name.
@@ -107,7 +107,7 @@ class ResourceManager:
 
         return run_async(_execute())
 
-    def run_create_commit_flow(self, resource_options: ResourceOptions, owner_id: int) -> Commit:
+    def _run_create_commit_flow(self, resource_options: ResourceOptions, owner_id: int) -> Commit:
         """Run the flow to create or update project and algorithm resources, and then create a commit.
 
         Args:
@@ -150,7 +150,7 @@ class ResourceManager:
 
         return self._create_commit(algorithm_id=algorithm.id)
 
-    def run_create_file_flow(self, resource_options: ResourceOptions, commit_id: int) -> File:
+    def _run_create_file_flow(self, resource_options: ResourceOptions, commit_id: int) -> File:
         """Run the flow to create a file attached to a commit.
 
         Args:
@@ -177,8 +177,8 @@ class ResourceManager:
         Returns:
             The updated JobOptions with all remote resource IDs populated, including the submitted job ID.
         """
-        commit = self.run_create_commit_flow(resource_options=job_options, owner_id=owner_id)
-        file = self.run_create_file_flow(resource_options=job_options, commit_id=commit.id)
+        commit = self._run_create_commit_flow(resource_options=job_options, owner_id=owner_id)
+        file = self._run_create_file_flow(resource_options=job_options, commit_id=commit.id)
 
         batch_job: BatchJob = self._create_batch_job(backend_type_id=job_options.backend_type_id)
 
@@ -206,22 +206,21 @@ class ResourceManager:
         Returns:
             None. The compiled file content is saved to disk with a modified name based on the original file path.
         """
-        commit = self.run_create_commit_flow(resource_options=compile_options, owner_id=owner_id)
-        self.run_create_file_flow(resource_options=compile_options, commit_id=commit.id)
+        commit = self._run_create_commit_flow(resource_options=compile_options, owner_id=owner_id)
+        self._run_create_file_flow(resource_options=compile_options, commit_id=commit.id)
 
         self._invoke(
             CommitsApi,
             "compile_commit_commits_id_compile_post",
-            None,
             commit.id,
             CompilePayload(
                 compile_stage=compile_options.compile_stage, backend_type_id=compile_options.backend_type_id
             ),
         )
 
-        commit_files = self._invoke(FilesApi, "read_files_files_get", None, commit_id=commit.id, generated=True)
+        commit_files = self._invoke(FilesApi, "read_files_files_get", commit_id=commit.id, generated=True)
 
-        if len(commit_files.items) > 0:
+        if commit_files.items:
             compiled_file: File = commit_files.items[0]
             compiled_file_name = (
                 f"{compile_options.file_path.with_suffix('')}{compiled_file.name}{compile_options.file_path.suffix}"
@@ -237,9 +236,7 @@ class ResourceManager:
         Returns:
             A list of all available backend types.
         """
-        backend_types_page: PageBackendType = self._invoke(
-            BackendTypesApi, "read_backend_types_backend_types_get", None
-        )
+        backend_types_page: PageBackendType = self._invoke(BackendTypesApi, "read_backend_types_backend_types_get")
         items: List[BackendType] = backend_types_page.items
         return items
 
@@ -252,7 +249,7 @@ class ResourceManager:
         Returns:
             The Job object for the given ID.
         """
-        return self._invoke(JobsApi, "read_job_jobs_id_get", None, id=job_id)
+        return self._invoke(JobsApi, "read_job_jobs_id_get", id=job_id)
 
     def wait_for_job_completion(self, job_id: int, timeout: float) -> Job:
         """Poll until the job has finished or the timeout is reached.
@@ -287,7 +284,7 @@ class ResourceManager:
         Returns:
             The FinalResult object for the job, or None if no result is available yet.
         """
-        return self._invoke(FinalResultsApi, "read_final_result_by_job_id_final_results_job_job_id_get", None, job_id)
+        return self._invoke(FinalResultsApi, "read_final_result_by_job_id_final_results_job_job_id_get", job_id)
 
     def get_results(self, job_id: int) -> list[Result]:
         """Retrieve the results of a job by its ID.
@@ -300,7 +297,7 @@ class ResourceManager:
         """
         page_reader = PageReader[PageResult, Result]()
         results: list[Result] = self._invoke(
-            ResultsApi, "read_results_by_job_id_results_job_job_id_get", page_reader, job_id=job_id
+            ResultsApi, "read_results_by_job_id_results_job_job_id_get", page_reader=page_reader, job_id=job_id
         )
         return results
 
@@ -337,7 +334,7 @@ class ResourceManager:
             description=project_description,
             starred=False,
         )
-        return self._invoke(ProjectsApi, "create_project_projects_post", None, obj)
+        return self._invoke(ProjectsApi, "create_project_projects_post", obj)
 
     def read_project(self, project_id: int) -> Project | None:
         """Retrieve a remote project by its ID.
@@ -349,7 +346,7 @@ class ResourceManager:
             The Project object if found, or None if the project does not exist or access is forbidden.
         """
         try:
-            return self._invoke(ProjectsApi, "read_project_projects_id_get", None, project_id)
+            return self._invoke(ProjectsApi, "read_project_projects_id_get", project_id)
         except (NotFoundException, ForbiddenException):
             return None
 
@@ -365,7 +362,7 @@ class ResourceManager:
             The updated Project object.
         """
         obj = ProjectPatch(name=project_name, description=project_description)
-        return self._invoke(ProjectsApi, "partial_update_project_projects_id_patch", None, project_id, obj)
+        return self._invoke(ProjectsApi, "partial_update_project_projects_id_patch", project_id, obj)
 
     def create_algorithm(self, project_id: int, algorithm_name: str, algorithm_type: AlgorithmType) -> Algorithm:
         """Create a new remote algorithm within a project.
@@ -384,7 +381,7 @@ class ResourceManager:
             shared=ShareType.PRIVATE,
             name=algorithm_name,
         )
-        return self._invoke(AlgorithmsApi, "create_algorithm_algorithms_post", None, obj)
+        return self._invoke(AlgorithmsApi, "create_algorithm_algorithms_post", obj)
 
     def read_algorithm(self, algorithm_id: int) -> Algorithm | None:
         """Retrieve a remote algorithm by its ID.
@@ -396,7 +393,7 @@ class ResourceManager:
             The Algorithm object if found, or None if the algorithm does not exist or access is forbidden.
         """
         try:
-            return self._invoke(AlgorithmsApi, "read_algorithm_algorithms_id_get", None, algorithm_id)
+            return self._invoke(AlgorithmsApi, "read_algorithm_algorithms_id_get", algorithm_id)
         except (NotFoundException, ForbiddenException):
             return None
 
@@ -420,7 +417,7 @@ class ResourceManager:
             shared=ShareType.PRIVATE,
             name=algorithm_name,
         )
-        return self._invoke(AlgorithmsApi, "update_algorithm_algorithms_id_put", None, algorithm_id, obj)
+        return self._invoke(AlgorithmsApi, "update_algorithm_algorithms_id_put", algorithm_id, obj)
 
     def _create_commit(self, algorithm_id: int) -> Commit:
         """Create a new commit for the given algorithm.
@@ -435,7 +432,7 @@ class ResourceManager:
             description="Commit created by SDK",
             algorithm_id=algorithm_id,
         )
-        return self._invoke(CommitsApi, "create_commit_commits_post", None, obj)
+        return self._invoke(CommitsApi, "create_commit_commits_post", obj)
 
     def _get_language_for_algorithm(self, algorithm_type: AlgorithmType) -> Language:
         """Retrieve the language associated with the given algorithm type.
@@ -480,7 +477,7 @@ class ResourceManager:
             compile_properties={},
         )
 
-        return self._invoke(FilesApi, "create_file_files_post", None, obj)
+        return self._invoke(FilesApi, "create_file_files_post", obj)
 
     def _create_batch_job(self, backend_type_id: int) -> BatchJob:
         """Create a new batch job for the given backend type.
@@ -492,7 +489,7 @@ class ResourceManager:
             The created BatchJob object.
         """
         obj = BatchJobIn(backend_type_id=backend_type_id)
-        return self._invoke(BatchJobsApi, "create_batch_job_batch_jobs_post", None, obj)
+        return self._invoke(BatchJobsApi, "create_batch_job_batch_jobs_post", obj)
 
     def _create_job(
         self, file_id: int, batch_job_id: int, num_shots: Optional[int], raw_data_enabled: Optional[bool]
@@ -511,7 +508,7 @@ class ResourceManager:
         obj = JobIn(
             file_id=file_id, batch_job_id=batch_job_id, number_of_shots=num_shots, raw_data_enabled=raw_data_enabled
         )
-        return self._invoke(JobsApi, "create_job_jobs_post", None, obj)
+        return self._invoke(JobsApi, "create_job_jobs_post", obj)
 
     def _enqueue_batch_job(self, batch_job_id: int) -> BatchJob:
         """Enqueue a batch job for execution.
@@ -522,4 +519,4 @@ class ResourceManager:
         Returns:
             The updated BatchJob object after enqueuing.
         """
-        return self._invoke(BatchJobsApi, "enqueue_batch_job_batch_jobs_id_enqueue_patch", None, batch_job_id)
+        return self._invoke(BatchJobsApi, "enqueue_batch_job_batch_jobs_id_enqueue_patch", batch_job_id)

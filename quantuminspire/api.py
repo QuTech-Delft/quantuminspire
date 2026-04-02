@@ -163,7 +163,7 @@ class Api:
     @_refresh_auth_tokens
     def compile_file(
         self,
-        file_path: Path,
+        file_path: Optional[Path],
         algorithm_name: Optional[str] = None,
         backend_type_id: Optional[int] = None,
         compile_stage: Optional[CompileStage] = None,
@@ -278,41 +278,6 @@ class Api:
         )
         self._add_algorithm_to_settings(algorithm_name, local_algorithm)
 
-    @_refresh_auth_tokens
-    def get_status_by_algorithm_name(self, algorithm_name: str, wait: bool = False, timeout: float = 60) -> JobStatus:
-        """Get the status of the most recent job for the given algorithm.
-
-        Args:
-            algorithm_name: Name of the algorithm to get the status for.
-            wait: Whether to wait for the job to complete before returning.
-            timeout: Maximum time in seconds to wait for job completion.
-
-        Returns:
-            The current job status.
-        """
-        job_id = self.get_algorithm_setting(algorithm_name, "job_id")
-        return self.get_status_by_job_id(job_id, wait=wait, timeout=timeout)
-
-    @_refresh_auth_tokens
-    def get_status_by_job_id(self, job_id: int, wait: bool = False, timeout: float = 60) -> JobStatus:
-        """Get the status of the job with the given ID.
-
-        Args:
-            job_id: The ID of the job to get the status for.
-            wait: Whether to wait for the job to complete before returning.
-            timeout: Maximum time in seconds to wait for job completion.
-
-        Returns:
-            The current job status.
-        """
-        if wait:
-            try:
-                return self._resource_manager.wait_for_job_completion(job_id, timeout=timeout).status
-            except TimeoutError:
-                print("Timeout while waiting for job completion. Returning current status.")
-
-        return self.get_job(job_id).status
-
     def _check_project_id(self) -> int:
         """Verify that a project is initialized in the current settings.
 
@@ -399,76 +364,105 @@ class Api:
         return self._resource_manager.get_backend_types()
 
     @_refresh_auth_tokens
-    def get_job(self, job_id: int) -> Job:
-        """Retrieve job details by job ID.
+    def get_job(self, job_id: Optional[int] = None, algorithm_name: Optional[str] = None) -> Job:
+        """Retrieve job details by job ID or by algorithm name.
 
         Args:
             job_id: The ID of the job to retrieve.
+            algorithm_name: Name of the algorithm whose latest job to retrieve.
 
         Returns:
-            The Job object for the given job ID.
+            The Job object for the given job ID or the latest job of the given algorithm.
         """
+        job_id = self._get_job_id(job_id, algorithm_name)
         return self._resource_manager.get_job(job_id)
 
-    def get_latest_job_of_algorithm(self, algorithm_name: str) -> Job:
-        """Retrieve the latest job of algorithm by name.
+    @_refresh_auth_tokens
+    def get_job_status(
+        self,
+        algorithm_name: Optional[str] = None,
+        job_id: Optional[int] = None,
+        wait: bool = False,
+        timeout: float = 60,
+    ) -> JobStatus:
+        """Get the status of the job with the given ID or the most recent job for the given algorithm.
 
         Args:
-            algorithm_name: Name of the algorithm.
+            algorithm_name: Name of the algorithm to get the status for.
+            job_id: The ID of the job to get the status for.
+            wait: Whether to wait for the job to complete before returning.
+            timeout: Maximum time in seconds to wait for job completion.
 
         Returns:
-            The Job object for the latest job of the given algorithm.
+            The current job status.
         """
-        job_id = self.get_algorithm_setting(algorithm_name, "job_id")
-        return self.get_job(job_id)
+        job_id = self._get_job_id(job_id, algorithm_name)
+        if wait:
+            try:
+                return self._resource_manager.wait_for_job_completion(job_id, timeout=timeout).status
+            except TimeoutError:
+                print("Timeout while waiting for job completion. Returning current status.")
 
-    def get_final_result_by_algorithm_name(self, algorithm_name: str) -> FinalResult | None:
-        """Get the final result of the most recent job for the given algorithm.
+        return self.get_job(job_id).status
+
+    @_refresh_auth_tokens
+    def get_final_result(
+        self, algorithm_name: Optional[str] = None, job_id: Optional[int] = None
+    ) -> FinalResult | None:
+        """Get the final result of the job with the given ID or the most recent job for the given algorithm.
 
         Args:
             algorithm_name: Name of the algorithm to get the result for.
-
-        Returns:
-            The final result of the job, or None if not yet available.
-        """
-        job_id = self.get_algorithm_setting(algorithm_name, "job_id")
-        return self.get_final_result_by_job_id(job_id)
-
-    @_refresh_auth_tokens
-    def get_final_result_by_job_id(self, job_id: int) -> FinalResult | None:
-        """Get the final result of the job with the given ID.
-
-        Args:
             job_id: The ID of the job to get the result for.
 
         Returns:
             The final result of the job, or None if not yet available.
         """
+        job_id = self._get_job_id(job_id, algorithm_name)
         return self._resource_manager.get_final_result(job_id)
 
-    def get_results_by_algorithm_name(self, algorithm_name: str) -> list[Result]:
-        """Get the result of the most recent job for the given algorithm.
+    @_refresh_auth_tokens
+    def get_results(self, algorithm_name: Optional[str] = None, job_id: Optional[int] = None) -> list[Result]:
+        """Get the results of the job with the given ID or the most recent job for the given algorithm.
 
         Args:
             algorithm_name: Name of the algorithm to get the result for.
-
-        Returns:
-            The result of the job, or None if not yet available.
-        """
-        job_id = self.get_algorithm_setting(algorithm_name, "job_id")
-        return self.get_results_by_job_id(job_id)
-
-    @_refresh_auth_tokens
-    def get_results_by_job_id(self, job_id: int) -> list[Result]:
-        """Get the result of the job with the given ID.
-
-        Args:
             job_id: The ID of the job to get the result for.
 
         Returns:
-            The result of the job, or None if not yet available.
+            The results of the job, or an empty list if not yet available.
         """
+        job_id = self._get_job_id(job_id, algorithm_name)
         return self._resource_manager.get_results(job_id)
+
+    def _get_job_id(self, job_id: Optional[int], algorithm_name: Optional[str]) -> int:
+        """Resolve a job ID from an explicit value or an algorithm name.
+
+        If neither is provided and there is exactly one algorithm in the settings,
+        the job ID from that algorithm is used implicitly.
+
+        Args:
+            job_id: The explicit job ID to use, if provided.
+            algorithm_name: Name of the algorithm whose latest job ID to look up.
+
+        Returns:
+            The resolved job ID.
+
+        Raises:
+            ValueError: If neither job_id nor algorithm_name is provided and there is not
+                exactly one algorithm in the settings.
+        """
+        resolved = job_id or (
+            self.get_algorithm_setting(algorithm_name, "job_id") if algorithm_name is not None else None
+        )
+        if resolved is None:
+            algorithms = self.get_setting("project.algorithms")
+            if algorithms and len(algorithms) == 1:
+                only_algorithm_name = next(iter(algorithms))
+                resolved = self.get_algorithm_setting(only_algorithm_name, "job_id")
+            if resolved is None:
+                raise ValueError("Please provide a job_id or algorithm_name")
+        return resolved
 
     def _get_local_algorithm(self, algorithm_name: str) -> LocalAlgorithm:
         """Retrieve the local algorithm settings for the given algorithm name.
