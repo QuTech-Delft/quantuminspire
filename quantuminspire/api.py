@@ -227,7 +227,7 @@ class Api:
     def initialize_project(self, project_name: str, project_description: str = "", path: Optional[str] = None) -> None:
         """Initialize a remote project and store its settings locally.
 
-        Does nothing if a project is already initialized.
+        If a project is already initialized, its name and description are updated on the remote.
 
         Args:
             project_name: Name of the project to initialize.
@@ -307,6 +307,9 @@ class Api:
 
     def _check_project_id(self) -> int:
         """Verify that a project is initialized in the current settings.
+
+        Returns:
+            The project ID stored in the current settings.
 
         Raises:
             RuntimeError: If no project is found in the current settings.
@@ -612,6 +615,8 @@ class Api:
 
         Args:
             algorithm_name: Name of the algorithm.
+            file_path: Path to the algorithm file. Overrides the algorithm's stored value if provided.
+            backend_type_id: ID of the backend type. Overrides the algorithm's stored value if provided.
 
         Returns:
             A dictionary containing resource options
@@ -623,10 +628,7 @@ class Api:
             "project_description": self._config_manager.get("project.description"),
             "algorithm_id": self._resolve_algorithm_setting(None, "id", algorithm_name),
             "algorithm_name": algorithm_name,
-            "file_path": Path(self._resolve_algorithm_setting(
-                None if file_path is None else str(file_path),
-                "file_path", algorithm_name
-            )),
+            "file_path": self._resolve_algorithm_setting(file_path,"file_path", algorithm_name),
             "backend_type_id": self._resolve_algorithm_setting(backend_type_id, "backend_type_id", algorithm_name)
         }
 
@@ -647,6 +649,7 @@ class Api:
             num_shots: Number of shots. Overrides the algorithm's stored value if provided.
             store_raw_data: Whether to store raw data. Overrides the algorithm's stored value if provided.
             backend_type_id: ID of the backend type. Overrides the algorithm's stored value if provided.
+            file_path: Path to the algorithm file. Overrides the algorithm's stored value if provided.
 
         Returns:
             A dictionary of job options ready to be passed to the job manager.
@@ -672,6 +675,7 @@ class Api:
             algorithm_name: Name of the algorithm to build options for.
             compile_stage: Compile stage to build options for.
             backend_type_id: ID of the backend type. Overrides the algorithm's stored value if provided.
+            file_path: Path to the algorithm file. Overrides the algorithm's stored value if provided.
 
         Returns:
             A dictionary of compile options.

@@ -48,7 +48,7 @@ from qi2_shared.utils import run_async
 
 class ResourceOptions(BaseModel):
     algorithm_id: Optional[int] = Field(None)
-    project_id: int
+    project_id: Optional[int] = Field(None)
     project_name: str
     project_description: str
     algorithm_name: str
