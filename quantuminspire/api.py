@@ -136,9 +136,17 @@ class Api:
         """
         if algorithm_name is None:
             if file_path is None:
-                raise ValueError("Either file_path or algorithm_name must be provided.")
+                raise ValueError(
+                    "file_path not provided. "
+                    "Please provide a file_path or "
+                    "the algorithm_name of a previously initialized algorithm."
+                )
             if backend_type_id is None:
-                raise ValueError("Either backend_type_id or algorithm_name must be provided.")
+                raise ValueError(
+                    "backend_type_id not provided. "
+                    "Please provide a backend_type_id or "
+                    "the algorithm_name of a previously initialized algorithm."
+                )
 
         if persist:
             self._check_project_id()
@@ -191,7 +199,11 @@ class Api:
         """
         if algorithm_name is None:
             if file_path is None:
-                raise ValueError("Either algorithm_name or file_path must be provided.")
+                raise ValueError(
+                    "file_path not provided. "
+                    "Please provide a file_path or "
+                    "the algorithm_name of a previously initialized algorithm."
+                )
 
             if backend_type_id is None:
                 raise ValueError(
