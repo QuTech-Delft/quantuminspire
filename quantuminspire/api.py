@@ -605,7 +605,7 @@ class Api:
         }
         return options
 
-    def _get_resource_options(self, algorithm_name: str, file_path) -> Dict[str, Any]:
+    def _get_resource_options(self, algorithm_name: str, file_path: Path) -> Dict[str, Any]:
         """Retrieve the resource options for a specific algorithm.
 
         Args:
