@@ -114,7 +114,7 @@ class Api:
 
     def execute_algorithm(
         self,
-        path_to_file: Path,
+        file_path: Optional[Path] = None,
         backend_type_id: Optional[int] = None,
         num_shots: Optional[int] = None,
         store_raw_data: Optional[bool] = False,
@@ -124,7 +124,7 @@ class Api:
         """Execute the algorithm located at the specified path.
 
         Args:
-            path_to_file: Path to the algorithm file to execute.
+            file_path: Path to the algorithm file to execute.
             backend_type_id: ID of the backend type to use. Required when persist is False.
             num_shots: Number of shots to run.
             store_raw_data: Whether to store raw data from the execution.
@@ -134,6 +134,12 @@ class Api:
         Returns:
             A JobOptions object containing details about the submitted job.
         """
+        if algorithm_name is None:
+            if file_path is None:
+                raise ValueError("Either file_path or algorithm_name must be provided.")
+            if backend_type_id is None:
+                raise ValueError("Either backend_type_id or algorithm_name must be provided.")
+
         if persist:
             self._check_project_id()
 
@@ -145,10 +151,16 @@ class Api:
 
             algorithms = self.get_setting("project.algorithms")
             if algorithm_name not in algorithms.keys():
-                self.initialize_algorithm(algorithm_name=algorithm_name, file_path=path_to_file)
+                if file_path is None:
+                    raise ValueError("algorithm_name not found, please provide a file_path")
+                if backend_type_id is None:
+                    raise ValueError("algorithm_name not found, please provide a backend_type_id")
+                self.initialize_algorithm(
+                    algorithm_name=algorithm_name, file_path=file_path, backend_type_id=backend_type_id
+                )
 
         job = self._submit_job(
-            file_path=path_to_file,
+            file_path=file_path,
             algorithm_name=algorithm_name,
             backend_type_id=backend_type_id,
             num_shots=num_shots,
@@ -163,7 +175,7 @@ class Api:
     @_refresh_auth_tokens
     def compile_file(
         self,
-        file_path: Optional[Path],
+        file_path: Optional[Path] = None,
         algorithm_name: Optional[str] = None,
         backend_type_id: Optional[int] = None,
         compile_stage: Optional[CompileStage] = None,
@@ -178,6 +190,9 @@ class Api:
             compile_stage: The stage up to which the algorithm should be compiled.
         """
         if algorithm_name is None:
+            if file_path is None:
+                raise ValueError("Either algorithm_name or file_path must be provided.")
+
             if backend_type_id is None:
                 raise ValueError(
                     "backend_type_id not provided. "
@@ -188,13 +203,13 @@ class Api:
             options: Dict[str, Any] = self._create_default_options()
             options["compile_stage"] = compile_stage
             options["backend_type_id"] = backend_type_id
+            options["file_path"] = file_path
         else:
-            options = self._get_compile_options(algorithm_name, compile_stage, backend_type_id)
+            options = self._get_compile_options(algorithm_name, compile_stage, backend_type_id, file_path)
 
         host = self._config_manager.get("default_host")
         owner_id = self._config_manager.user_settings.auths[host].owner_id
-
-        self._resource_manager.run_compile_file_flow(CompileOptions(**(options | {"file_path": file_path})), owner_id)
+        self._resource_manager.run_compile_file_flow(CompileOptions(**options), owner_id)
 
     @_refresh_auth_tokens
     def initialize_project(self, project_name: str, project_description: str = "", path: Optional[str] = None) -> None:
@@ -215,11 +230,11 @@ class Api:
             project_id = self._check_project_id()
             remote_project = self._resource_manager.read_project(project_id)
             if remote_project is None:
-                remote_project = self.initialize_remote_project(project_name, project_description)
+                remote_project = self._initialize_remote_project(project_name, project_description)
             else:
                 remote_project = self._resource_manager.update_project(project_id, project_name, project_description)
         except RuntimeError:
-            remote_project = self.initialize_remote_project(project_name, project_description)
+            remote_project = self._initialize_remote_project(project_name, project_description)
 
         assert isinstance(remote_project, Project)
         self.set_setting("project.id", remote_project.id)
@@ -297,12 +312,12 @@ class Api:
     @_refresh_auth_tokens
     def _submit_job(
         self,
-        file_path: Path,
+        file_path: Optional[Path],
         algorithm_name: Optional[str],
-        num_shots: Optional[int] = None,
-        store_raw_data: Optional[bool] = None,
-        backend_type_id: Optional[int] = None,
-        persist: bool = False,
+        num_shots: Optional[int],
+        store_raw_data: Optional[bool],
+        backend_type_id: Optional[int],
+        persist: bool,
     ) -> JobOptions:
         """Submit a job to the Quantum Inspire platform.
 
@@ -326,16 +341,19 @@ class Api:
             options["backend_type_id"] = backend_type_id
             options["number_of_shots"] = num_shots
             options["raw_data_enabled"] = store_raw_data
+            options["file_path"] = file_path
 
         elif persist and algorithm_name is None:
             raise ValueError("algorithm_name must be provided when persist is True")
         else:
-            options = self._get_job_options(cast(str, algorithm_name), num_shots, store_raw_data, backend_type_id)
+            options = self._get_job_options(
+                cast(str, algorithm_name), num_shots, store_raw_data, backend_type_id, file_path
+            )
 
         host = self._config_manager.get("default_host")
         owner_id = self._config_manager.user_settings.auths[host].owner_id
         job_options = self._resource_manager.run_job_submission_flow(
-            JobOptions(**(options | {"file_path": file_path})), owner_id
+            JobOptions(**options), owner_id
         )
 
         if persist:
@@ -492,7 +510,7 @@ class Api:
         self.set_setting("project.algorithms", algorithms, is_user=False)
 
     @_refresh_auth_tokens
-    def initialize_remote_project(self, project_name: str, project_description: Optional[str] = "") -> Project:
+    def _initialize_remote_project(self, project_name: str, project_description: Optional[str]) -> Project:
         """Create a new remote project on the Quantum Inspire platform.
 
         Args:
@@ -575,7 +593,7 @@ class Api:
         }
         return options
 
-    def _get_resource_options(self, algorithm_name: str) -> Dict[str, Any]:
+    def _get_resource_options(self, algorithm_name: str, file_path) -> Dict[str, Any]:
         """Retrieve the resource options for a specific algorithm.
 
         Args:
@@ -591,6 +609,10 @@ class Api:
             "project_description": self._config_manager.get("project.description"),
             "algorithm_id": self._resolve_algorithm_setting(None, "id", algorithm_name),
             "algorithm_name": algorithm_name,
+            "file_path": Path(self._resolve_algorithm_setting(
+                None if file_path is None else str(file_path),
+                "file_path", algorithm_name
+            ))
         }
 
         return options
@@ -598,9 +620,10 @@ class Api:
     def _get_job_options(
         self,
         algorithm_name: str,
-        num_shots: Optional[int] = None,
-        store_raw_data: Optional[bool] = None,
-        backend_type_id: Optional[int] = None,
+        num_shots: Optional[int],
+        store_raw_data: Optional[bool],
+        backend_type_id: Optional[int],
+        file_path: Optional[Path],
     ) -> Dict[str, Any]:
         """Build job options from algorithm settings and any provided overrides.
 
@@ -614,7 +637,7 @@ class Api:
             A dictionary of job options ready to be passed to the job manager.
         """
 
-        options: Dict[str, Any] = self._get_resource_options(algorithm_name)
+        options: Dict[str, Any] = self._get_resource_options(algorithm_name, file_path)
 
         options["backend_type_id"] = self._resolve_algorithm_setting(backend_type_id, "backend_type_id", algorithm_name)
         options["number_of_shots"] = self._resolve_algorithm_setting(num_shots, "num_shots", algorithm_name)
@@ -625,8 +648,9 @@ class Api:
     def _get_compile_options(
         self,
         algorithm_name: str,
-        compile_stage: Optional[CompileStage] = None,
-        backend_type_id: Optional[int] = None,
+        compile_stage: Optional[CompileStage],
+        backend_type_id: Optional[int],
+        file_path: Optional[Path],
     ) -> Dict[str, Any]:
         """Build compile options from algorithm settings and any provided overrides.
 
@@ -636,9 +660,9 @@ class Api:
             backend_type_id: ID of the backend type. Overrides the algorithm's stored value if provided.
 
         Returns:
-            A dictionary of compile options..
+            A dictionary of compile options.
         """
-        options: Dict[str, Any] = self._get_resource_options(algorithm_name)
+        options: Dict[str, Any] = self._get_resource_options(algorithm_name, file_path)
         options["compile_stage"] = compile_stage
         options["backend_type_id"] = self._resolve_algorithm_setting(backend_type_id, "backend_type_id", algorithm_name)
         return options
