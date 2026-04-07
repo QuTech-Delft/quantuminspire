@@ -258,7 +258,7 @@ class Api:
         self,
         algorithm_name: str,
         file_path: Path,
-        backend_type_id: Optional[int] = None,
+        backend_type_id: int,
         num_shots: Optional[int] = None,
         store_raw_data: Optional[bool] = False,
     ) -> None:
@@ -605,7 +605,9 @@ class Api:
         }
         return options
 
-    def _get_resource_options(self, algorithm_name: str, file_path: Path) -> Dict[str, Any]:
+    def _get_resource_options(
+        self, algorithm_name: str, file_path: Optional[Path], backend_type_id: Optional[int]
+    ) -> Dict[str, Any]:
         """Retrieve the resource options for a specific algorithm.
 
         Args:
@@ -624,7 +626,8 @@ class Api:
             "file_path": Path(self._resolve_algorithm_setting(
                 None if file_path is None else str(file_path),
                 "file_path", algorithm_name
-            ))
+            )),
+            "backend_type_id": self._resolve_algorithm_setting(backend_type_id, "backend_type_id", algorithm_name)
         }
 
         return options
@@ -649,9 +652,8 @@ class Api:
             A dictionary of job options ready to be passed to the job manager.
         """
 
-        options: Dict[str, Any] = self._get_resource_options(algorithm_name, file_path)
+        options: Dict[str, Any] = self._get_resource_options(algorithm_name, file_path, backend_type_id)
 
-        options["backend_type_id"] = self._resolve_algorithm_setting(backend_type_id, "backend_type_id", algorithm_name)
         options["number_of_shots"] = self._resolve_algorithm_setting(num_shots, "num_shots", algorithm_name)
         options["raw_data_enabled"] = self._resolve_algorithm_setting(store_raw_data, "store_raw_data", algorithm_name)
 
@@ -674,9 +676,8 @@ class Api:
         Returns:
             A dictionary of compile options.
         """
-        options: Dict[str, Any] = self._get_resource_options(algorithm_name, file_path)
+        options: Dict[str, Any] = self._get_resource_options(algorithm_name, file_path, backend_type_id)
         options["compile_stage"] = compile_stage
-        options["backend_type_id"] = self._resolve_algorithm_setting(backend_type_id, "backend_type_id", algorithm_name)
         return options
 
     def _resolve_algorithm_setting(self, override: Optional[Any], setting_name: str, algorithm_name: str) -> Any:
