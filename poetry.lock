@@ -2436,14 +2436,14 @@ shellingham = ">=1.3.0"
 
 [[package]]
 name = "types-oauthlib"
-version = "3.3.0.20260324"
+version = "3.3.0.20260408"
 description = "Typing stubs for oauthlib"
 optional = false
 python-versions = ">=3.10"
 groups = ["dev"]
 files = [
-    {file = "types_oauthlib-3.3.0.20260324-py3-none-any.whl", hash = "sha256:d24662033b04f4d50a2f1fed04c1b43ff2554aa037c1dafa0424f87100a46ccd"},
-    {file = "types_oauthlib-3.3.0.20260324.tar.gz", hash = "sha256:3c4cc07fa33886f881682237c1e445c5f1778b44efea118f4c1e4ede82cb52f2"},
+    {file = "types_oauthlib-3.3.0.20260408-py3-none-any.whl", hash = "sha256:1c305d18a05636fac4953800aa0982e54c258562838dafeaa6a3d05b7f4669fe"},
+    {file = "types_oauthlib-3.3.0.20260408.tar.gz", hash = "sha256:deaeccbc33634f5efa7ef320924bce743495f5a1520073ce4fa0fea441bf063d"},
 ]
 
 [[package]]
