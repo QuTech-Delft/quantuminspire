@@ -177,7 +177,7 @@ class Api:
         )
 
         if not persist:
-            print("Successfully executed algorithm with job id:", job.job_id)
+            print("Submitted algorithm with job id:", job.job_id)
         return job
 
     @_refresh_auth_tokens
@@ -367,9 +367,7 @@ class Api:
 
         host = self._config_manager.get("default_host")
         owner_id = self._config_manager.user_settings.auths[host].owner_id
-        job_options = self._resource_manager.run_job_submission_flow(
-            JobOptions(**options), owner_id
-        )
+        job_options = self._resource_manager.run_job_submission_flow(JobOptions(**options), owner_id)
 
         if persist:
             local_algorithm = LocalAlgorithm(
@@ -628,8 +626,8 @@ class Api:
             "project_description": self._config_manager.get("project.description"),
             "algorithm_id": self._resolve_algorithm_setting(None, "id", algorithm_name),
             "algorithm_name": algorithm_name,
-            "file_path": self._resolve_algorithm_setting(file_path,"file_path", algorithm_name),
-            "backend_type_id": self._resolve_algorithm_setting(backend_type_id, "backend_type_id", algorithm_name)
+            "file_path": self._resolve_algorithm_setting(file_path, "file_path", algorithm_name),
+            "backend_type_id": self._resolve_algorithm_setting(backend_type_id, "backend_type_id", algorithm_name),
         }
 
         return options
