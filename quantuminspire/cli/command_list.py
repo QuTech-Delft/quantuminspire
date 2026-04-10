@@ -6,6 +6,7 @@ from typing import List, Optional
 
 import typer
 from compute_api_client import JobStatus
+from pydantic import TypeAdapter
 from qi2_shared.utils import run_async
 from rich import print
 from rich.console import Console
@@ -120,16 +121,9 @@ def upload_files(
     backend_type = next((bt for bt in backend_types if bt.id == backend_type_id), None)
     if backend_type and backend_type.messages and len(backend_type.messages.keys()) > 0:
         for backend_name in backend_type.messages.keys():
-            typer.echo(
-                f"{typer.style(
-                    backend_name, 
-                    fg=typer.colors.BLUE, 
-                    bold=True
-                )}: {typer.style(
-                    backend_type.messages[backend_name].content, 
-                    fg=typer.colors.BLUE
-                )}",
-            )
+            styled_name = typer.style(backend_name, fg=typer.colors.BLUE, bold=True)
+            styled_msg = typer.style(backend_type.messages[backend_name].content, fg=typer.colors.BLUE)
+            typer.echo(f"{styled_name}: {styled_msg}")
 
     program = load_algorithm_from_file(Path(name))
     program.read_file(Path(name))
@@ -217,8 +211,7 @@ def login(
     """
     settings = Settings()
     host = host or settings.default_host
-    host = add_protocol(host)
-    host_url = Url(host)
+    host_url = TypeAdapter(Url).validate_python(add_protocol(host))
 
     settings.default_host = host_url
 
@@ -243,7 +236,7 @@ def login(
         )
         raise typer.Exit(1)
     typer.echo("Login successful!")
-    typer.echo(f"Using member ID {settings.auths[host].team_member_id}")
+    typer.echo(f"Using member ID {settings.auths[host_url].team_member_id}")
 
 
 @app.command("set-default-host")
@@ -252,9 +245,10 @@ def set_default_host(
 ) -> None:
     """Set default_host for interacting with Quantum Inspire."""
     settings = Settings()
-    settings.default_host = Url(host)
+    host_url = TypeAdapter(Url).validate_python(add_protocol(host))
+    settings.default_host = host_url
     settings.write_settings_to_file()
-    typer.echo(f"Default host set to {host}")
+    typer.echo(f"Default host set to {host_url}")
 
 
 @projects_app.command("list")
