@@ -2,7 +2,7 @@ import asyncio
 import time
 from pathlib import Path
 from typing import Any, List
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import jwt
 import pytest
@@ -252,6 +252,34 @@ def test_get_member_id(
     assert mock_input.call_count == len(side_effect_user_input)
 
 
+@pytest.mark.parametrize(
+    "has_tokens",
+    [
+        True,
+        False,
+    ],
+)
+def test_logout(
+    auth_manager: AuthManager,
+    oauth_session: MagicMock,
+    mocker: MockerFixture,
+    has_tokens: bool,
+) -> None:
+    """Test that logout revokes tokens when they exist and always clears them."""
+    host = "https://example.com"
+    mock_auth_settings = MagicMock()
+    mock_auth_settings.tokens = MagicMock() if has_tokens else None
+    auth_manager._user_settings.auths[host] = mock_auth_settings
+
+    auth_manager.logout(host)
+
+    if has_tokens:
+        oauth_session.revoke.assert_called_once()
+    else:
+        oauth_session.revoke.assert_not_called()
+    assert auth_manager._user_settings.auths[host].tokens is None
+
+
 def test_store_tokens(auth_manager: AuthManager, mocker: MockerFixture) -> None:
     # Arrange
     _ = mocker.patch.object(auth_manager, "_get_team_member_id", return_value=1)
@@ -263,6 +291,11 @@ def test_store_tokens(auth_manager: AuthManager, mocker: MockerFixture) -> None:
     assert auth_manager._user_settings.auths[host].team_member_id == 1
 
 
+def _make_token(iat: int) -> str:
+    """Return an unsigned JWT with the given iat claim."""
+    return jwt.encode({"iat": iat}, key="secret", algorithm="HS256")
+
+
 def test_store_tokens_member_id_fails(auth_manager: AuthManager, mocker: MockerFixture) -> None:
     # Arrange
     host = "https://host"
@@ -272,3 +305,31 @@ def test_store_tokens_member_id_fails(auth_manager: AuthManager, mocker: MockerF
     # Act & Assert
     with pytest.raises(PermissionError):
         auth_manager._store_tokens(host, MagicMock())
+
+
+@pytest.mark.asyncio
+async def test_wait_until_token_becomes_valid_does_not_sleep_when_token_is_already_valid() -> None:
+    """When iat is in the past, asyncio.sleep should NOT be called."""
+    past_iat = int(time.time()) - 10
+    token = _make_token(past_iat)
+
+    with patch("quantuminspire.managers.auth_manager.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
+        await AuthManager._wait_until_token_becomes_valid(token)
+
+    mock_sleep.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_wait_until_token_becomes_valid_sleeps_when_token_is_in_future() -> None:
+    """When iat is in the future, asyncio.sleep should be called with the exact difference."""
+    fake_now = 1_000_000  # a fixed "current time"
+    future_iat = fake_now + 5  # token claims to have been issued 5 s from now
+    token = _make_token(future_iat)
+
+    with (
+        patch("quantuminspire.managers.auth_manager.time.time", return_value=float(fake_now)),
+        patch("quantuminspire.managers.auth_manager.asyncio.sleep", new_callable=AsyncMock) as mock_sleep,
+    ):
+        await AuthManager._wait_until_token_becomes_valid(token)
+
+    mock_sleep.assert_called_once_with(5)
