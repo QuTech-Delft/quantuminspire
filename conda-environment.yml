@@ -1,0 +1,9 @@
+name: qi
+channels:
+  - defaults
+dependencies:
+  - python<=3.12
+  - pip
+  - pip:
+    - quantuminspire
+    - qiskit-quantuminspire==0.15.0
