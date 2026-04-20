@@ -7,7 +7,7 @@ Currently, functionality of the tool is still limited, but the tool is required 
 
 ## Installation
 
-The recommended way of installing the CLI is to use `pipx`. After following the [pipx installation instructions](https://pipx.pypa.io/stable/installation), run the following command:
+The recommended way of installing the CLI is to use `pipx`. (Conda users should refer to the subsection below). After following the [pipx installation instructions](https://pipx.pypa.io/stable/installation), run the following command:
 
 ```bash
 pipx install quantuminspire
@@ -15,13 +15,39 @@ pipx install quantuminspire
 
 Afterwards, running `qi --help` should show a help menu.
 
-> [!WARNING]  
-> Installing quantuminspire using pipx **inside a conda environment** may cause conflicts with other packages. This can result in unexpected behavior and prevent you from using the tool correctly. To avoid these issues,
-> it is strongly recommended to install and run pipx on a system Python installation instead, downloaded from the official Python website.
-
 > [!NOTE]  
 > If your python version is newer then supported by quantuminspire, please run the following command: `pipx install quantuminspire --python /path/to/python3.12`.
 > Check which versions of python are supported by the tool.
+
+### Installation using Conda
+
+> [!WARNING]  
+> Installing quantuminspire using pipx **inside a conda environment** may cause conflicts with other packages. This can result in unexpected behavior and prevent you from using the tool correctly. To avoid these issues, it is recommended to instead create a Conda environment from an `environment.yml` file. 
+
+Check you Conda version with `conda --version`, then run the appropriate command:
+
+**Conda >= 26.3:**
+
+```bash
+conda create --file https://github.com/QuTech-Delft/quantuminspire/blob/feature/QI2-1819/conda-installation-mechanism/conda-environment.yml
+```
+
+**Conda < 26.3:**
+
+```bash
+conda env create -f https://github.com/QuTech-Delft/quantuminspire/blob/feature/QI2-1819/conda-installation-mechanism/conda-environment.yml
+```
+
+By default, the environment that will be created will be named `quantuminspire`; use the `-n/--name <CUSTOM-ENV-NAME>` option to overwrite this.
+
+> [!NOTE]  
+> Currently, both `qiskit-quantuminspire` and `pennylane-quantuminspire` are installed into your virtual environment. If this is something you don't want, you can download the `conda-environment.yml` file and manually edit the dependencies to remove them. Then you can create your environment using the command above, with the actual path to the file instead of the URL.
+
+After creating the environment, you need to activate it (use your custom environment name if you have defined it):
+
+```bash
+conda activate quantuminspire
+```
 
 ## Using the CLI to login
 
