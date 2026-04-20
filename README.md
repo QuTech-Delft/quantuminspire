@@ -41,7 +41,7 @@ conda env create -f https://github.com/QuTech-Delft/quantuminspire/blob/feature/
 By default, the environment that will be created will be named `quantuminspire`; use the `-n/--name <CUSTOM-ENV-NAME>` option to overwrite this.
 
 > [!NOTE]  
-> Currently, both `qiskit-quantuminspire` and `pennylane-quantuminspire` are installed into your virtual environment. If this is something you don't want, you can download the `conda-environment.yml` file and manually edit the dependencies to remove them. Then you can create your environment using the command above, with the actual path to the file instead of the URL.
+> Currently, both `qiskit-quantuminspire` and `pennylane-quantuminspire` are installed into your virtual environment. If this is something you don't want, you can either `pip uninstall` these packages or download the `conda-environment.yml` file and manually edit the dependencies. Then you can create your environment using the command above, with the actual path to the edited file instead of the URL.
 
 After creating the environment, you need to activate it (use your custom environment name if you have defined it):
 
