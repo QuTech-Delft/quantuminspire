@@ -29,13 +29,13 @@ Check you Conda version with `conda --version`, then run the appropriate command
 **Conda >= 26.3:**
 
 ```bash
-conda create --file https://github.com/QuTech-Delft/quantuminspire/blob/feature/QI2-1819/conda-installation-mechanism/conda-environment.yml
+conda create --file https://raw.githubusercontent.com/QuTech-Delft/quantuminspire/refs/heads/feature/QI2-1819/conda-installation-mechanism/conda-environment.yml
 ```
 
 **Conda < 26.3:**
 
 ```bash
-conda env create -f https://github.com/QuTech-Delft/quantuminspire/blob/feature/QI2-1819/conda-installation-mechanism/conda-environment.yml
+conda env create --file https://raw.githubusercontent.com/QuTech-Delft/quantuminspire/refs/heads/feature/QI2-1819/conda-installation-mechanism/conda-environment.yml
 ```
 
 By default, the environment that will be created will be named `quantuminspire`; use the `-n/--name <CUSTOM-ENV-NAME>` option to overwrite this.
