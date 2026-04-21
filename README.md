@@ -29,19 +29,15 @@ Check you Conda version with `conda --version`, then run the appropriate command
 **Conda >= 26.3:**
 
 ```bash
-conda create --file https://raw.githubusercontent.com/QuTech-Delft/quantuminspire/refs/heads/feature/QI2-1819/conda-installation-mechanism/conda-environment.yml
+conda create --file https://conda.quantum-inspire.com/cli
 ```
-
 **Conda < 26.3:**
 
 ```bash
-conda env create --file https://raw.githubusercontent.com/QuTech-Delft/quantuminspire/refs/heads/feature/QI2-1819/conda-installation-mechanism/conda-environment.yml
+conda env create --file https://conda.quantum-inspire.com/cli
 ```
 
 By default, the environment that will be created will be named `quantuminspire`; use the `-n/--name <CUSTOM-ENV-NAME>` option to overwrite this.
-
-> [!NOTE]  
-> Currently, both `qiskit-quantuminspire` and `pennylane-quantuminspire` are installed into your virtual environment. If this is something you don't want, you can either `pip uninstall` these packages or download the `conda-environment.yml` file and manually edit the dependencies. Then you can create your environment using the command above, with the actual path to the edited file instead of the URL.
 
 After creating the environment, you need to activate it (use your custom environment name if you have defined it):
 

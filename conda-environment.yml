@@ -4,5 +4,3 @@ dependencies:
   - pip
   - pip:
     - quantuminspire
-    - qiskit-quantuminspire
-    - pennylane-quantuminspire
