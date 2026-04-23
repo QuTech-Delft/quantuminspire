@@ -29,12 +29,12 @@ Check you Conda version with `conda --version`, then run the appropriate command
 **Conda >= 26.3:**
 
 ```bash
-conda create --file https://conda.quantum-inspire.com/cli
+conda create --file https://conda.quantum-inspire.com/cli.yml
 ```
 **Conda < 26.3:**
 
 ```bash
-conda env create --file https://conda.quantum-inspire.com/cli
+conda env create --file https://conda.quantum-inspire.com/cli.yml
 ```
 
 By default, the environment that will be created will be named `quantuminspire`; use the `-n/--name <CUSTOM-ENV-NAME>` option to overwrite this.
