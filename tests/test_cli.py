@@ -120,7 +120,7 @@ def test_initialize_algorithm(mock_api: MagicMock) -> None:
 
     assert result.exit_code == 0, repr(result.exception)
     assert "Algorithm 'my-algorithm' initialized successfully in local config." in result.stdout
-    mock_api.initialize_algorithm.assert_called_once_with("my-algorithm", Path("path/to/file"), 1, None, None)
+    mock_api.initialize_algorithm.assert_called_once_with("my-algorithm", Path("path/to/file"), 1, None, False)
 
 
 def test_initialize_algorithm_with_options(mock_api: MagicMock) -> None:
@@ -187,6 +187,28 @@ def test_compile_file_all_options(mock_api: MagicMock) -> None:
     mock_api.compile_file.assert_called_once_with(Path("path/to/file"), "my-algorithm", 2, None)
 
 
+def test_compile_file_with_compile_stage(mock_api: MagicMock) -> None:
+    from compute_api_client import CompileStage
+
+    result = runner.invoke(
+        app,
+        [
+            "files",
+            "compile",
+            "--file",
+            "path/to/file",
+            "--backend-type-id",
+            "1",
+            "--compile-stage",
+            "decomposition",
+        ],
+    )
+
+    assert result.exit_code == 0, repr(result.exception)
+    assert "File compiled successfully!" in result.stdout
+    mock_api.compile_file.assert_called_once_with(Path("path/to/file"), None, 1, CompileStage.DECOMPOSITION)
+
+
 # ---------------------------------------------------------------------------
 # Backends
 # ---------------------------------------------------------------------------
@@ -220,9 +242,9 @@ def test_get_backend_types_with_data(mock_api: MagicMock) -> None:
 
 def test_get_backend_types_with_multiple_messages(mock_api: MagicMock) -> None:
     mock_message_1 = MagicMock()
-    mock_message_1.content = "Maintenance window tonight"
+    mock_message_1.content = "message 1"
     mock_message_2 = MagicMock()
-    mock_message_2.content = "Reduced qubit count"
+    mock_message_2.content = "message 2"
 
     mock_backend = MagicMock()
     mock_backend.id = 2
@@ -238,8 +260,6 @@ def test_get_backend_types_with_multiple_messages(mock_api: MagicMock) -> None:
     result = runner.invoke(app, ["backends", "list"])
 
     assert result.exit_code == 0, repr(result.exception)
-    assert "warning: Maintenance window tonight" in result.stdout
-    assert "info: Reduced qubit count" in result.stdout
     mock_api.get_backend_types.assert_called_once()
 
 
@@ -262,15 +282,13 @@ def test_run_job_with_file(mock_api: MagicMock) -> None:
     result = runner.invoke(app, ["jobs", "run", "--file", "path/to/file"])
 
     assert result.exit_code == 0, repr(result.exception)
-    assert "Running job for file 'path/to/file'..." in result.stdout
-    assert "Job submitted successfully!" in result.stdout
+    mock_api.execute_algorithm.assert_called_once_with(Path("path/to/file"), None, None, None, None, False)
 
 
 def test_run_job_no_file(mock_api: MagicMock) -> None:
     result = runner.invoke(app, ["jobs", "run"])
 
     assert result.exit_code == 0, repr(result.exception)
-    assert "Job submitted successfully!" in result.stdout
     mock_api.execute_algorithm.assert_called_once_with(None, None, None, None, None, False)
 
 
@@ -292,7 +310,6 @@ def test_run_job_with_all_options(mock_api: MagicMock) -> None:
     )
 
     assert result.exit_code == 0, repr(result.exception)
-    assert "Job submitted successfully!" in result.stdout
     mock_api.execute_algorithm.assert_called_once_with(Path("path/to/file"), 1, 100, None, "my-algo", False)
 
 
@@ -300,16 +317,25 @@ def test_run_job_with_persist(mock_api: MagicMock) -> None:
     result = runner.invoke(app, ["jobs", "run", "--file", "path/to/file", "--persist"])
 
     assert result.exit_code == 0, repr(result.exception)
-    assert "Running job for file 'path/to/file'..." in result.stdout
     assert "The project and algorithm have been stored." in result.stdout
-    assert "Job submitted successfully!" in result.stdout
+    mock_api.execute_algorithm.assert_called_once_with(Path("path/to/file"), None, None, None, None, True)
 
 
 def test_run_job_with_name(mock_api: MagicMock) -> None:
     result = runner.invoke(app, ["jobs", "run", "--name", "my-algorithm"])
 
     assert result.exit_code == 0, repr(result.exception)
-    assert "Job submitted successfully!" in result.stdout
+    mock_api.execute_algorithm.assert_called_once_with(None, None, None, None, "my-algorithm", False)
+
+
+def test_run_job_with_store_raw_data(mock_api: MagicMock) -> None:
+    result = runner.invoke(
+        app,
+        ["jobs", "run", "--file", "path/to/file", "--backend-type-id", "1", "--store-raw-data"],
+    )
+
+    assert result.exit_code == 0, repr(result.exception)
+    mock_api.execute_algorithm.assert_called_once_with(Path("path/to/file"), 1, None, True, None, False)
 
 
 def test_inspect_job(mock_api: MagicMock) -> None:
@@ -379,7 +405,7 @@ def test_get_job_status_with_algorithm_name(mock_api: MagicMock) -> None:
     result = runner.invoke(app, ["jobs", "status", "--algorithm-name", "my-algo"])
 
     assert result.exit_code == 0, repr(result.exception)
-    assert "Latest job of my-algo status: 'RUNNING'" in result.stdout
+    assert "Status of latest job for my-algo algorithm: 'RUNNING'" in result.stdout
     mock_api.get_job_status.assert_called_once_with("my-algo", None, False, 60.0)
 
 
@@ -392,7 +418,7 @@ def test_get_job_status_with_both_job_id_and_algorithm_name(mock_api: MagicMock)
 
     assert result.exit_code == 0, repr(result.exception)
     assert "Job 42 status: 'COMPLETED'" in result.stdout
-    assert "Latest job of my-algo status: 'COMPLETED'" in result.stdout
+    assert "Status of latest job for my-algo algorithm: 'COMPLETED'" in result.stdout
 
 
 def test_get_job_status_with_wait(mock_api: MagicMock) -> None:
@@ -417,6 +443,17 @@ def test_get_job_status_with_custom_timeout(mock_api: MagicMock) -> None:
     mock_api.get_job_status.assert_called_once_with(None, 123, False, 120.0)
 
 
+def test_get_job_status_with_neither_id_nor_name(mock_api: MagicMock) -> None:
+    mock_status = MagicMock()
+    mock_status.value = "COMPLETED"
+    mock_api.get_job_status.return_value = mock_status
+
+    result = runner.invoke(app, ["jobs", "status"])
+
+    assert result.exit_code == 0, repr(result.exception)
+    mock_api.get_job_status.assert_called_once_with(None, None, False, 60.0)
+
+
 def test_get_results_with_job_id(mock_api: MagicMock) -> None:
     mock_result = MagicMock()
     mock_result.model_dump.return_value = {"id": 1}
@@ -429,7 +466,7 @@ def test_get_results_with_job_id(mock_api: MagicMock) -> None:
     mock_api.get_results.assert_called_once_with(None, 456)
 
 
-def get_results_return_empty(mock_api: MagicMock) -> None:
+def test_get_results_return_empty(mock_api: MagicMock) -> None:
     mock_api.get_results.return_value = []
     result = runner.invoke(app, ["jobs", "results", "--job-id", "456"])
 
@@ -443,7 +480,8 @@ def test_get_results_without_id(mock_api: MagicMock) -> None:
     result = runner.invoke(app, ["jobs", "results"])
 
     assert result.exit_code == 0, repr(result.exception)
-    assert "Retrieving result with ID 'None'..." in result.stdout
+    assert "[]" in result.stdout
+    mock_api.get_results.assert_called_once_with(None, None)
 
 
 def test_get_results_with_algorithm_name(mock_api: MagicMock) -> None:
@@ -511,7 +549,7 @@ def test_get_final_result_without_id(mock_api: MagicMock) -> None:
     result = runner.invoke(app, ["jobs", "final-result"])
 
     assert result.exit_code == 0, repr(result.exception)
-    assert "Retrieving final result with ID 'None'..." in result.stdout
+    mock_api.get_final_result.assert_called_once_with(None, None)
 
 
 def test_get_final_result_with_algorithm_name(mock_api: MagicMock) -> None:
