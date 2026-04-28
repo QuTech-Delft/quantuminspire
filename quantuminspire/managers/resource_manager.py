@@ -1,6 +1,6 @@
 import time
 from pathlib import Path
-from typing import Any, Awaitable, Callable, List, Optional, Type
+from typing import Any, Awaitable, Callable, List, Optional, Type, cast
 
 from compute_api_client import (
     Algorithm,
@@ -30,6 +30,7 @@ from compute_api_client import (
     Language,
     LanguagesApi,
     PageBackendType,
+    PageProject,
     PageResult,
     Project,
     ProjectIn,
@@ -42,6 +43,7 @@ from compute_api_client import (
 from compute_api_client.exceptions import ForbiddenException, NotFoundException
 from pydantic import BaseModel, Field
 from qi2_shared.client import config
+from qi2_shared.job_logs import poll_job_logs
 from qi2_shared.pagination import ItemType, PageReader, PageType
 from qi2_shared.utils import run_async
 
@@ -240,6 +242,17 @@ class ResourceManager:
         items: List[BackendType] = backend_types_page.items
         return items
 
+    def get_backend_type(self, backend_type_id: int) -> BackendType:
+        """Retrieve a backend type by ID.
+
+        Args:
+            backend_type_id: ID of the backend type.
+
+        Returns:
+            The backend type.
+        """
+        return self._invoke(BackendTypesApi, "read_backend_type_backend_types_id_get", backend_type_id)
+
     def get_job(self, job_id: int) -> Job:
         """Retrieve a job by its ID.
 
@@ -274,6 +287,29 @@ class ResourceManager:
                 raise TimeoutError(f"Job {job.id} did not complete within {timeout} seconds")
 
             time.sleep(1)
+
+    @staticmethod
+    def get_job_logs(
+        job_id: int, n_logs: Optional[int] = None, poll_interval: float = 5.0, timeout: float = 30.0
+    ) -> list[str]:
+        """Poll job logs until the job has finished.
+
+        Args:
+            job_id: The ID of the job to get logs for.
+            n_logs: Number of expected logs.
+            poll_interval: Interval time of polling.
+            timeout: Maximum number of seconds to wait.
+
+        Returns:
+            A list of the job logs.
+        """
+
+        async def _execute() -> Any:
+            async with ApiClient(config()) as client:
+                jobs_api = JobsApi(client)
+                return await poll_job_logs(jobs_api, job_id, n_logs, poll_interval, timeout)
+
+        return cast(list[str], run_async(_execute()))
 
     def get_final_result(self, job_id: int) -> FinalResult | None:
         """Retrieve the final result of a job by its ID.
@@ -349,6 +385,22 @@ class ResourceManager:
             return self._invoke(ProjectsApi, "read_project_projects_id_get", project_id)
         except (NotFoundException, ForbiddenException):
             return None
+
+    def read_projects(self) -> list[Project]:
+        """Retrieve all remote projects.
+
+        Returns:
+            A list of Project objects.
+        """
+        page_reader = PageReader[PageProject, Project]()
+        projects: list[Project] = self._invoke(ProjectsApi, "read_projects_projects_get", page_reader=page_reader)
+        return projects
+
+    def delete_projects(self) -> None:
+        """Delete all remote projects."""
+        projects = self.read_projects()
+        for project in projects:
+            self._invoke(ProjectsApi, "delete_project_projects_id_delete", project.id)
 
     def update_project(self, project_id: int, project_name: str, project_description: str) -> Project:
         """Update an existing remote project.
