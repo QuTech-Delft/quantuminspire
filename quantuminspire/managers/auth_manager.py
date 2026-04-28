@@ -63,6 +63,27 @@ class AuthManager:
         """Return True if a full login flow is required for the host."""
         return not (self._is_authenticated(host) and self._is_refresh_token_valid(host))
 
+    def logout(self, host: Url) -> None:
+        """Revoke OAuth tokens on the authorization server and clear them locally.
+
+        Sends a token revocation request to the authorization server to invalidate
+        the stored refresh token, then removes the token information from local
+        settings and persists the change to disk.
+
+        Args:
+            host: API host for which to revoke and clear the stored tokens.
+
+        Raises:
+            KeyError: If no auth settings exist for the given host.
+            AuthorisationError: If token revocation on the server fails.
+        """
+        auth_settings = self._user_settings.auths[host]
+        if auth_settings.tokens is not None:
+            oauth_session = OauthDeviceSession(auth_settings)
+            oauth_session.revoke()
+        self._user_settings.auths[host].tokens = None
+        self._user_settings.save()
+
     def login(self, host: Url, override_auth_config: bool) -> None:
         """Perform an interactive OAuth login for the given host.
 
@@ -86,7 +107,7 @@ class AuthManager:
         message = (
             "Opening login page. "
             "If the web page does not open automatically, please open: "
-            f"{login_url} in your browser"
+            f"{login_url} in your browser. "
             f"If promped to verify a code, please confirm it is as follows: {login_info['user_code']}"
         )
         print(message)

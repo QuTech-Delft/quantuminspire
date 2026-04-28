@@ -250,6 +250,48 @@ def test_get_job(resource_manager: ResourceManager, mock_job: Job) -> None:
         )
 
 
+def test_get_job_logs(resource_manager: ResourceManager, mocker: MockerFixture) -> None:
+    expected_logs = ["log line 1", "log line 2", "log line 3"]
+    mock_poll_job_logs = mocker.AsyncMock(return_value=expected_logs)
+    mock_jobs_api_instance = mocker.MagicMock()
+    mock_client = mocker.MagicMock()
+    mock_config = mocker.MagicMock()
+
+    with (
+        patch("quantuminspire.managers.resource_manager.ApiClient") as mock_api_client_class,
+        patch("quantuminspire.managers.resource_manager.config", return_value=mock_config),
+        patch("quantuminspire.managers.resource_manager.JobsApi", return_value=mock_jobs_api_instance),
+        patch("quantuminspire.managers.resource_manager.poll_job_logs", mock_poll_job_logs),
+    ):
+        mock_api_client_class.return_value.__aenter__.return_value = mock_client
+
+        result = ResourceManager.get_job_logs(job_id=1, n_logs=3, poll_interval=1.0, timeout=10.0)
+
+        mock_poll_job_logs.assert_called_once_with(mock_jobs_api_instance, 1, 3, 1.0, 10.0)
+        assert result == expected_logs
+
+
+def test_get_job_logs_defaults(resource_manager: ResourceManager, mocker: MockerFixture) -> None:
+    expected_logs: list[str] = []
+    mock_poll_job_logs = mocker.AsyncMock(return_value=expected_logs)
+    mock_jobs_api_instance = mocker.MagicMock()
+    mock_client = mocker.MagicMock()
+    mock_config = mocker.MagicMock()
+
+    with (
+        patch("quantuminspire.managers.resource_manager.ApiClient") as mock_api_client_class,
+        patch("quantuminspire.managers.resource_manager.config", return_value=mock_config),
+        patch("quantuminspire.managers.resource_manager.JobsApi", return_value=mock_jobs_api_instance),
+        patch("quantuminspire.managers.resource_manager.poll_job_logs", mock_poll_job_logs),
+    ):
+        mock_api_client_class.return_value.__aenter__.return_value = mock_client
+
+        result = ResourceManager.get_job_logs(job_id=42)
+
+        mock_poll_job_logs.assert_called_once_with(mock_jobs_api_instance, 42, None, 5.0, 30.0)
+        assert result == expected_logs
+
+
 def test_wait_for_job_completion_success(resource_manager: ResourceManager) -> None:
     # Arrange
     job_id = 1
@@ -844,3 +886,52 @@ def test_enqueue_batch_job(resource_manager: ResourceManager, mock_batch_job: Ba
         resource_manager._enqueue_batch_job(batch_job_id=1)
 
         mock_invoke.assert_called_once_with(BatchJobsApi, "enqueue_batch_job_batch_jobs_id_enqueue_patch", 1)
+
+
+def test_get_backend_type(resource_manager: ResourceManager, mock_backend_type: BackendType) -> None:
+    with patch.object(ResourceManager, "_invoke", return_value=mock_backend_type) as mock_invoke:
+        result = resource_manager.get_backend_type(backend_type_id=1)
+
+        mock_invoke.assert_called_once_with(
+            BackendTypesApi,
+            "read_backend_type_backend_types_id_get",
+            1,
+        )
+        assert result == mock_backend_type
+
+
+def test_read_projects(resource_manager: ResourceManager, mock_project: Project, mocker: MockerFixture) -> None:
+    mock_projects = [mock_project]
+    mock_page_reader_instance = mocker.MagicMock()
+
+    with (
+        patch.object(ResourceManager, "_invoke", return_value=mock_projects) as mock_invoke,
+        patch("quantuminspire.managers.resource_manager.PageReader") as mock_page_reader_class,
+    ):
+        mock_page_reader_class.__getitem__.return_value.return_value = mock_page_reader_instance
+
+        result = resource_manager.read_projects()
+
+        mock_invoke.assert_called_once_with(
+            ProjectsApi,
+            "read_projects_projects_get",
+            page_reader=mock_page_reader_instance,
+        )
+        assert result == mock_projects
+
+
+def test_delete_projects(resource_manager: ResourceManager, mock_project: Project, mocker: MockerFixture) -> None:
+    mock_projects = [mock_project]
+
+    with (
+        patch.object(ResourceManager, "read_projects", return_value=mock_projects) as mock_read_projects,
+        patch.object(ResourceManager, "_invoke") as mock_invoke,
+    ):
+        resource_manager.delete_projects()
+
+        mock_read_projects.assert_called_once()
+        mock_invoke.assert_called_once_with(
+            ProjectsApi,
+            "delete_project_projects_id_delete",
+            mock_project.id,
+        )

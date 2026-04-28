@@ -210,6 +210,54 @@ def test_login_user_already_authenticated(api_instance: Api) -> None:
     set_mock.assert_not_called()
 
 
+@pytest.mark.parametrize(
+    "hostname,expected_hostname",
+    [
+        ("https://example.com", "https://example.com"),  # explicit hostname
+        (None, "https://default_hostname.com"),  # default from config
+    ],
+)
+def test_logout(
+    api_instance: Api,
+    mock_config_manager: Mock,
+    mock_auth_manager: Mock,
+    hostname: Optional[str],
+    expected_hostname: str,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    # Arrange
+    if hostname is None:
+        mock_config_manager.get.return_value = expected_hostname
+
+    # Act
+    api_instance.logout(hostname)
+
+    # Assert
+    logout_mock = cast(Mock, mock_auth_manager.logout)
+    logout_mock.assert_called_once_with(expected_hostname)
+
+    captured = capsys.readouterr()
+    assert f"Successfully logged out from {expected_hostname}" in captured.out
+
+
+def test_logout_with_no_hostname_uses_default(
+    api_instance: Api, mock_config_manager: Mock, mock_auth_manager: Mock, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # Arrange
+    default_hostname = "https://default.example.com"
+    mock_config_manager.get.return_value = default_hostname
+
+    # Act
+    api_instance.logout()
+
+    # Assert
+    logout_mock = cast(Mock, mock_auth_manager.logout)
+    logout_mock.assert_called_once_with(default_hostname)
+
+    captured = capsys.readouterr()
+    assert f"Successfully logged out from {default_hostname}" in captured.out
+
+
 def test_get_backend_types(api_instance: Api) -> None:
     # Arrange & act
     api_instance.get_backend_types()
@@ -218,6 +266,25 @@ def test_get_backend_types(api_instance: Api) -> None:
     get_backend_types_mock = cast(Mock, api_instance._resource_manager.get_backend_types)
 
     get_backend_types_mock.assert_called_once()
+
+
+def test_get_backend_type(api_instance: Api, mocker: MockerFixture) -> None:
+    backend_type_id = 1
+    get_backend_type_mock = mocker.patch.object(api_instance._resource_manager, "get_backend_type")
+    api_instance.get_backend_type(backend_type_id)
+    get_backend_type_mock.assert_called_once_with(backend_type_id)
+
+
+def test_get_projects(api_instance: Api, mocker: MockerFixture) -> None:
+    read_projects_mock = mocker.patch.object(api_instance._resource_manager, "read_projects")
+    api_instance.get_projects()
+    read_projects_mock.assert_called_once()
+
+
+def test_delete_projects(api_instance: Api, mocker: MockerFixture) -> None:
+    delete_projects_mock = mocker.patch.object(api_instance._resource_manager, "delete_projects")
+    api_instance.delete_projects()
+    delete_projects_mock.assert_called_once()
 
 
 def test_execute_algorithm(api_instance: Api, mocker: MockerFixture) -> None:
@@ -887,6 +954,50 @@ def test_get_job(api_instance: Api, mock_resource_manager: Mock, mocker: MockerF
 
     mock_get_job.assert_called_once_with(job_id)
     assert result == expected_job
+
+
+def test_get_job_logs(api_instance: Api, mocker: MockerFixture) -> None:
+    # Arrange
+    job_id = 42
+    expected_logs = ["log line 1", "log line 2", "log line 3"]
+    mock_get_job_logs = mocker.patch.object(api_instance._resource_manager, "get_job_logs", return_value=expected_logs)
+
+    # Act
+    result = api_instance.get_job_logs(job_id=job_id)
+
+    # Assert
+    mock_get_job_logs.assert_called_once_with(job_id, None, 5.0, 30.0)
+    assert result == expected_logs
+
+
+def test_get_job_logs_with_custom_params(api_instance: Api, mocker: MockerFixture) -> None:
+    # Arrange
+    job_id = 7
+    n_logs = 10
+    poll_interval = 2.0
+    timeout = 60.0
+    expected_logs = ["log a", "log b"]
+    mock_get_job_logs = mocker.patch.object(api_instance._resource_manager, "get_job_logs", return_value=expected_logs)
+
+    # Act
+    result = api_instance.get_job_logs(job_id=job_id, n_logs=n_logs, poll_interval=poll_interval, timeout=timeout)
+
+    # Assert
+    mock_get_job_logs.assert_called_once_with(job_id, n_logs, poll_interval, timeout)
+    assert result == expected_logs
+
+
+def test_get_job_logs_returns_empty_list(api_instance: Api, mocker: MockerFixture) -> None:
+    # Arrange
+    job_id = 99
+    mock_get_job_logs = mocker.patch.object(api_instance._resource_manager, "get_job_logs", return_value=[])
+
+    # Act
+    result = api_instance.get_job_logs(job_id=job_id)
+
+    # Assert
+    mock_get_job_logs.assert_called_once_with(job_id, None, 5.0, 30.0)
+    assert result == []
 
 
 def test_get_job_id_with_explicit_job_id(api_instance: Api) -> None:
