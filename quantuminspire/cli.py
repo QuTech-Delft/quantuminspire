@@ -174,7 +174,7 @@ def run_job(
     file: Optional[Path] = typer.Option(None, help="The Path to the hybrid algorithm or quantum circuit."),
     backend_type_id: Optional[int] = typer.Option(None, help="The backend type id."),
     num_shots: Optional[int] = typer.Option(None, help="The number of shots"),
-    store_raw_data: Optional[bool] = typer.Option(None, help="Whether to store data for each shot."),
+    store_raw_data: Optional[bool] = typer.Option(False, help="Whether to store data for each shot."),
     name: Optional[str] = typer.Option(None, help="The name of the algorithm."),
     persist: bool = typer.Option(False, help="Store the project and algorithm the file is uploaded to."),
 ) -> None:

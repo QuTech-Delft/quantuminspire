@@ -282,14 +282,14 @@ def test_run_job_with_file(mock_api: MagicMock) -> None:
     result = runner.invoke(app, ["jobs", "run", "--file", "path/to/file"])
 
     assert result.exit_code == 0, repr(result.exception)
-    mock_api.execute_algorithm.assert_called_once_with(Path("path/to/file"), None, None, None, None, False)
+    mock_api.execute_algorithm.assert_called_once_with(Path("path/to/file"), None, None, False, None, False)
 
 
 def test_run_job_no_file(mock_api: MagicMock) -> None:
     result = runner.invoke(app, ["jobs", "run"])
 
     assert result.exit_code == 0, repr(result.exception)
-    mock_api.execute_algorithm.assert_called_once_with(None, None, None, None, None, False)
+    mock_api.execute_algorithm.assert_called_once_with(None, None, None, False, None, False)
 
 
 def test_run_job_with_all_options(mock_api: MagicMock) -> None:
@@ -306,11 +306,13 @@ def test_run_job_with_all_options(mock_api: MagicMock) -> None:
             "100",
             "--name",
             "my-algo",
+            "--store-raw-data",
+            "--persist",
         ],
     )
 
     assert result.exit_code == 0, repr(result.exception)
-    mock_api.execute_algorithm.assert_called_once_with(Path("path/to/file"), 1, 100, None, "my-algo", False)
+    mock_api.execute_algorithm.assert_called_once_with(Path("path/to/file"), 1, 100, True, "my-algo", True)
 
 
 def test_run_job_with_persist(mock_api: MagicMock) -> None:
@@ -318,14 +320,14 @@ def test_run_job_with_persist(mock_api: MagicMock) -> None:
 
     assert result.exit_code == 0, repr(result.exception)
     assert "The project and algorithm have been stored." in result.stdout
-    mock_api.execute_algorithm.assert_called_once_with(Path("path/to/file"), None, None, None, None, True)
+    mock_api.execute_algorithm.assert_called_once_with(Path("path/to/file"), None, None, False, None, True)
 
 
 def test_run_job_with_name(mock_api: MagicMock) -> None:
     result = runner.invoke(app, ["jobs", "run", "--name", "my-algorithm"])
 
     assert result.exit_code == 0, repr(result.exception)
-    mock_api.execute_algorithm.assert_called_once_with(None, None, None, None, "my-algorithm", False)
+    mock_api.execute_algorithm.assert_called_once_with(None, None, None, False, "my-algorithm", False)
 
 
 def test_run_job_with_store_raw_data(mock_api: MagicMock) -> None:

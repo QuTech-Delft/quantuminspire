@@ -190,8 +190,7 @@ class Api:
             persist=persist,
         )
 
-        if not persist:
-            print("Submitted algorithm with job id:", job.job_id)
+        print("Submitted algorithm with job id:", job.job_id)
         return job
 
     @_refresh_auth_tokens
