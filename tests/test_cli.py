@@ -65,7 +65,9 @@ def test_logout(mock_api: MagicMock) -> None:
     mock_api.logout.assert_called_once_with(host)
 
 
-# --- Projects ---
+# ---------------------------------------------------------------------------
+# Projects
+# ---------------------------------------------------------------------------
 
 
 def test_initialize_project(mock_api: MagicMock) -> None:
@@ -115,8 +117,13 @@ def test_delete_projects(mock_api: MagicMock) -> None:
     mock_api.delete_projects.assert_called_once()
 
 
+# ---------------------------------------------------------------------------
+# Algorithms
+# ---------------------------------------------------------------------------
+
+
 def test_initialize_algorithm(mock_api: MagicMock) -> None:
-    result = runner.invoke(app, ["files", "init-algorithm", "my-algorithm", "path/to/file", "1"])
+    result = runner.invoke(app, ["algorithms", "init", "my-algorithm", "path/to/file", "1"])
 
     assert result.exit_code == 0, repr(result.exception)
     assert "Algorithm 'my-algorithm' initialized successfully in local config." in result.stdout
@@ -127,8 +134,8 @@ def test_initialize_algorithm_with_options(mock_api: MagicMock) -> None:
     result = runner.invoke(
         app,
         [
-            "files",
-            "init-algorithm",
+            "algorithms",
+            "init",
             "my-algorithm",
             "path/to/file",
             "1",
@@ -140,6 +147,112 @@ def test_initialize_algorithm_with_options(mock_api: MagicMock) -> None:
 
     assert result.exit_code == 0, repr(result.exception)
     mock_api.initialize_algorithm.assert_called_once_with("my-algorithm", Path("path/to/file"), 1, 100, True)
+
+
+def test_get_algorithm_status(mock_api: MagicMock) -> None:
+    mock_status = MagicMock()
+    mock_status.value = "RUNNING"
+    mock_api.get_job_status.return_value = mock_status
+
+    result = runner.invoke(app, ["algorithms", "status", "my-algo"])
+
+    assert result.exit_code == 0, repr(result.exception)
+    assert "Status of latest job for 'my-algo' algorithm: 'RUNNING'" in result.stdout
+    mock_api.get_job_status.assert_called_once_with("my-algo", None, False, 60.0)
+
+
+def test_get_algorithm_status_with_wait(mock_api: MagicMock) -> None:
+    mock_status = MagicMock()
+    mock_status.value = "COMPLETED"
+    mock_api.get_job_status.return_value = mock_status
+
+    result = runner.invoke(app, ["algorithms", "status", "my-algo", "--wait"])
+
+    assert result.exit_code == 0, repr(result.exception)
+    mock_api.get_job_status.assert_called_once_with("my-algo", None, True, 60.0)
+
+
+def test_get_algorithm_status_with_timeout(mock_api: MagicMock) -> None:
+    mock_status = MagicMock()
+    mock_status.value = "COMPLETED"
+    mock_api.get_job_status.return_value = mock_status
+
+    result = runner.invoke(app, ["algorithms", "status", "my-algo", "--timeout", "120"])
+
+    assert result.exit_code == 0, repr(result.exception)
+    mock_api.get_job_status.assert_called_once_with("my-algo", None, False, 120.0)
+
+
+def test_get_algorithm_results(mock_api: MagicMock) -> None:
+    mock_result = MagicMock()
+    mock_result.model_dump.return_value = {"id": 1}
+    mock_api.get_results.return_value = [mock_result]
+
+    result = runner.invoke(app, ["algorithms", "results", "my-algo"])
+
+    assert result.exit_code == 0, repr(result.exception)
+    assert "Retrieving results for latest job of 'my-algo' algorithm..." in result.stdout
+    mock_api.get_results.assert_called_once_with("my-algo", None)
+
+
+def test_get_algorithm_results_empty(mock_api: MagicMock) -> None:
+    mock_api.get_results.return_value = []
+
+    result = runner.invoke(app, ["algorithms", "results", "my-algo"])
+
+    assert result.exit_code == 0, repr(result.exception)
+    assert "[]" in result.stdout
+    mock_api.get_results.assert_called_once_with("my-algo", None)
+
+
+def test_get_algorithm_results_save(mock_api: MagicMock, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
+    mock_result = MagicMock()
+    mock_result.model_dump_json.return_value = '{"id": 1}'
+    mock_api.get_results.return_value = [mock_result]
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(app, ["algorithms", "results", "my-algo", "--save"])
+
+    assert result.exit_code == 0, repr(result.exception)
+    assert "Saving results to" in result.stdout
+
+
+def test_get_algorithm_final_result(mock_api: MagicMock) -> None:
+    mock_final_result = MagicMock()
+    mock_final_result.model_dump.return_value = {"id": 1}
+    mock_api.get_final_result.return_value = mock_final_result
+
+    result = runner.invoke(app, ["algorithms", "final-result", "my-algo"])
+
+    assert result.exit_code == 0, repr(result.exception)
+    assert "Retrieving final result for latest job of 'my-algo' algorithm..." in result.stdout
+    mock_api.get_final_result.assert_called_once_with("my-algo", None)
+
+
+def test_get_algorithm_final_result_save(mock_api: MagicMock, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
+    mock_final_result = MagicMock()
+    mock_final_result.model_dump_json.return_value = '{"id": 1}'
+    mock_api.get_final_result.return_value = mock_final_result
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(app, ["algorithms", "final-result", "my-algo", "--save"])
+
+    assert result.exit_code == 0, repr(result.exception)
+    assert "Saving final result to" in result.stdout
+
+
+def test_get_algorithm_final_result_none(mock_api: MagicMock) -> None:
+    mock_api.get_final_result.return_value = None
+
+    result = runner.invoke(app, ["algorithms", "final-result", "my-algo"])
+
+    assert result.exit_code == 0, repr(result.exception)
+    assert "None" in result.stdout
+
+
+# ---------------------------------------------------------------------------
+# Files
+# ---------------------------------------------------------------------------
 
 
 def test_compile_file_with_file_and_backend(mock_api: MagicMock) -> None:
@@ -275,18 +388,20 @@ def test_get_backend_type(mock_api: MagicMock) -> None:
     mock_api.get_backend_type.assert_called_once_with(1)
 
 
-# --- Jobs ---
+# ---------------------------------------------------------------------------
+# Jobs: run
+# ---------------------------------------------------------------------------
 
 
 def test_run_job_with_file(mock_api: MagicMock) -> None:
-    result = runner.invoke(app, ["jobs", "run", "--file", "path/to/file"])
+    result = runner.invoke(app, ["run", "--file", "path/to/file"])
 
     assert result.exit_code == 0, repr(result.exception)
     mock_api.execute_algorithm.assert_called_once_with(Path("path/to/file"), None, None, False, None, False)
 
 
 def test_run_job_no_file(mock_api: MagicMock) -> None:
-    result = runner.invoke(app, ["jobs", "run"])
+    result = runner.invoke(app, ["run"])
 
     assert result.exit_code == 0, repr(result.exception)
     mock_api.execute_algorithm.assert_called_once_with(None, None, None, False, None, False)
@@ -296,7 +411,6 @@ def test_run_job_with_all_options(mock_api: MagicMock) -> None:
     result = runner.invoke(
         app,
         [
-            "jobs",
             "run",
             "--file",
             "path/to/file",
@@ -316,7 +430,7 @@ def test_run_job_with_all_options(mock_api: MagicMock) -> None:
 
 
 def test_run_job_with_persist(mock_api: MagicMock) -> None:
-    result = runner.invoke(app, ["jobs", "run", "--file", "path/to/file", "--persist"])
+    result = runner.invoke(app, ["run", "--file", "path/to/file", "--persist"])
 
     assert result.exit_code == 0, repr(result.exception)
     assert "The project and algorithm have been stored." in result.stdout
@@ -324,7 +438,7 @@ def test_run_job_with_persist(mock_api: MagicMock) -> None:
 
 
 def test_run_job_with_name(mock_api: MagicMock) -> None:
-    result = runner.invoke(app, ["jobs", "run", "--name", "my-algorithm"])
+    result = runner.invoke(app, ["run", "--name", "my-algorithm"])
 
     assert result.exit_code == 0, repr(result.exception)
     mock_api.execute_algorithm.assert_called_once_with(None, None, None, False, "my-algorithm", False)
@@ -333,11 +447,16 @@ def test_run_job_with_name(mock_api: MagicMock) -> None:
 def test_run_job_with_store_raw_data(mock_api: MagicMock) -> None:
     result = runner.invoke(
         app,
-        ["jobs", "run", "--file", "path/to/file", "--backend-type-id", "1", "--store-raw-data"],
+        ["run", "--file", "path/to/file", "--backend-type-id", "1", "--store-raw-data"],
     )
 
     assert result.exit_code == 0, repr(result.exception)
     mock_api.execute_algorithm.assert_called_once_with(Path("path/to/file"), 1, None, True, None, False)
+
+
+# ---------------------------------------------------------------------------
+# Jobs: inspect
+# ---------------------------------------------------------------------------
 
 
 def test_inspect_job(mock_api: MagicMock) -> None:
@@ -387,40 +506,21 @@ def test_inspect_job_requires_id() -> None:
     assert result.exit_code != 0
 
 
+# ---------------------------------------------------------------------------
+# Jobs: status
+# ---------------------------------------------------------------------------
+
+
 def test_get_job_status_with_job_id(mock_api: MagicMock) -> None:
     mock_status = MagicMock()
     mock_status.value = "COMPLETED"
     mock_api.get_job_status.return_value = mock_status
 
-    result = runner.invoke(app, ["jobs", "status", "--job-id", "123"])
+    result = runner.invoke(app, ["jobs", "status", "123"])
 
     assert result.exit_code == 0, repr(result.exception)
     assert "Job 123 status: 'COMPLETED'" in result.stdout
     mock_api.get_job_status.assert_called_once_with(None, 123, False, 60.0)
-
-
-def test_get_job_status_with_algorithm_name(mock_api: MagicMock) -> None:
-    mock_status = MagicMock()
-    mock_status.value = "RUNNING"
-    mock_api.get_job_status.return_value = mock_status
-
-    result = runner.invoke(app, ["jobs", "status", "--algorithm-name", "my-algo"])
-
-    assert result.exit_code == 0, repr(result.exception)
-    assert "Status of latest job for my-algo algorithm: 'RUNNING'" in result.stdout
-    mock_api.get_job_status.assert_called_once_with("my-algo", None, False, 60.0)
-
-
-def test_get_job_status_with_both_job_id_and_algorithm_name(mock_api: MagicMock) -> None:
-    mock_status = MagicMock()
-    mock_status.value = "COMPLETED"
-    mock_api.get_job_status.return_value = mock_status
-
-    result = runner.invoke(app, ["jobs", "status", "--job-id", "42", "--algorithm-name", "my-algo"])
-
-    assert result.exit_code == 0, repr(result.exception)
-    assert "Job 42 status: 'COMPLETED'" in result.stdout
-    assert "Status of latest job for my-algo algorithm: 'COMPLETED'" in result.stdout
 
 
 def test_get_job_status_with_wait(mock_api: MagicMock) -> None:
@@ -428,7 +528,7 @@ def test_get_job_status_with_wait(mock_api: MagicMock) -> None:
     mock_status.value = "COMPLETED"
     mock_api.get_job_status.return_value = mock_status
 
-    result = runner.invoke(app, ["jobs", "status", "--job-id", "123", "--wait"])
+    result = runner.invoke(app, ["jobs", "status", "123", "--wait"])
 
     assert result.exit_code == 0, repr(result.exception)
     mock_api.get_job_status.assert_called_once_with(None, 123, True, 60.0)
@@ -439,21 +539,21 @@ def test_get_job_status_with_custom_timeout(mock_api: MagicMock) -> None:
     mock_status.value = "RUNNING"
     mock_api.get_job_status.return_value = mock_status
 
-    result = runner.invoke(app, ["jobs", "status", "--job-id", "123", "--timeout", "120"])
+    result = runner.invoke(app, ["jobs", "status", "123", "--timeout", "120"])
 
     assert result.exit_code == 0, repr(result.exception)
     mock_api.get_job_status.assert_called_once_with(None, 123, False, 120.0)
 
 
-def test_get_job_status_with_neither_id_nor_name(mock_api: MagicMock) -> None:
-    mock_status = MagicMock()
-    mock_status.value = "COMPLETED"
-    mock_api.get_job_status.return_value = mock_status
-
+def test_get_job_status_requires_id() -> None:
     result = runner.invoke(app, ["jobs", "status"])
 
-    assert result.exit_code == 0, repr(result.exception)
-    mock_api.get_job_status.assert_called_once_with(None, None, False, 60.0)
+    assert result.exit_code != 0
+
+
+# ---------------------------------------------------------------------------
+# Jobs: results
+# ---------------------------------------------------------------------------
 
 
 def test_get_results_with_job_id(mock_api: MagicMock) -> None:
@@ -461,38 +561,19 @@ def test_get_results_with_job_id(mock_api: MagicMock) -> None:
     mock_result.model_dump.return_value = {"id": 1}
     mock_api.get_results.return_value = [mock_result]
 
-    result = runner.invoke(app, ["jobs", "results", "--job-id", "456"])
+    result = runner.invoke(app, ["jobs", "results", "456"])
 
     assert result.exit_code == 0, repr(result.exception)
-    assert "Retrieving result with ID '456'..." in result.stdout
+    assert "Retrieving results for job with ID '456'..." in result.stdout
     mock_api.get_results.assert_called_once_with(None, 456)
 
 
 def test_get_results_return_empty(mock_api: MagicMock) -> None:
     mock_api.get_results.return_value = []
-    result = runner.invoke(app, ["jobs", "results", "--job-id", "456"])
+    result = runner.invoke(app, ["jobs", "results", "456"])
 
     assert result.exit_code == 0, repr(result.exception)
     assert "[]" in result.stdout
-
-
-def test_get_results_without_id(mock_api: MagicMock) -> None:
-    mock_api.get_results.return_value = []
-
-    result = runner.invoke(app, ["jobs", "results"])
-
-    assert result.exit_code == 0, repr(result.exception)
-    assert "[]" in result.stdout
-    mock_api.get_results.assert_called_once_with(None, None)
-
-
-def test_get_results_with_algorithm_name(mock_api: MagicMock) -> None:
-    mock_api.get_results.return_value = []
-
-    result = runner.invoke(app, ["jobs", "results", "--algorithm-name", "my-algo"])
-
-    assert result.exit_code == 0, repr(result.exception)
-    mock_api.get_results.assert_called_once_with("my-algo", None)
 
 
 def test_get_results_save(mock_api: MagicMock, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
@@ -501,7 +582,7 @@ def test_get_results_save(mock_api: MagicMock, tmp_path: Path, monkeypatch: Monk
     mock_api.get_results.return_value = [mock_result]
     monkeypatch.chdir(tmp_path)
 
-    result = runner.invoke(app, ["jobs", "results", "--job-id", "456", "--save"])
+    result = runner.invoke(app, ["jobs", "results", "456", "--save"])
 
     assert result.exit_code == 0, repr(result.exception)
     assert "Saving results to" in result.stdout
@@ -511,7 +592,7 @@ def test_get_results_save_empty(mock_api: MagicMock, tmp_path: Path, monkeypatch
     mock_api.get_results.return_value = []
     monkeypatch.chdir(tmp_path)
 
-    result = runner.invoke(app, ["jobs", "results", "--job-id", "456", "--save"])
+    result = runner.invoke(app, ["jobs", "results", "456", "--save"])
 
     assert result.exit_code == 0, repr(result.exception)
 
@@ -520,10 +601,16 @@ def test_get_results_empty_no_save(mock_api: MagicMock) -> None:
     """Test that empty results are printed as empty list when not saving."""
     mock_api.get_results.return_value = []
 
-    result = runner.invoke(app, ["jobs", "results", "--job-id", "456"])
+    result = runner.invoke(app, ["jobs", "results", "456"])
 
     assert result.exit_code == 0, repr(result.exception)
     assert "[]" in result.stdout
+
+
+def test_get_results_requires_id() -> None:
+    result = runner.invoke(app, ["jobs", "results"])
+
+    assert result.exit_code != 0
 
 
 # ---------------------------------------------------------------------------
@@ -536,33 +623,11 @@ def test_get_final_result_with_job_id(mock_api: MagicMock) -> None:
     mock_final_result.model_dump.return_value = {"id": 1}
     mock_api.get_final_result.return_value = mock_final_result
 
-    result = runner.invoke(app, ["jobs", "final-result", "--job-id", "789"])
+    result = runner.invoke(app, ["jobs", "final-result", "789"])
 
     assert result.exit_code == 0, repr(result.exception)
-    assert "Retrieving final result with ID '789'..." in result.stdout
+    assert "Retrieving final result for job with ID '789'..." in result.stdout
     mock_api.get_final_result.assert_called_once_with(None, 789)
-
-
-def test_get_final_result_without_id(mock_api: MagicMock) -> None:
-    mock_final_result = MagicMock()
-    mock_final_result.model_dump.return_value = {}
-    mock_api.get_final_result.return_value = mock_final_result
-
-    result = runner.invoke(app, ["jobs", "final-result"])
-
-    assert result.exit_code == 0, repr(result.exception)
-    mock_api.get_final_result.assert_called_once_with(None, None)
-
-
-def test_get_final_result_with_algorithm_name(mock_api: MagicMock) -> None:
-    mock_final_result = MagicMock()
-    mock_final_result.model_dump.return_value = {"id": 1}
-    mock_api.get_final_result.return_value = mock_final_result
-
-    result = runner.invoke(app, ["jobs", "final-result", "--algorithm-name", "my-algo"])
-
-    assert result.exit_code == 0, repr(result.exception)
-    mock_api.get_final_result.assert_called_once_with("my-algo", None)
 
 
 def test_get_final_result_save(mock_api: MagicMock, tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
@@ -571,7 +636,7 @@ def test_get_final_result_save(mock_api: MagicMock, tmp_path: Path, monkeypatch:
     mock_api.get_final_result.return_value = mock_final_result
     monkeypatch.chdir(tmp_path)
 
-    result = runner.invoke(app, ["jobs", "final-result", "--job-id", "789", "--save"])
+    result = runner.invoke(app, ["jobs", "final-result", "789", "--save"])
 
     assert result.exit_code == 0, repr(result.exception)
     assert "Saving final result to" in result.stdout
@@ -581,10 +646,16 @@ def test_get_final_result_none_no_save(mock_api: MagicMock) -> None:
     """Test that None final result is printed as 'None' when not saving."""
     mock_api.get_final_result.return_value = None
 
-    result = runner.invoke(app, ["jobs", "final-result", "--job-id", "789"])
+    result = runner.invoke(app, ["jobs", "final-result", "789"])
 
     assert result.exit_code == 0, repr(result.exception)
     assert "None" in result.stdout
+
+
+def test_get_final_result_requires_id() -> None:
+    result = runner.invoke(app, ["jobs", "final-result"])
+
+    assert result.exit_code != 0
 
 
 # ---------------------------------------------------------------------------

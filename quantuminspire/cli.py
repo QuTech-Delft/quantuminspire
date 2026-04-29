@@ -12,16 +12,18 @@ from quantuminspire.api import Api
 
 app = Typer(add_completion=False, no_args_is_help=True)
 projects_app = Typer(no_args_is_help=True)
+algorithms_app = Typer(no_args_is_help=True)
 backend_types_app = Typer(no_args_is_help=True)
 config_app = Typer(no_args_is_help=True)
 jobs_app = Typer(no_args_is_help=True)
 files_app = Typer(no_args_is_help=True)
 
 app.add_typer(projects_app, name="projects", help="Manage projects")
+app.add_typer(algorithms_app, name="algorithms", help="Manage algorithms")
 app.add_typer(backend_types_app, name="backends", help="Manage backends")
-app.add_typer(config_app, name="config", help="Manage configuration")
-app.add_typer(jobs_app, name="jobs", help="Manage jobs")
 app.add_typer(files_app, name="files", help="Manage files")
+app.add_typer(jobs_app, name="jobs", help="Manage jobs")
+app.add_typer(config_app, name="config", help="Manage configuration")
 
 console = Console()
 
@@ -53,13 +55,35 @@ def logout(
     api.logout(hostname)
 
 
+@app.command("run")
+def run_job(
+    file: Optional[Path] = typer.Option(None, help="The path to the hybrid algorithm or quantum circuit."),
+    backend_type_id: Optional[int] = typer.Option(None, help="The backend type id."),
+    num_shots: Optional[int] = typer.Option(None, help="The number of shots."),
+    store_raw_data: Optional[bool] = typer.Option(False, help="Whether to store data for each shot."),
+    name: Optional[str] = typer.Option(
+        None, help="The name of a locally initialized algorithm whose settings will be used."
+    ),
+    persist: bool = typer.Option(False, help="Store the project and algorithm the file is uploaded to."),
+) -> None:
+    """Run a new job on Quantum Inspire.
+
+    Provide either a file to run, or the name of a locally initialized algorithm. All other options are optional and
+    will override the algorithm's stored settings when provided.
+    """
+    api = Api()
+    api.execute_algorithm(file, backend_type_id, num_shots, store_raw_data, name, persist)
+    if persist:
+        typer.echo("The project and algorithm have been stored.")
+
+
 @projects_app.command("init")
 def initialize_project(
     name: str = typer.Argument(help="The project name"),
     description: str = typer.Argument("", help="The project description"),
     path: Optional[str] = typer.Option(
         None,
-        help="Local path where the project settings should be stored. " "Uses the current directory if not provided.",
+        help="Local path where the project settings should be stored. Uses the current directory if not provided.",
     ),
 ) -> None:
     """Initialize a project."""
@@ -71,7 +95,7 @@ def initialize_project(
 
 @projects_app.command("list")
 def list_projects() -> None:
-    """List projects."""
+    """List all projects."""
     api = Api()
     projects = api.get_projects()
 
@@ -97,7 +121,7 @@ def delete_projects() -> None:
     typer.echo("All projects deleted successfully.")
 
 
-@files_app.command("init-algorithm")
+@algorithms_app.command("init")
 def initialize_algorithm(
     name: str = typer.Argument(help="The algorithm name"),
     path: str = typer.Argument(help="The path to the algorithm file."),
@@ -105,35 +129,57 @@ def initialize_algorithm(
     num_shots: Optional[int] = typer.Option(None, help="The number of shots to use"),
     store_raw_data: Optional[bool] = typer.Option(False, help="Whether to store the raw data or not. Default False"),
 ) -> None:
-    """Initialize an algorithm."""
+    """Initialize an algorithm and store its settings locally."""
     api = Api()
     api.initialize_algorithm(name, Path(path), backend_type_id, num_shots, store_raw_data)
     typer.echo(f"Algorithm '{name}' initialized successfully in local config.")
 
 
-@files_app.command("compile")
-def compile_file(
-    file: Optional[Path] = typer.Option(None, help="The path to the algorithm file to compile."),
-    name: Optional[str] = typer.Option(
-        None, help="The name of a previously initialized algorithm whose settings will be used."
-    ),
-    backend_type_id: Optional[int] = typer.Option(None, help="The ID of the backend type to target."),
-    compile_stage: Optional[CompileStage] = typer.Option(
-        None, help="The stage up to which the algorithm should be compiled. Default Decomposition"
-    ),
+@algorithms_app.command("status")
+def get_algorithm_status(
+    algorithm_name: str = typer.Argument(..., help="The name of the locally initialized algorithm."),
+    wait: bool = typer.Option(False, help="Wait for the job to complete."),
+    timeout: float = typer.Option(60, help="Timeout in seconds to wait for the job to complete."),
 ) -> None:
-    """Compile an algorithm file.
+    """Retrieve the status of the latest job for a locally initialized algorithm."""
+    api = Api()
+    status = api.get_job_status(algorithm_name, None, wait, timeout)
+    typer.echo(f"Status of latest job for '{algorithm_name}' algorithm: '{status.value}'")
 
-    Only works for CQASM files, not hybrid ones.
+
+@algorithms_app.command("results")
+def get_algorithm_results(
+    algorithm_name: str = typer.Argument(..., help="The name of the locally initialized algorithm."),
+    save: Optional[bool] = typer.Option(None, help="Save the results to a file."),
+) -> None:
+    """Retrieve the results of the latest job for a locally initialized algorithm.
+
+    Each result corresponds to one iteration of the job.
     """
     api = Api()
-    api.compile_file(file, name, backend_type_id, compile_stage)
-    typer.echo("File compiled successfully!")
+    typer.secho(f"Retrieving results for latest job of '{algorithm_name}' algorithm...", fg=typer.colors.BLUE)
+    results: list[Result] = api.get_results(algorithm_name, None)
+    _output_results(results, algorithm_name, save)
+
+
+@algorithms_app.command("final-result")
+def get_algorithm_final_result(
+    algorithm_name: str = typer.Argument(..., help="The name of the locally initialized algorithm."),
+    save: Optional[bool] = typer.Option(None, help="Save the final result to a file."),
+) -> None:
+    """Retrieve the final result of the latest job for a locally initialized algorithm.
+
+    The final result is the aggregated version of all the results of the job.
+    """
+    api = Api()
+    typer.secho(f"Retrieving final result for latest job of '{algorithm_name}' algorithm...", fg=typer.colors.BLUE)
+    final_result: FinalResult | None = api.get_final_result(algorithm_name, None)
+    _output_final_result(final_result, algorithm_name, save)
 
 
 @backend_types_app.command("list")
 def get_backend_types() -> None:
-    """List all backend types."""
+    """List all available backend types."""
     api = Api()
     backend_types: list[BackendType] = api.get_backend_types()
     table = Table(
@@ -169,31 +215,31 @@ def get_backend_type(
     console.print(backend_type.model_dump())
 
 
-@jobs_app.command("run")
-def run_job(
-    file: Optional[Path] = typer.Option(None, help="The Path to the hybrid algorithm or quantum circuit."),
-    backend_type_id: Optional[int] = typer.Option(None, help="The backend type id."),
-    num_shots: Optional[int] = typer.Option(None, help="The number of shots"),
-    store_raw_data: Optional[bool] = typer.Option(False, help="Whether to store data for each shot."),
-    name: Optional[str] = typer.Option(None, help="The name of the algorithm."),
-    persist: bool = typer.Option(False, help="Store the project and algorithm the file is uploaded to."),
+@files_app.command("compile")
+def compile_file(
+    file: Optional[Path] = typer.Option(None, help="The path to the algorithm file to compile."),
+    name: Optional[str] = typer.Option(
+        None, help="The name of a previously initialized algorithm whose settings will be used."
+    ),
+    backend_type_id: Optional[int] = typer.Option(None, help="The ID of the backend type to target."),
+    compile_stage: Optional[CompileStage] = typer.Option(
+        None, help="The stage up to which the algorithm should be compiled. Default Decomposition."
+    ),
 ) -> None:
-    """Run a new job on Quantum Inspire.
+    """Compile an algorithm file.
 
-    You need to add either a file to run, or the name of a locally persisted algorithm. The other options are fully
-    optional.
+    Only works for CQASM files, not hybrid ones.
     """
     api = Api()
-    api.execute_algorithm(file, backend_type_id, num_shots, store_raw_data, name, persist)
-    if persist:
-        typer.echo("The project and algorithm have been stored.")
+    api.compile_file(file, name, backend_type_id, compile_stage)
+    typer.echo("File compiled successfully!")
 
 
 @jobs_app.command("inspect")
 def inspect_job(
     job_id: int = typer.Argument(..., help="The ID of the job to retrieve."),
 ) -> None:
-    """Retrieve information about a specific job."""
+    """Retrieve detailed information about a specific job."""
     api = Api()
     typer.secho(f"Retrieving job with ID '{job_id}'...", fg=typer.colors.BLUE)
     job: Job = api.get_job(job_id)
@@ -222,122 +268,52 @@ def inspect_job(
 
 @jobs_app.command("status")
 def get_job_status(
-    job_id: Optional[int] = typer.Option(None, help="The ID of the job to retrieve the status of the job."),
-    algorithm_name: Optional[str] = typer.Option(
-        None, help="The name of the algorithm. The status of the latest job for the algorithm will be retrieved."
-    ),
+    job_id: int = typer.Argument(..., help="The ID of the job to retrieve the status of."),
     wait: bool = typer.Option(False, help="Wait for the job to complete."),
-    timeout: float = typer.Option(60, help="Timeout for the job to complete."),
+    timeout: float = typer.Option(60, help="Timeout in seconds to wait for the job to complete."),
 ) -> None:
-    """Retrieve the status of a job.
-
-    Either add a job_id or the algorithm_name of a locally persisted algorithm. If you use algorithm_name, the status
-    of the latest job of that algorithm will be retrieved.
-    """
+    """Retrieve the status of a job by its ID."""
     api = Api()
-    status = api.get_job_status(algorithm_name, job_id, wait, timeout)
-    if job_id is not None:
-        typer.echo(f"Job {job_id} status: '{status.value}'")
-    if algorithm_name is not None:
-        typer.echo(f"Status of latest job for {algorithm_name} algorithm: '{status.value}'")
+    status = api.get_job_status(None, job_id, wait, timeout)
+    typer.echo(f"Job {job_id} status: '{status.value}'")
 
 
 @jobs_app.command("results")
 def get_results(
-    job_id: Optional[int] = typer.Option(None, help="The ID of the job to retrieve the result for."),
-    algorithm_name: Optional[str] = typer.Option(
-        None, help="The name of the algorithm. The results of the latest job for the algorithm will be retrieved."
-    ),
+    job_id: int = typer.Argument(..., help="The ID of the job to retrieve the results for."),
     save: Optional[bool] = typer.Option(None, help="Save the results to a file."),
 ) -> None:
-    """Retrieve information about the results of a job. Either add a job_id or the algorithm_name of a locally
-    persisted algorithm. If you use algorithm_name, the status of the latest job of that algorithm will be retrieved.
+    """Retrieve the results of a job by its ID.
 
-    Each result is a result of an iteration of the job. The object contains results of all the iterations of the job.
+    Each result corresponds to one iteration of the job.
     """
     api = Api()
-    if job_id is not None:
-        typer.secho(f"Retrieving result with ID '{job_id}'...", fg=typer.colors.BLUE)
-    elif algorithm_name is not None:
-        typer.secho(f"Retrieving result for latest job of {algorithm_name} algorithm...", fg=typer.colors.BLUE)
-    results: list[Result] = api.get_results(algorithm_name, job_id)
-
-    if save:
-        file_identifier = job_id if job_id else algorithm_name
-        datetime_string = datetime.now().strftime("%Y%m%d-%H%M%S")
-        file_name = f"{datetime_string}_{file_identifier}_job_results.json"
-        file_path = Path.cwd() / file_name
-
-        typer.echo(
-            f"{typer.style(
-                'Saving results to', fg=typer.colors.BLUE
-            )} '{typer.style(file_path, fg=typer.colors.GREEN)}'"
-        )
-
-        with open(file_path, "w") as f:
-            if not results:
-                f.write("[]")
-            else:
-                f.write("[")
-                f.write(",\n".join(result.model_dump_json(indent=4) for result in results))
-                f.write("]")
-
-    else:
-        if not results:
-            typer.echo("[]")
-        else:
-            for result in results:
-                console.print(result.model_dump())
+    typer.secho(f"Retrieving results for job with ID '{job_id}'...", fg=typer.colors.BLUE)
+    results: list[Result] = api.get_results(None, job_id)
+    _output_results(results, str(job_id), save)
 
 
 @jobs_app.command("final-result")
 def get_final_result(
-    job_id: Optional[int] = typer.Option(None, help="The ID of the job to retrieve the result for."),
-    algorithm_name: Optional[str] = typer.Option(
-        None, help="The name of the algorithm. The final result of the latest job for the algorithm will be retrieved."
-    ),
+    job_id: int = typer.Argument(..., help="The ID of the job to retrieve the final result for."),
     save: Optional[bool] = typer.Option(None, help="Save the final result to a file."),
 ) -> None:
-    """Retrieve information about the final result of a job. Either add a job_id or the algorithm_name of a locally
-    persisted algorithm. If you use algorithm_name, the status of the latest job of that algorithm will be retrieved.
+    """Retrieve the final result of a job by its ID.
 
     The final result is the aggregated version of all the results of the job.
     """
     api = Api()
-
-    if job_id is not None:
-        typer.secho(f"Retrieving final result with ID '{job_id}'...", fg=typer.colors.BLUE)
-    elif algorithm_name is not None:
-        typer.secho(f"Retrieving final result for latest job of {algorithm_name} algorithm...", fg=typer.colors.BLUE)
-    final_result: FinalResult | None = api.get_final_result(algorithm_name, job_id)
-
-    if final_result is None:
-        typer.echo("None")
-    else:
-        if save:
-            file_identifier = job_id if job_id else algorithm_name
-            datetime_string = datetime.now().strftime("%Y%m%d-%H%M%S")
-            file_name = f"{datetime_string}_{file_identifier}_job_final_result.json"
-            file_path = Path.cwd() / file_name
-
-            typer.echo(
-                f"{typer.style(
-                    'Saving final result to', fg=typer.colors.BLUE
-                )} '{typer.style(file_path, fg=typer.colors.GREEN)}'"
-            )
-
-            with open(file_path, "w") as f:
-                f.write(final_result.model_dump_json(indent=4))
-        else:
-            console.print(final_result.model_dump())
+    typer.secho(f"Retrieving final result for job with ID '{job_id}'...", fg=typer.colors.BLUE)
+    final_result: FinalResult | None = api.get_final_result(None, job_id)
+    _output_final_result(final_result, str(job_id), save)
 
 
 @config_app.command("set")
 def set_config(
     key: str = typer.Argument(..., help="The configuration key to set."),
     value: str = typer.Argument(..., help="The value to set for the configuration key."),
-    algorithm: Optional[str] = typer.Option(None, help="name of the algorithm to set the value for."),
-    user: bool = typer.Option(False, help="Set the configuration for the user."),
+    algorithm: Optional[str] = typer.Option(None, help="The name of the algorithm to set the value for."),
+    user: bool = typer.Option(False, help="Set the configuration for the current user."),
 ) -> None:
     """Set a configuration value."""
     parsed_value: int | str
@@ -373,6 +349,66 @@ def get_config(
     else:
         value = api.get_algorithm_setting(algorithm, key)
         typer.echo(f"'{key}' for '{algorithm}': {value}")
+
+
+def _output_final_result(final_result: FinalResult | None, identifier: str, save: Optional[bool]) -> None:
+    """Save a final result to a file or print it to the console.
+
+    Args:
+        final_result: The final result to output, or None if no result is available.
+        identifier: A string used to identify the output file (e.g. job ID or algorithm name).
+        save: If True, save the final result to a JSON file in the current directory. Otherwise print to console.
+    """
+    if final_result is None:
+        typer.echo("None")
+    else:
+        if save:
+            datetime_string = datetime.now().strftime("%Y%m%d-%H%M%S")
+            file_name = f"{datetime_string}_{identifier}_job_final_result.json"
+            file_path = Path.cwd() / file_name
+
+            typer.echo(
+                f"{typer.style('Saving final result to', fg=typer.colors.BLUE)} \
+                '{typer.style(str(file_path), fg=typer.colors.GREEN)}'"
+            )
+
+            with open(file_path, "w") as f:
+                f.write(final_result.model_dump_json(indent=4))
+        else:
+            console.print(final_result.model_dump())
+
+
+def _output_results(results: list[Result], identifier: str, save: Optional[bool]) -> None:
+    """Save results to a file or print them to the console.
+
+    Args:
+        results: The list of results to output.
+        identifier: A string used to identify the results file (e.g. job ID or algorithm name).
+        save: If True, save the results to a JSON file in the current directory. Otherwise print to console.
+    """
+    if save:
+        datetime_string = datetime.now().strftime("%Y%m%d-%H%M%S")
+        file_name = f"{datetime_string}_{identifier}_job_results.json"
+        file_path = Path.cwd() / file_name
+
+        typer.echo(
+            f"{typer.style('Saving results to', fg=typer.colors.BLUE)} \
+            '{typer.style(str(file_path), fg=typer.colors.GREEN)}'"
+        )
+
+        with open(file_path, "w") as f:
+            if not results:
+                f.write("[]")
+            else:
+                f.write("[")
+                f.write(",\n".join(result.model_dump_json(indent=4) for result in results))
+                f.write("]")
+    else:
+        if not results:
+            typer.echo("[]")
+        else:
+            for result in results:
+                console.print(result.model_dump())
 
 
 if __name__ == "__main__":
