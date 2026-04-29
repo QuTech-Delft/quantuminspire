@@ -30,7 +30,6 @@ def test_login(mock_api: MagicMock) -> None:
     result = runner.invoke(app, ["login"])
 
     assert result.exit_code == 0, repr(result.exception)
-    assert "Login successful!" in result.stdout
     mock_api.login.assert_called_once_with(None, False, False)
 
 
@@ -38,7 +37,6 @@ def test_login_with_host(mock_api: MagicMock) -> None:
     result = runner.invoke(app, ["login", "https://host"])
 
     assert result.exit_code == 0, repr(result.exception)
-    assert "Login successful!" in result.stdout
     mock_api.login.assert_called_once_with("https://host", False, False)
 
 
@@ -46,7 +44,6 @@ def test_login_with_override_auth_config(mock_api: MagicMock) -> None:
     result = runner.invoke(app, ["login", "--override-auth-config"])
 
     assert result.exit_code == 0, repr(result.exception)
-    assert "Login successful!" in result.stdout
     mock_api.login.assert_called_once_with(None, True, False)
 
 
@@ -54,7 +51,6 @@ def test_login_with_force(mock_api: MagicMock) -> None:
     result = runner.invoke(app, ["login", "--force"])
 
     assert result.exit_code == 0, repr(result.exception)
-    assert "Login successful!" in result.stdout
     mock_api.login.assert_called_once_with(None, False, True)
 
 

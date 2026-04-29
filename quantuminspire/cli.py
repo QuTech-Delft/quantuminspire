@@ -40,7 +40,6 @@ def login(
     """
     api = Api()
     api.login(hostname, override_auth_config, force)
-    typer.echo("Login successful!")
 
 
 @app.command("logout")
