@@ -23,7 +23,7 @@ class OauthDeviceSession:
         self._settings = settings
         self._client_id = settings.client_id
         self._token_info = settings.tokens
-        self._token_endpoint, self._device_endpoint = self._get_endpoints()
+        self._token_endpoint, self._device_endpoint, self._revocation_endpoint = self._get_endpoints()
         self._oauth_client = Client(settings.client_id)
         self._headers = {"Content-Type": "application/x-www-form-urlencoded"}
         self.expires_in = 600  # expiration time in seconds
@@ -32,11 +32,11 @@ class OauthDeviceSession:
         self._device_code = ""
         self._refresh_time_reduction = 5  # the number of seconds to refresh the expiration time
 
-    def _get_endpoints(self) -> Tuple[str, str]:
+    def _get_endpoints(self) -> Tuple[str, str, str]:
         response = requests.get(self._settings.well_known_endpoint)
         response.raise_for_status()
         config = response.json()
-        return config["token_endpoint"], config["device_authorization_endpoint"]
+        return config["token_endpoint"], config["device_authorization_endpoint"], config["revocation_endpoint"]
 
     def initialize_authorization(self) -> Dict[str, Any]:
         code_verifier = self._oauth_client.create_code_verifier(self._settings.code_verifyer_length)
@@ -114,6 +114,31 @@ class OauthDeviceSession:
             return self._token_info
 
         raise AuthorisationError(f"Received status code: {response.status_code}\n {response.text}")
+
+    def revoke(self) -> None:
+        """Revoke the stored refresh token on the authorization server.
+
+        Sends a token revocation request for the refresh token. Revoking
+        the refresh token also invalidates all associated access tokens on the server.
+
+        Raises:
+            AuthorisationError: If no tokens are stored or the revocation request fails.
+        """
+        if self._token_info is None:
+            raise AuthorisationError("No tokens available to revoke. You may not be logged in.")
+
+        data = {
+            "token": self._token_info.refresh_token,
+            "token_type_hint": "refresh_token",
+            "client_id": self._client_id,
+        }
+
+        response = requests.post(self._revocation_endpoint, data=data, headers=self._headers)
+
+        if response.status_code not in (200, 204):
+            raise AuthorisationError(
+                f"Token revocation failed with status code: {response.status_code}\n {response.text}"
+            )
 
 
 class Configuration(compute_api_client.Configuration):  # type: ignore[misc]

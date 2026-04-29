@@ -33,6 +33,7 @@ def mocked_responses() -> Generator[responses.RequestsMock, None, None]:
                 {
                     "token_endpoint": "https://localhost/tokens",
                     "device_authorization_endpoint": "https://localhost/device",
+                    "revocation_endpoint": "https://localhost/revoke",
                 }
             ),
         )
@@ -50,6 +51,7 @@ def mocked_responses() -> Generator[responses.RequestsMock, None, None]:
             ),
         )
         responses_mock.post("https://localhost/tokens", body=EXAMPLE_TOKENINFO.model_dump_json())
+        responses_mock.post("https://localhost/revoke", status=204)
         yield responses_mock
 
 
@@ -148,3 +150,32 @@ def test_configuration_auth_settings(
     config = Configuration(host="https://staging.qi2.quantum-inspire.com", oauth_session=mocked_device_session)
     mocked_device_session._token_info = EXAMPLE_TOKENINFO
     assert config.auth_settings()["user_bearer"]["value"] == "Bearer secret"
+
+
+def test_revoke_success_204(
+    mocked_responses: responses.RequestsMock, mocked_device_session: OauthDeviceSession
+) -> None:
+    mocked_device_session._token_info = EXAMPLE_TOKENINFO.model_copy()
+    mocked_device_session.revoke()  # should not raise
+
+
+def test_revoke_success_200(
+    mocked_responses: responses.RequestsMock, mocked_device_session: OauthDeviceSession
+) -> None:
+    mocked_device_session._token_info = EXAMPLE_TOKENINFO.model_copy()
+    mocked_responses.replace(responses.POST, "https://localhost/revoke", status=200)
+    mocked_device_session.revoke()  # should not raise
+
+
+def test_revoke_not_logged_in(
+    mocked_responses: responses.RequestsMock, mocked_device_session: OauthDeviceSession
+) -> None:
+    with pytest.raises(AuthorisationError):
+        mocked_device_session.revoke()
+
+
+def test_revoke_failure(mocked_responses: responses.RequestsMock, mocked_device_session: OauthDeviceSession) -> None:
+    mocked_device_session._token_info = EXAMPLE_TOKENINFO.model_copy()
+    mocked_responses.replace(responses.POST, "https://localhost/revoke", status=500, body="internal server error")
+    with pytest.raises(AuthorisationError):
+        mocked_device_session.revoke()

@@ -112,6 +112,20 @@ class Api:
         """
         return self._auth_manager.login_required(host)
 
+    def logout(self, hostname: Optional[str] = None) -> None:
+        """Log out of the Quantum Inspire platform by clearing stored tokens.
+
+        Args:
+            hostname: The host URL to log out from. Uses the configured default if not provided.
+        """
+        host_url: Optional[Url] = None
+        if hostname is not None:
+            host_url = TypeAdapter(Url).validate_python(self._resolve_protocol(hostname))
+
+        resolved_host = self._resolve(host_url, "default_host")
+        self._auth_manager.logout(resolved_host)
+        print(f"Successfully logged out from {resolved_host}")
+
     def execute_algorithm(
         self,
         file_path: Optional[Path] = None,
@@ -176,8 +190,7 @@ class Api:
             persist=persist,
         )
 
-        if not persist:
-            print("Submitted algorithm with job id:", job.job_id)
+        print("Submitted algorithm with job id:", job.job_id)
         return job
 
     @_refresh_auth_tokens
@@ -252,6 +265,19 @@ class Api:
         self.set_setting("project.id", remote_project.id)
         self.set_setting("project.name", remote_project.name)
         self.set_setting("project.description", remote_project.description)
+
+    @_refresh_auth_tokens
+    def get_projects(self) -> list[Project]:
+        """Retrieve all remote projects for the current user.
+
+        Returns:
+            A list of Project objects.
+        """
+        return self._resource_manager.read_projects()
+
+    def delete_projects(self) -> None:
+        """Delete all remote projects."""
+        self._resource_manager.delete_projects()
 
     @_refresh_auth_tokens
     def initialize_algorithm(
@@ -395,6 +421,18 @@ class Api:
         return self._resource_manager.get_backend_types()
 
     @_refresh_auth_tokens
+    def get_backend_type(self, backend_type_id: int) -> BackendType:
+        """Retrieve a backend type by ID.
+
+        Args:
+            backend_type_id: ID of the backend type.
+
+        Returns:
+            The backend type.
+        """
+        return self._resource_manager.get_backend_type(backend_type_id)
+
+    @_refresh_auth_tokens
     def get_job(self, job_id: Optional[int] = None, algorithm_name: Optional[str] = None) -> Job:
         """Retrieve job details by job ID or by algorithm name.
 
@@ -407,6 +445,23 @@ class Api:
         """
         job_id = self._get_job_id(job_id, algorithm_name)
         return self._resource_manager.get_job(job_id)
+
+    @_refresh_auth_tokens
+    def get_job_logs(
+        self, job_id: int, n_logs: Optional[int] = None, poll_interval: float = 5.0, timeout: float = 30.0
+    ) -> list[str]:
+        """Poll job logs until the job has finished.
+
+        Args:
+            job_id: The ID of the finished job to get logs for.
+            n_logs: Number of expected logs.
+            poll_interval: Interval time of polling.
+            timeout: Maximum number of seconds to wait.
+
+        Returns:
+            A list of the job logs.
+        """
+        return self._resource_manager.get_job_logs(job_id, n_logs, poll_interval, timeout)
 
     @_refresh_auth_tokens
     def get_job_status(
