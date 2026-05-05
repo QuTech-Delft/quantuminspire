@@ -50,7 +50,7 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
-# addopts = "-v --cov --cov-report term-missing:skip-covered --cov-report xml"
+addopts = "--cov --cov-report term-missing:skip-covered --cov-report xml"
 asyncio_mode = "auto"
 testpaths = ["tests"]
 asyncio_default_fixture_loop_scope = "function"
