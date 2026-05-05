@@ -1,6 +1,6 @@
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 
 import typer
 from compute_api_client import BackendType, CompileStage, FinalResult, Job, Result
@@ -93,31 +93,50 @@ def initialize_project(
 
 
 @projects_app.command("list")
-def list_projects() -> None:
+def list_projects(
+    name: Optional[str] = typer.Option(None, help="Filter projects matching this name or description pattern"),
+    exact: bool = typer.Option(False, help="If set, match project name exactly instead of substring search"),
+    ids: bool = typer.Option(False, help="Only print the IDs of the projects."),
+) -> None:
     """List all projects."""
     api = Api()
-    projects = api.get_projects()
+    projects = api.get_projects(name, exact)
 
-    table = Table("id", "name", "description", "created_on", "starred")
+    if ids:
+        for project in projects:
+            print(project.id)
+    else:
+        table = Table("id", "name", "description", "created_on", "starred")
 
-    for project in projects:
-        table.add_row(
-            str(project.id),
-            str(project.name),
-            str(project.description),
-            project.created_on.strftime("%Y-%m-%d %H:%M:%S"),
-            str(project.starred),
-        )
-    console.print(table)
+        for project in projects:
+            table.add_row(
+                str(project.id),
+                str(project.name),
+                str(project.description),
+                project.created_on.strftime("%Y-%m-%d %H:%M:%S"),
+                str(project.starred),
+            )
+        console.print(table)
 
 
 @projects_app.command("delete")
-def delete_projects() -> None:
-    """Delete all projects."""
-    typer.confirm("This will delete all projects on your account. Are you sure you want to continue?", abort=True)
+def delete_projects(
+    project_ids: Optional[List[int]] = typer.Argument(None, help="Delete projects with these IDs"),
+    name: Optional[str] = typer.Option(None, help="Delete projects matching this name or description pattern"),
+    exact: bool = typer.Option(False, help="If set, match project name exactly instead of substring search"),
+) -> None:
+    """Delete projects."""
+    if not (project_ids or name):
+        confirm_message = "You did not provide a name or IDs. This will delete ALL your projects. Are you sure?"
+    else:
+        confirm_message = "Are you sure you want to continue?"
+
+    if not typer.confirm(confirm_message):
+        typer.echo("Aborted.")
+        raise typer.Abort()
+
     api = Api()
-    api.delete_projects()
-    typer.echo("All projects deleted successfully.")
+    api.delete_projects(project_ids, name, exact)
 
 
 @algorithms_app.command("init")
