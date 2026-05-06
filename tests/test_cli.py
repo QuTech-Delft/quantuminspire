@@ -137,7 +137,7 @@ def test_list_projects_with_ids(mock_api: MagicMock) -> None:
     mock_project.id = 42
     mock_api.get_projects.return_value = [mock_project]
 
-    result = runner.invoke(app, ["projects", "list", "--ids"])
+    result = runner.invoke(app, ["projects", "list", "--quiet"])
 
     assert result.exit_code == 0, repr(result.exception)
     assert "42" in result.stdout

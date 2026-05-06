@@ -96,13 +96,13 @@ def initialize_project(
 def list_projects(
     name: Optional[str] = typer.Option(None, help="Filter projects matching this name or description pattern"),
     exact: bool = typer.Option(False, help="If set, match project name exactly instead of substring search"),
-    ids: bool = typer.Option(False, help="Only print the IDs of the projects."),
+    quiet: bool = typer.Option(False, "-q", "--quiet", help="Only print the IDs of the projects."),
 ) -> None:
     """List all projects."""
     api = Api()
     projects = api.get_projects(name, exact)
 
-    if ids:
+    if quiet:
         for project in projects:
             print(project.id)
     else:
@@ -132,7 +132,6 @@ def delete_projects(
         confirm_message = "Are you sure you want to continue?"
 
     if not typer.confirm(confirm_message):
-        typer.echo("Aborted.")
         raise typer.Abort()
 
     api = Api()

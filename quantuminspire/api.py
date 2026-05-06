@@ -285,6 +285,8 @@ class Api:
                 raise ValueError(f"No projects match the name or description '{name}'.")
 
         self._resource_manager.delete_projects(ids)
+        for project_id in ids:
+            print(project_id)
         print(f"{len(ids)} projects deleted successfully.")
 
     @_refresh_auth_tokens

@@ -394,10 +394,9 @@ class ResourceManager:
         """
         filters = {}
 
-        if name and exact:
-            filters["name"] = name
-        elif name and not exact:
-            filters["search"] = name
+        if name:
+            filter_field = "name" if exact else "search"
+            filters[filter_field] = name
 
         page_reader = PageReader[PageProject, Project]()
         projects: list[Project] = self._invoke(
