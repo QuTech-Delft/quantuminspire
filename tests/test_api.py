@@ -1116,7 +1116,6 @@ def test_submit_job(
         patch.object(api_instance, "_get_job_options", return_value=resolved_options) as mocked_get_job_options,
         patch.object(api_instance, "_add_algorithm_to_settings") as mocked_resolve_algorithm_setting,
     ):
-
         # Act
         _ = api_instance._submit_job(file_path, algorithm_name, num_shots, store_raw_data, backend_type_id, persist)
 
@@ -1175,7 +1174,6 @@ def test_submit_job_persist_true_algorithm_name_none(
     mock_resource_manager: Mock,
     mock_config_manager: Mock,
 ) -> None:
-
     with pytest.raises(ValueError, match="algorithm_name must be provided when persist is True"):
         _ = api_instance._submit_job(Path(""), None, None, False, None, True)
 
@@ -1185,7 +1183,6 @@ def test_submit_job_persist_false_algorithm_name_none_backend_type_id_none(
     mock_resource_manager: Mock,
     mock_config_manager: Mock,
 ) -> None:
-
     with pytest.raises(ValueError, match="backend_type_id not provided"):
         _ = api_instance._submit_job(Path(""), None, None, False, None, False)
 
@@ -1207,18 +1204,6 @@ def test_resolve_protocol_https_works(mocker: MockerFixture) -> None:
     result_url = Api._resolve_protocol(test_url)
 
     assert result_url == f"https://{test_url}"
-
-
-def test_resolve_protocol_https_fails(mocker: MockerFixture) -> None:
-    test_url = "test_url.com"
-
-    mock_head_response = MagicMock()
-    mock_head_response.status_code = 404
-
-    mocker.patch("requests.head", return_value=mock_head_response)
-    result_url = Api._resolve_protocol(test_url)
-
-    assert result_url == f"http://{test_url}"
 
 
 def test_resolve_protocol_requests_raises_exception(mocker: MockerFixture) -> None:
@@ -1304,7 +1289,6 @@ def test_get_job_options(
     expected_store_raw_data: bool,
     resource_options: Dict[str, Any],
 ) -> None:
-
     local_algorithm = LocalAlgorithm(
         id=resource_options["algorithm_id"],
         job_id=None,
@@ -1600,7 +1584,6 @@ def test_set_algorithm_setting(api_instance: Api, mock_config_manager: Mock) -> 
     mock_config_manager.get.return_value = {algorithm_name: old_local_algorithm}
 
     with patch.object(api_instance, "_add_algorithm_to_settings") as mocked_resolve_algorithm_setting:
-
         # Act
         api_instance.set_algorithm_setting(algorithm_name, setting_name, new_value)
 

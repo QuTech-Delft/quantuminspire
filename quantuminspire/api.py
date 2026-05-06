@@ -29,7 +29,6 @@ __all__ = ["CompileStage", "Api"]
 
 
 class Api:
-
     @staticmethod
     def _refresh_auth_tokens(
         fn: Callable[Concatenate["Api", P], R],
@@ -779,9 +778,8 @@ class Api:
             return url
 
         try:
-            response = requests.head(f"https://{url}", timeout=3, allow_redirects=True)
-            if response.status_code < 400:
-                return f"https://{url}"
+            _ = requests.head(f"https://{url}", timeout=3, allow_redirects=True)
+            return f"https://{url}"
         except requests.RequestException:
             pass
 
