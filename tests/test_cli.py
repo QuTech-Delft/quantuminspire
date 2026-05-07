@@ -90,27 +90,95 @@ def test_initialize_project_with_path(mock_api: MagicMock) -> None:
     mock_api.initialize_project.assert_called_once_with("my-project", "", "/tmp/test")
 
 
+def test_list_projects_empty(mock_api: MagicMock) -> None:
+    mock_api.get_projects.return_value = []
+
+    result = runner.invoke(app, ["projects", "list"])
+
+    assert result.exit_code == 0, repr(result.exception)
+    mock_api.get_projects.assert_called_once_with(None, False)
+
+
 def test_list_projects_with_data(mock_api: MagicMock) -> None:
     mock_project = MagicMock()
     mock_project.id = 1
-    mock_project.name = "Test Project"
-    mock_project.description = "Test Description"
-    mock_project.created_on = datetime(2024, 1, 1, 0, 0, 0)
+    mock_project.name = "my-project"
+    mock_project.description = "desc"
+    mock_project.created_on = datetime(2024, 1, 1, 10, 0, 0)
     mock_project.starred = False
     mock_api.get_projects.return_value = [mock_project]
 
     result = runner.invoke(app, ["projects", "list"])
 
     assert result.exit_code == 0, repr(result.exception)
-    assert "Test Project" in result.stdout
+    mock_api.get_projects.assert_called_once_with(None, False)
 
 
-def test_delete_projects(mock_api: MagicMock) -> None:
+def test_list_projects_with_name_filter(mock_api: MagicMock) -> None:
+    mock_api.get_projects.return_value = []
+
+    result = runner.invoke(app, ["projects", "list", "--name", "my-project"])
+
+    assert result.exit_code == 0, repr(result.exception)
+    mock_api.get_projects.assert_called_once_with("my-project", False)
+
+
+def test_list_projects_with_exact(mock_api: MagicMock) -> None:
+    mock_api.get_projects.return_value = []
+
+    result = runner.invoke(app, ["projects", "list", "--exact"])
+
+    assert result.exit_code == 0, repr(result.exception)
+    mock_api.get_projects.assert_called_once_with(None, True)
+
+
+def test_list_projects_with_ids(mock_api: MagicMock) -> None:
+    mock_project = MagicMock()
+    mock_project.id = 42
+    mock_api.get_projects.return_value = [mock_project]
+
+    result = runner.invoke(app, ["projects", "list", "--quiet"])
+
+    assert result.exit_code == 0, repr(result.exception)
+    assert "42" in result.stdout
+    mock_api.get_projects.assert_called_once_with(None, False)
+
+
+def test_delete_projects_by_ids(mock_api: MagicMock) -> None:
+    result = runner.invoke(app, ["projects", "delete", "1", "2"], input="y\n")
+
+    assert result.exit_code == 0, repr(result.exception)
+    mock_api.delete_projects.assert_called_once_with([1, 2], None, False)
+
+
+def test_delete_projects_by_name(mock_api: MagicMock) -> None:
+    result = runner.invoke(app, ["projects", "delete", "--name", "my-project"], input="y\n")
+
+    assert result.exit_code == 0, repr(result.exception)
+    mock_api.delete_projects.assert_called_once_with(None, "my-project", False)
+
+
+def test_delete_projects_by_name_with_exact(mock_api: MagicMock) -> None:
+    result = runner.invoke(app, ["projects", "delete", "--name", "my-project", "--exact"], input="y\n")
+
+    assert result.exit_code == 0, repr(result.exception)
+    mock_api.delete_projects.assert_called_once_with(None, "my-project", True)
+
+
+def test_delete_all_projects(mock_api: MagicMock) -> None:
     result = runner.invoke(app, ["projects", "delete"], input="y\n")
 
     assert result.exit_code == 0, repr(result.exception)
-    assert "All projects deleted successfully." in result.stdout
-    mock_api.delete_projects.assert_called_once()
+    assert "This will delete ALL your projects" in result.stdout
+    mock_api.delete_projects.assert_called_once_with(None, None, False)
+
+
+def test_delete_projects_abort(mock_api: MagicMock) -> None:
+    result = runner.invoke(app, ["projects", "delete", "1"], input="n\n")
+
+    assert result.exit_code != 0
+    assert "Aborted" in result.stdout
+    mock_api.delete_projects.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
