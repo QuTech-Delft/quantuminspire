@@ -58,7 +58,9 @@ def logout(
 def run_job(
     file: Optional[Path] = typer.Option(None, help="The path to the hybrid algorithm or quantum circuit."),
     backend_type_id: Optional[int] = typer.Option(None, help="The backend type id."),
-    num_shots: Optional[int] = typer.Option(None, help="The number of shots."),
+    num_shots: Optional[int] = typer.Option(
+        None, help="The number of shots. Uses the backend type's default if not provided."
+    ),
     store_raw_data: Optional[bool] = typer.Option(False, help="Whether to store data for each shot."),
     name: Optional[str] = typer.Option(
         None, help="The name of a locally initialized algorithm whose settings will be used."

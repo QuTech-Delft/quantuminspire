@@ -120,6 +120,7 @@ def mock_job(mocker: MockerFixture) -> MagicMock:
 @pytest.fixture
 def mock_backend_type(mocker: MockerFixture) -> MagicMock:
     mock: MagicMock = mocker.MagicMock(spec=BackendType)
+    mock.default_number_of_shots = 2048
     return mock
 
 
@@ -402,6 +403,7 @@ def test_run_job_submission_flow(
     mock_file: File,
     mock_batch_job: BatchJob,
     mock_job: Job,
+    mock_backend_type: BackendType,
 ) -> None:
     with (
         patch.object(ResourceManager, "_run_create_commit_flow", return_value=mock_commit) as mock_commit_flow,
@@ -409,6 +411,7 @@ def test_run_job_submission_flow(
         patch.object(ResourceManager, "_create_batch_job", return_value=mock_batch_job) as mock_create_batch_job,
         patch.object(ResourceManager, "_create_job", return_value=mock_job) as mock_create_job,
         patch.object(ResourceManager, "_enqueue_batch_job") as mock_enqueue_batch_job,
+        patch.object(ResourceManager, "get_backend_type", return_value=mock_backend_type),
     ):
         result = resource_manager.run_job_submission_flow(job_options, owner_id=123)
 
@@ -419,6 +422,40 @@ def test_run_job_submission_flow(
             file_id=mock_file.id,
             batch_job_id=mock_batch_job.id,
             num_shots=job_options.number_of_shots,
+            raw_data_enabled=job_options.raw_data_enabled,
+        )
+        mock_enqueue_batch_job.assert_called_once_with(batch_job_id=mock_batch_job.id)
+        assert result.job_id == mock_job.id
+
+
+def test_run_job_submission_flow_no_shots(
+    resource_manager: ResourceManager,
+    job_options: JobOptions,
+    mock_commit: Commit,
+    mock_file: File,
+    mock_batch_job: BatchJob,
+    mock_job: Job,
+    mock_backend_type: BackendType,
+) -> None:
+    with (
+        patch.object(ResourceManager, "_run_create_commit_flow", return_value=mock_commit) as mock_commit_flow,
+        patch.object(ResourceManager, "_run_create_file_flow", return_value=mock_file) as mock_file_flow,
+        patch.object(ResourceManager, "_create_batch_job", return_value=mock_batch_job) as mock_create_batch_job,
+        patch.object(ResourceManager, "_create_job", return_value=mock_job) as mock_create_job,
+        patch.object(ResourceManager, "_enqueue_batch_job") as mock_enqueue_batch_job,
+        patch.object(ResourceManager, "get_backend_type", return_value=mock_backend_type),
+    ):
+        job_options.number_of_shots = None
+
+        result = resource_manager.run_job_submission_flow(job_options, owner_id=123)
+
+        mock_commit_flow.assert_called_once_with(resource_options=job_options, owner_id=123)
+        mock_file_flow.assert_called_once_with(resource_options=job_options, commit_id=mock_commit.id)
+        mock_create_batch_job.assert_called_once_with(backend_type_id=job_options.backend_type_id)
+        mock_create_job.assert_called_once_with(
+            file_id=mock_file.id,
+            batch_job_id=mock_batch_job.id,
+            num_shots=mock_backend_type.default_number_of_shots,
             raw_data_enabled=job_options.raw_data_enabled,
         )
         mock_enqueue_batch_job.assert_called_once_with(batch_job_id=mock_batch_job.id)
