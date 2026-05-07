@@ -139,7 +139,7 @@ class Api:
         Args:
             file_path: Path to the algorithm file to execute.
             backend_type_id: ID of the backend type to use. Required when persist is False.
-            num_shots: Number of shots to run.
+            num_shots: Number of shots to run. If not provided, the backend type's default number of shots will be used.
             store_raw_data: Whether to store raw data from the execution.
             algorithm_name: Name of the algorithm. Required when persist is True.
             persist: Whether to persist the algorithm and project settings locally.
@@ -266,17 +266,27 @@ class Api:
         self.set_setting("project.description", remote_project.description)
 
     @_refresh_auth_tokens
-    def get_projects(self) -> list[Project]:
+    def get_projects(self, name: Optional[str], exact: bool = False) -> list[Project]:
         """Retrieve all remote projects for the current user.
 
         Returns:
             A list of Project objects.
         """
-        return self._resource_manager.read_projects()
+        return self._resource_manager.read_projects(name, exact)
 
-    def delete_projects(self) -> None:
-        """Delete all remote projects."""
-        self._resource_manager.delete_projects()
+    def delete_projects(self, project_ids: Optional[List[int]], name: Optional[str], exact: bool = False) -> None:
+        """Delete remote projects."""
+        if project_ids:
+            ids = project_ids
+        else:
+            ids = [project.id for project in self.get_projects(name, exact)]
+            if name and not ids:
+                raise ValueError(f"No projects match the name or description '{name}'.")
+
+        self._resource_manager.delete_projects(ids)
+        for project_id in ids:
+            print(project_id)
+        print(f"{len(ids)} projects deleted successfully.")
 
     @_refresh_auth_tokens
     def initialize_algorithm(

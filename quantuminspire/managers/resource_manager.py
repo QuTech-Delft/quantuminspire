@@ -179,6 +179,7 @@ class ResourceManager:
         Returns:
             The updated JobOptions with all remote resource IDs populated, including the submitted job ID.
         """
+        backend_type = self.get_backend_type(job_options.backend_type_id)
         commit = self._run_create_commit_flow(resource_options=job_options, owner_id=owner_id)
         file = self._run_create_file_flow(resource_options=job_options, commit_id=commit.id)
 
@@ -187,7 +188,11 @@ class ResourceManager:
         job: Job = self._create_job(
             file_id=file.id,
             batch_job_id=batch_job.id,
-            num_shots=job_options.number_of_shots,
+            num_shots=(
+                job_options.number_of_shots
+                if job_options.number_of_shots is not None
+                else backend_type.default_number_of_shots
+            ),
             raw_data_enabled=job_options.raw_data_enabled,
         )
 
@@ -386,21 +391,28 @@ class ResourceManager:
         except (NotFoundException, ForbiddenException):
             return None
 
-    def read_projects(self) -> list[Project]:
+    def read_projects(self, name: Optional[str], exact: bool = False) -> list[Project]:
         """Retrieve all remote projects.
 
         Returns:
             A list of Project objects.
         """
+        filters = {}
+
+        if name:
+            filter_field = "name" if exact else "search"
+            filters[filter_field] = name
+
         page_reader = PageReader[PageProject, Project]()
-        projects: list[Project] = self._invoke(ProjectsApi, "read_projects_projects_get", page_reader=page_reader)
+        projects: list[Project] = self._invoke(
+            ProjectsApi, "read_projects_projects_get", page_reader=page_reader, **filters
+        )
         return projects
 
-    def delete_projects(self) -> None:
+    def delete_projects(self, project_ids: List[int]) -> None:
         """Delete all remote projects."""
-        projects = self.read_projects()
-        for project in projects:
-            self._invoke(ProjectsApi, "delete_project_projects_id_delete", project.id)
+        for project_id in project_ids:
+            self._invoke(ProjectsApi, "delete_project_projects_id_delete", project_id)
 
     def update_project(self, project_id: int, project_name: str, project_description: str) -> Project:
         """Update an existing remote project.
