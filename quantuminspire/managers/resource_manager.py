@@ -179,6 +179,7 @@ class ResourceManager:
         Returns:
             The updated JobOptions with all remote resource IDs populated, including the submitted job ID.
         """
+        backend_type = self.get_backend_type(job_options.backend_type_id)
         commit = self._run_create_commit_flow(resource_options=job_options, owner_id=owner_id)
         file = self._run_create_file_flow(resource_options=job_options, commit_id=commit.id)
 
@@ -187,7 +188,11 @@ class ResourceManager:
         job: Job = self._create_job(
             file_id=file.id,
             batch_job_id=batch_job.id,
-            num_shots=job_options.number_of_shots,
+            num_shots=(
+                job_options.number_of_shots
+                if job_options.number_of_shots is not None
+                else backend_type.default_number_of_shots
+            ),
             raw_data_enabled=job_options.raw_data_enabled,
         )
 
