@@ -925,6 +925,91 @@ def test_enqueue_batch_job(resource_manager: ResourceManager, mock_batch_job: Ba
         mock_invoke.assert_called_once_with(BatchJobsApi, "enqueue_batch_job_batch_jobs_id_enqueue_patch", 1)
 
 
+def test_read_projects_no_name(resource_manager: ResourceManager, mock_project: Project, mocker: MockerFixture) -> None:
+    mock_page_reader_instance = mocker.MagicMock()
+    mock_projects = [mock_project]
+
+    with (
+        patch.object(ResourceManager, "_invoke", return_value=mock_projects) as mock_invoke,
+        patch("quantuminspire.managers.resource_manager.PageReader") as mock_page_reader_class,
+    ):
+        mock_page_reader_class.__getitem__.return_value.return_value = mock_page_reader_instance
+
+        result = resource_manager.read_projects(name=None)
+
+        mock_invoke.assert_called_once_with(
+            ProjectsApi,
+            "read_projects_projects_get",
+            page_reader=mock_page_reader_instance,
+        )
+        assert result == mock_projects
+
+
+def test_read_projects_with_name_exact(
+    resource_manager: ResourceManager, mock_project: Project, mocker: MockerFixture
+) -> None:
+    mock_page_reader_instance = mocker.MagicMock()
+    mock_projects = [mock_project]
+
+    with (
+        patch.object(ResourceManager, "_invoke", return_value=mock_projects) as mock_invoke,
+        patch("quantuminspire.managers.resource_manager.PageReader") as mock_page_reader_class,
+    ):
+        mock_page_reader_class.__getitem__.return_value.return_value = mock_page_reader_instance
+
+        result = resource_manager.read_projects(name="Dummy project", exact=True)
+
+        mock_invoke.assert_called_once_with(
+            ProjectsApi,
+            "read_projects_projects_get",
+            page_reader=mock_page_reader_instance,
+            name="Dummy project",
+        )
+        assert result == mock_projects
+
+
+def test_read_projects_with_name_not_exact(
+    resource_manager: ResourceManager, mock_project: Project, mocker: MockerFixture
+) -> None:
+    mock_page_reader_instance = mocker.MagicMock()
+    mock_projects = [mock_project]
+
+    with (
+        patch.object(ResourceManager, "_invoke", return_value=mock_projects) as mock_invoke,
+        patch("quantuminspire.managers.resource_manager.PageReader") as mock_page_reader_class,
+    ):
+        mock_page_reader_class.__getitem__.return_value.return_value = mock_page_reader_instance
+
+        result = resource_manager.read_projects(name="Dummy project", exact=False)
+
+        mock_invoke.assert_called_once_with(
+            ProjectsApi,
+            "read_projects_projects_get",
+            page_reader=mock_page_reader_instance,
+            search="Dummy project",
+        )
+        assert result == mock_projects
+
+
+def test_delete_projects(resource_manager: ResourceManager) -> None:
+    project_ids = [1, 2, 3]
+
+    with patch.object(ResourceManager, "_invoke") as mock_invoke:
+        resource_manager.delete_projects(project_ids)
+
+        assert mock_invoke.call_count == len(project_ids)
+        mock_invoke.assert_any_call(ProjectsApi, "delete_project_projects_id_delete", 1)
+        mock_invoke.assert_any_call(ProjectsApi, "delete_project_projects_id_delete", 2)
+        mock_invoke.assert_any_call(ProjectsApi, "delete_project_projects_id_delete", 3)
+
+
+def test_delete_projects_empty_list(resource_manager: ResourceManager) -> None:
+    with patch.object(ResourceManager, "_invoke") as mock_invoke:
+        resource_manager.delete_projects([])
+
+        mock_invoke.assert_not_called()
+
+
 def test_get_backend_type(resource_manager: ResourceManager, mock_backend_type: BackendType) -> None:
     with patch.object(ResourceManager, "_invoke", return_value=mock_backend_type) as mock_invoke:
         result = resource_manager.get_backend_type(backend_type_id=1)
@@ -935,40 +1020,3 @@ def test_get_backend_type(resource_manager: ResourceManager, mock_backend_type: 
             1,
         )
         assert result == mock_backend_type
-
-
-def test_read_projects(resource_manager: ResourceManager, mock_project: Project, mocker: MockerFixture) -> None:
-    mock_projects = [mock_project]
-    mock_page_reader_instance = mocker.MagicMock()
-
-    with (
-        patch.object(ResourceManager, "_invoke", return_value=mock_projects) as mock_invoke,
-        patch("quantuminspire.managers.resource_manager.PageReader") as mock_page_reader_class,
-    ):
-        mock_page_reader_class.__getitem__.return_value.return_value = mock_page_reader_instance
-
-        result = resource_manager.read_projects()
-
-        mock_invoke.assert_called_once_with(
-            ProjectsApi,
-            "read_projects_projects_get",
-            page_reader=mock_page_reader_instance,
-        )
-        assert result == mock_projects
-
-
-def test_delete_projects(resource_manager: ResourceManager, mock_project: Project, mocker: MockerFixture) -> None:
-    mock_projects = [mock_project]
-
-    with (
-        patch.object(ResourceManager, "read_projects", return_value=mock_projects) as mock_read_projects,
-        patch.object(ResourceManager, "_invoke") as mock_invoke,
-    ):
-        resource_manager.delete_projects()
-
-        mock_read_projects.assert_called_once()
-        mock_invoke.assert_called_once_with(
-            ProjectsApi,
-            "delete_project_projects_id_delete",
-            mock_project.id,
-        )

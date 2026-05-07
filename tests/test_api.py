@@ -277,14 +277,85 @@ def test_get_backend_type(api_instance: Api, mocker: MockerFixture) -> None:
 
 def test_get_projects(api_instance: Api, mocker: MockerFixture) -> None:
     read_projects_mock = mocker.patch.object(api_instance._resource_manager, "read_projects")
-    api_instance.get_projects()
-    read_projects_mock.assert_called_once()
+    name = "project name"
+    exact = True
+    api_instance.get_projects(name, exact)
+    read_projects_mock.assert_called_once_with(name, exact)
 
 
-def test_delete_projects(api_instance: Api, mocker: MockerFixture) -> None:
-    delete_projects_mock = mocker.patch.object(api_instance._resource_manager, "delete_projects")
-    api_instance.delete_projects()
-    delete_projects_mock.assert_called_once()
+def test_delete_projects_with_project_ids(
+    api_instance: Api, mock_resource_manager: Mock, mocker: MockerFixture, capsys: pytest.CaptureFixture[str]
+) -> None:
+    project_ids = [1, 2, 3]
+    mock_delete = mocker.patch.object(mock_resource_manager, "delete_projects")
+    mock_get_projects = mocker.patch.object(api_instance, "get_projects")
+
+    api_instance.delete_projects(project_ids, name=None)
+
+    mock_delete.assert_called_once_with(project_ids)
+    mock_get_projects.assert_not_called()
+    captured = capsys.readouterr()
+    assert "3 projects deleted successfully." in captured.out
+
+
+def test_delete_projects_with_name_finds_projects(
+    api_instance: Api, mock_resource_manager: Mock, mocker: MockerFixture, capsys: pytest.CaptureFixture[str]
+) -> None:
+    name = "MyProject"
+    exact = False
+    project1 = MagicMock(spec=Project)
+    project1.id = 10
+    project2 = MagicMock(spec=Project)
+    project2.id = 20
+    mock_get_projects = mocker.patch.object(api_instance, "get_projects", return_value=[project1, project2])
+    mock_delete = mocker.patch.object(mock_resource_manager, "delete_projects")
+
+    api_instance.delete_projects(None, name=name, exact=exact)
+
+    mock_get_projects.assert_called_once_with(name, exact)
+    mock_delete.assert_called_once_with([10, 20])
+    captured = capsys.readouterr()
+    assert "2 projects deleted successfully." in captured.out
+
+
+def test_delete_projects_with_name_no_projects_found_raises(
+    api_instance: Api, mock_resource_manager: Mock, mocker: MockerFixture
+) -> None:
+    name = "NonExistentProject"
+    mocker.patch.object(api_instance, "get_projects", return_value=[])
+
+    with pytest.raises(ValueError, match=f"No projects match the name or description '{name}'."):
+        api_instance.delete_projects(None, name=name)
+
+
+def test_delete_projects_with_no_ids_and_no_name(
+    api_instance: Api, mock_resource_manager: Mock, mocker: MockerFixture, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # Arrange
+    mocker.patch.object(api_instance, "get_projects", return_value=[])
+    mock_delete = mocker.patch.object(mock_resource_manager, "delete_projects")
+
+    api_instance.delete_projects(None, name=None)
+
+    mock_delete.assert_called_once_with([])
+    captured = capsys.readouterr()
+    assert "0 projects deleted successfully." in captured.out
+
+
+def test_delete_projects_with_exact_match(
+    api_instance: Api, mock_resource_manager: Mock, mocker: MockerFixture
+) -> None:
+    # Arrange
+    name = "ExactProject"
+    exact = True
+    project = MagicMock(spec=Project)
+    project.id = 5
+    mock_get_projects = mocker.patch.object(api_instance, "get_projects", return_value=[project])
+    mocker.patch.object(mock_resource_manager, "delete_projects")
+
+    api_instance.delete_projects(None, name=name, exact=exact)
+
+    mock_get_projects.assert_called_once_with(name, exact)
 
 
 def test_execute_algorithm(api_instance: Api, mocker: MockerFixture) -> None:
