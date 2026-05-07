@@ -391,21 +391,28 @@ class ResourceManager:
         except (NotFoundException, ForbiddenException):
             return None
 
-    def read_projects(self) -> list[Project]:
+    def read_projects(self, name: Optional[str], exact: bool = False) -> list[Project]:
         """Retrieve all remote projects.
 
         Returns:
             A list of Project objects.
         """
+        filters = {}
+
+        if name:
+            filter_field = "name" if exact else "search"
+            filters[filter_field] = name
+
         page_reader = PageReader[PageProject, Project]()
-        projects: list[Project] = self._invoke(ProjectsApi, "read_projects_projects_get", page_reader=page_reader)
+        projects: list[Project] = self._invoke(
+            ProjectsApi, "read_projects_projects_get", page_reader=page_reader, **filters
+        )
         return projects
 
-    def delete_projects(self) -> None:
+    def delete_projects(self, project_ids: List[int]) -> None:
         """Delete all remote projects."""
-        projects = self.read_projects()
-        for project in projects:
-            self._invoke(ProjectsApi, "delete_project_projects_id_delete", project.id)
+        for project_id in project_ids:
+            self._invoke(ProjectsApi, "delete_project_projects_id_delete", project_id)
 
     def update_project(self, project_id: int, project_name: str, project_description: str) -> Project:
         """Update an existing remote project.
