@@ -142,7 +142,7 @@ class Api:
             num_shots: Number of shots to run. If not provided, the backend type's default number of shots will be used.
             store_raw_data: Whether to store raw data from the execution.
             algorithm_name: Name of the algorithm. Required when persist is True.
-            persist: Whether to persist the algorithm and project settings locally.
+            persist: Whether to persist the algorithm settings locally.
 
         Returns:
             A JobOptions object containing details about the submitted job.
@@ -377,7 +377,7 @@ class Api:
             num_shots: Number of shots to run.
             store_raw_data: Whether to store raw data from the execution.
             backend_type_id: ID of the backend type to use. Required when persist is False.
-            persist: Whether to persist the project and algorithm settings locally.
+            persist: Whether to persist the algorithm settings locally.
 
         Returns:
             A JobOptions object containing details about the submitted job.
