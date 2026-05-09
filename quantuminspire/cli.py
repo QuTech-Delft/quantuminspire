@@ -234,6 +234,18 @@ def get_backend_type(
     console.print(backend_type.model_dump())
 
 
+@backend_types_app.command("queue")
+def get_queue(
+    backend_type_id: int = typer.Argument(None, help="The ID of the backend type to retrieve."),
+    user_only: bool = typer.Option(False, help="Whether to only show the user's position in the queue."),
+) -> None:
+    """Retrieve information about the queue for a specific backend type."""
+    api = Api()
+    typer.secho(f"Retrieving queue for backend type with ID '{backend_type_id}'...", fg=typer.colors.BLUE)
+    queue = api.get_queue(backend_type_id=backend_type_id, user_only=user_only)
+    console.print(queue.model_dump())
+
+
 @files_app.command("compile")
 def compile_file(
     file: Optional[Path] = typer.Option(None, help="The path to the algorithm file to compile."),
