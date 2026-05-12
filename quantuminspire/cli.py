@@ -237,7 +237,7 @@ def get_backend_type(
 @backend_types_app.command("queue")
 def get_queue(
     backend_type_id: int = typer.Argument(None, help="The ID of the backend type to retrieve."),
-    user_only: bool = typer.Option(False, help="Whether to only show the user's position in the queue."),
+    user_only: bool = typer.Option(False, help="Only show the user's number of jobs in the queue."),
 ) -> None:
     """Retrieve information about the queue for a specific backend type."""
     api = Api()
