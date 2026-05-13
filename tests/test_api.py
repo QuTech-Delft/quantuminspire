@@ -268,11 +268,31 @@ def test_get_backend_types(api_instance: Api) -> None:
     get_backend_types_mock.assert_called_once()
 
 
+def test_get_queue_without_user_only(api_instance: Api) -> None:
+    # Arrange & act
+    api_instance.get_queue(backend_type_id=1)
+
+    # assert
+    get_queue_mock = cast(Mock, api_instance._resource_manager.get_queue)
+
+    get_queue_mock.assert_called_once_with(1, user_only=False)
+
+
 def test_get_backend_type(api_instance: Api, mocker: MockerFixture) -> None:
     backend_type_id = 1
     get_backend_type_mock = mocker.patch.object(api_instance._resource_manager, "get_backend_type")
     api_instance.get_backend_type(backend_type_id)
     get_backend_type_mock.assert_called_once_with(backend_type_id)
+
+
+def test_get_queue_only_for_user(api_instance: Api) -> None:
+    # Arrange & act
+    api_instance.get_queue(backend_type_id=1, user_only=True)
+
+    # assert
+    get_queue_mock = cast(Mock, api_instance._resource_manager.get_queue)
+
+    get_queue_mock.assert_called_once_with(1, user_only=True)
 
 
 def test_get_projects(api_instance: Api, mocker: MockerFixture) -> None:

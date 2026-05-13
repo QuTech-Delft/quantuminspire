@@ -32,6 +32,7 @@ from compute_api_client import (
     ProjectIn,
     ProjectPatch,
     ProjectsApi,
+    Queue,
     Result,
     ResultsApi,
     ShareType,
@@ -121,6 +122,13 @@ def mock_job(mocker: MockerFixture) -> MagicMock:
 def mock_backend_type(mocker: MockerFixture) -> MagicMock:
     mock: MagicMock = mocker.MagicMock(spec=BackendType)
     mock.default_number_of_shots = 2048
+    return mock
+
+
+@pytest.fixture
+def mock_queue(mocker: MockerFixture) -> MagicMock:
+    mock: MagicMock = mocker.MagicMock(spec=Queue)
+    mock.number_of_shots_in_queue = 2
     return mock
 
 
@@ -333,6 +341,17 @@ def test_get_final_result(resource_manager: ResourceManager, mock_final_result: 
             "read_final_result_by_job_id_final_results_job_job_id_get",
             1,
         )
+
+
+def test_get_queue(resource_manager: ResourceManager, mock_queue: Queue, mocker: MockerFixture) -> None:
+    with patch.object(ResourceManager, "_invoke", return_value=mock_queue) as mock_invoke:
+        result = resource_manager.get_queue(backend_type_id=1)
+
+        print(mock_invoke.call_args_list)
+        mock_invoke.assert_called_once_with(
+            BackendTypesApi, "read_backend_type_queue_backend_types_id_queue_get", 1, user_only=False
+        )
+        assert result == mock_queue
 
 
 def test_get_algorithm_type_hybrid() -> None:

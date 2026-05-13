@@ -36,6 +36,7 @@ from compute_api_client import (
     ProjectIn,
     ProjectPatch,
     ProjectsApi,
+    Queue,
     Result,
     ResultsApi,
     ShareType,
@@ -341,6 +342,20 @@ class ResourceManager:
             ResultsApi, "read_results_by_job_id_results_job_job_id_get", page_reader=page_reader, job_id=job_id
         )
         return results
+
+    def get_queue(self, backend_type_id: int, user_only: bool = False) -> Queue:
+        """Retrieve the current size of the queue.
+
+        Args:
+            backend_type_id: The ID of the backend to check the queue size for.
+            user_only: Whether to consider only the user's jobs in the queue.
+
+        Returns:
+            The current queue size of the backend, or None if the backend is not available.
+        """
+        return self._invoke(
+            BackendTypesApi, "read_backend_type_queue_backend_types_id_queue_get", backend_type_id, user_only=user_only
+        )
 
     @staticmethod
     def get_algorithm_type(file_path: Path) -> AlgorithmType:
