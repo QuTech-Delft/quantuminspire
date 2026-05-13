@@ -13,6 +13,7 @@ from compute_api_client import (
     Job,
     JobStatus,
     Project,
+    Queue,
     Result,
 )
 from pydantic import TypeAdapter
@@ -440,6 +441,19 @@ class Api:
             The backend type.
         """
         return self._resource_manager.get_backend_type(backend_type_id)
+
+    @_refresh_auth_tokens
+    def get_queue(self, backend_type_id: int, user_only: bool = False) -> Queue:
+        """Retrieve the current size of the queue.
+
+        Args:
+            backend_type_id: The ID of the backend to check the queue size for.
+            user_only: Whether to consider only the user's jobs in the queue.
+
+        Returns:
+            The current queue size of the backend, or None if the backend is not available.
+        """
+        return self._resource_manager.get_queue(backend_type_id, user_only=user_only)
 
     @_refresh_auth_tokens
     def get_job(self, job_id: Optional[int] = None, algorithm_name: Optional[str] = None) -> Job:

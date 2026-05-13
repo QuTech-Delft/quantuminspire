@@ -452,6 +452,42 @@ def test_get_backend_type(mock_api: MagicMock) -> None:
     mock_api.get_backend_type.assert_called_once_with(1)
 
 
+def test_get_queue(mock_api: MagicMock) -> None:
+    backend_type_id = 1
+    mock_queue = MagicMock()
+    mock_queue.model_dump.return_value = {
+        "number_of_jobs_in_queue": 2,
+        "min_wait_time_in_queue_secs": 12.0,
+        "avg_wait_time_in_queue_secs": 13.0,
+        "max_wait_time_in_queue_secs": 14.0,
+    }
+    mock_api.get_queue.return_value = mock_queue
+
+    result = runner.invoke(app, ["backends", "queue", str(backend_type_id)])
+
+    assert result.exit_code == 0, repr(result.exception)
+    assert f"Retrieving queue for backend type with ID '{backend_type_id}'..." in result.stdout
+    mock_api.get_queue.assert_called_once_with(backend_type_id=backend_type_id, user_only=False)
+
+
+def test_get_user_queue(mock_api: MagicMock) -> None:
+    backend_type_id = 1
+    mock_queue = MagicMock()
+    mock_queue.model_dump.return_value = {
+        "number_of_jobs_in_queue": 2,
+        "min_wait_time_in_queue_secs": 12.0,
+        "avg_wait_time_in_queue_secs": 13.0,
+        "max_wait_time_in_queue_secs": 14.0,
+    }
+    mock_api.get_queue.return_value = mock_queue
+
+    result = runner.invoke(app, ["backends", "queue", str(backend_type_id), "--user-only"])
+
+    assert result.exit_code == 0, repr(result.exception)
+    assert f"Retrieving queue for backend type with ID '{backend_type_id}'..." in result.stdout
+    mock_api.get_queue.assert_called_once_with(backend_type_id=backend_type_id, user_only=True)
+
+
 # ---------------------------------------------------------------------------
 # Jobs: run
 # ---------------------------------------------------------------------------
