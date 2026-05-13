@@ -136,6 +136,8 @@ def main() -> None:
         With this Quantum Inspire CLI, you can manage your projects, algorithms and jobs on the Quantum Inspire system
         from your command line. Before you start, please login to the system using:
 
+
+
             \b
             qi login
 
@@ -143,12 +145,16 @@ def main() -> None:
 
         If you want to simply run a job on the system and not save any settings, you can run the command:
 
+
+
             \b
             qi run --file <path to .cq or .py file> --backend-type-id <int>
 
 
 
         This will return the job ID. You can retrieve status, results and final result of the job by running:
+
+
 
             \b
             qi jobs status|result|final-result <job ID>
@@ -161,7 +167,11 @@ def main() -> None:
 
         If you want to persist the settings of an algorithm locally, the workflow is as follows:
 
+
+
         1. Initialize a project:
+
+
 
                 \b
                 qi projects init <project name> <optional project description>
@@ -170,12 +180,16 @@ def main() -> None:
 
         2a. Immediately run a job with flag --persist and mandatory algorithm name --name:
 
+
+
                 \b
                 qi run --file <path to .cq or .py file> --backend-type-id <int> --name <algorithm name> --persist
 
 
 
         2b.  Initialize an algorithm with the settings you want to use first, then run a job with that algorithm name:
+
+
 
                 \b
                 qi algorithms init --name <algorithm-name> --path <path to .cq or .py file> --backend-type-id <int>
@@ -185,12 +199,16 @@ def main() -> None:
 
             Then, you can run the algorithm using:
 
-            \b
+
+
+                \b
                 qi run --name <algorithm-name>
 
 
 
         3. Retrieve the status, results and final result of the latest job of the algorithm using:
+
+
 
                 \b
                 qi algorithms status|results|final-result <algorithm-name>
