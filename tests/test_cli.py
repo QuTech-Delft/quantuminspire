@@ -533,7 +533,7 @@ def test_run_job_with_persist(mock_api: MagicMock) -> None:
     result = runner.invoke(app, ["run", "--file", "path/to/file", "--persist"])
 
     assert result.exit_code == 0, repr(result.exception)
-    assert "The project and algorithm have been stored." in result.stdout
+    assert "The algorithm has been stored." in result.stdout
     mock_api.execute_algorithm.assert_called_once_with(Path("path/to/file"), None, None, False, None, True)
 
 

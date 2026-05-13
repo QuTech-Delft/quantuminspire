@@ -6,9 +6,12 @@ import typer
 from compute_api_client import BackendType, CompileStage, FinalResult, Job, Result
 from rich.console import Console
 from rich.table import Table
-from typer import Typer
+from typer import Typer, rich_utils
 
 from quantuminspire.api import Api
+
+rich_utils.STYLE_HELPTEXT = "default not dim"
+rich_utils.STYLE_HELPTEXT_FIRST_LINE = "default not dim"
 
 app = Typer(add_completion=False, no_args_is_help=True)
 projects_app = Typer(no_args_is_help=True)
@@ -18,14 +21,210 @@ config_app = Typer(no_args_is_help=True)
 jobs_app = Typer(no_args_is_help=True)
 files_app = Typer(no_args_is_help=True)
 
-app.add_typer(projects_app, name="projects", help="Manage projects")
-app.add_typer(algorithms_app, name="algorithms", help="Manage algorithms")
-app.add_typer(backend_types_app, name="backends", help="Manage backends")
-app.add_typer(files_app, name="files", help="Manage files")
-app.add_typer(jobs_app, name="jobs", help="Manage jobs")
-app.add_typer(config_app, name="config", help="Manage configuration")
+app.add_typer(projects_app, name="projects")
+app.add_typer(algorithms_app, name="algorithms")
+app.add_typer(backend_types_app, name="backends")
+app.add_typer(files_app, name="files")
+app.add_typer(jobs_app, name="jobs")
+app.add_typer(config_app, name="config")
 
 console = Console()
+
+
+@projects_app.callback()
+def projects_callback() -> None:
+    """Manage projects on the Quantum Inspire platform.
+
+    A project is the top-level container for algorithms and jobs. You must initialize a
+    project locally before you can initialize algorithms or run jobs with --persist.
+
+    \b
+    Examples:
+      qi projects init "My Project" "Optional description"
+      qi projects list --name "My"
+      qi projects delete 42
+    """
+
+
+@algorithms_app.callback()
+def algorithms_callback() -> None:
+    """Manage locally initialized algorithms.
+
+    An algorithm stores the settings (file path, backend type, number of shots, raw-data
+    flag) needed to repeatedly submit jobs without re-specifying them every time.
+    Algorithms must belong to a project that was initialized with 'qi projects init'.
+
+    \b
+    Examples:
+      qi algorithms init my-algo circuit.cq 3
+      qi algorithms status my-algo --wait
+      qi algorithms results my-algo --save True
+      qi algorithms final-result my-algo
+    """
+
+
+@backend_types_app.callback()
+def backends_callback() -> None:
+    """Inspect available backend types on the Quantum Inspire platform.
+
+    Backend types represent the simulators and quantum hardware you can run jobs on.
+    Use the backend type ID when submitting jobs with 'qi run' or 'qi algorithms init'.
+
+    \b
+    Examples:
+      qi backends list
+      qi backends get 3
+    """
+
+
+@files_app.callback()
+def files_callback() -> None:
+    """Perform file-level operations on algorithm files.
+
+    Currently supports compiling cQASM (.cq) files against a specific backend type.
+    Hybrid Python (.py) files are not supported for compilation.
+
+    \b
+    Examples:
+      qi files compile --file circuit.cq --backend-type-id 3
+      qi files compile --name my-algo --compile-stage mapping
+    """
+
+
+@jobs_app.callback()
+def jobs_callback() -> None:
+    """Inspect and retrieve results for jobs on the Quantum Inspire platform.
+
+    Jobs are created when you run 'qi run'. Use the job ID printed by that command
+    to check status and retrieve results here.
+
+    \b
+    Examples:
+      qi jobs inspect 101
+      qi jobs status 101 --wait --timeout 120
+      qi jobs results 101 --save True
+      qi jobs final-result 101
+    """
+
+
+@config_app.callback()
+def config_callback() -> None:
+    """Read and write local configuration settings.
+
+    Configuration is stored at two levels:
+
+    \b
+      Project level  Settings specific to the project in the current directory.
+                     Keys: project.id, project.name, project.description,
+                           project.algorithms.<name>.*
+      User level     Global settings shared across all projects.
+                     Keys: default_host
+
+    \b
+    Examples:
+      qi config get project.name
+      qi config set default_host quantuminspire.com --user
+      qi config get file_path --algorithm my-algo
+      qi config set backend_type_id 3 --algorithm my-algo
+    """
+
+
+@app.callback()
+def main() -> None:
+    """Quantum Inspire CLI.
+
+    With this Quantum Inspire CLI, you can manage your projects, algorithms
+    and jobs on the Quantum Inspire system from your command line.
+    Before you start, please login to the system using:
+
+
+
+        \b
+        qi login
+
+
+
+    If you want to simply run a job on the system and not save any settings,
+    you can run the command:
+
+
+
+        \b
+        qi run --file <path to .cq or .py file> --backend-type-id <int>
+
+
+
+    This will return the job ID. You can retrieve status, results and final
+    result of the job by running:
+
+
+
+        \b
+        qi jobs status|result|final-result <job ID>
+
+
+
+    See qi run --help for additional optional settings.
+
+
+
+    If you want to persist the settings of an algorithm locally, the workflow
+    is as follows:
+
+
+
+    1. Initialize a project:
+
+
+
+        \b
+        qi projects init <project name> <optional project description>
+
+
+
+    2a. Immediately run a job with flag --persist and mandatory algorithm
+    name --name:
+
+
+
+        \b
+        qi run --file <path to .cq or .py file> --backend-type-id <int> --name <algorithm name> --persist
+
+
+
+    2b. Initialize an algorithm with the settings you want to use first,
+    then run a job with that algorithm name:
+
+
+
+        \b
+        qi algorithms init --name <algorithm-name> --path <path to .cq or .py file> --backend-type-id <int>
+    --num-shots <int> --store-raw-data <bool>
+
+
+
+    Then, you can run the algorithm using:
+
+
+
+        \b
+        qi run --name <algorithm-name>
+
+
+
+    3. Retrieve the status, results and final result of the latest job of
+    the algorithm using:
+
+
+
+        \b
+        qi algorithms status|results|final-result <algorithm-name>
+
+
+
+    For more details about the commands and additional flags, see
+    qi [OPTION] --help or qi [OPTION] [COMMAND] --help
+    """
 
 
 @app.command("login")
@@ -75,7 +274,7 @@ def run_job(
     api = Api()
     api.execute_algorithm(file, backend_type_id, num_shots, store_raw_data, name, persist)
     if persist:
-        typer.echo("The project and algorithm have been stored.")
+        typer.echo("The algorithm has been stored.")
 
 
 @projects_app.command("init")
@@ -87,7 +286,7 @@ def initialize_project(
         help="Local path where the project settings should be stored. Uses the current directory if not provided.",
     ),
 ) -> None:
-    """Initialize a project."""
+    """Create a new project on the platform and store its settings locally."""
     api = Api()
     api.initialize_project(name, description, path)
     directory = path if path else Path.cwd()
@@ -100,7 +299,7 @@ def list_projects(
     exact: bool = typer.Option(False, help="If set, match project name exactly instead of substring search"),
     quiet: bool = typer.Option(False, "-q", "--quiet", help="Only print the IDs of the projects."),
 ) -> None:
-    """List all projects."""
+    """List all your projects, with optional name filtering."""
     api = Api()
     projects = api.get_projects(name, exact)
 
@@ -127,7 +326,7 @@ def delete_projects(
     name: Optional[str] = typer.Option(None, help="Delete projects matching this name or description pattern"),
     exact: bool = typer.Option(False, help="If set, match project name exactly instead of substring search"),
 ) -> None:
-    """Delete projects."""
+    """Permanently delete one or more projects by ID or name pattern."""
     if not (project_ids or name):
         confirm_message = "You did not provide a name or IDs. This will delete ALL your projects. Are you sure?"
     else:
@@ -148,7 +347,7 @@ def initialize_algorithm(
     num_shots: Optional[int] = typer.Option(None, help="The number of shots to use"),
     store_raw_data: Optional[bool] = typer.Option(False, help="Whether to store the raw data or not. Default False"),
 ) -> None:
-    """Initialize an algorithm and store its settings locally."""
+    """Register an algorithm and save its settings to the local config."""
     api = Api()
     api.initialize_algorithm(name, Path(path), backend_type_id, num_shots, store_raw_data)
     typer.echo(f"Algorithm '{name}' initialized successfully in local config.")
@@ -198,7 +397,7 @@ def get_algorithm_final_result(
 
 @backend_types_app.command("list")
 def get_backend_types() -> None:
-    """List all available backend types."""
+    """Show all available backend types and their properties."""
     api = Api()
     backend_types: list[BackendType] = api.get_backend_types()
     table = Table(
@@ -257,10 +456,7 @@ def compile_file(
         None, help="The stage up to which the algorithm should be compiled. Default Decomposition."
     ),
 ) -> None:
-    """Compile an algorithm file.
-
-    Only works for CQASM files, not hybrid ones.
-    """
+    """Compile a cQASM file up to a specified compilation stage."""
     api = Api()
     api.compile_file(file, name, backend_type_id, compile_stage)
     typer.echo("File compiled successfully!")
@@ -270,7 +466,7 @@ def compile_file(
 def inspect_job(
     job_id: int = typer.Argument(..., help="The ID of the job to retrieve."),
 ) -> None:
-    """Retrieve detailed information about a specific job."""
+    """Show all properties of a specific job."""
     api = Api()
     typer.secho(f"Retrieving job with ID '{job_id}'...", fg=typer.colors.BLUE)
     job: Job = api.get_job(job_id)
