@@ -58,6 +58,8 @@ qi run --file <path to .cq or .py file> --backend-type-id <int>
 This will return a job ID. You can optionally specify `--num-shots`, `--store-raw-data`, and `--name`. Use `--persist` together with `--name` to store the project and algorithm settings locally for repeated use.
 If you use the `--persist` flag, you first have to initialize a project with `qi projects init <name>`.
 
+**IMPORTANT**: Submitting a (python) `.py` file for hybrid algorithms requires a [specific format](https://qutech-delft.github.io/qiskit-quantuminspire/hybrid/basics.html).
+Not all `.py` files are valid for submission.
 ---
 
 ## Projects
@@ -244,6 +246,8 @@ qi algorithms final-result <algorithm_name>
 
 Use `--save` to save the final result to a JSON file in the current directory.
 
+**Note**: This object will always be generated. In the case of a quantum circuit, the result and final result will be the same. For hybrid algorithms, the final result is a free form datastructure that could for example be used for the aggregation of data. This is generated in the `finalize` step.
+
 ---
 
 ## Jobs
@@ -284,6 +288,8 @@ qi jobs final-result <job_id>
 ```
 
 Use `--save` to save the final result to a JSON file in the current directory.
+
+**Note**: This object will always be generated. In the case of a quantum circuit, the result and final result will be the same. For hybrid algorithms, the final result is a free form datastructure that could for example be used for the aggregation of data. This is generated in the `finalize` step.
 
 ---
 
