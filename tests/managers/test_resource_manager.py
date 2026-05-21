@@ -957,9 +957,7 @@ def test_read_projects_no_name(resource_manager: ResourceManager, mock_project: 
         result = resource_manager.read_projects(name=None)
 
         mock_invoke.assert_called_once_with(
-            ProjectsApi,
-            "read_projects_projects_get",
-            page_reader=mock_page_reader_instance,
+            ProjectsApi, "read_projects_projects_get", page_reader=mock_page_reader_instance, sort_by="-id"
         )
         assert result == mock_projects
 
@@ -983,6 +981,7 @@ def test_read_projects_with_name_exact(
             "read_projects_projects_get",
             page_reader=mock_page_reader_instance,
             name="Dummy project",
+            sort_by="-id",
         )
         assert result == mock_projects
 
@@ -1006,6 +1005,7 @@ def test_read_projects_with_name_not_exact(
             "read_projects_projects_get",
             page_reader=mock_page_reader_instance,
             search="Dummy project",
+            sort_by="-id",
         )
         assert result == mock_projects
 
