@@ -403,6 +403,7 @@ class ResourceManager:
             filter_field = "name" if exact else "search"
             filters[filter_field] = name
 
+        filters["sort_by"] = "-id"
         page_reader = PageReader[PageProject, Project]()
         projects: list[Project] = self._invoke(
             ProjectsApi, "read_projects_projects_get", page_reader=page_reader, **filters
