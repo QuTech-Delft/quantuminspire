@@ -40,10 +40,22 @@ jobs:
         with:
           python-version: 3.12
           poetry-version: 2.2.1
+  e2e-test:
+    uses: QuTech-Delft/Github-Actions/.github/workflows/poetry-tests.yaml@master
+    with:
+      e2e_path: 'tests/e2e_test.py'
+      idp_url: 'https://quantum-inspire-staging.eu.auth0.com'
+      default_host: 'https://staging.qi2.quantum-inspire.com'
+      api_audience: 'compute-job-manager'
+    secrets:
+      e2e_username:  ${{ secrets.E2E_USERNAME }}
+      e2e_password:  ${{ secrets.E2E_PASSWORD }}
+      idp_client_id: ${{ secrets.IDP_CLIENT_ID }}
+
   complete:
     # see https://github.community/t/status-check-for-a-matrix-jobs/127354/7
     name: Report status
-    needs: [lint, unit-test]
+    needs: [lint, unit-test, e2e-test]
     if: ${{ always() }}
     runs-on: ubuntu-latest
     steps:

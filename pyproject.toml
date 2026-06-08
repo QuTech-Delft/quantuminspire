@@ -46,7 +46,11 @@ dev = [
     "responses>=0.25.6",
     "freezegun>=1.5.1",
     "mutmut (>=3.3.1,<4.0.0)",
-    "qi-compute-api-client (==0.58.0)",
+    "qi-compute-api-client (==0.61.0)",
+    "jupyterlab (>=4.5.8,<5.0.0)",
+    "notebook (>=7.5.7,<8.0.0)",
+    "ipykernel (>=7.2.0,<8.0.0)",
+    "nbconvert (>=7.17.1,<8.0.0)",
 ]
 
 [tool.pytest.ini_options]

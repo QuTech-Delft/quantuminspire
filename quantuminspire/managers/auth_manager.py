@@ -9,8 +9,8 @@ from compute_api_client.exceptions import ForbiddenException
 from qi2_shared.utils import run_async
 
 from quantuminspire.settings.models import Url
-from quantuminspire.settings.user_settings import AuthSettings, TokenInfo, UserSettings
-from quantuminspire.utils.authentication import AuthorisationError, OauthDeviceSession
+from quantuminspire.settings.user_settings import AuthSettings, UserSettings, TokenInfo
+from quantuminspire.utils.authentication import OauthDeviceSession
 
 
 class AuthManager:
@@ -33,21 +33,6 @@ class AuthManager:
         except KeyError:
             return False
 
-    def _is_refresh_token_valid(self, host: Url) -> bool:
-        """Check whether the stored refresh token is still valid.
-
-        Args:
-            host: API host to validate the refresh token for.
-
-        Returns:
-            True if the refresh token can be used successfully, False otherwise.
-        """
-        try:
-            self.refresh_tokens(host)
-            return True
-        except AuthorisationError:
-            return False
-
     def refresh_tokens(self, host: Url) -> None:
         """Refresh OAuth tokens for the given host and store the updated values.
 
@@ -61,7 +46,7 @@ class AuthManager:
 
     def login_required(self, host: Url) -> bool:
         """Return True if a full login flow is required for the host."""
-        return not (self._is_authenticated(host) and self._is_refresh_token_valid(host))
+        return not self._is_authenticated(host)
 
     def logout(self, host: Url) -> None:
         """Revoke OAuth tokens on the authorization server and clear them locally.

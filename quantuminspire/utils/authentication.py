@@ -1,7 +1,6 @@
 import time
 from typing import Any, Dict, Tuple, cast
 
-import compute_api_client
 import requests
 from oauthlib.oauth2 import Client
 
@@ -140,13 +139,3 @@ class OauthDeviceSession:
                 f"Token revocation failed with status code: {response.status_code}\n {response.text}"
             )
 
-
-class Configuration(compute_api_client.Configuration):  # type: ignore[misc]
-    def __init__(self, host: str, oauth_session: OauthDeviceSession, **kwargs: Any):
-        self._oauth_session = oauth_session
-        super().__init__(host=host, **kwargs)
-
-    def auth_settings(self) -> Any:
-        token_info = self._oauth_session.refresh()
-        self.access_token = token_info.access_token
-        return super().auth_settings()

@@ -75,52 +75,21 @@ def test_authentication(auth_manager: AuthManager, is_auth: bool) -> None:
 
 
 @pytest.mark.parametrize(
-    "side_effect, expected",
+    "is_auth, login_required",
     [
-        (None, True),  # refresh succeeds
-        (AuthorisationError("invalid refresh token"), False),  # refresh fails
-    ],
-)
-def test_is_refresh_token_valid(
-    auth_manager: AuthManager,
-    mocker: MockerFixture,
-    side_effect: Exception | None,
-    expected: bool,
-) -> None:
-    # Arrange
-    host = "https://example.com"
-    mocker.patch.object(
-        auth_manager,
-        "refresh_tokens",
-        side_effect=side_effect,
-    )
-
-    # Act
-    result = auth_manager._is_refresh_token_valid(host)
-
-    # Assert
-    assert result is expected
-
-
-@pytest.mark.parametrize(
-    "is_auth,is_refresh,expected",
-    [
-        (True, True, False),  # authenticated and refresh token valid -> login NOT required
-        (False, True, True),  # not authenticated -> login required
-        (True, False, True),  # refresh token invalid -> login required
-        (False, False, True),  # neither authenticated nor valid -> login required
+        (True, False),  # authenticated -> login NOT required
+        (False, True),  # not authenticated -> login required
     ],
 )
 def test_login_required(
-    auth_manager: AuthManager, mocker: MockerFixture, is_auth: bool, is_refresh: bool, expected: bool
+    auth_manager: AuthManager, mocker: MockerFixture, is_auth: bool, login_required: bool
 ) -> None:
     """Test login_required returns correct boolean depending on auth and refresh status."""
     host = "https://example.com"
 
     mocker.patch.object(auth_manager, "_is_authenticated", return_value=is_auth)
-    mocker.patch.object(auth_manager, "_is_refresh_token_valid", return_value=is_refresh)
 
-    assert auth_manager.login_required(host) is expected
+    assert auth_manager.login_required(host) is login_required
 
 
 @pytest.mark.parametrize(

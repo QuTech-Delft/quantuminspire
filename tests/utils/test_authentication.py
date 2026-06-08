@@ -8,7 +8,7 @@ from freezegun import freeze_time
 from pytest_mock import MockerFixture
 
 from quantuminspire.settings.user_settings import AuthSettings, TokenInfo
-from quantuminspire.utils.authentication import AuthorisationError, Configuration, OauthDeviceSession
+from quantuminspire.utils.authentication import AuthorisationError, OauthDeviceSession
 
 EXAMPLE_TOKENINFO = TokenInfo(
     access_token="secret",
@@ -142,15 +142,6 @@ def test_refresh_500(mocked_responses: responses.RequestsMock, mocked_device_ses
     mocked_device_session._token_info = EXAMPLE_TOKENINFO
     with pytest.raises(AuthorisationError):
         mocked_device_session.refresh()
-
-
-def test_configuration_auth_settings(
-    mocked_responses: responses.RequestsMock, mocked_device_session: OauthDeviceSession
-) -> None:
-    config = Configuration(host="https://staging.qi2.quantum-inspire.com", oauth_session=mocked_device_session)
-    mocked_device_session._token_info = EXAMPLE_TOKENINFO
-    assert config.auth_settings()["user_bearer"]["value"] == "Bearer secret"
-
 
 def test_revoke_success_204(
     mocked_responses: responses.RequestsMock, mocked_device_session: OauthDeviceSession

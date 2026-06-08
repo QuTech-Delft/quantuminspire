@@ -126,6 +126,7 @@ class Api:
         self._auth_manager.logout(resolved_host)
         print(f"Successfully logged out from {resolved_host}")
 
+    @_refresh_auth_tokens
     def execute_algorithm(
         self,
         file_path: Optional[Path] = None,
@@ -360,7 +361,6 @@ class Api:
         assert isinstance(project_id, int)
         return project_id
 
-    @_refresh_auth_tokens
     def _submit_job(
         self,
         file_path: Optional[Path],
