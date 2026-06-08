@@ -14,6 +14,7 @@ jobs:
       idp_url: 'https://quantum-inspire-staging.eu.auth0.com'
       default_host: 'https://staging.qi2.quantum-inspire.com'
       api_audience: 'compute-job-manager'
+      poetry-version: '2.4.1'
     secrets:
       e2e_username:  ${{ secrets.E2E_USERNAME }}
       e2e_password:  ${{ secrets.E2E_PASSWORD }}
