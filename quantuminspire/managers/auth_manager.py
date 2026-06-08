@@ -9,7 +9,7 @@ from compute_api_client.exceptions import ForbiddenException
 from qi2_shared.utils import run_async
 
 from quantuminspire.settings.models import Url
-from quantuminspire.settings.user_settings import AuthSettings, UserSettings, TokenInfo
+from quantuminspire.settings.user_settings import AuthSettings, TokenInfo, UserSettings
 from quantuminspire.utils.authentication import OauthDeviceSession
 
 

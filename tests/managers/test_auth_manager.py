@@ -12,7 +12,7 @@ from pytest_mock import MockerFixture
 
 from quantuminspire.managers.auth_manager import AuthManager
 from quantuminspire.settings.user_settings import UserSettings
-from quantuminspire.utils.authentication import AuthorisationError, OauthDeviceSession
+from quantuminspire.utils.authentication import OauthDeviceSession
 from tests.conftest import TestBaseDirMixin
 
 

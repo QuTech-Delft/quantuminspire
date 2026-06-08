@@ -1,13 +1,12 @@
 import os
-
+import subprocess
 from pathlib import Path
 from typing import Generator, cast
+
 import pytest
+from compute_api_client import BackendType
 
 from quantuminspire.api import Api
-from compute_api_client import BackendType
-import subprocess
-
 
 
 @pytest.fixture(scope="session")
