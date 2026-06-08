@@ -1,8 +1,8 @@
-from typing import Any, Dict, List
+from typing import Any, Dict, List, cast
 
-from qi2_shared.hybrid.quantum_interface import QuantumInterface  # type: ignore[import-untyped]
-from qiskit.circuit import QuantumCircuit  # type: ignore[import-not-found]
-from qiskit_quantuminspire import cqasm  # type: ignore[import-not-found]
+from qi2_shared.hybrid.quantum_interface import QuantumInterface
+from qiskit.circuit import QuantumCircuit
+from qiskit_quantuminspire import cqasm
 
 
 def generate_circuit() -> str:
@@ -13,7 +13,7 @@ def generate_circuit() -> str:
     qc.cx(0, 1)
     qc.measure([0, 1], [0, 1])
 
-    return cqasm.dumps(qc)
+    return cast(str, cqasm.dumps(qc))
 
 
 def execute(qi: QuantumInterface) -> None:
