@@ -11,7 +11,6 @@ from quantuminspire.api import Api
 
 @pytest.fixture(scope="session")
 def backend_name() -> str:
-    return "Spin"
     return os.getenv("BACKEND_NAME", "")
 
 
