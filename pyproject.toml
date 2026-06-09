@@ -51,6 +51,7 @@ dev = [
     "notebook (>=7.5.7,<8.0.0)",
     "ipykernel (>=7.2.0,<8.0.0)",
     "nbconvert (>=7.17.1,<8.0.0)",
+    "pytest-xdist (>=3.8.0,<4.0.0)",
 ]
 
 [tool.pytest.ini_options]
