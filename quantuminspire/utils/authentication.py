@@ -138,4 +138,3 @@ class OauthDeviceSession:
             raise AuthorisationError(
                 f"Token revocation failed with status code: {response.status_code}\n {response.text}"
             )
-

@@ -19,6 +19,7 @@ def backend_name() -> str:
 def quantum_circuit_file_path() -> Path:
     return Path(__file__).parent / "data_files/circuit.cq"
 
+
 @pytest.fixture(scope="session")
 def api() -> Generator[Api, None, None]:
     api = Api()
@@ -86,7 +87,6 @@ def test_compile_file(backend_type: BackendType, quantum_circuit_file_path: Path
         path.unlink(missing_ok=True)
 
 
-
 def test_run_jupyter_notebook_clean() -> None:
     notebook_path = Path(__file__).parent / "data_files/notebook.ipynb"
 
@@ -109,4 +109,3 @@ def test_run_jupyter_notebook_clean() -> None:
     )
 
     assert result.returncode == 0, result.stderr
-

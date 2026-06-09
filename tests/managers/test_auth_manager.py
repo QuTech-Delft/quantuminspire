@@ -81,9 +81,7 @@ def test_authentication(auth_manager: AuthManager, is_auth: bool) -> None:
         (False, True),  # not authenticated -> login required
     ],
 )
-def test_login_required(
-    auth_manager: AuthManager, mocker: MockerFixture, is_auth: bool, login_required: bool
-) -> None:
+def test_login_required(auth_manager: AuthManager, mocker: MockerFixture, is_auth: bool, login_required: bool) -> None:
     """Test login_required returns correct boolean depending on auth and refresh status."""
     host = "https://example.com"
 

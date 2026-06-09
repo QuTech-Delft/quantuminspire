@@ -143,6 +143,7 @@ def test_refresh_500(mocked_responses: responses.RequestsMock, mocked_device_ses
     with pytest.raises(AuthorisationError):
         mocked_device_session.refresh()
 
+
 def test_revoke_success_204(
     mocked_responses: responses.RequestsMock, mocked_device_session: OauthDeviceSession
 ) -> None:
