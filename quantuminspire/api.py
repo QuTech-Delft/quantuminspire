@@ -601,7 +601,6 @@ class Api:
         algorithms[algorithm_name] = local_algorithm
         self.set_setting("project.algorithms", algorithms, is_user=False)
 
-    @_refresh_auth_tokens
     def _initialize_remote_project(self, project_name: str, project_description: Optional[str]) -> Project:
         """Create a new remote project on the Quantum Inspire platform.
 

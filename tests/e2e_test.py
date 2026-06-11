@@ -68,10 +68,17 @@ def test_get_queue(backend_type: BackendType, api: Api) -> None:
     assert queue is not None
 
 
-def test_get_projects(api: Api) -> None:
-    projects = api.get_projects(name="test")
+def test_projects_api(tmp_path: Path, api: Api) -> None:
 
-    assert projects
+    project_name = "project_6f9c90a0-8b8f-4f17-b4c7-c47b8e2d8f5d"
+    projects = api.initialize_project(project_name=project_name, path=str(tmp_path))
+    projects = api.get_projects(name=project_name, exact=True)
+    assert projects[0].name == project_name
+
+    api.delete_projects(project_ids=[], name=project_name, exact=True)
+
+    projects = api.get_projects(name=project_name, exact=True)
+    assert not projects
 
 
 def test_compile_file(backend_type: BackendType, quantum_circuit_file_path: Path, api: Api) -> None:
