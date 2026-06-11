@@ -17,11 +17,12 @@ from compute_api_client import (
     Result,
 )
 from pydantic import TypeAdapter
+from qi2_shared.settings import Url
 
 from quantuminspire.managers.auth_manager import AuthManager
 from quantuminspire.managers.config_manager import ConfigManager
 from quantuminspire.managers.resource_manager import CompileOptions, JobOptions, ResourceManager
-from quantuminspire.settings.models import AlgorithmName, LocalAlgorithm, Url
+from quantuminspire.settings.models import AlgorithmName, LocalAlgorithm
 
 P = ParamSpec("P")
 R = TypeVar("R")

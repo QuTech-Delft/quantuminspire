@@ -1,9 +1,7 @@
 from pathlib import Path
 from typing import Annotated, Optional
 
-from pydantic import AfterValidator, BaseModel, BeforeValidator, Field, HttpUrl
-
-Url = Annotated[str, BeforeValidator(lambda value: str(HttpUrl(value)).rstrip("/"))]
+from pydantic import AfterValidator, BaseModel, BeforeValidator, Field
 
 
 def _validate_algorithm_name(value: str) -> str:

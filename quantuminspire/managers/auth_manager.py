@@ -6,9 +6,9 @@ from typing import cast
 import jwt
 from compute_api_client import ApiClient, AuthConfigApi, Configuration, MembersApi
 from compute_api_client.exceptions import ForbiddenException
+from qi2_shared.settings import Url
 from qi2_shared.utils import run_async
 
-from quantuminspire.settings.models import Url
 from quantuminspire.settings.user_settings import AuthSettings, TokenInfo, UserSettings
 from quantuminspire.utils.authentication import OauthDeviceSession
 
