@@ -1,5 +1,7 @@
 import os
+import shutil
 import subprocess
+import uuid
 from pathlib import Path
 from typing import Generator, cast
 
@@ -32,7 +34,9 @@ def backend_type(backend_name: str, api: Api) -> BackendType:
     return backend_type[0]
 
 
-def test_execute_algorithm(backend_type: BackendType, quantum_circuit_file_path: Path, api: Api) -> None:
+def test_execute_algorithm_no_persist_flow(
+    backend_type: BackendType, quantum_circuit_file_path: Path, api: Api
+) -> None:
 
     job_options = api.execute_algorithm(file_path=quantum_circuit_file_path, backend_type_id=backend_type.id)
 
@@ -44,6 +48,53 @@ def test_execute_algorithm(backend_type: BackendType, quantum_circuit_file_path:
 
     assert final_result is not None
     assert results
+
+
+def test_execute_algorithm_persist_flow(api: Api, quantum_circuit_file_path: Path, backend_type: BackendType) -> None:
+
+    random_str = str(uuid.uuid4().hex[:8])
+    project_name = f"E2E CLI {random_str}"
+    algorithm_name = f"test_algorithm_{random_str}"
+    project_config_dir = Path(__file__).parent.parent / ".quantuminspire"
+
+    if project_config_dir.exists():
+        shutil.rmtree(project_config_dir)
+
+    try:
+        projects = api.initialize_project(project_name=project_name)
+        projects = api.get_projects(name=project_name, exact=True)
+        assert projects[0].name == project_name
+        assert project_config_dir.exists()
+
+        _ = api.execute_algorithm(
+            algorithm_name=algorithm_name,
+            file_path=quantum_circuit_file_path,
+            backend_type_id=backend_type.id,
+            persist=True,
+        )
+
+        assert api.get_setting("project.name") == project_name
+        assert (
+            api.get_algorithm_setting(algorithm_name=algorithm_name, setting_name="file_path")
+            == quantum_circuit_file_path
+        )
+
+        _ = api.get_job_status(algorithm_name=algorithm_name, wait=True)
+
+        results = api.get_results(algorithm_name=algorithm_name)
+
+        final_result = api.get_final_result(algorithm_name=algorithm_name)
+
+        assert final_result is not None
+        assert results
+
+        api.delete_projects(project_ids=[], name=project_name, exact=True)
+
+        projects = api.get_projects(name=project_name, exact=True)
+        assert not projects
+    finally:
+        if project_config_dir.exists():
+            shutil.rmtree(project_config_dir)
 
 
 def test_get_logs(backend_type: BackendType, api: Api) -> None:
@@ -66,19 +117,6 @@ def test_get_queue(backend_type: BackendType, api: Api) -> None:
     queue = api.get_queue(backend_type_id=backend_type.id)
 
     assert queue is not None
-
-
-def test_projects_api(tmp_path: Path, api: Api) -> None:
-
-    project_name = "project_6f9c90a0-8b8f-4f17-b4c7-c47b8e2d8f5d"
-    projects = api.initialize_project(project_name=project_name, path=str(tmp_path))
-    projects = api.get_projects(name=project_name, exact=True)
-    assert projects[0].name == project_name
-
-    api.delete_projects(project_ids=[], name=project_name, exact=True)
-
-    projects = api.get_projects(name=project_name, exact=True)
-    assert not projects
 
 
 def test_compile_file(backend_type: BackendType, quantum_circuit_file_path: Path, api: Api) -> None:

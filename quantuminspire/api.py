@@ -239,7 +239,7 @@ class Api:
         self._resource_manager.run_compile_file_flow(CompileOptions(**options), owner_id)
 
     @_refresh_auth_tokens
-    def initialize_project(self, project_name: str, project_description: str = "", path: Optional[str] = None) -> None:
+    def initialize_project(self, project_name: str, project_description: str = "") -> None:
         """Initialize a remote project and store its settings locally.
 
         If a project is already initialized, its name and description are updated on the remote.
@@ -250,7 +250,7 @@ class Api:
             path: Local path where the project settings should be stored. Uses the current directory if not provided.
         """
 
-        init_dir = Path(path) if path is not None else Path.cwd()
+        init_dir = Path.cwd()
         self._config_manager.initialize(init_dir)
 
         try:

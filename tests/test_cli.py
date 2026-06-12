@@ -71,7 +71,7 @@ def test_initialize_project(mock_api: MagicMock) -> None:
 
     assert result.exit_code == 0, repr(result.exception)
     assert "Project 'my-project' initialized successfully" in result.stdout
-    mock_api.initialize_project.assert_called_once_with("my-project", "", None)
+    mock_api.initialize_project.assert_called_once_with("my-project", "")
 
 
 def test_initialize_project_with_description(mock_api: MagicMock) -> None:
@@ -79,15 +79,7 @@ def test_initialize_project_with_description(mock_api: MagicMock) -> None:
 
     assert result.exit_code == 0, repr(result.exception)
     assert "Project 'my-project' initialized successfully" in result.stdout
-    mock_api.initialize_project.assert_called_once_with("my-project", "my description", None)
-
-
-def test_initialize_project_with_path(mock_api: MagicMock) -> None:
-    result = runner.invoke(app, ["projects", "init", "my-project", "--path", "/tmp/test"])
-
-    assert result.exit_code == 0, repr(result.exception)
-    assert "Project 'my-project' initialized successfully at '/tmp/test'" in result.stdout
-    mock_api.initialize_project.assert_called_once_with("my-project", "", "/tmp/test")
+    mock_api.initialize_project.assert_called_once_with("my-project", "my description")
 
 
 def test_list_projects_empty(mock_api: MagicMock) -> None:

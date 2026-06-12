@@ -239,7 +239,7 @@ class ConfigManager:
 
         Args:
             path: The directory where the project configuration
-                should be initialized. Defaults to the current working directory.
+                should be initialized.
         """
         ProjectSettings.initialize(path)
         if self._project_settings is None:

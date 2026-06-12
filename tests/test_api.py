@@ -704,25 +704,7 @@ def test_initialize_project_algorithms_setting_already_exists(
         assert c != call("project.algorithms", {})
 
 
-def test_initialize_project_with_path(
-    api_instance: Api, mock_config_manager: Mock, mocker: MockerFixture, mock_remote_project: MagicMock
-) -> None:
-    project_name = "Path project"
-    project_description = "Path description"
-    custom_path = "/some/custom/path"
-
-    mocker.patch.object(api_instance, "_check_project_id", side_effect=RuntimeError("No project"))
-    mocker.patch.object(api_instance, "_initialize_remote_project", return_value=mock_remote_project)
-    mocker.patch.object(api_instance, "get_setting", side_effect=ValueError)
-    mocker.patch.object(api_instance, "set_setting")
-    mock_config_initialize = mocker.patch.object(mock_config_manager, "initialize")
-
-    api_instance.initialize_project(project_name, project_description, path=custom_path)
-
-    mock_config_initialize.assert_called_once_with(Path(custom_path))
-
-
-def test_initialize_project_without_path_uses_cwd(
+def test_initialize_project_uses_cwd(
     api_instance: Api, mock_config_manager: Mock, mocker: MockerFixture, mock_remote_project: MagicMock
 ) -> None:
     # Arrange: no path provided, should use Path.cwd()
