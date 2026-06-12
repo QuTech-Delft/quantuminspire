@@ -99,11 +99,10 @@ def test_refresh_auth_tokens_calls_login_when_login_required(
     # Assert
     mock_login_required.assert_called_with(host)
     mock_auth_manager.login.assert_called_with(host, False)
-    mock_auth_manager.refresh_tokens.assert_not_called()
 
 
 @pytest.mark.keep_auth_tokens_wrapper
-def test_refresh_auth_tokens_calls_refresh_when_login_not_required(
+def test_refresh_auth_tokens_login_not_required(
     api_instance: Api, mock_config_manager: Mock, mock_auth_manager: Mock, mocker: MockerFixture
 ) -> None:
     # Arrange
@@ -116,7 +115,6 @@ def test_refresh_auth_tokens_calls_refresh_when_login_not_required(
 
     # Assert
     mock_login_required.assert_called_once_with(host)
-    mock_auth_manager.refresh_tokens.assert_called_with(host)
     mock_auth_manager.login.assert_not_called()
 
 

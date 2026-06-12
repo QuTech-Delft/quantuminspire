@@ -50,8 +50,6 @@ class Api:
 
             if self._login_required(hostname):
                 self.login(hostname)
-            else:
-                self._auth_manager.refresh_tokens(hostname)
 
             return fn(self, *args, **kwargs)
 
