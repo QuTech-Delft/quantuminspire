@@ -269,7 +269,7 @@ class Api:
         self.set_setting("project.description", remote_project.description)
 
     @_refresh_auth_tokens
-    def get_projects(self, name: Optional[str], exact: bool = False) -> list[Project]:
+    def get_projects(self, name: Optional[str] = None, exact: bool = False) -> list[Project]:
         """Retrieve all remote projects for the current user.
 
         Returns:
@@ -277,7 +277,12 @@ class Api:
         """
         return self._resource_manager.read_projects(name, exact)
 
-    def delete_projects(self, project_ids: Optional[List[int]], name: Optional[str], exact: bool = False) -> None:
+    def delete_projects(
+        self,
+        project_ids: Optional[List[int]] = None,
+        name: Optional[str] = None,
+        exact: bool = False,
+    ) -> None:
         """Delete remote projects."""
         if project_ids:
             ids = project_ids
