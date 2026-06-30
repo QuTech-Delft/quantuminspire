@@ -3,9 +3,9 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 from pydantic import BaseModel, Field
+from qi2_shared.settings import Url
 
 from quantuminspire.settings.base_settings import BaseConfigSettings
-from quantuminspire.settings.models import Url
 
 
 class TokenInfo(BaseModel):

@@ -281,16 +281,11 @@ def run_job(
 def initialize_project(
     name: str = typer.Argument(help="The project name"),
     description: str = typer.Argument("", help="The project description"),
-    path: Optional[str] = typer.Option(
-        None,
-        help="Local path where the project settings should be stored. Uses the current directory if not provided.",
-    ),
 ) -> None:
     """Create a new project on the platform and store its settings locally."""
     api = Api()
-    api.initialize_project(name, description, path)
-    directory = path if path else Path.cwd()
-    typer.echo(f"Project '{name}' initialized successfully at '{directory}'.")
+    api.initialize_project(name, description)
+    typer.echo(f"Project '{name}' initialized successfully.")
 
 
 @projects_app.command("list")
