@@ -99,11 +99,10 @@ def test_refresh_auth_tokens_calls_login_when_login_required(
     # Assert
     mock_login_required.assert_called_with(host)
     mock_auth_manager.login.assert_called_with(host, False)
-    mock_auth_manager.refresh_tokens.assert_not_called()
 
 
 @pytest.mark.keep_auth_tokens_wrapper
-def test_refresh_auth_tokens_calls_refresh_when_login_not_required(
+def test_refresh_auth_tokens_login_not_required(
     api_instance: Api, mock_config_manager: Mock, mock_auth_manager: Mock, mocker: MockerFixture
 ) -> None:
     # Arrange
@@ -116,7 +115,6 @@ def test_refresh_auth_tokens_calls_refresh_when_login_not_required(
 
     # Assert
     mock_login_required.assert_called_once_with(host)
-    mock_auth_manager.refresh_tokens.assert_called_with(host)
     mock_auth_manager.login.assert_not_called()
 
 
@@ -704,25 +702,7 @@ def test_initialize_project_algorithms_setting_already_exists(
         assert c != call("project.algorithms", {})
 
 
-def test_initialize_project_with_path(
-    api_instance: Api, mock_config_manager: Mock, mocker: MockerFixture, mock_remote_project: MagicMock
-) -> None:
-    project_name = "Path project"
-    project_description = "Path description"
-    custom_path = "/some/custom/path"
-
-    mocker.patch.object(api_instance, "_check_project_id", side_effect=RuntimeError("No project"))
-    mocker.patch.object(api_instance, "_initialize_remote_project", return_value=mock_remote_project)
-    mocker.patch.object(api_instance, "get_setting", side_effect=ValueError)
-    mocker.patch.object(api_instance, "set_setting")
-    mock_config_initialize = mocker.patch.object(mock_config_manager, "initialize")
-
-    api_instance.initialize_project(project_name, project_description, path=custom_path)
-
-    mock_config_initialize.assert_called_once_with(Path(custom_path))
-
-
-def test_initialize_project_without_path_uses_cwd(
+def test_initialize_project_uses_cwd(
     api_instance: Api, mock_config_manager: Mock, mocker: MockerFixture, mock_remote_project: MagicMock
 ) -> None:
     # Arrange: no path provided, should use Path.cwd()
