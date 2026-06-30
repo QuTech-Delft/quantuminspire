@@ -17,11 +17,12 @@ from compute_api_client import (
     Result,
 )
 from pydantic import TypeAdapter
+from qi2_shared.settings import Url
 
 from quantuminspire.managers.auth_manager import AuthManager
 from quantuminspire.managers.config_manager import ConfigManager
 from quantuminspire.managers.resource_manager import CompileOptions, JobOptions, ResourceManager
-from quantuminspire.settings.models import AlgorithmName, LocalAlgorithm, Url
+from quantuminspire.settings.models import AlgorithmName, LocalAlgorithm
 
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -49,8 +50,6 @@ class Api:
 
             if self._login_required(hostname):
                 self.login(hostname)
-            else:
-                self._auth_manager.refresh_tokens(hostname)
 
             return fn(self, *args, **kwargs)
 
@@ -126,6 +125,7 @@ class Api:
         self._auth_manager.logout(resolved_host)
         print(f"Successfully logged out from {resolved_host}")
 
+    @_refresh_auth_tokens
     def execute_algorithm(
         self,
         file_path: Optional[Path] = None,
@@ -237,7 +237,7 @@ class Api:
         self._resource_manager.run_compile_file_flow(CompileOptions(**options), owner_id)
 
     @_refresh_auth_tokens
-    def initialize_project(self, project_name: str, project_description: str = "", path: Optional[str] = None) -> None:
+    def initialize_project(self, project_name: str, project_description: str = "") -> None:
         """Initialize a remote project and store its settings locally.
 
         If a project is already initialized, its name and description are updated on the remote.
@@ -248,7 +248,7 @@ class Api:
             path: Local path where the project settings should be stored. Uses the current directory if not provided.
         """
 
-        init_dir = Path(path) if path is not None else Path.cwd()
+        init_dir = Path.cwd()
         self._config_manager.initialize(init_dir)
 
         try:
@@ -365,7 +365,6 @@ class Api:
         assert isinstance(project_id, int)
         return project_id
 
-    @_refresh_auth_tokens
     def _submit_job(
         self,
         file_path: Optional[Path],
@@ -605,7 +604,6 @@ class Api:
         algorithms[algorithm_name] = local_algorithm
         self.set_setting("project.algorithms", algorithms, is_user=False)
 
-    @_refresh_auth_tokens
     def _initialize_remote_project(self, project_name: str, project_description: Optional[str]) -> Project:
         """Create a new remote project on the Quantum Inspire platform.
 

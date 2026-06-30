@@ -1,0 +1,10 @@
+
+version 3.0
+
+qubit[2] q
+bit[2] b
+
+X90 q[0]
+CZ q[0], q[1]
+b[0] = measure q[0]
+b[1] = measure q[1]

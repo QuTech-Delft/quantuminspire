@@ -66,16 +66,11 @@ Not all `.py` files are valid for submission.
 
 ### Initialize a project
 
-Create a new project on the platform and store its settings locally:
+Create a new project on the platform and store its settings locally in the current working directory (project root):
 
 ```bash
 qi projects init <name> [description]
 ```
-
-#### Options
-
-* `--path <path>`
-  Local path where the project settings should be stored. Uses the current directory if not provided.
 
 #### Examples
 
@@ -89,12 +84,6 @@ Initialize a project with a name and description:
 
 ```bash
 qi projects init "My Project" "Optional description"
-```
-
-Initialize a project and store its settings in a specific directory:
-
-```bash
-qi projects init "My Project" --path /path/to/dir
 ```
 
 ### List projects

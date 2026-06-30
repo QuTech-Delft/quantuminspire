@@ -7,67 +7,15 @@ on:
   pull_request:
 
 jobs:
-  lint:
-    name: Static analysis
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: QuTech-Delft/GitHub-Actions/actions/python/tox-static-check@master
-        with:
-          python-version: 3.12
-          poetry-version: 2.2.1
-  unit-test:
-    name: Unit testing
-    strategy:
-      fail-fast: false
-      matrix:
-        os:
-          - ubuntu-latest
-          - macos-15-intel # runs x64
-          - macos-15 # runs arm64
-          - windows-latest
-        python-version:
-          - "3.10"
-          - "3.11"
-          - "3.12"
-          - "3.13"
-    runs-on: ${{ matrix.os }}
-    env:
-      PYTHON_KEYRING_BACKEND: keyring.backends.null.Keyring
-    steps:
-      - uses: actions/checkout@v6
-      - uses: QuTech-Delft/GitHub-Actions/actions/python/tox-unit-test@master
-        with:
-          python-version: 3.12
-          poetry-version: 2.2.1
-  complete:
-    # see https://github.community/t/status-check-for-a-matrix-jobs/127354/7
-    name: Report status
-    needs: [lint, unit-test]
-    if: ${{ always() }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check all job status
-        # see https://docs.github.com/en/actions/reference/context-and-expression-syntax-for-github-actions#needs-context
-        # see https://stackoverflow.com/a/67532120/4907315
-        if: >-
-          ${{
-               contains(needs.*.result, 'failure')
-            || contains(needs.*.result, 'cancelled')
-            || contains(needs.*.result, 'skipped')
-          }}
-        run: exit 1
-  auto-merge-dependabot:
-    name: Auto merge dependabot PR
-    needs: complete
-    if: ${{ (github.event_name == 'pull_request') && (github.actor == 'dependabot[bot]') }}
-    runs-on: ubuntu-latest
-    permissions:
-      pull-requests: write
-      contents: write
-    steps:
-      - uses: actions/checkout@v6
-      - uses: QuTech-Delft/GitHub-Actions/actions/generic/auto-merge@master
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          merge-method: squash
+  testing:
+    uses: qutech-delft/github-actions/.github/workflows/poetry-tests.yaml@master
+    with:
+      e2e_path: 'tests/e2e_test.py'
+      idp_url: 'https://quantum-inspire-staging.eu.auth0.com'
+      default_host: 'https://staging.qi2.quantum-inspire.com'
+      api_audience: 'compute-job-manager'
+      poetry-version: '2.4.1'
+    secrets:
+      e2e_username:  ${{ secrets.E2E_USERNAME }}
+      e2e_password:  ${{ secrets.E2E_PASSWORD }}
+      idp_client_id: ${{ secrets.IDP_CLIENT_ID }}
