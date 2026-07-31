@@ -314,7 +314,7 @@ class ResourceManager:
         """
 
         async def _execute() -> Any:
-            kwargs = {}
+            kwargs: dict[str, Any] = {}
             if n_logs is not None:
                 kwargs["expected_logs"] = n_logs
             if poll_interval is not None:
