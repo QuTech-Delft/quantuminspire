@@ -57,6 +57,7 @@ def algorithms_callback() -> None:
     \b
     Examples:
       qi algorithms init my-algo circuit.cq 3
+      qi algorithms logs "test-algo1" --n-logs 12
       qi algorithms status my-algo --wait
       qi algorithms results my-algo --save True
       qi algorithms final-result my-algo
@@ -96,11 +97,12 @@ def jobs_callback() -> None:
     """Inspect and retrieve results for jobs on the Quantum Inspire platform.
 
     Jobs are created when you run 'qi run'. Use the job ID printed by that command
-    to check status and retrieve results here.
+    to check status and retrieve results or logs here.
 
     \b
     Examples:
       qi jobs inspect 101
+      qi jobs logs 91223 --n-logs 12
       qi jobs status 101 --wait --timeout 120
       qi jobs results 101 --save True
       qi jobs final-result 101
@@ -218,7 +220,7 @@ def main() -> None:
 
 
         \b
-        qi algorithms status|results|final-result <algorithm-name>
+        qi algorithms status|logs|results|final-result <algorithm-name>
 
 
 
@@ -360,6 +362,27 @@ def get_algorithm_status(
     typer.echo(f"Status of latest job for '{algorithm_name}' algorithm: '{status.value}'")
 
 
+@algorithms_app.command("logs")
+def get_algorithm_logs(
+    algorithm_name: str = typer.Argument(..., help="The name of the locally initialized algorithm."),
+    n_logs: Optional[int] = typer.Option(None, help="Number of expected logs (if known in advance)."),
+    poll_interval: Optional[float] = typer.Option(
+        None, help="Interval time of polling (defaults to 5s if not provided)"
+    ),
+    timeout: Optional[float] = typer.Option(
+        None, help="Maximum number of seconds to wait (defaults to 30s if not provided)."
+    ),
+) -> None:
+    """Retrieve the logs of the latest job for a locally initialized hybrid algorithm."""
+    api = Api()
+    logs = api.get_job_logs(None, algorithm_name, n_logs, poll_interval, timeout)
+
+    message = f"No logs for '{algorithm_name}'" if not logs else f"Logs for algorithm '{algorithm_name}'"
+    typer.echo(message)
+    for log in logs:
+        typer.echo(log)
+
+
 @algorithms_app.command("results")
 def get_algorithm_results(
     algorithm_name: str = typer.Argument(..., help="The name of the locally initialized algorithm."),
@@ -498,6 +521,26 @@ def get_job_status(
     api = Api()
     status = api.get_job_status(None, job_id, wait, timeout)
     typer.echo(f"Job {job_id} status: '{status.value}'")
+
+
+@jobs_app.command("logs")
+def get_job_logs(
+    job_id: int = typer.Argument(..., help="The ID of the job to retrieve the status of."),
+    n_logs: Optional[int] = typer.Option(None, help="Number of expected logs (if known in advance)."),
+    poll_interval: Optional[float] = typer.Option(
+        None, help="Interval time of polling (defaults to 5s if not provided)"
+    ),
+    timeout: Optional[float] = typer.Option(
+        None, help="Maximum number of seconds to wait (defaults to 30s if not provided)."
+    ),
+) -> None:
+    """Retrieve the logs of a job."""
+    api = Api()
+    logs = api.get_job_logs(job_id, None, n_logs, poll_interval, timeout)
+    message = f"No logs for job_id'{job_id}'" if not logs else f"Logs for job_id '{job_id}'"
+    typer.echo(message)
+    for log in logs:
+        typer.echo(log)
 
 
 @jobs_app.command("results")

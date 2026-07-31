@@ -35,6 +35,9 @@ qi login
 
 This will open a browser window that will allow you to login or create an account. By default this command will login to the production environment, but the command accepts an argument for a different host URL if needed (e.g. for beta testing purposes).
 
+> [!WARNING]
+> If after installing latest version, you recieve errors with respect to token validity, please run `qi logout` and then again log in using `qi login`
+
 ## Logout
 
 To log out from the platform, run:
@@ -219,6 +222,14 @@ qi algorithms status <algorithm_name>
 
 Use `--wait` and `--timeout <seconds>` to wait for the job to complete.
 
+### Get algorithm job logs
+
+```bash
+qi algorithms logs <algorithm_name>
+```
+
+Use `--n-logs` to return early if you already know how many logs you expected, `--poll-interval <seconds>` to set the polling interval (default: 5s) and `--timeout <seconds>` to set the timeout (default: 30s).
+
 ### Get algorithm results
 
 ```bash
@@ -259,6 +270,14 @@ qi jobs status <job_id>
 ```
 
 Use `--wait` to wait for the job to complete before returning, and `--timeout <seconds>` to set the timeout (default: 60).
+
+### Get job logs
+
+```bash
+qi jobs logs <job_id>
+```
+
+Use `--n-logs` to return early if you already know how many logs you expected, `--poll-interval <seconds>` to set the polling interval (default: 5s) and `--timeout <seconds>` to set the timeout (default: 30s).
 
 ### Get job results
 

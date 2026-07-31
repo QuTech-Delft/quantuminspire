@@ -296,13 +296,16 @@ class ResourceManager:
 
     @staticmethod
     def get_job_logs(
-        job_id: int, n_logs: Optional[int] = None, poll_interval: float = 5.0, timeout: float = 30.0
+        job_id: int,
+        n_logs: Optional[int] = None,
+        poll_interval: Optional[float] = None,
+        timeout: Optional[float] = None,
     ) -> list[str]:
         """Poll job logs until the job has finished.
 
         Args:
             job_id: The ID of the job to get logs for.
-            n_logs: Number of expected logs.
+            n_logs: Number of expected logs (if known in advance).
             poll_interval: Interval time of polling.
             timeout: Maximum number of seconds to wait.
 
@@ -311,9 +314,17 @@ class ResourceManager:
         """
 
         async def _execute() -> Any:
+            kwargs = {}
+            if n_logs is not None:
+                kwargs["expected_logs"] = n_logs
+            if poll_interval is not None:
+                kwargs["poll_interval"] = poll_interval
+            if timeout is not None:
+                kwargs["timeout"] = timeout
+
             async with ApiClient(config()) as client:
                 jobs_api = JobsApi(client)
-                return await poll_job_logs(jobs_api, job_id, n_logs, poll_interval, timeout)
+                return await poll_job_logs(jobs_api=jobs_api, job_id=job_id, **kwargs)
 
         return cast(list[str], run_async(_execute()))
 

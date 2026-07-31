@@ -1037,7 +1037,7 @@ def test_get_job_logs(api_instance: Api, mocker: MockerFixture) -> None:
     result = api_instance.get_job_logs(job_id=job_id)
 
     # Assert
-    mock_get_job_logs.assert_called_once_with(job_id, None, 5.0, 30.0)
+    mock_get_job_logs.assert_called_once_with(job_id=job_id, n_logs=None, poll_interval=None, timeout=None)
     assert result == expected_logs
 
 
@@ -1054,21 +1054,10 @@ def test_get_job_logs_with_custom_params(api_instance: Api, mocker: MockerFixtur
     result = api_instance.get_job_logs(job_id=job_id, n_logs=n_logs, poll_interval=poll_interval, timeout=timeout)
 
     # Assert
-    mock_get_job_logs.assert_called_once_with(job_id, n_logs, poll_interval, timeout)
+    mock_get_job_logs.assert_called_once_with(
+        job_id=job_id, n_logs=n_logs, poll_interval=poll_interval, timeout=timeout
+    )
     assert result == expected_logs
-
-
-def test_get_job_logs_returns_empty_list(api_instance: Api, mocker: MockerFixture) -> None:
-    # Arrange
-    job_id = 99
-    mock_get_job_logs = mocker.patch.object(api_instance._resource_manager, "get_job_logs", return_value=[])
-
-    # Act
-    result = api_instance.get_job_logs(job_id=job_id)
-
-    # Assert
-    mock_get_job_logs.assert_called_once_with(job_id, None, 5.0, 30.0)
-    assert result == []
 
 
 def test_get_job_id_with_explicit_job_id(api_instance: Api) -> None:

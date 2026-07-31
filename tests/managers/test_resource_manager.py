@@ -276,7 +276,9 @@ def test_get_job_logs(resource_manager: ResourceManager, mocker: MockerFixture) 
 
         result = ResourceManager.get_job_logs(job_id=1, n_logs=3, poll_interval=1.0, timeout=10.0)
 
-        mock_poll_job_logs.assert_called_once_with(mock_jobs_api_instance, 1, 3, 1.0, 10.0)
+        mock_poll_job_logs.assert_called_once_with(
+            jobs_api=mock_jobs_api_instance, job_id=1, expected_logs=3, poll_interval=1.0, timeout=10.0
+        )
         assert result == expected_logs
 
 
@@ -297,7 +299,7 @@ def test_get_job_logs_defaults(resource_manager: ResourceManager, mocker: Mocker
 
         result = ResourceManager.get_job_logs(job_id=42)
 
-        mock_poll_job_logs.assert_called_once_with(mock_jobs_api_instance, 42, None, 5.0, 30.0)
+        mock_poll_job_logs.assert_called_once_with(jobs_api=mock_jobs_api_instance, job_id=42)
         assert result == expected_logs
 
 
