@@ -475,20 +475,33 @@ class Api:
 
     @_refresh_auth_tokens
     def get_job_logs(
-        self, job_id: int, n_logs: Optional[int] = None, poll_interval: float = 5.0, timeout: float = 30.0
+        self,
+        job_id: Optional[int] = None,
+        algorithm_name: Optional[str] = None,
+        n_logs: Optional[int] = None,
+        poll_interval: Optional[float] = None,
+        timeout: Optional[float] = None,
     ) -> list[str]:
         """Poll job logs until the job has finished.
 
         Args:
-            job_id: The ID of the finished job to get logs for.
-            n_logs: Number of expected logs.
-            poll_interval: Interval time of polling.
-            timeout: Maximum number of seconds to wait.
+            job_id: The ID of the finished job to get logs for. If not provided,
+                the job ID is resolved from the algorithm name.
+            algorithm_name: Name of the algorithm to get logs for. If neither
+                `job_id` nor `algorithm_name` is provided and there is exactly
+                one algorithm configured in the settings, its job ID is used
+                implicitly.
+            n_logs: Number of expected logs (if known in advance).
+            poll_interval: Interval time of polling (defaults to 5s if None).
+            timeout: Maximum number of seconds to wait (defaults to 30s if None).
 
         Returns:
             A list of the job logs.
         """
-        return self._resource_manager.get_job_logs(job_id, n_logs, poll_interval, timeout)
+        job_id = self._get_job_id(job_id, algorithm_name)
+        return self._resource_manager.get_job_logs(
+            job_id=job_id, n_logs=n_logs, poll_interval=poll_interval, timeout=timeout
+        )
 
     @_refresh_auth_tokens
     def get_job_status(

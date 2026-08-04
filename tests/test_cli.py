@@ -306,6 +306,14 @@ def test_get_algorithm_final_result_none(mock_api: MagicMock) -> None:
     assert "None" in result.stdout
 
 
+def test_get_algorithm_logs(mock_api: MagicMock) -> None:
+    mock_api.get_job_logs.return_value = ["log 1"]
+
+    _ = runner.invoke(app, ["algorithms", "logs", "my-algo"])
+
+    mock_api.get_job_logs.assert_called_once_with(None, "my-algo", None, None, None)
+
+
 # ---------------------------------------------------------------------------
 # Files
 # ---------------------------------------------------------------------------
@@ -748,6 +756,15 @@ def test_get_final_result_requires_id() -> None:
     result = runner.invoke(app, ["jobs", "final-result"])
 
     assert result.exit_code != 0
+
+
+def test_get_job_logs(mock_api: MagicMock) -> None:
+
+    mock_api.get_job_logs.return_value = ["log 1"]
+
+    runner.invoke(app, ["jobs", "logs", "789"])
+
+    mock_api.get_job_logs.assert_called_once_with(789, None, None, None, None)
 
 
 # ---------------------------------------------------------------------------
