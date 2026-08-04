@@ -485,8 +485,12 @@ class Api:
         """Poll job logs until the job has finished.
 
         Args:
-            job_id: The ID of the finished job to get logs for.
-            algorithm_name: Name of the algorithm to get logs for.
+            job_id: The ID of the finished job to get logs for. If not provided,
+                the job ID is resolved from the algorithm name.
+            algorithm_name: Name of the algorithm to get logs for. If neither
+                `job_id` nor `algorithm_name` is provided and there is exactly
+                one algorithm configured in the settings, its job ID is used
+                implicitly.
             n_logs: Number of expected logs (if known in advance).
             poll_interval: Interval time of polling (defaults to 5s if None).
             timeout: Maximum number of seconds to wait (defaults to 30s if None).
