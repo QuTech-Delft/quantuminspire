@@ -1246,6 +1246,7 @@ def test_submit_job_persist_false_algorithm_name_none_backend_type_id_none(
     with pytest.raises(ValueError, match="backend_type_id not provided"):
         _ = api_instance._submit_job(Path(""), None, None, False, None, False)
 
+
 def test_submit_job_raises_if_backend_unavailable(
     api_instance: Api,
     mock_resource_manager: Mock,

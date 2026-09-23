@@ -7,8 +7,8 @@ from urllib.parse import urlparse
 
 import requests
 from compute_api_client import (
-    BackendType,
     BackendStatus,
+    BackendType,
     CompileStage,
     FinalResult,
     Job,
@@ -407,7 +407,7 @@ class Api:
             )
 
         if not self._backend_available(options["backend_type_id"]):
-            raise RuntimeError(f"Backendtype ID {options["backend_type_id"]} is not available, jobs can't be submitted")
+            raise RuntimeError(f"Backendtype ID {options['backend_type_id']} is not available, jobs can't be submitted")
 
         host = self._config_manager.get("default_host")
         owner_id = self._config_manager.user_settings.auths[host].owner_id
