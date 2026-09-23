@@ -8,6 +8,7 @@ from urllib.parse import urlparse
 import requests
 from compute_api_client import (
     BackendType,
+    BackendStatus,
     CompileStage,
     FinalResult,
     Job,
@@ -405,6 +406,9 @@ class Api:
                 cast(str, algorithm_name), num_shots, store_raw_data, backend_type_id, file_path
             )
 
+        if not self._backend_available(options["backend_type_id"]):
+            raise RuntimeError(f"Backendtype ID {options["backend_type_id"]} is not available, jobs can't be submitted")
+
         host = self._config_manager.get("default_host")
         owner_id = self._config_manager.user_settings.auths[host].owner_id
         job_options = self._resource_manager.run_job_submission_flow(JobOptions(**options), owner_id)
@@ -445,6 +449,17 @@ class Api:
             The backend type.
         """
         return self._resource_manager.get_backend_type(backend_type_id)
+
+    def _backend_available(self, backend_type_id: int) -> bool:
+        """Check if a backend type is available(not offline).
+
+        Args:
+            backend_type_id: ID of the backend type.
+
+        Returns:
+            If backend type is available.
+        """
+        return bool(self.get_backend_type(backend_type_id).status != BackendStatus.OFFLINE)
 
     @_refresh_auth_tokens
     def get_queue(self, backend_type_id: int, user_only: bool = False) -> Queue:
