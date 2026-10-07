@@ -35,7 +35,7 @@ from compute_api_client import (
     Queue,
     Result,
     ResultsApi,
-    ShareType,
+    ShareType, JobPatch,
 )
 from compute_api_client.exceptions import ForbiddenException, NotFoundException
 from pytest_mock import MockerFixture
@@ -258,6 +258,62 @@ def test_get_job(resource_manager: ResourceManager, mock_job: Job) -> None:
             id=1,
         )
 
+def test_read_jobs(resource_manager: ResourceManager, mock_job: Job, mocker: MockerFixture) -> None:
+    mock_page_reader_instance = mocker.MagicMock()
+    mock_jobs = [mock_job]
+
+    with (
+        patch.object(ResourceManager, "_invoke", return_value=mock_jobs) as mock_invoke,
+        patch("quantuminspire.managers.resource_manager.PageReader") as mock_page_reader_class,
+    ):
+        mock_page_reader_class.__getitem__.return_value.return_value = mock_page_reader_instance
+
+        result = resource_manager.read_jobs()
+
+        mock_invoke.assert_called_once_with(
+            JobsApi, "read_jobs_jobs_get", page_reader=mock_page_reader_instance, sort_by="-id"
+        )
+        assert result == mock_jobs
+
+def test_read_jobs_with_status(
+    resource_manager: ResourceManager, mock_project: Project, mocker: MockerFixture
+) -> None:
+    mock_page_reader_instance = mocker.MagicMock()
+    mock_job.status = JobStatus.COMPLETED
+    mock_jobs = [mock_job]
+
+    with (
+        patch.object(ResourceManager, "_invoke", return_value=mock_jobs) as mock_invoke,
+        patch("quantuminspire.managers.resource_manager.PageReader") as mock_page_reader_class,
+    ):
+        mock_page_reader_class.__getitem__.return_value.return_value = mock_page_reader_instance
+
+        result = resource_manager.read_jobs(status=JobStatus.COMPLETED)
+
+        mock_invoke.assert_called_once_with(
+            JobsApi, "read_jobs_jobs_get", page_reader=mock_page_reader_instance,
+            status=JobStatus.COMPLETED, sort_by="-id"
+        )
+        assert result == mock_jobs
+
+
+def test_cancel_planned_jobs_all(resource_manager: ResourceManager) -> None:
+    job_ids = [1, 2, 3]
+
+    with patch.object(ResourceManager, "_invoke") as mock_invoke:
+        resource_manager.cancel_planned_jobs(job_ids)
+
+        assert mock_invoke.call_count == len(job_ids)
+        mock_invoke.assert_any_call(JobsApi, "update_job_status_jobs_id_patch", id=1, job_patch=JobPatch(status=JobStatus.CANCELLED))
+        mock_invoke.assert_any_call(JobsApi, "update_job_status_jobs_id_patch", id=2, job_patch=JobPatch(status=JobStatus.CANCELLED))
+        mock_invoke.assert_any_call(JobsApi, "update_job_status_jobs_id_patch", id=3, job_patch=JobPatch(status=JobStatus.CANCELLED))
+
+
+def test_cancel_planned_jobs_empty(resource_manager: ResourceManager) -> None:
+    with patch.object(ResourceManager, "_invoke") as mock_invoke:
+        resource_manager.cancel_planned_jobs([])
+
+        mock_invoke.assert_not_called()
 
 def test_get_job_logs(resource_manager: ResourceManager, mocker: MockerFixture) -> None:
     expected_logs = ["log line 1", "log line 2", "log line 3"]

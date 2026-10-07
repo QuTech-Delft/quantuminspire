@@ -39,7 +39,7 @@ from compute_api_client import (
     Queue,
     Result,
     ResultsApi,
-    ShareType,
+    ShareType, JobPatch, PageJob,
 )
 from compute_api_client.exceptions import ForbiddenException, NotFoundException
 from pydantic import BaseModel, Field
@@ -269,6 +269,40 @@ class ResourceManager:
             The Job object for the given ID.
         """
         return self._invoke(JobsApi, "read_job_jobs_id_get", id=job_id)
+
+    def read_jobs(self, status: Optional[JobStatus] = None) -> List[Job]:
+        """Retrieve all jobs with specified status.
+
+        Args:
+            status: The status of the jobs to retrieve. If None (default), all jobs are retrieved
+
+        Returns:
+              A list of Job objects with specified status.
+        """
+
+        filters = {}
+        filters["sort_by"] = "-id"
+
+        if status:
+            filters["status"] = status
+
+        page_reader = PageReader[PageJob, Job]()
+        jobs: list[Job] = self._invoke(
+            JobsApi, "read_jobs_jobs_get", page_reader=page_reader, **filters
+        )
+        return jobs
+
+    def cancel_planned_jobs(self, job_ids: List[int]) -> None:
+        """Cancel planned jobs with given IDs.
+
+        Args:
+            job_ids: A list of job IDs to be cancelled.
+
+        Returns:
+              None. The specified jobs are updated with the CANCELLED status.
+        """
+        for job_id in job_ids:
+            self._invoke(JobsApi, "update_job_status_jobs_id_patch", id=job_id, job_patch=JobPatch(status=JobStatus.CANCELLED))
 
     def wait_for_job_completion(self, job_id: int, timeout: float) -> Job:
         """Poll until the job has finished or the timeout is reached.

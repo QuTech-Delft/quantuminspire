@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import List, Optional
 
 import typer
-from compute_api_client import BackendType, CompileStage, FinalResult, Job, Result
+from compute_api_client import BackendType, CompileStage, FinalResult, Job, Result, JobStatus
 from rich.console import Console
 from rich.table import Table
 from typer import Typer, rich_utils
@@ -521,6 +521,48 @@ def get_job_status(
     api = Api()
     status = api.get_job_status(None, job_id, wait, timeout)
     typer.echo(f"Job {job_id} status: '{status.value}'")
+
+
+@jobs_app.command("list")
+def list_jobs(
+    status: Optional[JobStatus] = typer.Argument(None, help="Show only jobs with this status. If nothing is set, all jobs are shown."),
+    quiet: bool = typer.Option(False, "-q", "--quiet", help="Only print the IDs of the jobs."),
+) -> None:
+    """List all jobs, or all jobs with a specified status."""
+    api = Api()
+    jobs = api.get_jobs(status=status)
+
+    if quiet:
+        for job in jobs:
+            print(job.id)
+    else:
+        table = Table("Job ID", "Status", "Algorithm type", "Created on")
+
+        for job in jobs:
+            table.add_row(
+                str(job.id),
+                str(job.status.name),
+                str(job.algorithm_type.name),
+                str(job.created_on.strftime("%Y-%m-%d %H:%M:%S")),
+            )
+        console.print(table)
+
+
+@jobs_app.command("cancel")
+def cancel_jobs(
+    job_ids: Optional[List[int]] = typer.Argument(None, help="Cancel jobs with these IDs. Note that only PLANNED jobs can be cancelled."),
+) -> None:
+    """Cancel one or more planned jobs by ID."""
+    if not job_ids:
+        confirm_message = "You did not provide any job IDs. This will cancel ALL your planned jobs. Are you sure?"
+    else:
+        confirm_message = "Are you sure you want to continue?"
+
+    if not typer.confirm(confirm_message):
+        raise typer.Abort()
+
+    api = Api()
+    api.cancel_planned_jobs(job_ids)
 
 
 @jobs_app.command("logs")
