@@ -506,7 +506,7 @@ class Api:
 
         Args:
             job_ids: A list of Job IDs to be cancelled. Default is None, in which case all planned jobs are cancelled.
-            """
+        """
         if job_ids is None:
             job_ids = [job.id for job in self.get_jobs(status=JobStatus.PLANNED)]
         else:

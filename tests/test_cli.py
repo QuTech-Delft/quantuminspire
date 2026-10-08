@@ -772,6 +772,7 @@ def test_get_job_logs(mock_api: MagicMock) -> None:
 # Jobs: list and cancel
 # ---------------------------------------------------------------------------
 
+
 def test_list_jobs_empty(mock_api: MagicMock) -> None:
     mock_api.get_jobs.return_value = []
 
@@ -824,6 +825,7 @@ def test_cancel_jobs_abort(mock_api: MagicMock) -> None:
     assert result.exit_code != 0
     assert "Aborted" in result.stdout
     mock_api.cancel_planned_jobs.assert_not_called()
+
 
 # ---------------------------------------------------------------------------
 # Config

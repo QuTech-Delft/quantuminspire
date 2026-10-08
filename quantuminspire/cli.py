@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import List, Optional
 
 import typer
-from compute_api_client import BackendType, CompileStage, FinalResult, Job, Result, JobStatus
+from compute_api_client import BackendType, CompileStage, FinalResult, Job, JobStatus, Result
 from rich.console import Console
 from rich.table import Table
 from typer import Typer, rich_utils
@@ -525,7 +525,9 @@ def get_job_status(
 
 @jobs_app.command("list")
 def list_jobs(
-    status: Optional[JobStatus] = typer.Argument(None, help="Show only jobs with this status. If nothing is set, all jobs are shown."),
+    status: Optional[JobStatus] = typer.Argument(
+        None, help="Show only jobs with this status. If nothing is set, all jobs are shown."
+    ),
     quiet: bool = typer.Option(False, "-q", "--quiet", help="Only print the IDs of the jobs."),
 ) -> None:
     """List all jobs, or all jobs with a specified status."""
@@ -550,7 +552,9 @@ def list_jobs(
 
 @jobs_app.command("cancel")
 def cancel_jobs(
-    job_ids: Optional[List[int]] = typer.Argument(None, help="Cancel jobs with these IDs. Note that only PLANNED jobs can be cancelled."),
+    job_ids: Optional[List[int]] = typer.Argument(
+        None, help="Cancel jobs with these IDs. Note that only PLANNED jobs can be cancelled."
+    ),
 ) -> None:
     """Cancel one or more planned jobs by ID."""
     if not job_ids:

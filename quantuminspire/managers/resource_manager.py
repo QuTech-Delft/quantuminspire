@@ -25,11 +25,13 @@ from compute_api_client import (
     FinalResultsApi,
     Job,
     JobIn,
+    JobPatch,
     JobsApi,
     JobStatus,
     Language,
     LanguagesApi,
     PageBackendType,
+    PageJob,
     PageProject,
     PageResult,
     Project,
@@ -39,7 +41,7 @@ from compute_api_client import (
     Queue,
     Result,
     ResultsApi,
-    ShareType, JobPatch, PageJob,
+    ShareType,
 )
 from compute_api_client.exceptions import ForbiddenException, NotFoundException
 from pydantic import BaseModel, Field
@@ -287,9 +289,7 @@ class ResourceManager:
             filters["status"] = status
 
         page_reader = PageReader[PageJob, Job]()
-        jobs: list[Job] = self._invoke(
-            JobsApi, "read_jobs_jobs_get", page_reader=page_reader, **filters
-        )
+        jobs: list[Job] = self._invoke(JobsApi, "read_jobs_jobs_get", page_reader=page_reader, **filters)
         return jobs
 
     def cancel_planned_jobs(self, job_ids: List[int]) -> None:
@@ -302,7 +302,9 @@ class ResourceManager:
               None. The specified jobs are updated with the CANCELLED status.
         """
         for job_id in job_ids:
-            self._invoke(JobsApi, "update_job_status_jobs_id_patch", id=job_id, job_patch=JobPatch(status=JobStatus.CANCELLED))
+            self._invoke(
+                JobsApi, "update_job_status_jobs_id_patch", id=job_id, job_patch=JobPatch(status=JobStatus.CANCELLED)
+            )
 
     def wait_for_job_completion(self, job_id: int, timeout: float) -> Job:
         """Poll until the job has finished or the timeout is reached.
