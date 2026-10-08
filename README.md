@@ -293,6 +293,28 @@ qi jobs status <job_id>
 
 Use `--wait` to wait for the job to complete before returning, and `--timeout <seconds>` to set the timeout (default: 60).
 
+### List jobs
+
+```bash
+qi jobs list <job_status>
+```
+
+This will return all jobs with given job status. If no job status is specified, `qi jobs list` will list all jobs. You can use `--quiet` to print only job IDs.
+
+### Cancel planned jobs
+
+```bash
+qi jobs cancel
+```
+
+This will delete all planned jobs (after user confirmation).
+
+```bash
+qi jobs cancel [JOB_IDS...]
+```
+
+This will cancel planned jobs with specified job IDs. Note that if at least one job does not have the `PLANNED` status, no jobs will be cancelled.
+
 ### Get job logs
 
 ```bash
