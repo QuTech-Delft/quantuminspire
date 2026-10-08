@@ -278,7 +278,7 @@ def test_read_jobs(resource_manager: ResourceManager, mock_job: Job, mocker: Moc
         assert result == mock_jobs
 
 
-def test_read_jobs_with_status(resource_manager: ResourceManager, mock_project: Project, mocker: MockerFixture) -> None:
+def test_read_jobs_with_status(resource_manager: ResourceManager, mock_job: Job, mocker: MockerFixture) -> None:
     mock_page_reader_instance = mocker.MagicMock()
     mock_job.status = JobStatus.COMPLETED
     mock_jobs = [mock_job]
