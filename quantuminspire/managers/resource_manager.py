@@ -272,7 +272,7 @@ class ResourceManager:
         """
         return self._invoke(JobsApi, "read_job_jobs_id_get", id=job_id)
 
-    def read_jobs(self, status: Optional[JobStatus] = None) -> List[Job]:
+    def read_jobs(self, status: Optional[JobStatus]) -> List[Job]:
         """Retrieve all jobs with specified status.
 
         Args:
@@ -302,8 +302,18 @@ class ResourceManager:
               None. The specified jobs are updated with the CANCELLED status.
         """
         for job_id in job_ids:
+            status = self.get_job(job_id).status
+            if status != JobStatus.PLANNED:
+                print(
+                    f"Job {job_id} has status {status.name}, but only PLANNED jobs can be canceled. "
+                    f"This job is not cancelled."
+                )
+                continue
             self._invoke(
-                JobsApi, "update_job_status_jobs_id_patch", id=job_id, job_patch=JobPatch(status=JobStatus.CANCELLED)
+                JobsApi,
+                "update_job_status_jobs_id_patch",
+                id=job_id,
+                job_patch=JobPatch(status=JobStatus.CANCELLED, message="This job has been cancelled by the user."),
             )
 
     def wait_for_job_completion(self, job_id: int, timeout: float) -> Job:

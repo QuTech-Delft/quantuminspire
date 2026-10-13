@@ -1,6 +1,6 @@
 from pathlib import Path
 from typing import Any
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, Mock, _Call, call, patch
 
 import pytest
 from compute_api_client import (
@@ -270,7 +270,7 @@ def test_read_jobs(resource_manager: ResourceManager, mock_job: Job, mocker: Moc
     ):
         mock_page_reader_class.__getitem__.return_value.return_value = mock_page_reader_instance
 
-        result = resource_manager.read_jobs()
+        result = resource_manager.read_jobs(None)
 
         mock_invoke.assert_called_once_with(
             JobsApi, "read_jobs_jobs_get", page_reader=mock_page_reader_instance, sort_by="-id"
@@ -301,22 +301,49 @@ def test_read_jobs_with_status(resource_manager: ResourceManager, mock_job: Job,
         assert result == mock_jobs
 
 
-def test_cancel_planned_jobs_all(resource_manager: ResourceManager) -> None:
-    job_ids = [1, 2, 3]
+def _expected_patch(job_id: int) -> _Call:
+    return call(
+        JobsApi,
+        "update_job_status_jobs_id_patch",
+        id=job_id,
+        job_patch=JobPatch(status=JobStatus.CANCELLED, message="This job has been cancelled by the user."),
+    )
 
-    with patch.object(ResourceManager, "_invoke") as mock_invoke:
+
+def test_cancel_planned_jobs_all(resource_manager: ResourceManager) -> None:
+    job_ids = [1, 2]
+    mock_jobs = [MagicMock(id=id, status=JobStatus.PLANNED) for id in job_ids]
+
+    with (
+        patch.object(ResourceManager, "_invoke") as mock_invoke,
+        patch.object(ResourceManager, "get_job", side_effect=mock_jobs) as mock_get_job,
+    ):
         resource_manager.cancel_planned_jobs(job_ids)
 
+        assert mock_get_job.call_count == len(job_ids)
         assert mock_invoke.call_count == len(job_ids)
-        mock_invoke.assert_any_call(
-            JobsApi, "update_job_status_jobs_id_patch", id=1, job_patch=JobPatch(status=JobStatus.CANCELLED)
-        )
-        mock_invoke.assert_any_call(
-            JobsApi, "update_job_status_jobs_id_patch", id=2, job_patch=JobPatch(status=JobStatus.CANCELLED)
-        )
-        mock_invoke.assert_any_call(
-            JobsApi, "update_job_status_jobs_id_patch", id=3, job_patch=JobPatch(status=JobStatus.CANCELLED)
-        )
+        assert mock_invoke.call_args_list == [_expected_patch(job_id) for job_id in job_ids]
+
+
+def test_cancel_planned_jobs_skips_wrong_status(
+    resource_manager: ResourceManager, capsys: pytest.CaptureFixture[str]
+) -> None:
+    job_ids = [1, 2, 3]
+    job_status = [JobStatus.PLANNED, JobStatus.COMPLETED, JobStatus.PLANNED]
+    mock_jobs = [MagicMock(id=i, status=s) for i, s in zip(job_ids, job_status)]
+
+    with (
+        patch.object(ResourceManager, "get_job", side_effect=mock_jobs) as mock_get_job,
+        patch.object(ResourceManager, "_invoke") as mock_invoke,
+    ):
+        resource_manager.cancel_planned_jobs([1, 2, 3])
+
+        assert mock_get_job.call_count == len(mock_jobs)
+        assert mock_invoke.call_args_list == [_expected_patch(1), _expected_patch(3)]
+
+        output = capsys.readouterr().out
+        assert "Job 2 has status COMPLETED" in output
+        assert "This job is not cancelled" in output
 
 
 def test_cancel_planned_jobs_empty(resource_manager: ResourceManager) -> None:

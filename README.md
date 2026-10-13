@@ -307,13 +307,13 @@ This will return all jobs with given job status. If no job status is specified, 
 qi jobs cancel
 ```
 
-This will delete all planned jobs (after user confirmation).
+This will cancel all planned jobs (after user confirmation).
 
 ```bash
 qi jobs cancel [JOB_IDS...]
 ```
 
-This will cancel planned jobs with specified job IDs. Note that if at least one job does not have the `PLANNED` status, no jobs will be cancelled.
+This will cancel planned jobs with specified job IDs. Note that only `PLANNED` jobs can be cancelled, so any job with a different status will be skipped.
 
 ### Get job logs
 

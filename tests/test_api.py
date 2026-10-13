@@ -957,36 +957,16 @@ def test_cancel_jobs_with_job_ids(
     api_instance: Api, mock_resource_manager: Mock, mocker: MockerFixture, capsys: pytest.CaptureFixture[str]
 ) -> None:
     job_ids = [431, 566]
-    mock_jobs = [MagicMock(id=id, status=JobStatus.PLANNED) for id in job_ids]
 
     mock_cancel = mocker.patch.object(mock_resource_manager, "cancel_planned_jobs")
     mock_get_jobs = mocker.patch.object(mock_resource_manager, "read_jobs")
-    mock_get_job = mocker.patch.object(mock_resource_manager, "get_job", side_effect=mock_jobs)
 
     api_instance.cancel_planned_jobs(job_ids=job_ids)
 
     mock_cancel.assert_called_once_with(job_ids=job_ids)
     mock_get_jobs.assert_not_called()
-    mock_get_job.assert_any_call(job_ids[0])
-    mock_get_job.assert_any_call(job_ids[1])
     captured = capsys.readouterr()
     assert f"{len(job_ids)} jobs cancelled successfully." in captured.out
-
-
-def test_cancel_jobs_with_wrong_status(
-    api_instance: Api, mock_resource_manager: Mock, mocker: MockerFixture, capsys: pytest.CaptureFixture[str]
-) -> None:
-    job_id = 66
-    mock_completed_job = MagicMock(id=job_id, status=JobStatus.COMPLETED)
-    mocker.patch.object(mock_resource_manager, "get_job", return_value=mock_completed_job)
-
-    with pytest.raises(
-        ValueError,
-        match=f"Job {job_id} has status COMPLETED, but only PLANNED jobs can be canceled",
-    ):
-        api_instance.cancel_planned_jobs(job_ids=[job_id])
-
-    mock_resource_manager.cancel_planned_jobs.assert_not_called()
 
 
 def test_get_final_result_by_algorithm_name(
