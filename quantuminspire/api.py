@@ -489,6 +489,33 @@ class Api:
         return self._resource_manager.get_job(job_id)
 
     @_refresh_auth_tokens
+    def get_jobs(self, status: Optional[JobStatus] = None) -> List[Job]:
+        """Retrieve a list of jobs, optionally filtered by status.
+
+        Args:
+            status: The status of the jobs to retrieve. If None (default), all jobs are returned.
+
+        Returns:
+            A List of Job objects.
+        """
+        return self._resource_manager.read_jobs(status=status)
+
+    @_refresh_auth_tokens
+    def cancel_planned_jobs(self, job_ids: Optional[List[int]] = None) -> None:
+        """Cancel planned jobs.
+
+        Args:
+            job_ids: A list of Job IDs to be cancelled. Default is None, in which case all planned jobs are cancelled.
+        """
+        if job_ids is None:
+            job_ids = [job.id for job in self.get_jobs(status=JobStatus.PLANNED)]
+
+        self._resource_manager.cancel_planned_jobs(job_ids=job_ids)
+        for job_id in job_ids:
+            print(f"Cancelled job {job_id}")
+        print(f"{len(job_ids)} jobs cancelled successfully.")
+
+    @_refresh_auth_tokens
     def get_job_logs(
         self,
         job_id: Optional[int] = None,

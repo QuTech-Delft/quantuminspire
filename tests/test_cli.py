@@ -4,6 +4,7 @@ from typing import Any, Generator
 from unittest.mock import MagicMock, patch
 
 import pytest
+from compute_api_client import JobStatus
 from pytest import MonkeyPatch
 from typer.testing import CliRunner
 
@@ -765,6 +766,65 @@ def test_get_job_logs(mock_api: MagicMock) -> None:
     runner.invoke(app, ["jobs", "logs", "789"])
 
     mock_api.get_job_logs.assert_called_once_with(789, None, None, None, None)
+
+
+# ---------------------------------------------------------------------------
+# Jobs: list and cancel
+# ---------------------------------------------------------------------------
+
+
+def test_list_jobs_empty(mock_api: MagicMock) -> None:
+    mock_api.get_jobs.return_value = []
+
+    result = runner.invoke(app, ["jobs", "list"])
+
+    assert result.exit_code == 0, repr(result.exception)
+    mock_api.get_jobs.assert_called_once_with(status=None)
+
+
+def test_list_jobs_quiet(mock_api: MagicMock) -> None:
+    mock_job = MagicMock()
+    mock_job.id = 42
+    mock_api.get_jobs.return_value = [mock_job]
+
+    result = runner.invoke(app, ["jobs", "list", "--quiet"])
+
+    assert result.exit_code == 0, repr(result.exception)
+    assert "42" in result.stdout
+    mock_api.get_jobs.assert_called_once_with(status=None)
+
+
+def test_list_jobs_with_status_filter(mock_api: MagicMock) -> None:
+    mock_job = MagicMock()
+    mock_job.id = 42
+    mock_api.get_jobs.return_value = [mock_job]
+
+    result = runner.invoke(app, ["jobs", "list", "planned"])
+
+    assert result.exit_code == 0, repr(result.exception)
+    mock_api.get_jobs.assert_called_once_with(status=JobStatus.PLANNED)
+
+
+def test_cancel_jobs_all(mock_api: MagicMock) -> None:
+    result = runner.invoke(app, ["jobs", "cancel"], input="y\n")
+
+    assert result.exit_code == 0, repr(result.exception)
+    mock_api.cancel_planned_jobs.assert_called_once_with(None)
+
+
+def test_cancel_jobs_by_ids(mock_api: MagicMock) -> None:
+    result = runner.invoke(app, ["jobs", "cancel", "1", "2"], input="y\n")
+
+    assert result.exit_code == 0, repr(result.exception)
+    mock_api.cancel_planned_jobs.assert_called_once_with([1, 2])
+
+
+def test_cancel_jobs_abort(mock_api: MagicMock) -> None:
+    result = runner.invoke(app, ["jobs", "cancel", "1"], input="n\n")
+
+    assert result.exit_code != 0
+    assert "Aborted" in result.stdout
+    mock_api.cancel_planned_jobs.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
