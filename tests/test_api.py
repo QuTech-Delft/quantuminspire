@@ -940,7 +940,7 @@ def test_cancel_jobs_all(
     api_instance: Api, mock_resource_manager: Mock, mocker: MockerFixture, capsys: pytest.CaptureFixture[str]
 ) -> None:
     job_ids = [431, 566]
-    mock_cancel = mocker.patch.object(mock_resource_manager, "cancel_planned_jobs")
+    mock_cancel = mocker.patch.object(mock_resource_manager, "cancel_planned_jobs", return_value=job_ids)
     mock_get_jobs = mocker.patch.object(
         api_instance, "get_jobs", return_value=[MagicMock(id=id, status=JobStatus.PLANNED) for id in job_ids]
     )
@@ -956,9 +956,25 @@ def test_cancel_jobs_all(
 def test_cancel_jobs_with_job_ids(
     api_instance: Api, mock_resource_manager: Mock, mocker: MockerFixture, capsys: pytest.CaptureFixture[str]
 ) -> None:
+    job_ids = [431]
+
+    mock_cancel = mocker.patch.object(mock_resource_manager, "cancel_planned_jobs", return_value=[])
+    mock_get_jobs = mocker.patch.object(mock_resource_manager, "read_jobs")
+
+    api_instance.cancel_planned_jobs(job_ids=job_ids)
+
+    mock_cancel.assert_called_once_with(job_ids=job_ids)
+    mock_get_jobs.assert_not_called()
+    captured = capsys.readouterr()
+    assert f"{len(job_ids)} jobs cancelled successfully." not in captured.out
+
+
+def test_cancel_jobs__wrong_state(
+    api_instance: Api, mock_resource_manager: Mock, mocker: MockerFixture, capsys: pytest.CaptureFixture[str]
+) -> None:
     job_ids = [431, 566]
 
-    mock_cancel = mocker.patch.object(mock_resource_manager, "cancel_planned_jobs")
+    mock_cancel = mocker.patch.object(mock_resource_manager, "cancel_planned_jobs", return_value=job_ids)
     mock_get_jobs = mocker.patch.object(mock_resource_manager, "read_jobs")
 
     api_instance.cancel_planned_jobs(job_ids=job_ids)

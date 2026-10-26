@@ -511,7 +511,7 @@ class Api:
             job_ids = [job.id for job in self.get_jobs(status=JobStatus.PLANNED)]
 
         cancelled_job_ids = self._resource_manager.cancel_planned_jobs(job_ids=job_ids)
-        if len(cancelled_job_ids) != 0:
+        if cancelled_job_ids:
             for job_id in cancelled_job_ids:
                 print(f"Cancelled job {job_id}")
             print(f"{len(cancelled_job_ids)} jobs cancelled successfully.")
