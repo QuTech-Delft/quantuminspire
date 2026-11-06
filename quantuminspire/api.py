@@ -24,6 +24,7 @@ from quantuminspire.managers.auth_manager import AuthManager
 from quantuminspire.managers.config_manager import ConfigManager
 from quantuminspire.managers.resource_manager import CompileOptions, JobOptions, ResourceManager
 from quantuminspire.settings.models import AlgorithmName, LocalAlgorithm
+from quantuminspire.settings.user_settings import UserSettings
 
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -80,7 +81,7 @@ class Api:
         self._auth_manager = auth_manager or AuthManager(user_settings=self._config_manager.user_settings)
         self._resource_manager = resource_manager or ResourceManager()
 
-    def login(self, hostname: Optional[str] = None, override_auth_config: bool = False, force: bool = False) -> None:
+    def login(self, host: Optional[str] = None, override_auth_config: bool = False, force: bool = False) -> None:
         """Log in to the Quantum Inspire platform.
 
         Args:
@@ -89,17 +90,28 @@ class Api:
             force: Force a new login even if already logged in.
         """
         host_url: Optional[Url] = None
-        if hostname is not None:
-            host_url = TypeAdapter(Url).validate_python(self._resolve_protocol(hostname))
+        if host is not None:
+            host_url = TypeAdapter(Url).validate_python(self._resolve_protocol(host))
 
         resolved_host = self._resolve(host_url, "default_host")
+        current_default = self._config_manager.get("default_host")
 
-        if force or self._login_required(resolved_host):
-            self._auth_manager.login(resolved_host, override_auth_config)
-            self.set_setting("default_host", resolved_host, is_user=True)
-        else:
-            print("Already logged in, simply refreshing tokens")
-            self._auth_manager.refresh_tokens(resolved_host)
+        production_host = str(UserSettings.model_fields["default_host"].default)
+        if str(resolved_host).rstrip("/") != production_host.rstrip("/"):
+            print(f"Using non-production host: {resolved_host}")
+
+        try:
+            if force or self._login_required(resolved_host):
+                self._auth_manager.login(resolved_host, override_auth_config)
+            else:
+                print("Already logged in, simply refreshing tokens")
+                self._auth_manager.refresh_tokens(resolved_host)
+        except Exception:
+            if str(resolved_host).rstrip("/") != str(current_default).rstrip("/"):
+                print(f"Login to {resolved_host} failed. Your default host is still {current_default}.")
+            raise
+
+        self.set_setting("default_host", resolved_host, is_user=True)
 
     def _login_required(self, host: Url) -> bool:
         """Check whether a login is required for the given host.
@@ -112,17 +124,9 @@ class Api:
         """
         return self._auth_manager.login_required(host)
 
-    def logout(self, hostname: Optional[str] = None) -> None:
-        """Log out of the Quantum Inspire platform by clearing stored tokens.
-
-        Args:
-            hostname: The host URL to log out from. Uses the configured default if not provided.
-        """
-        host_url: Optional[Url] = None
-        if hostname is not None:
-            host_url = TypeAdapter(Url).validate_python(self._resolve_protocol(hostname))
-
-        resolved_host = self._resolve(host_url, "default_host")
+    def logout(self) -> None:
+        """Log out of the Quantum Inspire platform by clearing stored tokens."""
+        resolved_host = self._config_manager.get("default_host")
         self._auth_manager.logout(resolved_host)
         print(f"Successfully logged out from {resolved_host}")
 
