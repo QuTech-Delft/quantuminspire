@@ -208,6 +208,46 @@ def test_login_user_already_authenticated(api_instance: Api) -> None:
     set_mock.assert_called_once_with("default_host", hostname, True)
 
 
+def test_login_warns_when_stored_default_host_is_not_production(
+    api_instance: Api, mock_config_manager: Mock, capsys: pytest.CaptureFixture[str]
+) -> None:
+    mock_config_manager.get.return_value = "https://staging.example.com"
+    cast(Mock, api_instance._auth_manager.login_required).return_value = True
+
+    api_instance.login(None)
+
+    assert "Using non-production host: https://staging.example.com" in capsys.readouterr().out
+
+
+def test_login_failure_keeps_default_host(
+    api_instance: Api, mock_config_manager: Mock, mock_auth_manager: Mock, capsys: pytest.CaptureFixture[str]
+) -> None:
+    mock_config_manager.get.return_value = "https://current.example.com"
+    mock_auth_manager.login_required.return_value = True
+    mock_auth_manager.login.side_effect = RuntimeError("boom")
+
+    with pytest.raises(RuntimeError, match="boom"):
+        api_instance.login("https://staging.example.com")
+
+    mock_config_manager.set.assert_not_called()
+    out = capsys.readouterr().out
+    assert "Login to https://staging.example.com failed" in out
+    assert "still https://current.example.com" in out
+
+
+def test_login_failure_same_host_prints_no_note(
+    api_instance: Api, mock_config_manager: Mock, mock_auth_manager: Mock, capsys: pytest.CaptureFixture[str]
+) -> None:
+    mock_config_manager.get.return_value = "https://current.example.com"
+    mock_auth_manager.login_required.return_value = True
+    mock_auth_manager.login.side_effect = RuntimeError("boom")
+
+    with pytest.raises(RuntimeError):
+        api_instance.login("https://current.example.com")
+
+    assert "still" not in capsys.readouterr().out
+
+
 def test_logout(
     api_instance: Api, mock_config_manager: Mock, mock_auth_manager: Mock, capsys: pytest.CaptureFixture[str]
 ) -> None:

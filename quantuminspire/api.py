@@ -24,6 +24,7 @@ from quantuminspire.managers.auth_manager import AuthManager
 from quantuminspire.managers.config_manager import ConfigManager
 from quantuminspire.managers.resource_manager import CompileOptions, JobOptions, ResourceManager
 from quantuminspire.settings.models import AlgorithmName, LocalAlgorithm
+from quantuminspire.settings.user_settings import UserSettings
 
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -93,15 +94,22 @@ class Api:
             host_url = TypeAdapter(Url).validate_python(self._resolve_protocol(host))
 
         resolved_host = self._resolve(host_url, "default_host")
+        current_default = self._config_manager.get("default_host")
 
-        if str(resolved_host).rstrip("/") != str(self._config_manager.get("default_host")).rstrip("/"):
+        production_host = str(UserSettings.model_fields["default_host"].default)
+        if str(resolved_host).rstrip("/") != production_host.rstrip("/"):
             print(f"Using non-production host: {resolved_host}")
 
-        if force or self._login_required(resolved_host):
-            self._auth_manager.login(resolved_host, override_auth_config)
-        else:
-            print("Already logged in, simply refreshing tokens")
-            self._auth_manager.refresh_tokens(resolved_host)
+        try:
+            if force or self._login_required(resolved_host):
+                self._auth_manager.login(resolved_host, override_auth_config)
+            else:
+                print("Already logged in, simply refreshing tokens")
+                self._auth_manager.refresh_tokens(resolved_host)
+        except Exception:
+            if str(resolved_host).rstrip("/") != str(current_default).rstrip("/"):
+                print(f"Login to {resolved_host} failed. Your default host is still {current_default}.")
+            raise
 
         self.set_setting("default_host", resolved_host, is_user=True)
 
