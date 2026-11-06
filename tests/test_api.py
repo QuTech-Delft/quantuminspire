@@ -205,55 +205,32 @@ def test_login_user_already_authenticated(api_instance: Api) -> None:
 
     refresh_mock.assert_called_with(hostname)
     login_mock.assert_not_called()
-    set_mock.assert_not_called()
+    set_mock.assert_called_once_with("default_host", hostname, True)
 
 
-@pytest.mark.parametrize(
-    "hostname,expected_hostname",
-    [
-        ("https://example.com", "https://example.com"),  # explicit hostname
-        (None, "https://default_hostname.com"),  # default from config
-    ],
-)
 def test_logout(
-    api_instance: Api,
-    mock_config_manager: Mock,
-    mock_auth_manager: Mock,
-    hostname: Optional[str],
-    expected_hostname: str,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    # Arrange
-    if hostname is None:
-        mock_config_manager.get.return_value = expected_hostname
-
-    # Act
-    api_instance.logout(hostname)
-
-    # Assert
-    logout_mock = cast(Mock, mock_auth_manager.logout)
-    logout_mock.assert_called_once_with(expected_hostname)
-
-    captured = capsys.readouterr()
-    assert f"Successfully logged out from {expected_hostname}" in captured.out
-
-
-def test_logout_with_no_hostname_uses_default(
     api_instance: Api, mock_config_manager: Mock, mock_auth_manager: Mock, capsys: pytest.CaptureFixture[str]
 ) -> None:
     # Arrange
-    default_hostname = "https://default.example.com"
-    mock_config_manager.get.return_value = default_hostname
+    host = "https://default.example.com"
+    mock_config_manager.get.return_value = host
 
     # Act
     api_instance.logout()
 
     # Assert
+    mock_config_manager.get.assert_called_with("default_host")
+
     logout_mock = cast(Mock, mock_auth_manager.logout)
-    logout_mock.assert_called_once_with(default_hostname)
+    logout_mock.assert_called_once_with(host)
 
     captured = capsys.readouterr()
-    assert f"Successfully logged out from {default_hostname}" in captured.out
+    assert f"Successfully logged out from {host}" in captured.out
+
+
+def test_logout_rejects_host_argument(api_instance: Api) -> None:
+    with pytest.raises(TypeError):
+        api_instance.logout("https://example.com")  # type: ignore[call-arg]
 
 
 def test_get_backend_types(api_instance: Api) -> None:
