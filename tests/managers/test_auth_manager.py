@@ -112,10 +112,16 @@ def test_login(
     oauth_session.poll_for_tokens.return_value = mock_tokens
     store_tokens_mock = mocker.patch.object(auth_manager, "_store_tokens")
     _ = mocker.patch("quantuminspire.managers.auth_manager.webbrowser.open")
+    mock_print = mocker.patch("builtins.print")
 
     # Act
     auth_manager.login(host, override_auth_config)
     store_tokens_mock.assert_called_once_with(host, mock_tokens)
+    # The login message (URL + user code) must reach the user before the
+    # blocking token poll: without flush it can sit in a buffered stdout
+    # while the user waits, looking like a hang.
+    flushed_messages = [call.args[0] for call in mock_print.call_args_list if call.kwargs.get("flush") is True]
+    assert any("some-code" in message for message in flushed_messages)
     if not override_auth_config:
         fetch_auth.assert_awaited_once()
     else:
