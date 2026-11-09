@@ -55,7 +55,7 @@ In order to login to the platform, run the following command:
 qi login
 ```
 
-This will open a browser window that will allow you to login or create an account. By default this command will login to the production environment, but the command accepts an argument for a different host URL if needed (e.g. for beta testing purposes).
+This will open a browser window that will allow you to login or create an account.
 
 > [!WARNING]
 > If after installing latest version, you recieve errors with respect to token validity, please run `qi logout` and then again log in using `qi login`
@@ -67,8 +67,6 @@ To log out from the platform, run:
 ```bash
 qi logout
 ```
-
-If no hostname is specified, the default host is used.
 
 ---
 
@@ -391,4 +389,4 @@ Use `--algorithm <name>` to retrieve a setting for a specific algorithm.
 qi config set <key> <value>
 ```
 
-Use `--algorithm <name>` to set a setting for a specific algorithm, or `--user` to set a global user-level setting (e.g. `default_host`).
+Use `--algorithm <name>` to set a setting for a specific algorithm.

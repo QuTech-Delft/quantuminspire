@@ -119,13 +119,10 @@ def config_callback() -> None:
       Project level  Settings specific to the project in the current directory.
                      Keys: project.id, project.name, project.description,
                            project.algorithms.<name>.*
-      User level     Global settings shared across all projects.
-                     Keys: default_host
 
     \b
     Examples:
       qi config get project.name
-      qi config set default_host quantuminspire.com --user
       qi config get file_path --algorithm my-algo
       qi config set backend_type_id 3 --algorithm my-algo
     """
@@ -231,28 +228,22 @@ def main() -> None:
 
 @app.command("login")
 def login(
-    hostname: Optional[str] = typer.Argument(None, help="The hostname of the Quantum Inspire platform"),
+    host: Optional[str] = typer.Option(
+        None, "--host", envvar="QI_HOST", hidden=True, help="Option for developers to specify the host to log in to."
+    ),
     override_auth_config: bool = typer.Option(False, help="Whether to override existing authentication configuration."),
     force: bool = typer.Option(False, help="Force a new login even if already logged in."),
 ) -> None:
-    """Authenticate to Quantum Inspire.
-
-    Defaults to the production environment if no hostname is specified.
-    """
+    """Authenticate to Quantum Inspire."""
     api = Api()
-    api.login(hostname, override_auth_config, force)
+    api.login(host, override_auth_config, force)
 
 
 @app.command("logout")
-def logout(
-    hostname: Optional[str] = typer.Argument(None, help="The hostname of the Quantum Inspire platform"),
-) -> None:
-    """Log out from Quantum Inspire.
-
-    If no hostname is specified, the default host is used.
-    """
+def logout() -> None:
+    """Log out from Quantum Inspire."""
     api = Api()
-    api.logout(hostname)
+    api.logout()
 
 
 @app.command("run")

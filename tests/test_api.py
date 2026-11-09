@@ -205,55 +205,81 @@ def test_login_user_already_authenticated(api_instance: Api) -> None:
 
     refresh_mock.assert_called_with(hostname)
     login_mock.assert_not_called()
-    set_mock.assert_not_called()
+    set_mock.assert_called_once_with("default_host", hostname, True)
 
 
-@pytest.mark.parametrize(
-    "hostname,expected_hostname",
-    [
-        ("https://example.com", "https://example.com"),  # explicit hostname
-        (None, "https://default_hostname.com"),  # default from config
-    ],
-)
-def test_logout(
-    api_instance: Api,
-    mock_config_manager: Mock,
-    mock_auth_manager: Mock,
-    hostname: Optional[str],
-    expected_hostname: str,
-    capsys: pytest.CaptureFixture[str],
+def test_login(api_instance: Api, mock_config_manager: Mock, capsys: pytest.CaptureFixture[str]) -> None:
+    mock_config_manager.get.return_value = "https://api.quantum-inspire.com"
+    cast(Mock, api_instance._auth_manager.login_required).return_value = True
+
+    api_instance.login(None)
+
+    assert "non-production" not in capsys.readouterr().out
+
+
+def test_login_warns_when_stored_default_host_is_not_production(
+    api_instance: Api, mock_config_manager: Mock, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    # Arrange
-    if hostname is None:
-        mock_config_manager.get.return_value = expected_hostname
+    mock_config_manager.get.return_value = "https://staging.example.com"
+    cast(Mock, api_instance._auth_manager.login_required).return_value = True
 
-    # Act
-    api_instance.logout(hostname)
+    api_instance.login(None)
 
-    # Assert
-    logout_mock = cast(Mock, mock_auth_manager.logout)
-    logout_mock.assert_called_once_with(expected_hostname)
-
-    captured = capsys.readouterr()
-    assert f"Successfully logged out from {expected_hostname}" in captured.out
+    assert "Using non-production host: https://staging.example.com" in capsys.readouterr().out
 
 
-def test_logout_with_no_hostname_uses_default(
+def test_login_failure_keeps_default_host(
+    api_instance: Api, mock_config_manager: Mock, mock_auth_manager: Mock, capsys: pytest.CaptureFixture[str]
+) -> None:
+    mock_config_manager.get.return_value = "https://current.example.com"
+    mock_auth_manager.login_required.return_value = True
+    mock_auth_manager.login.side_effect = RuntimeError("boom")
+
+    with pytest.raises(RuntimeError, match="boom"):
+        api_instance.login("https://staging.example.com")
+
+    mock_config_manager.set.assert_not_called()
+    out = capsys.readouterr().out
+    assert "Login to https://staging.example.com failed" in out
+    assert "still https://current.example.com" in out
+
+
+def test_login_failure_same_host_prints_no_note(
+    api_instance: Api, mock_config_manager: Mock, mock_auth_manager: Mock, capsys: pytest.CaptureFixture[str]
+) -> None:
+    mock_config_manager.get.return_value = "https://current.example.com"
+    mock_auth_manager.login_required.return_value = True
+    mock_auth_manager.login.side_effect = RuntimeError("boom")
+
+    with pytest.raises(RuntimeError):
+        api_instance.login("https://current.example.com")
+
+    assert "still" not in capsys.readouterr().out
+
+
+def test_logout(
     api_instance: Api, mock_config_manager: Mock, mock_auth_manager: Mock, capsys: pytest.CaptureFixture[str]
 ) -> None:
     # Arrange
-    default_hostname = "https://default.example.com"
-    mock_config_manager.get.return_value = default_hostname
+    host = "https://default.example.com"
+    mock_config_manager.get.return_value = host
 
     # Act
     api_instance.logout()
 
     # Assert
+    mock_config_manager.get.assert_called_with("default_host")
+
     logout_mock = cast(Mock, mock_auth_manager.logout)
-    logout_mock.assert_called_once_with(default_hostname)
+    logout_mock.assert_called_once_with(host)
 
     captured = capsys.readouterr()
-    assert f"Successfully logged out from {default_hostname}" in captured.out
+    assert f"Successfully logged out from {host}" in captured.out
+
+
+def test_logout_rejects_host_argument(api_instance: Api) -> None:
+    with pytest.raises(TypeError):
+        api_instance.logout("https://example.com")  # type: ignore[call-arg]
 
 
 def test_get_backend_types(api_instance: Api) -> None:
