@@ -208,6 +208,15 @@ def test_login_user_already_authenticated(api_instance: Api) -> None:
     set_mock.assert_called_once_with("default_host", hostname, True)
 
 
+def test_login(api_instance: Api, mock_config_manager: Mock, capsys: pytest.CaptureFixture[str]) -> None:
+    mock_config_manager.get.return_value = "https://api.quantum-inspire.com"
+    cast(Mock, api_instance._auth_manager.login_required).return_value = True
+
+    api_instance.login(None)
+
+    assert "non-production" not in capsys.readouterr().out
+
+
 def test_login_warns_when_stored_default_host_is_not_production(
     api_instance: Api, mock_config_manager: Mock, capsys: pytest.CaptureFixture[str]
 ) -> None:
