@@ -91,14 +91,26 @@ def test_get_invalid_key(config_manager: ConfigManager, key: str) -> None:
         ("default_host", "https://api.quantum-inspire.com"),
         ("test_setting", "some test setting"),
         ("shared_setting", "shared setting project"),
+        ("host", "https://api.quantum-inspire.com"),
     ],
 )
 def test_get_valid_key(config_manager: ConfigManager, key: str, expected_value: Any) -> None:
     assert config_manager.get(key) == expected_value
 
 
-def test_configurable_field_names(config_manager: ConfigManager) -> None:
+def test_get_host_uses_default_host(config_manager: ConfigManager, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("QI2_DEV_HOST", raising=False)
 
+    assert config_manager.get("host") == config_manager.user_settings.default_host
+
+
+def test_get_host_uses_dev_override(config_manager: ConfigManager, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("QI2_DEV_HOST", "http://localhost:8000")
+
+    assert str(config_manager.get("host")) == "http://localhost:8000"
+
+
+def test_configurable_field_names(config_manager: ConfigManager) -> None:
     supported_keys = [
         "project.id",
         "project.name",
@@ -133,7 +145,6 @@ def test_set_invalid_key(config_manager: ConfigManager, key: str, value: Any) ->
     ],
 )
 def test_set_invalid_scopes(config_manager: ConfigManager, key: str, value: Any, is_user: bool) -> None:
-
     with pytest.raises(ValueError):
         config_manager.set(key, value, is_user)
 
@@ -224,7 +235,6 @@ def test_inspect_merger(
     expected_value: Optional[int],
     expected_setting: str,
 ) -> None:
-
     shared_setting_key = "shared_setting"
     assert config_manager._project_settings is not None
     config_manager._project_settings.set_value(shared_setting_key, project_value)

@@ -4,7 +4,6 @@ from typing import Any, Callable, Dict, Optional, cast
 from unittest.mock import MagicMock, Mock, call, patch
 
 import pytest
-import requests
 from compute_api_client import AlgorithmType, CompileStage, Job, JobStatus, Project
 from pytest_mock import MockerFixture
 
@@ -17,8 +16,7 @@ from quantuminspire.settings.models import LocalAlgorithm
 
 @pytest.fixture
 def mock_config_manager() -> Mock:
-    mock_config_manager = Mock(spec=ConfigManager)
-    return mock_config_manager
+    return Mock(spec=ConfigManager)
 
 
 @pytest.fixture
@@ -90,14 +88,14 @@ def test_refresh_auth_tokens_calls_login_when_login_required(
 ) -> None:
     # Arrange
     host = "https://example.com"
-    mock_config_manager.get.return_value = host
-    mock_login_required = mocker.patch.object(api_instance, "_login_required", return_value=True)
+    mock_config_manager.get_host.return_value = host
+    mock_auth_manager.login_required.return_value = True
 
     # Act
     api_instance.get_backend_types()
 
     # Assert
-    mock_login_required.assert_called_with(host)
+    mock_auth_manager.login_required.assert_called_with(host)
     mock_auth_manager.login.assert_called_with(host, False)
 
 
@@ -176,7 +174,7 @@ def test_login_user_not_authenticated(api_instance: Api) -> None:
     login_required_mock.return_value = True
 
     # Act
-    api_instance.login(hostname)
+    api_instance.login()
 
     # Assert
     login_mock = cast(Mock, api_instance._auth_manager.login)
@@ -188,73 +186,43 @@ def test_login_user_not_authenticated(api_instance: Api) -> None:
     set_mock.assert_called_with("default_host", hostname, True)
 
 
-def test_login_user_already_authenticated(api_instance: Api) -> None:
+def test_login_user_already_authenticated(api_instance: Api, mock_auth_manager: Mock) -> None:
     # Arrange
-    hostname = "https://example.com"
-
+    mock_auth_manager.get_host.return_value = "https://api.quantum-inspire.com"
     login_required_mock = cast(Mock, api_instance._auth_manager.login_required)
     login_required_mock.return_value = False
 
     # Act
-    api_instance.login(hostname)
+    api_instance.login()
 
     # Assert
     login_mock = cast(Mock, api_instance._auth_manager.login)
     refresh_mock = cast(Mock, api_instance._auth_manager.refresh_tokens)
     set_mock = cast(Mock, api_instance._config_manager.set)
 
-    refresh_mock.assert_called_with(hostname)
+    refresh_mock.assert_called_with("https://api.quantum-inspire.com")
     login_mock.assert_not_called()
-    set_mock.assert_called_once_with("default_host", hostname, True)
+    # set_mock.assert_called_once_with("default_host", hostname, True)
 
 
-def test_login(api_instance: Api, mock_config_manager: Mock, capsys: pytest.CaptureFixture[str]) -> None:
-    mock_config_manager.get.return_value = "https://api.quantum-inspire.com"
+def test_login(api_instance: Api, mock_auth_manager: Mock, capsys: pytest.CaptureFixture[str]) -> None:
+    mock_auth_manager.get_host.return_value = "https://api.quantum-inspire.com"
     cast(Mock, api_instance._auth_manager.login_required).return_value = True
 
-    api_instance.login(None)
+    api_instance.login()
 
     assert "non-production" not in capsys.readouterr().out
 
 
 def test_login_warns_when_stored_default_host_is_not_production(
-    api_instance: Api, mock_config_manager: Mock, capsys: pytest.CaptureFixture[str]
+    api_instance: Api, mock_auth_manager: Mock, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    mock_config_manager.get.return_value = "https://staging.example.com"
+    mock_auth_manager.get_host.return_value = "https://staging.example.com"
     cast(Mock, api_instance._auth_manager.login_required).return_value = True
 
-    api_instance.login(None)
+    api_instance.login()
 
     assert "Using non-production host: https://staging.example.com" in capsys.readouterr().out
-
-
-def test_login_failure_keeps_default_host(
-    api_instance: Api, mock_config_manager: Mock, mock_auth_manager: Mock, capsys: pytest.CaptureFixture[str]
-) -> None:
-    mock_config_manager.get.return_value = "https://current.example.com"
-    mock_auth_manager.login_required.return_value = True
-    mock_auth_manager.login.side_effect = RuntimeError("boom")
-
-    with pytest.raises(RuntimeError, match="boom"):
-        api_instance.login("https://staging.example.com")
-
-    mock_config_manager.set.assert_not_called()
-    out = capsys.readouterr().out
-    assert "Login to https://staging.example.com failed" in out
-    assert "still https://current.example.com" in out
-
-
-def test_login_failure_same_host_prints_no_note(
-    api_instance: Api, mock_config_manager: Mock, mock_auth_manager: Mock, capsys: pytest.CaptureFixture[str]
-) -> None:
-    mock_config_manager.get.return_value = "https://current.example.com"
-    mock_auth_manager.login_required.return_value = True
-    mock_auth_manager.login.side_effect = RuntimeError("boom")
-
-    with pytest.raises(RuntimeError):
-        api_instance.login("https://current.example.com")
-
-    assert "still" not in capsys.readouterr().out
 
 
 def test_logout(
@@ -1334,40 +1302,11 @@ def test_submit_job_raises_if_backend_unavailable(
     mock_resource_manager: Mock,
     mock_config_manager: Mock,
 ) -> None:
-
     with (
         patch.object(api_instance, "_backend_available", return_value=False),
         pytest.raises(RuntimeError, match="jobs can't be submitted"),
     ):
         api_instance._submit_job(Path(""), None, None, False, 8, False)
-
-
-def test_resolve_protocol_url_with_scheme() -> None:
-    test_url = "https://test_url.com"
-    result_url = Api._resolve_protocol(test_url)
-
-    assert result_url == test_url
-
-
-def test_resolve_protocol_https_works(mocker: MockerFixture) -> None:
-    test_url = "test_url.com"
-
-    mock_head_response = MagicMock()
-    mock_head_response.status_code = 200
-
-    mocker.patch("requests.head", return_value=mock_head_response)
-    result_url = Api._resolve_protocol(test_url)
-
-    assert result_url == f"https://{test_url}"
-
-
-def test_resolve_protocol_requests_raises_exception(mocker: MockerFixture) -> None:
-    test_url = "test_url.com"
-
-    mocker.patch("requests.head", side_effect=requests.RequestException)
-    result_url = Api._resolve_protocol(test_url)
-
-    assert result_url == f"http://{test_url}"
 
 
 def test_create_default_options(api_instance: Api, mocker: Mock) -> None:

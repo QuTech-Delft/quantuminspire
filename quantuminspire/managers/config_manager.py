@@ -130,6 +130,8 @@ class ConfigManager:
         Raises:
             ValueError: If the key is not a valid configurable setting.
         """
+        if key == "host":
+            return self.user_settings.get_host()
         if key not in self._configurable_keys:
             raise ValueError(f"Key '{key}' is invalid")
         _, value = self._get_source_and_value(key)

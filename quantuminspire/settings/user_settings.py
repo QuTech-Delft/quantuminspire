@@ -57,6 +57,10 @@ class UserSettings(BaseConfigSettings):
     def validate_host(cls, value: str) -> str:
         return cls._resolve_protocol(value)
 
+    def get_host(self) -> Url:
+        """Environment variable overrides the default host from user settings."""
+        return DevOverrides().dev_host or self.default_host
+
     @staticmethod
     def _resolve_protocol(url: str) -> str:
         """Add 'https://' protocol to the URL if not already present.
