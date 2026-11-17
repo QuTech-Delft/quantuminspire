@@ -9,14 +9,17 @@ from compute_api_client.exceptions import ForbiddenException
 from qi2_shared.settings import Url
 from qi2_shared.utils import run_async
 
-from quantuminspire.settings.user_settings import AuthSettings, TokenInfo, UserSettings
+from quantuminspire.settings.user_settings import AuthSettings, DevOverrides, TokenInfo, UserSettings
 from quantuminspire.utils.authentication import OauthDeviceSession
 
 
 class AuthManager:
-
     def __init__(self, user_settings: UserSettings) -> None:
         self._user_settings = user_settings
+
+    def get_host(self) -> Url:
+        """Environment variable overrides the default host from user settings."""
+        return DevOverrides().dev_host or self._user_settings.default_host
 
     def _is_authenticated(self, host: Url) -> bool:
         """Check whether the user is authenticated for the given host.
