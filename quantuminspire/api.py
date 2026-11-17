@@ -22,7 +22,6 @@ from quantuminspire.managers.auth_manager import AuthManager
 from quantuminspire.managers.config_manager import ConfigManager
 from quantuminspire.managers.resource_manager import CompileOptions, JobOptions, ResourceManager
 from quantuminspire.settings.models import AlgorithmName, LocalAlgorithm
-from quantuminspire.settings.user_settings import UserSettings
 
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -46,10 +45,10 @@ class Api:
 
         @wraps(fn)
         def wrapped(self: "Api", *args: P.args, **kwargs: P.kwargs) -> R:
-            hostname = self._config_manager.get("default_host")
+            hostname = self._config_manager.get("host")
 
             if self._login_required(hostname):
-                self.login(hostname)
+                self.login()
 
             return fn(self, *args, **kwargs)
 
@@ -79,10 +78,9 @@ class Api:
             override_auth_config: Whether to override existing authentication configuration.
             force: Force a new login even if already logged in.
         """
-        resolved_host = self._auth_manager.get_host()
+        resolved_host = self._config_manager.get("host")
 
-        default_host = str(UserSettings.model_fields["default_host"].default)
-        if str(resolved_host).rstrip("/") != default_host.rstrip("/"):
+        if resolved_host.rstrip("/") != self._config_manager.get("default_host").rstrip("/"):
             print(f"Using non-production host: {resolved_host}")
 
         try:
@@ -94,7 +92,6 @@ class Api:
         except Exception:
             print(f"Login to {resolved_host} failed.")
             raise
-
 
     def _login_required(self, host: Url) -> bool:
         """Check whether a login is required for the given host.
@@ -109,7 +106,7 @@ class Api:
 
     def logout(self) -> None:
         """Log out of the Quantum Inspire platform by clearing stored tokens."""
-        resolved_host = self._auth_manager.get_host()
+        resolved_host = self._config_manager.get("host")
         self._auth_manager.logout(resolved_host)
         print(f"Successfully logged out from {resolved_host}.")
 
@@ -220,7 +217,7 @@ class Api:
         else:
             options = self._get_compile_options(algorithm_name, compile_stage, backend_type_id, file_path)
 
-        host = self._config_manager.get("default_host")
+        host = self._config_manager.get("host")
         owner_id = self._config_manager.user_settings.auths[host].owner_id
         self._resource_manager.run_compile_file_flow(CompileOptions(**options), owner_id)
 
@@ -396,7 +393,7 @@ class Api:
         if not self._backend_available(options["backend_type_id"]):
             raise RuntimeError(f"Backendtype ID {options['backend_type_id']} is not available, jobs can't be submitted")
 
-        host = self._config_manager.get("default_host")
+        host = self._config_manager.get("host")
         owner_id = self._config_manager.user_settings.auths[host].owner_id
         job_options = self._resource_manager.run_job_submission_flow(JobOptions(**options), owner_id)
 
@@ -657,7 +654,7 @@ class Api:
         Returns:
             The created Project object.
         """
-        host = self.get_setting("default_host")
+        host = self._config_manager.get("host")
         owner_id = self._config_manager.user_settings.auths[host].owner_id
         return self._resource_manager.create_project(owner_id, project_name, cast(str, project_description))
 
@@ -831,4 +828,3 @@ class Api:
             The override value if provided, otherwise the configuration setting value.
         """
         return override if override is not None else self._config_manager.get(key)
-
