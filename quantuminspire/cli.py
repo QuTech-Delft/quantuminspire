@@ -228,15 +228,12 @@ def main() -> None:
 
 @app.command("login")
 def login(
-    host: Optional[str] = typer.Option(
-        None, "--host", envvar="QI_HOST", hidden=True, help="Option for developers to specify the host to log in to."
-    ),
     override_auth_config: bool = typer.Option(False, help="Whether to override existing authentication configuration."),
     force: bool = typer.Option(False, help="Force a new login even if already logged in."),
 ) -> None:
     """Authenticate to Quantum Inspire."""
     api = Api()
-    api.login(host, override_auth_config, force)
+    api.login(override_auth_config, force)
 
 
 @app.command("logout")
