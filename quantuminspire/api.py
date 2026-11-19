@@ -510,10 +510,11 @@ class Api:
         if job_ids is None:
             job_ids = [job.id for job in self.get_jobs(status=JobStatus.PLANNED)]
 
-        self._resource_manager.cancel_planned_jobs(job_ids=job_ids)
-        for job_id in job_ids:
-            print(f"Cancelled job {job_id}")
-        print(f"{len(job_ids)} jobs cancelled successfully.")
+        cancelled_job_ids = self._resource_manager.cancel_planned_jobs(job_ids=job_ids)
+        if cancelled_job_ids:
+            for job_id in cancelled_job_ids:
+                print(f"Cancelled job {job_id}")
+            print(f"{len(cancelled_job_ids)} jobs cancelled successfully.")
 
     @_refresh_auth_tokens
     def get_job_logs(
