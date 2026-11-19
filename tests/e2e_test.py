@@ -97,6 +97,7 @@ def test_execute_algorithm_persist_flow(api: Api, quantum_circuit_file_path: Pat
             shutil.rmtree(project_config_dir)
 
 
+@pytest.mark.skip(reason="Temporarily disable due to restricted access to logs")
 def test_get_logs(backend_type: BackendType, api: Api) -> None:
 
     hybrid_file = Path(__file__).parent / "data_files/hqca_circuit.py"
