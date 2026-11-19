@@ -678,10 +678,8 @@ def _output_final_result(final_result: FinalResult | None, identifier: str, save
             file_name = f"{datetime_string}_{identifier}_job_final_result.json"
             file_path = Path.cwd() / file_name
 
-            typer.echo(
-                f"{typer.style('Saving final result to', fg=typer.colors.BLUE)} \
-                '{typer.style(str(file_path), fg=typer.colors.GREEN)}'"
-            )
+            typer.echo(f"{typer.style('Saving final result to', fg=typer.colors.BLUE)} \
+                '{typer.style(str(file_path), fg=typer.colors.GREEN)}'")
 
             with open(file_path, "w") as f:
                 f.write(final_result.model_dump_json(indent=4))
@@ -702,10 +700,8 @@ def _output_results(results: list[Result], identifier: str, save: Optional[bool]
         file_name = f"{datetime_string}_{identifier}_job_results.json"
         file_path = Path.cwd() / file_name
 
-        typer.echo(
-            f"{typer.style('Saving results to', fg=typer.colors.BLUE)} \
-            '{typer.style(str(file_path), fg=typer.colors.GREEN)}'"
-        )
+        typer.echo(f"{typer.style('Saving results to', fg=typer.colors.BLUE)} \
+            '{typer.style(str(file_path), fg=typer.colors.GREEN)}'")
 
         with open(file_path, "w") as f:
             if not results:
