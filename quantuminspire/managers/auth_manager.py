@@ -93,13 +93,13 @@ class AuthManager:
             "Opening login page. "
             "If the web page does not open automatically, please open: "
             f"{login_url} in your browser. "
-            f"If promped to verify a code, please confirm it is as follows: {login_info['user_code']}"
+            f"If prompted to verify a code, please confirm it is as follows: {login_info['user_code']}"
         )
-        print(message)
+        print(message, flush=True)
         webbrowser.open(login_info["verification_uri_complete"], new=2)
         tokens = auth_session.poll_for_tokens()
         self._store_tokens(host, tokens)
-        print(f"Login successful! Using member ID {host_auth_settings.team_member_id}")
+        print(f"Login successful! Using member ID {host_auth_settings.team_member_id}", flush=True)
 
     async def _fetch_auth_settings(self, host: Url) -> None:
         """Fetch suggested auth settings for host."""
