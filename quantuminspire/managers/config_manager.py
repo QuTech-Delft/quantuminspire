@@ -130,6 +130,8 @@ class ConfigManager:
         Raises:
             ValueError: If the key is not a valid configurable setting.
         """
+        if key == "host":
+            return self.user_settings.get_host()
         if key not in self._configurable_keys:
             raise ValueError(f"Key '{key}' is invalid")
         _, value = self._get_source_and_value(key)
@@ -173,7 +175,7 @@ class ConfigManager:
                 target_setting is self._project_settings and is_user
             ):
                 raise ValueError(
-                    f"Scope mismatch for '{key}'. Expected: 'is_user={not is_user}', " f"Provided 'is_user={is_user}'."
+                    f"Scope mismatch for '{key}'. Expected: 'is_user={not is_user}', Provided 'is_user={is_user}'."
                 )
 
         assert target_setting is not None

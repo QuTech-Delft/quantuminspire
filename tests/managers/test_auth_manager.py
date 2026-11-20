@@ -8,6 +8,7 @@ import jwt
 import pytest
 from compute_api_client import Member, Role
 from compute_api_client.exceptions import ForbiddenException
+from pytest import MonkeyPatch
 from pytest_mock import MockerFixture
 
 from quantuminspire.managers.auth_manager import AuthManager
@@ -40,6 +41,13 @@ def oauth_session(mocker: MockerFixture) -> MagicMock:
 def auth_manager(user_settings: DummyUserSettings) -> AuthManager:
     instance = AuthManager(user_settings=user_settings)
     return instance
+
+
+@pytest.fixture(autouse=True)
+def clean_env(monkeypatch: MonkeyPatch) -> None:
+    # make sure a dev's shell doesn't leak into the tests
+    monkeypatch.delenv("QI2_DEV_HOST", raising=False)
+    monkeypatch.delenv("QI2_DEFAULT_HOST", raising=False)
 
 
 def test_refresh_tokens(auth_manager: AuthManager, oauth_session: MagicMock, mocker: MockerFixture) -> None:
@@ -100,7 +108,6 @@ def test_login_required(auth_manager: AuthManager, mocker: MockerFixture, is_aut
 def test_login(
     auth_manager: AuthManager, oauth_session: MagicMock, mocker: MockerFixture, override_auth_config: bool
 ) -> None:
-
     host = "http://example.com"
     auth_manager._user_settings.auths[host] = MagicMock(team_member_id=2)
     fetch_auth = mocker.patch.object(auth_manager, "_fetch_auth_settings", return_value=AsyncMock())
@@ -129,7 +136,6 @@ def test_login(
 
 
 async def test_fetch_auth_settings(auth_manager: AuthManager, mocker: MockerFixture) -> None:
-
     # Arrange
     client_id = "test_client_id"
     audience = "test_audience"
@@ -158,7 +164,6 @@ async def test_fetch_auth_settings(auth_manager: AuthManager, mocker: MockerFixt
 
 
 async def test_wait_until_token_becomes_valid(auth_manager: AuthManager) -> None:
-
     secret_key = "some_secret_key"
 
     current_time = int(time.time())
