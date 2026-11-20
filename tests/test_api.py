@@ -120,25 +120,25 @@ def test_refresh_auth_tokens_login_not_required(
     mock_auth_manager.login.assert_not_called()
 
 
-def test_init_api_with_host(mocker: MockerFixture) -> None:
-    # Arrange
+def test_init_api_creates_default_managers(mocker: MockerFixture) -> None:
     mock_user_settings = MagicMock()
-    mock_user_settings._resolve_protocol.return_value = TEST_HOST
     mock_config_manager_instance = MagicMock(spec=ConfigManager)
     mock_config_manager_instance.user_settings = mock_user_settings
 
     mock_config_manager_cls = mocker.patch(
         "quantuminspire.api.ConfigManager", return_value=mock_config_manager_instance
     )
-    mocker.patch("quantuminspire.api.AuthManager")
-    mocker.patch("quantuminspire.api.ResourceManager")
+    mock_auth_manager_cls = mocker.patch("quantuminspire.api.AuthManager")
+    mock_resource_manager_cls = mocker.patch("quantuminspire.api.ResourceManager")
 
-    # Act
-    Api()
+    api = Api()
 
-    # Assert
-    mock_config_manager_cls.assert_called_once()
-    mock_user_settings._resolve_protocol.assert_called_with(TEST_HOST)
+    mock_config_manager_cls.assert_called_once_with()
+    mock_auth_manager_cls.assert_called_once_with(user_settings=mock_user_settings)
+    mock_resource_manager_cls.assert_called_once_with()
+    assert api._config_manager is mock_config_manager_instance
+    assert api._auth_manager is mock_auth_manager_cls.return_value
+    assert api._resource_manager is mock_resource_manager_cls.return_value
 
 
 def test_login_force(api_instance: Api, mock_auth_manager: Mock) -> None:
@@ -1104,6 +1104,7 @@ def test_view_settings(api_instance: Api) -> None:
 def test_get_setting(api_instance: Api, mock_config_manager: Mock) -> None:
     # Arrange
     key = "project.id"
+    mock_config_manager.get.side_effect = None
 
     # Act
     api_instance.get_setting(key)
