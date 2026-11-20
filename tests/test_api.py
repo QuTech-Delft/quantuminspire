@@ -194,6 +194,17 @@ def test_login_warn_when_using_not_default_host(
     assert f"Using non-production host: {TEST_HOST}" in captured.out
 
 
+def test_login_fails(api_instance: Api, mock_auth_manager: Mock, capsys: pytest.CaptureFixture[str]) -> None:
+    mock_auth_manager.login_required.return_value = True
+    mock_auth_manager.login.side_effect = Exception("Login failed")
+
+    with pytest.raises(Exception, match="Login failed"):
+        api_instance.login()
+
+    captured = capsys.readouterr()
+    assert f"Login to {TEST_HOST} failed." in captured.out
+
+
 def test_logout(
     api_instance: Api, mock_config_manager: Mock, mock_auth_manager: Mock, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -1664,3 +1675,24 @@ def test_resolve_algorithm_setting_without_override(api_instance: Api, mock_conf
     # Assert
     assert result == default_value
     mock_config_manager.get.assert_called_with("project.algorithms")
+
+
+def test_resolve_with_override(api_instance: Api, mock_config_manager: Mock) -> None:
+    override = 42
+
+    result = api_instance._resolve(override, "project.id")
+
+    assert result == override
+    mock_config_manager.get.assert_not_called()
+
+
+def test_resolve_without_override(api_instance: Api, mock_config_manager: Mock) -> None:
+    key = "project.id"
+    configured_value = 10
+    mock_config_manager.get.side_effect = None
+    mock_config_manager.get.return_value = configured_value
+
+    result = api_instance._resolve(None, key)
+
+    assert result == configured_value
+    mock_config_manager.get.assert_called_once_with(key)
