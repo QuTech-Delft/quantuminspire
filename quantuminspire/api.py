@@ -82,7 +82,6 @@ class Api:
 
         if resolved_host.rstrip("/") != self._config_manager.get("default_host").rstrip("/"):
             print(f"Using non-production host: {resolved_host}")
-        print(f"Logging in to {resolved_host}...")
 
         try:
             if force or self._login_required(resolved_host):
