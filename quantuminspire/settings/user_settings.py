@@ -69,7 +69,8 @@ class UserSettings(BaseConfigSettings):
             url: The URL to resolve.
 
         Returns:
-            The URL prefixed with 'https://' if the host is reachable via HTTPS, otherwise prefixed with 'http://'.
+            The URL prefixed with 'https://' if the host is reachable via HTTPS,
+            otherwise prefixed with 'http://'.
         """
         parsed = urlparse(url)
 
@@ -107,7 +108,10 @@ class UserSettings(BaseConfigSettings):
 
 
 class DevOverrides(BaseSettings):
-    """Developer-only runtime overrides. Read from the environment, never persisted."""
+    """Developer-only runtime overrides.
+
+    Read from the environment, never persisted.
+    """
 
     model_config = SettingsConfigDict(env_prefix="QI2_")
 
