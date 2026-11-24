@@ -49,12 +49,12 @@ class AuthSettings(BaseModel):
 
 
 class UserSettings(BaseConfigSettings):
-    default_host: Url = Field("https://api.quantum-inspire.com")
+    default_host: Url = Field("https://api.quantum-inspire.com", validate_default=True)
     auths: Dict[Url, AuthSettings]
 
     @field_validator("default_host", mode="before")
     @classmethod
-    def validate_host(cls, value: str) -> str:
+    def validate_host(cls, value: str) -> Url:
         return cls._resolve_protocol(value)
 
     def get_host(self) -> Url:
@@ -62,7 +62,7 @@ class UserSettings(BaseConfigSettings):
         return DevOverrides().dev_host or self.default_host
 
     @staticmethod
-    def _resolve_protocol(url: str) -> str:
+    def _resolve_protocol(url: str) -> Url:
         """Add 'https://' protocol to the URL if not already present.
 
         Args:
@@ -119,7 +119,7 @@ class DevOverrides(BaseSettings):
 
     @field_validator("dev_host", mode="before")
     @classmethod
-    def _resolve_dev_host(cls, value: str | None) -> str | None:
+    def _resolve_dev_host(cls, value: str | None) -> Url | None:
         if value is None:
             return None
         return UserSettings.validate_host(value)
