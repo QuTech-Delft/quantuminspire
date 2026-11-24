@@ -22,6 +22,11 @@ def mock_api() -> Generator[MagicMock, Any, None]:
         yield api
 
 
+@pytest.fixture(autouse=True)
+def clear_qi_host(monkeypatch: MonkeyPatch) -> None:
+    monkeypatch.delenv("QI2_DEV_HOST", raising=False)
+
+
 # ---------------------------------------------------------------------------
 # Login / Logout
 # ---------------------------------------------------------------------------
@@ -31,35 +36,56 @@ def test_login(mock_api: MagicMock) -> None:
     result = runner.invoke(app, ["login"])
 
     assert result.exit_code == 0, repr(result.exception)
-    mock_api.login.assert_called_once_with(None, False, False)
-
-
-def test_login_with_host(mock_api: MagicMock) -> None:
-    result = runner.invoke(app, ["login", "https://host"])
-
-    assert result.exit_code == 0, repr(result.exception)
-    mock_api.login.assert_called_once_with("https://host", False, False)
+    mock_api.login.assert_called_once_with(False, False)
 
 
 def test_login_with_override_auth_config(mock_api: MagicMock) -> None:
     result = runner.invoke(app, ["login", "--override-auth-config"])
 
     assert result.exit_code == 0, repr(result.exception)
-    mock_api.login.assert_called_once_with(None, True, False)
+    mock_api.login.assert_called_once_with(True, False)
 
 
 def test_login_with_force(mock_api: MagicMock) -> None:
     result = runner.invoke(app, ["login", "--force"])
 
     assert result.exit_code == 0, repr(result.exception)
-    mock_api.login.assert_called_once_with(None, False, True)
+    mock_api.login.assert_called_once_with(False, True)
+
+
+def test_login_host_option_hidden_from_help() -> None:
+    result = runner.invoke(app, ["login", "--help"])
+
+    assert result.exit_code == 0
+    assert "--host" not in result.stdout
+    assert "QI2_DEV_HOST" not in result.stdout
+
+
+def test_login_rejects_host_parameter(mock_api: MagicMock) -> None:
+    result = runner.invoke(app, ["login", "--host", "https://host"])
+
+    assert result.exit_code != 0
+    mock_api.login.assert_not_called()
+
+
+def test_login_rejects_positional_host(mock_api: MagicMock) -> None:
+    result = runner.invoke(app, ["login", "https://host"])
+
+    assert result.exit_code != 0
+    mock_api.login.assert_not_called()
+
+
+def test_logout_rejects_positional_host(mock_api: MagicMock) -> None:
+    result = runner.invoke(app, ["logout", "https://host"])
+
+    assert result.exit_code != 0
+    mock_api.logout.assert_not_called()
 
 
 def test_logout(mock_api: MagicMock) -> None:
-    host = "https://host"
-    result = runner.invoke(app, ["logout", host])
+    result = runner.invoke(app, ["logout"])
     assert result.exit_code == 0, repr(result.exception)
-    mock_api.logout.assert_called_once_with(host)
+    mock_api.logout.assert_called_once_with()
 
 
 # ---------------------------------------------------------------------------
@@ -167,10 +193,10 @@ def test_delete_all_projects(mock_api: MagicMock) -> None:
 
 
 def test_delete_projects_abort(mock_api: MagicMock) -> None:
-    result = runner.invoke(app, ["projects", "delete", "1"], input="n\n")
+    result = runner.invoke(app, ["projects", "delete", "1"], input="N\n")
 
     assert result.exit_code != 0
-    assert "Aborted" in result.stdout
+    assert "Aborted" in result.output
     mock_api.delete_projects.assert_not_called()
 
 
@@ -760,7 +786,6 @@ def test_get_final_result_requires_id() -> None:
 
 
 def test_get_job_logs(mock_api: MagicMock) -> None:
-
     mock_api.get_job_logs.return_value = ["log 1"]
 
     runner.invoke(app, ["jobs", "logs", "789"])
@@ -823,7 +848,7 @@ def test_cancel_jobs_abort(mock_api: MagicMock) -> None:
     result = runner.invoke(app, ["jobs", "cancel", "1"], input="n\n")
 
     assert result.exit_code != 0
-    assert "Aborted" in result.stdout
+    assert "Aborted" in result.output
     mock_api.cancel_planned_jobs.assert_not_called()
 
 

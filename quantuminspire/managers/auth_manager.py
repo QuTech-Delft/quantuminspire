@@ -14,7 +14,6 @@ from quantuminspire.utils.authentication import OauthDeviceSession
 
 
 class AuthManager:
-
     def __init__(self, user_settings: UserSettings) -> None:
         self._user_settings = user_settings
 

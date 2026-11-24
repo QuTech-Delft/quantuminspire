@@ -1,8 +1,11 @@
 import time
 from pathlib import Path
 from typing import Any, Dict, Optional
+from urllib.parse import urlparse
 
-from pydantic import BaseModel, Field
+import requests
+from pydantic import BaseModel, Field, field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from qi2_shared.settings import Url
 
 from quantuminspire.settings.base_settings import BaseConfigSettings
@@ -46,9 +49,46 @@ class AuthSettings(BaseModel):
 
 
 class UserSettings(BaseConfigSettings):
-
-    default_host: Url = Field("https://api.quantum-inspire.com")
+    default_host: Url = Field("https://api.quantum-inspire.com", validate_default=True)
     auths: Dict[Url, AuthSettings]
+
+    @field_validator("default_host", mode="before")
+    @classmethod
+    def validate_host(cls, value: str) -> Url:
+        return cls._resolve_protocol(value)
+
+    def get_host(self) -> Url:
+        """Environment variable overrides the default host from user settings."""
+        return DevOverrides().dev_host or self.default_host
+
+    @staticmethod
+    def _resolve_protocol(url: str) -> Url:
+        """Add 'https://' protocol to the URL if not already present.
+
+        Args:
+            url: The URL to resolve.
+
+        Returns:
+            The URL prefixed with 'https://' if the host is reachable via HTTPS,
+            otherwise prefixed with 'http://'.
+        """
+        parsed = urlparse(url)
+
+        if parsed.scheme and parsed.netloc:
+            return url
+
+        # specific case to sidestep poinless probing of localhost with requests
+        hostname = urlparse(f"//{url}").hostname
+        if hostname in ["localhost", "127.0.0.1", "::1"]:
+            return f"http://{url}"
+
+        try:
+            _ = requests.head(f"https://{url}", timeout=3, allow_redirects=True)
+            return f"https://{url}"
+        except requests.RequestException:
+            pass
+
+        return f"http://{url}"
 
     @classmethod
     def base_dir(cls) -> Path:
@@ -65,3 +105,21 @@ class UserSettings(BaseConfigSettings):
     @property
     def default_auth_settings(self) -> AuthSettings:
         return self.auths[self.default_host]
+
+
+class DevOverrides(BaseSettings):
+    """Developer-only runtime overrides.
+
+    Read from the environment, never persisted.
+    """
+
+    model_config = SettingsConfigDict(env_prefix="QI2_")
+
+    dev_host: Optional[Url] = None  # env var: QI2_DEV_HOST
+
+    @field_validator("dev_host", mode="before")
+    @classmethod
+    def _resolve_dev_host(cls, value: str | None) -> Url | None:
+        if value is None:
+            return None
+        return UserSettings.validate_host(value)

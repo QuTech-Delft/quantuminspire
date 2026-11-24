@@ -3,9 +3,7 @@ from datetime import datetime
 from functools import wraps
 from pathlib import Path
 from typing import Any, Concatenate, Dict, List, Optional, ParamSpec, TypeVar, cast
-from urllib.parse import urlparse
 
-import requests
 from compute_api_client import (
     BackendStatus,
     BackendType,
@@ -47,10 +45,10 @@ class Api:
 
         @wraps(fn)
         def wrapped(self: "Api", *args: P.args, **kwargs: P.kwargs) -> R:
-            hostname = self._config_manager.get("default_host")
+            hostname = self._config_manager.get("host")
 
             if self._login_required(hostname):
-                self.login(hostname)
+                self.login()
 
             return fn(self, *args, **kwargs)
 
@@ -61,7 +59,6 @@ class Api:
         config_manager: Optional[ConfigManager] = None,
         auth_manager: Optional[AuthManager] = None,
         resource_manager: Optional[ResourceManager] = None,
-        host: Optional[str] = None,
     ) -> None:
         """Initialize the Api instance.
 
@@ -69,37 +66,32 @@ class Api:
             config_manager: Manager for configuration settings. Uses default if not provided.
             auth_manager: Manager for authentication. Uses default if not provided.
             resource_manager: Manager for job operations. Uses default if not provided.
-            host: The host URL to connect to. Overrides the configured default host if provided.
         """
         self._config_manager = config_manager or ConfigManager()
-
-        if host is not None:
-            host_url = TypeAdapter(Url).validate_python(self._resolve_protocol(host))
-            self._config_manager.set("default_host", host_url, is_user=True)
-
         self._auth_manager = auth_manager or AuthManager(user_settings=self._config_manager.user_settings)
         self._resource_manager = resource_manager or ResourceManager()
 
-    def login(self, hostname: Optional[str] = None, override_auth_config: bool = False, force: bool = False) -> None:
+    def login(self, override_auth_config: bool = False, force: bool = False) -> None:
         """Log in to the Quantum Inspire platform.
 
         Args:
-            hostname: The host URL to log in to. Uses the configured default if not provided.
             override_auth_config: Whether to override existing authentication configuration.
             force: Force a new login even if already logged in.
         """
-        host_url: Optional[Url] = None
-        if hostname is not None:
-            host_url = TypeAdapter(Url).validate_python(self._resolve_protocol(hostname))
+        resolved_host = self._config_manager.get("host")
 
-        resolved_host = self._resolve(host_url, "default_host")
+        if resolved_host.rstrip("/") != self._config_manager.get("default_host").rstrip("/"):
+            print(f"Using non-production host: {resolved_host}")
 
-        if force or self._login_required(resolved_host):
-            self._auth_manager.login(resolved_host, override_auth_config)
-            self.set_setting("default_host", resolved_host, is_user=True)
-        else:
-            print("Already logged in, simply refreshing tokens")
-            self._auth_manager.refresh_tokens(resolved_host)
+        try:
+            if force or self._login_required(resolved_host):
+                self._auth_manager.login(resolved_host, override_auth_config)
+            else:
+                print("Already logged in, simply refreshing tokens.")
+                self._auth_manager.refresh_tokens(resolved_host)
+        except Exception:
+            print(f"Login to {resolved_host} failed.")
+            raise
 
     def _login_required(self, host: Url) -> bool:
         """Check whether a login is required for the given host.
@@ -112,19 +104,11 @@ class Api:
         """
         return self._auth_manager.login_required(host)
 
-    def logout(self, hostname: Optional[str] = None) -> None:
-        """Log out of the Quantum Inspire platform by clearing stored tokens.
-
-        Args:
-            hostname: The host URL to log out from. Uses the configured default if not provided.
-        """
-        host_url: Optional[Url] = None
-        if hostname is not None:
-            host_url = TypeAdapter(Url).validate_python(self._resolve_protocol(hostname))
-
-        resolved_host = self._resolve(host_url, "default_host")
+    def logout(self) -> None:
+        """Log out of the Quantum Inspire platform by clearing stored tokens."""
+        resolved_host = self._config_manager.get("host")
         self._auth_manager.logout(resolved_host)
-        print(f"Successfully logged out from {resolved_host}")
+        print(f"Successfully logged out from {resolved_host}.")
 
     @_refresh_auth_tokens
     def execute_algorithm(
@@ -233,7 +217,7 @@ class Api:
         else:
             options = self._get_compile_options(algorithm_name, compile_stage, backend_type_id, file_path)
 
-        host = self._config_manager.get("default_host")
+        host = self._config_manager.get("host")
         owner_id = self._config_manager.user_settings.auths[host].owner_id
         self._resource_manager.run_compile_file_flow(CompileOptions(**options), owner_id)
 
@@ -409,7 +393,7 @@ class Api:
         if not self._backend_available(options["backend_type_id"]):
             raise RuntimeError(f"Backendtype ID {options['backend_type_id']} is not available, jobs can't be submitted")
 
-        host = self._config_manager.get("default_host")
+        host = self._config_manager.get("host")
         owner_id = self._config_manager.user_settings.auths[host].owner_id
         job_options = self._resource_manager.run_job_submission_flow(JobOptions(**options), owner_id)
 
@@ -670,7 +654,7 @@ class Api:
         Returns:
             The created Project object.
         """
-        host = self.get_setting("default_host")
+        host = self._config_manager.get("host")
         owner_id = self._config_manager.user_settings.auths[host].owner_id
         return self._resource_manager.create_project(owner_id, project_name, cast(str, project_description))
 
@@ -844,26 +828,3 @@ class Api:
             The override value if provided, otherwise the configuration setting value.
         """
         return override if override is not None else self._config_manager.get(key)
-
-    @staticmethod
-    def _resolve_protocol(url: str) -> str:
-        """Add 'https://' protocol to the URL if not already present.
-
-        Args:
-            url: The URL to resolve.
-
-        Returns:
-            The URL prefixed with 'https://' if the host is reachable via HTTPS, otherwise prefixed with 'http://'.
-        """
-        parsed = urlparse(url)
-
-        if parsed.scheme:
-            return url
-
-        try:
-            _ = requests.head(f"https://{url}", timeout=3, allow_redirects=True)
-            return f"https://{url}"
-        except requests.RequestException:
-            pass
-
-        return f"http://{url}"
